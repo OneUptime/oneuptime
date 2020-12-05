@@ -100,7 +100,7 @@ class ErrorEventTimeline extends Component {
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{
                                             height: '1px',
-                                            maxWidth: '48px',
+                                            minWidth: '50px',
                                         }}
                                     >
                                         <div
@@ -132,7 +132,7 @@ class ErrorEventTimeline extends Component {
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{
                                             height: '1px',
-                                            maxWidth: '48px',
+                                            minWidth: '60px',
                                         }}
                                     >
                                         <div
@@ -148,7 +148,7 @@ class ErrorEventTimeline extends Component {
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{
                                             height: '1px',
-                                            maxWidth: '48px',
+                                            minWidth: '60px',
                                         }}
                                     >
                                         <div

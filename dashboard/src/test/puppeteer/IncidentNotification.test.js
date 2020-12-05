@@ -49,8 +49,8 @@ describe('Incident Created test', () => {
         await cluster.close();
     });
 
-    test(
-        'Should show a pop up when an incident is created',
+    it(
+        'it should not show the close all button when no resolve incident',
         async () => {
             const projectName = 'Project1';
             const componentName = 'HomePage';
@@ -76,6 +76,65 @@ describe('Incident Created test', () => {
                     componentName
                 );
                 await init.addIncident(monitorName, 'Degraded', page, 'Low');
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('button[id=viewIncident-0]');
+                await page.$eval('button[id=viewIncident-0]', e => e.click());
+                await page.waitForSelector('#btnAcknowledge_0');
+                await page.$eval('#btnAcknowledge_0', e => e.click());
+                await page.goto(utils.DASHBOARD_URL);
+                const closeAllButton = await page.waitForSelector(
+                    '#incidents-close-all-btn',
+                    { hidden: true }
+                );
+                expect(closeAllButton).toBe(null);
+            });
+        },
+        operationTimeOut
+    );
+    it(
+        'it should show close all incident button on the homepage when any there are resolved incidents',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#btnResolve_0');
+                await page.$eval('#btnResolve_0', e => e.click());
+                await page.waitForSelector('#ResolveText_0', { visible: true });
+                const closeAllButton = await page.waitForSelector(
+                    '#incidents-close-all-btn',
+                    { visible: true }
+                );
+                expect(closeAllButton).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+    it(
+        'should close all resolved incident on the homepage',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#incidents-close-all-btn');
+                await page.$eval('#incidents-close-all-btn', elem =>
+                    elem.click()
+                );
+                const closeButton = await page.waitForSelector(
+                    '#closeIncidentButton_0',
+                    {
+                        hidden: true,
+                    }
+                );
+                expect(closeButton).toBeNull();
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should show a pop up when an incident is created',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await init.addIncident(monitorName, 'Degraded', page, 'Low');
+
                 const viewIncidentButton = await page.waitForSelector(
                     'button[id=viewIncident-0]',
                     { visible: true }
@@ -455,7 +514,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
-                expect(filteredIncidentsCount).toEqual(6);
+                expect(filteredIncidentsCount).toEqual(7);
             });
         },
         operationTimeOut
@@ -482,7 +541,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
-                expect(filteredIncidentsCount).toEqual(7);
+                expect(filteredIncidentsCount).toEqual(8);
             });
         },
         operationTimeOut

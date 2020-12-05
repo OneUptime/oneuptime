@@ -1,4 +1,4 @@
-[![npm](https://img.shields.io/npm/v/fyipe-log-js)](https://www.npmjs.com/package/fyipe-log-js)
+[![npm](https://img.shields.io/npm/v/fyipe)](https://www.npmjs.com/package/fyipe)
 
 # Fyipe Application Logger
 
@@ -12,7 +12,7 @@ You can install to use in your project:
 
 ```
 $ cd project
-$ npm install fyipe-log-js
+$ npm install fyipe
 ```
 
 <a name="module_api"></a>
@@ -22,19 +22,14 @@ $ npm install fyipe-log-js
 ### In a Node.js Project
 
 ```javascript
-import { FyipeLogger } from 'fyipe-log-js';
+import { FyipeLogger } from 'fyipe';
 
 // constructor
 
-// set up tracking configurations
-const options = {
-    maxTimeline: 10,
-};
 const logger = new FyipeLogger(
     'API_URL', // https://fyipe.com/api
     'APPLICATION_LOG_ID',
-    'APPLICATION_LOG_KEY',
-    options // Optional Field
+    'APPLICATION_LOG_KEY'
 );
 
 // Sending a string log to the server
@@ -65,7 +60,7 @@ logger.log(item, tag);
 ### In the Browser
 
 ```javascript
-<script src="https://unpkg.com/fyipe-log-js"></script>
+<script src="https://unpkg.com/fyipe"></script>
 <script>
     function logError() {
         // constructor
@@ -91,7 +86,7 @@ logger.log(item, tag);
 ### Error Tracking APIs
 
 ```javascript
-import { FyipeTracker } from 'fyipe-log-js';
+import { FyipeTracker } from 'fyipe';
 
 // constructor
 
@@ -107,7 +102,7 @@ const tracker = new FyipeTracker(
 );
 
 // capturing a timeline manually
-tracker.addTimeline(
+tracker.addToTimeline(
     'payment',
     { account: 'debit', amount: '6000.00', userId: 401 },
     'info'
@@ -157,9 +152,9 @@ Main API to send logs to the server.
             -   [tracker.setTag(key, value)](#trackersettagkey-value)
             -   [tracker.setTags([{key, value}])](#trackersettagskey-value)
             -   [tracker.setFingerprint(fingerprint)](#trackersetfingerprintfingerprint)
-            -   [tracker.addTimeline(category, content, type)](#trackeraddtimelinecategory-content-type)
+            -   [tracker.addToTimeline(category, content, type)](#trackeraddtotimelinecategory-content-type)
             -   [tracker.captureMessage(message)](#trackercapturemessagemessage)
-            -   [tracker.captureExceptio(error)](#trackercaptureexceptioerror)
+            -   [tracker.captureException(error)](#trackercaptureexceptionerror)
     -   [Contribution](#contribution)
 
 <a name="logger_api--logger"></a>
@@ -262,7 +257,7 @@ Set fingerprint for the next error to be captured.
 | ----------- | ---------------------------------------------------- | ------------------------------------------------------------- |
 | fingerprint | <code>string</code> \| <code>array of strings</code> | The set of string used to group error messages on the server. |
 
-#### tracker.addTimeline(category, content, type)
+#### tracker.addToTimeline(category, content, type)
 
 Add a custom timeline element to the next error to be sent to the server
 
@@ -286,7 +281,7 @@ Capture a custom error message to be sent to the server
 | ------- | ------------------- | ------------------------------------- |
 | message | <code>string</code> | The message to be sent to the server. |
 
-#### tracker.captureExceptio(error)
+#### tracker.captureException(error)
 
 Capture a custom error object to be sent to the server
 

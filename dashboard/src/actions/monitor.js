@@ -66,7 +66,9 @@ export function resetFetchMonitors() {
 //props -> {name: '', type, data -> { data.url}}
 export function createMonitor(projectId, values) {
     values.projectId = values.projectId._id || values.projectId;
-    return function(dispatch) {
+    /* eslint-disable no-console */
+    console.log(values);
+    /* return function(dispatch) {
         dispatch(createMonitorRequest());
         const promise = postApi(`monitor/${projectId}`, values);
         promise.then(
@@ -90,8 +92,8 @@ export function createMonitor(projectId, values) {
             }
         );
 
-        return promise;
-    };
+       return promise;
+    };*/ return;
 }
 
 export function toggleEdit(payload) {
@@ -918,3 +920,73 @@ export function selectedProbe(val) {
         });
     };
 }
+
+export const closeBreachedMonitorSlaRequest = () => ({
+    type: types.CLOSE_BREACHED_MONITOR_SLA_REQUEST,
+});
+
+export const closeBreachedMonitorSlaSuccess = payload => ({
+    type: types.CLOSE_BREACHED_MONITOR_SLA_SUCCESS,
+    payload,
+});
+
+export const closeBreachedMonitorSlaFailure = error => ({
+    type: types.CLOSE_BREACHED_MONITOR_SLA_FAILURE,
+    payload: error,
+});
+
+export const closeBreachedMonitorSla = (projectId, slaId) => async dispatch => {
+    try {
+        dispatch(closeBreachedMonitorSlaRequest());
+
+        const response = await postApi(
+            `monitor/${projectId}/closeSla/${slaId}`
+        );
+        dispatch(closeBreachedMonitorSlaSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(closeBreachedMonitorSlaFailure(errorMsg));
+    }
+};
+
+export const fetchBreachedMonitorSlaRequest = () => ({
+    type: types.FETCH_BREACHED_MONITOR_SLA_REQUEST,
+});
+
+export const fetchBreachedMonitorSlaSuccess = payload => ({
+    type: types.FETCH_BREACHED_MONITOR_SLA_SUCCESS,
+    payload,
+});
+
+export const fetchBreachedMonitorSlaFailure = error => ({
+    type: types.FETCH_BREACHED_MONITOR_SLA_FAILURE,
+    payload: error,
+});
+
+export const fetchBreachedMonitorSla = projectId => async dispatch => {
+    try {
+        dispatch(fetchBreachedMonitorSlaRequest());
+
+        const response = await getApi(
+            `monitor/${projectId}/monitorSlaBreaches`
+        );
+        dispatch(fetchBreachedMonitorSlaSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(fetchBreachedMonitorSlaFailure(errorMsg));
+    }
+};

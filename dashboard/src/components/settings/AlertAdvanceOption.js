@@ -16,6 +16,7 @@ import { env } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
+import Tooltip from '../basic/Tooltip';
 
 export class AlertAdvanceOption extends Component {
     state = {
@@ -58,8 +59,9 @@ export class AlertAdvanceOption extends Component {
                     id: MessageBoxId,
                     content: MessageBox,
                     title: 'Message',
-                    message: `Transaction successful, your balance is now ${balance +
-                        creditedBalance}$`,
+                    message: `Transaction successful, your balance is now ${(
+                        balance + creditedBalance
+                    ).toFixed(2)}$`,
                 });
             } else {
                 openModal({
@@ -332,78 +334,273 @@ export class AlertAdvanceOption extends Component {
                                                             to{' '}
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-select-nw"
-                                                                component={
-                                                                    RenderSelect
-                                                                }
-                                                                name="rechargeToBalance"
-                                                                id="rechargeToBalance"
-                                                                validate={
-                                                                    ValidateField.select
-                                                                }
-                                                                options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select amount',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '40',
-                                                                        label:
-                                                                            '$40',
-                                                                        show:
-                                                                            formValues &&
-                                                                            !formValues.billingNonUSCountries &&
-                                                                            (formValues.billingNonUSCountries ||
-                                                                                !formValues.billingRiskCountries),
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '100',
-                                                                        label:
-                                                                            '$100',
-                                                                        show:
-                                                                            formValues &&
-                                                                            (formValues.billingUS ||
-                                                                                !formValues.billingUS ||
-                                                                                formValues.billingNonUSCountries) &&
-                                                                            !formValues.billingRiskCountries,
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '200',
-                                                                        label:
-                                                                            '$200',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '400',
-                                                                        label:
-                                                                            '$400',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '500',
-                                                                        label:
-                                                                            '$500',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '750',
-                                                                        label:
-                                                                            '$750',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '1000',
-                                                                        label:
-                                                                            '$1000',
-                                                                    },
-                                                                ]}
-                                                            />
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="rechargeToBalance"
+                                                                    id="rechargeToBalance"
+                                                                    validate={
+                                                                        ValidateField.select
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select amount',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '40',
+                                                                            label:
+                                                                                '$40',
+                                                                            show:
+                                                                                formValues &&
+                                                                                !formValues.billingNonUSCountries &&
+                                                                                (formValues.billingNonUSCountries ||
+                                                                                    !formValues.billingRiskCountries),
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '100',
+                                                                            label:
+                                                                                '$100',
+                                                                            show:
+                                                                                formValues &&
+                                                                                (formValues.billingUS ||
+                                                                                    !formValues.billingUS ||
+                                                                                    formValues.billingNonUSCountries) &&
+                                                                                !formValues.billingRiskCountries,
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '200',
+                                                                            label:
+                                                                                '$200',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '400',
+                                                                            label:
+                                                                                '$400',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '500',
+                                                                            label:
+                                                                                '$500',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '750',
+                                                                            label:
+                                                                                '$750',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '1000',
+                                                                            label:
+                                                                                '$1000',
+                                                                        },
+                                                                    ]}
+                                                                />
+                                                                <Tooltip title="SMS and Call Alert Charges">
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                            fontSize:
+                                                                                '18px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                SMS
+                                                                                Alert
+                                                                                Charges
+                                                                            </b>
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                US
+                                                                                or
+                                                                                Canadian
+                                                                                Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge:
+                                                                            $0.05/SMS{' '}
+                                                                            <br></br>
+                                                                            Minimum
+                                                                            Account
+                                                                            Balance:
+                                                                            $5{' '}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                Non-US
+                                                                                Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge:
+                                                                            $1/SMS{' '}
+                                                                            <br></br>
+                                                                            Minimum
+                                                                            Account
+                                                                            Balance:
+                                                                            $10{' '}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                High
+                                                                                Risk
+                                                                                Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge:
+                                                                            $1/SMS{' '}
+                                                                            <br></br>
+                                                                            Minimum
+                                                                            Account
+                                                                            Balance:
+                                                                            $20{' '}
+                                                                        </p>
+                                                                    </div>
+                                                                    <br></br>
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                            fontSize:
+                                                                                '18px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                Call
+                                                                                Alert
+                                                                                Charges
+                                                                            </b>
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                US
+                                                                                or
+                                                                                Canadian
+                                                                                Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge:
+                                                                            $1{' '}
+                                                                            <br></br>
+                                                                            Minimum
+                                                                            Account
+                                                                            Balance:
+                                                                            $10{' '}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                Non-US
+                                                                                Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge:
+                                                                            $2{' '}
+                                                                            <br></br>
+                                                                            Minimum
+                                                                            Account
+                                                                            Balance:
+                                                                            $20{' '}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                High
+                                                                                Risk
+                                                                                Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge:
+                                                                            $5{' '}
+                                                                            <br></br>
+                                                                            Minimum
+                                                                            Account
+                                                                            Balance:
+                                                                            $50{' '}
+                                                                        </p>
+                                                                    </div>
+                                                                </Tooltip>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                     <div className="bs-Fieldset-row">

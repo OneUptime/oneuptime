@@ -473,7 +473,7 @@ const mapStateToProps = (state, ownProps) => {
     } else {
         initialValues = {
             content: '',
-            incident_state: '',
+            incident_state: 'update',
             custom_incident_state: '',
         };
     }

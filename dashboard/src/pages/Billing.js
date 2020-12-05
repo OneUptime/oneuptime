@@ -34,9 +34,9 @@ class Billing extends Component {
         const {
             location: { pathname },
             alertEnable,
-            currentProject
+            currentProject,
         } = this.props;
-        
+
         return (
             <Dashboard>
                 <Fade>

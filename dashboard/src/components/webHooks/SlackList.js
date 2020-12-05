@@ -114,7 +114,7 @@ class SlackList extends React.Component {
                                 )}
                                 <WebHookTableHeader
                                     text="Action"
-                                    style={{ textAlign: 'right' }}
+                                    name="webhooklist"
                                 />
                             </tr>
                         </thead>
@@ -125,6 +125,13 @@ class SlackList extends React.Component {
                                         key={`${hook._id}`}
                                         data={hook}
                                         monitorId={monitorId}
+                                        currentMonitorName={
+                                            !monitorId &&
+                                            hook.monitorId &&
+                                            hook.monitorId.componentId
+                                                ? `${hook.monitorId.componentId.name} / ${hook.monitorId.name}`
+                                                : ''
+                                        }
                                     />
                                 ))}
                             </ShouldRender>

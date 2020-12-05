@@ -33,6 +33,8 @@ import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import { fetchCommunicationSlas } from '../actions/incidentCommunicationSla';
+import { fetchMonitorSlas } from '../actions/monitorSla';
 
 class MonitorView extends React.Component {
     // eslint-disable-next-line
@@ -46,6 +48,7 @@ class MonitorView extends React.Component {
     componentWillMount() {
         resetIdCounter();
     }
+
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -86,6 +89,9 @@ class MonitorView extends React.Component {
                     .utc(),
                 moment().utc()
             ); //0 -> skip, 5-> limit.
+
+            this.props.fetchMonitorSlas(subProjectId);
+            this.props.fetchCommunicationSlas(subProjectId);
         }
     }
     tabSelected = index => {
@@ -124,6 +130,14 @@ class MonitorView extends React.Component {
                 .utc(),
             moment().utc()
         ); //0 -> skip, 5-> limit.
+
+        this.props.fetchMonitorSlas(subProjectId);
+        this.props.fetchCommunicationSlas(subProjectId);
+    };
+
+    isDefaultMonitorSlaSet = () => {
+        const { monitorSlas } = this.props;
+        return monitorSlas && monitorSlas.some(sla => sla.isDefault);
     };
 
     render() {
@@ -132,6 +146,7 @@ class MonitorView extends React.Component {
             location: { pathname },
             component,
             monitor,
+            monitorSlas,
         } = this.props;
         const subProjectId = this.props.monitor
             ? this.props.monitor.projectId._id || this.props.monitor.projectId
@@ -141,6 +156,7 @@ class MonitorView extends React.Component {
         const monitorType = monitor && monitor.type ? monitor.type : '';
 
         const componentMonitorsRoute = getParentRoute(pathname);
+        const defaultMonitorSla = monitorSlas.find(sla => sla.isDefault);
 
         return (
             <Dashboard ready={this.ready}>
@@ -187,7 +203,10 @@ class MonitorView extends React.Component {
                                 ></div>
                             </TabList>
                         </div>
-                        {this.props.monitor &&
+                        {!this.props.requestingMonitorSla &&
+                            this.props.monitor &&
+                            (this.props.monitor.monitorSla ||
+                                this.isDefaultMonitorSlaSet()) &&
                             !this.props.monitor.breachedMonitorSla && (
                                 <div
                                     className="Box-root Margin-vertical--12"
@@ -223,9 +242,13 @@ class MonitorView extends React.Component {
                                                         </span>
                                                     ) : (
                                                         <span>
-                                                            This monitor is
-                                                            still compliant with
-                                                            the defined SLA
+                                                            For the past{' '}
+                                                            {
+                                                                defaultMonitorSla.frequency
+                                                            }{' '}
+                                                            days, this monitor
+                                                            has not breached the
+                                                            defined SLA
                                                         </span>
                                                     )}
                                                 </span>
@@ -234,8 +257,11 @@ class MonitorView extends React.Component {
                                     </div>
                                 </div>
                             )}
-                        {this.props.monitor &&
-                            this.props.monitor.breachedMonitorSla && (
+                        {!this.props.requestingMonitorSla &&
+                            this.props.monitor &&
+                            this.props.monitor.breachedMonitorSla &&
+                            (this.props.monitor.monitorSla ||
+                                this.isDefaultMonitorSlaSet()) && (
                                 <div
                                     className="Box-root Margin-vertical--12"
                                     style={{ marginTop: 0 }}
@@ -270,10 +296,13 @@ class MonitorView extends React.Component {
                                                         </span>
                                                     ) : (
                                                         <span>
-                                                            This monitor has
-                                                            breached it&#39;s
-                                                            monitor SLA in the
-                                                            given period of time
+                                                            In the last{' '}
+                                                            {
+                                                                defaultMonitorSla.frequency
+                                                            }{' '}
+                                                            days, the SLA for
+                                                            this monitor was
+                                                            breached
                                                         </span>
                                                     )}
                                                 </span>
@@ -450,7 +479,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'server-monitor')
+                                                                                        'server-monitor' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'incomingHttpRequest')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
@@ -683,6 +717,10 @@ const mapStateToProps = (state, props) => {
         component,
         probeList: state.probe.probes,
         currentProject: state.project.currentProject,
+        requestingIncidentSla:
+            state.incidentSla.incidentCommunicationSlas.requesting,
+        requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
+        monitorSlas: state.monitorSla.monitorSlas.slas,
     };
 };
 
@@ -696,6 +734,8 @@ const mapDispatchToProps = dispatch => {
             getProbes,
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
+            fetchCommunicationSlas,
+            fetchMonitorSlas,
         },
         dispatch
     );
@@ -721,6 +761,11 @@ MonitorView.propTypes = {
     currentProject: PropTypes.object.isRequired,
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchCommunicationSlas: PropTypes.func,
+    fetchMonitorSlas: PropTypes.func,
+    requestingIncidentSla: PropTypes.bool,
+    requestingMonitorSla: PropTypes.bool,
+    monitorSlas: PropTypes.array,
 };
 
 MonitorView.displayName = 'MonitorView';

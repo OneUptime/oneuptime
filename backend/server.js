@@ -113,6 +113,10 @@ app.use('/api', express.static(path.join(__dirname, 'views')));
 app.use(require('./backend/middlewares/auditLogs').log);
 
 // Routes(API)
+app.use(
+    ['/incomingHttpRequest', '/api/incomingHttpRequest'],
+    require('./backend/api/incomingHttpRequest')
+);
 app.use(['/alert', '/api/alert'], require('./backend/api/alert'));
 app.use(['/user', '/api/user'], require('./backend/api/user'));
 app.use(['/token', '/api/token'], require('./backend/api/token'));

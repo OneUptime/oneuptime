@@ -16,6 +16,8 @@ const ContainerSecurityService = require('../services/containerSecurityService')
 const LogService = require('../services/logService');
 const ApplicationSecurityLogService = require('../services/applicationSecurityLogService');
 const ContainerSecurityLogService = require('../services/containerSecurityLogService');
+const ErrorTrackerService = require('../services/errorTrackerService');
+const IssueService = require('../services/issueService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -186,7 +188,7 @@ router.get(
     }
 );
 
-// TODO fetch latest stats related to a particular component
+// fetch latest stats related to a particular component
 router.get(
     '/:projectId/resources/:componentId',
     getUser,
@@ -212,9 +214,8 @@ router.get(
                     message: 'Component not Found',
                 });
             }
-
             const totalResources = [];
-            const limit = req.query.limit || 5;
+            const limit = 1000;
             const skip = req.query.skip || 0;
 
             // fetch monitors
@@ -340,7 +341,62 @@ router.get(
         }
     }
 );
+// get all error event issues related to a componnent
+router.get(
+    '/:projectId/issues/:componentId',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function(req, res) {
+        try {
+            // find the particular component
+            const componentId = req.params.componentId;
+            const type = req.query.type;
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map(project => project._id)
+                : null;
 
+            const query = type
+                ? { _id: componentId, projectId: { $in: subProjectIds }, type }
+                : { _id: componentId, projectId: { $in: subProjectIds } };
+
+            // Get that component
+            const component = await ComponentService.findOneBy(query);
+            if (!component) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Component not Found',
+                });
+            }
+            // get the error trackers attached to it
+            const errorTrackers = await ErrorTrackerService.findBy({
+                componentId: component._id,
+            });
+            let totalIssues = [];
+            // for each of these error tracker, fetch their error event issues
+            await Promise.all(
+                errorTrackers.map(async errorTracker => {
+                    // fetch the issues related to this error tracker
+                    const issues = await IssueService.findBy(
+                        { errorTrackerId: errorTracker._id },
+                        2,
+                        0
+                    );
+
+                    totalIssues = totalIssues.concat(...issues);
+                    return errorTracker;
+                })
+            );
+            // return response
+            return sendItemResponse(req, res, {
+                totalIssues,
+                componentId,
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 router.delete(
     '/:projectId/:componentId',
     getUser,

@@ -136,6 +136,12 @@ module.exports = {
                     if (earliestErrorEvent && latestErrorEvent) {
                         // get total number of events for that hash
                         const totalNumberOfEvents = await this.countBy(query);
+
+                        // we get the memebrs attached to this issue
+                        const members = await IssueMemberService.findBy({
+                            issueId: issue._id,
+                            removed: false,
+                        });
                         // fill in its biodata with the latest error event details
                         const errorEvent = {
                             _id: issue._id,
@@ -149,6 +155,7 @@ module.exports = {
                             latestOccurennce: latestErrorEvent.createdAt,
                             latestId: latestErrorEvent._id,
                             totalNumberOfEvents,
+                            members,
                         };
                         // add it to the list of error events
                         totalErrorEvents.push(errorEvent);
@@ -315,3 +322,4 @@ module.exports = {
 const ErrorEventModel = require('../models/errorEvent');
 const ErrorService = require('./errorService');
 const IssueService = require('./issueService');
+const IssueMemberService = require('./issueMemberService');

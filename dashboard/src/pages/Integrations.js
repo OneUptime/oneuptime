@@ -8,6 +8,8 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import MSTeamsBox from '../components/webHooks/MSTeamsBox';
+import SlackBox from '../components/webHooks/SlackBox';
 
 class Integrations extends Component {
     constructor(props) {
@@ -36,6 +38,8 @@ class Integrations extends Component {
                     <BreadCrumbItem route={pathname} name="Integrations" />
                     {/* <Slack />*/}
                     <WebHookBox />
+                    <MSTeamsBox />
+                    <SlackBox />
                     <ZapierBox />
                 </Fade>
             </Dashboard>

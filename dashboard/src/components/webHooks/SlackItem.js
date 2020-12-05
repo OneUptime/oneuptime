@@ -29,7 +29,7 @@ class SlackItem extends React.Component {
     }
 
     render() {
-        const { data, monitorId, webhooks } = this.props;
+        const { data, monitorId, webhooks, currentMonitorName } = this.props;
         const { endpoint } = data.data;
         let deleting = false;
 
@@ -48,13 +48,34 @@ class SlackItem extends React.Component {
                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <div
                                 className="Box-root"
-                                style={{ width: '200px', overflow: 'hidden' }}
+                                style={{
+                                    width: '300px',
+                                    textOverflow: 'ellipsis',
+                                }}
                             >
                                 <span>{endpoint}</span>
                             </div>
                         </span>
                     </div>
                 </td>
+                {currentMonitorName && (
+                    <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
+                        <div className="db-ListViewItem-cellContent Box-root Padding-vertical--16 Padding-horizontal--8">
+                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                <div
+                                    className="Box-root"
+                                    style={{
+                                        width: '300px',
+                                        textOverflow: 'ellipsis',
+                                        overflow: 'hidden',
+                                    }}
+                                >
+                                    <span>{currentMonitorName}</span>
+                                </div>
+                            </span>
+                        </div>
+                    </td>
+                )}
 
                 <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
                     <div
@@ -136,6 +157,7 @@ SlackItem.propTypes = {
     data: PropTypes.object.isRequired,
     monitorId: PropTypes.string,
     webhooks: PropTypes.object,
+    currentMonitorName: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SlackItem);

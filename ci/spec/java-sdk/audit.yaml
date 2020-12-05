@@ -1,23 +1,26 @@
-## LOG JS
-audit_log-js:
+## JAVA SDK
+audit_java-sdk:
     stage: BuildAndTest
     allow_failure: true
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh audit_log-js log-js`
+        - export next_stage=`./ci/scripts/checkhash.sh audit_java-sdk java-sdk`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-        - sudo apt-get install -y nodejs
-        - cd log-js
-        - npm ci
-        - npm run audit
-        - npm run dep-check
+        - sudo apt-get install -y maven
+        - sudo apt-get remove -y --purge openjdk* java-common default-jdk
+        - sudo apt-get autoremove -y  --purge
+        - sudo apt-get install -y openjdk-8-jdk
+        - sudo apt-get install -y maven
+        - cp -f java-sdk/.m2/settings.xml $HOME/.m2/settings.xml
+        - cd java-sdk
+        - mvn clean
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh audit_log-js log-js
+        - ./ci/scripts/storehash.sh audit_java-sdk java-sdk
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     only:
