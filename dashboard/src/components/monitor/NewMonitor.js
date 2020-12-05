@@ -22,7 +22,7 @@ import {
     fetchMonitorCriteria,
     fetchMonitorsIncidents,
     fetchMonitorsSubscribers,
-    toggleEdit
+    toggleEdit,
 } from '../../actions/monitor';
 import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
@@ -43,10 +43,9 @@ const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
 import { history } from '../../store';
 
-import {
-    fetchCommunicationSlas
-} from '../../actions/incidentCommunicationSla';
+import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../../actions/monitorSla';
+import { UploadFile } from '../basic/UploadFile';
 
 class NewMonitor extends Component {
     constructor(props) {
@@ -65,8 +64,8 @@ class NewMonitor extends Component {
         );
         //load call schedules
         if (projectMember) {
-            this.props.fetchMonitorSlas(this.props.currentProject._id)
-            this.props.fetchCommunicationSlas(this.props.currentProject._id)
+            this.props.fetchMonitorSlas(this.props.currentProject._id);
+            this.props.fetchCommunicationSlas(this.props.currentProject._id);
             this.props.fetchSchedules(this.props.currentProject._id);
         }
         this.props.fetchMonitorCriteria();
@@ -262,8 +261,7 @@ class NewMonitor extends Component {
                         const val = text.replace(/^,{+|},+$/g, '');
                         const r = dJSON.parse(val);
                         text = JSON.stringify(r);
-                    } catch (e) {
-                    }
+                    } catch (e) {}
                 }
                 postObj.text = text;
             }
@@ -305,7 +303,7 @@ class NewMonitor extends Component {
             });
         } else {
             this.props.createMonitor(postObj.projectId, postObj).then(
-                (data) => {
+                data => {
                     thisObj.props.reset();
                     if (SHOULD_LOG_ANALYTICS) {
                         logEvent(
@@ -452,7 +450,8 @@ class NewMonitor extends Component {
         const requesting =
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||
             (this.props.monitor.editMonitor.requesting && this.props.edit) ||
-            this.props.requestingSla || this.props.requestingMonitorSla;
+            this.props.requestingSla ||
+            this.props.requestingMonitorSla;
 
         const {
             handleSubmit,
@@ -571,47 +570,57 @@ class NewMonitor extends Component {
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
-                                                            <Field
-                                                                className="db-select-nw"
-                                                                component={
-                                                                    RenderSelect
-                                                                }
-                                                                name={`resourceCategory_${this.props.index}`}
-                                                                id="resourceCategory"
-                                                                placeholder="Choose Resource Category"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select resource category',
-                                                                    },
-                                                                    ...(resourceCategoryList &&
-                                                                    resourceCategoryList.length >
-                                                                        0
-                                                                        ? resourceCategoryList.map(
-                                                                              category => ({
-                                                                                  value:
-                                                                                      category._id,
-                                                                                  label:
-                                                                                      category.name,
-                                                                              })
-                                                                          )
-                                                                        : []),
-                                                                ]}
-                                                            />
-                                                            <Tooltip title="Resource Category">
-                                                                <div>
-                                                                    <p>
-                                                                        Resource Categories lets you group resources by categories on Status Page.
-                                                                    </p>
-                                                                </div>
-                                                            </Tooltip>
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name={`resourceCategory_${this.props.index}`}
+                                                                    id="resourceCategory"
+                                                                    placeholder="Choose Resource Category"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select resource category',
+                                                                        },
+                                                                        ...(resourceCategoryList &&
+                                                                        resourceCategoryList.length >
+                                                                            0
+                                                                            ? resourceCategoryList.map(
+                                                                                  category => ({
+                                                                                      value:
+                                                                                          category._id,
+                                                                                      label:
+                                                                                          category.name,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
+                                                                />
+                                                                <Tooltip title="Resource Category">
+                                                                    <div>
+                                                                        <p>
+                                                                            Resource
+                                                                            Categories
+                                                                            lets
+                                                                            you
+                                                                            group
+                                                                            resources
+                                                                            by
+                                                                            categories
+                                                                            on
+                                                                            Status
+                                                                            Page.
+                                                                        </p>
+                                                                    </div>
+                                                                </Tooltip>
                                                             </span>
-                                                        </div>                                                        
+                                                        </div>
                                                     </div>
                                                 </ShouldRender>
                                                 <ShouldRender
@@ -971,7 +980,325 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-                                
+
+                                                <ShouldRender
+                                                    if={
+                                                        type ===
+                                                        'server-monitor'
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Mode
+                                                        </label>
+
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name={`mode_${this.props.index}`}
+                                                                    id="mode"
+                                                                    placeholder="Mode"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    // onChange={(
+                                                                    //     e,
+                                                                    //     v
+                                                                    // ) =>
+                                                                    //     this.changeBox(
+                                                                    //         e,
+                                                                    //         v
+                                                                    //     )
+                                                                    // }
+                                                                    validate={
+                                                                        ValidateField.select
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select monitoring mode',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                'agent',
+                                                                            label:
+                                                                                'Agent',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                'agentless',
+                                                                            label:
+                                                                                'Agentless',
+                                                                        },
+                                                                    ]}
+                                                                ></Field>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Host
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name={`host_${this.props.index}`}
+                                                                id="host"
+                                                                placeholder="example.compute-1.amazonaws.com"
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                validate={
+                                                                    ValidateField.text
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Username
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name={`username_${this.props.index}`}
+                                                                id="username"
+                                                                placeholder="root"
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                validate={
+                                                                    ValidateField.text
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Port
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name={`port_${this.props.index}`}
+                                                                id="port"
+                                                                placeholder="22"
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                validate={
+                                                                    ValidateField.text
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Authentication
+                                                            Method
+                                                        </label>
+
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name={`authentication_${this.props.index}`}
+                                                                    id="authentication"
+                                                                    placeholder="Authentication Method"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    // onChange={(
+                                                                    //     e,
+                                                                    //     v
+                                                                    // ) =>
+                                                                    //     this.changeBox(
+                                                                    //         e,
+                                                                    //         v
+                                                                    //     )
+                                                                    // }
+                                                                    validate={
+                                                                        ValidateField.select
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select authentication method',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                'password',
+                                                                            label:
+                                                                                'Password',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                'identityFile',
+                                                                            label:
+                                                                                'Identity File',
+                                                                        },
+                                                                    ]}
+                                                                ></Field>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Password
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="password"
+                                                                name={`password_${this.props.index}`}
+                                                                id="password"
+                                                                placeholder="Password"
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                validate={
+                                                                    ValidateField.text
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Identity File
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <div
+                                                                className="Box-root Flex-flex Flex-alignItems--center"
+                                                                style={{
+                                                                    flexWrap:
+                                                                        'wrap',
+                                                                }}
+                                                            >
+                                                                <div>
+                                                                    <label
+                                                                        className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                        type="button"
+                                                                    >
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                true
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--new"></span>
+                                                                            <span>
+                                                                                Upload
+                                                                                Identity
+                                                                                File
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                false
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--edit"></span>
+                                                                            <span>
+                                                                                Change
+                                                                                Identity
+                                                                                File
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <div className="bs-FileUploadButton-inputWrap">
+                                                                            <Field
+                                                                                className="bs-FileUploadButton-input"
+                                                                                component={
+                                                                                    UploadFile
+                                                                                }
+                                                                                name="identityFile"
+                                                                                id="identityFile"
+                                                                                accept="image/jpeg, image/jpg, image/png"
+                                                                                // onChange={
+                                                                                //     this
+                                                                                //         .changefile
+                                                                                // }
+                                                                                // disabled={
+                                                                                //     profileSettings &&
+                                                                                //     profileSettings.requesting
+                                                                                // }
+                                                                                // fileInputKey={
+                                                                                //     profileSettingState.fileInputKey
+                                                                                // }
+                                                                            />
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
+                                                                <ShouldRender
+                                                                    if={false}
+                                                                >
+                                                                    <div
+                                                                        className="bs-Fieldset-fields"
+                                                                        style={{
+                                                                            padding:
+                                                                                '0',
+                                                                        }}
+                                                                    >
+                                                                        <button
+                                                                            className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                            type="button"
+                                                                            // onClick={
+                                                                            //     this
+                                                                            //         .removeProfilePic
+                                                                            // }
+                                                                            // disabled={
+                                                                            //     profileSettings &&
+                                                                            //     profileSettings.requesting
+                                                                            // }
+                                                                            style={{
+                                                                                margin:
+                                                                                    '10px 10px 0 0',
+                                                                            }}
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                            <span>
+                                                                                Remove
+                                                                                Identity
+                                                                                File
+                                                                            </span>
+                                                                        </button>
+                                                                    </div>
+                                                                </ShouldRender>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+
                                                 <ShouldRender
                                                     if={type === 'api'}
                                                 >
@@ -1183,56 +1510,86 @@ class NewMonitor extends Component {
                                                             Call Schedule
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <span class="flex" >
-                                                            <Field
-                                                                className="db-select-nw"
-                                                                component={
-                                                                    RenderSelect
-                                                                }
-                                                                name={`callSchedule_${this.props.index}`}
-                                                                id="callSchedule"
-                                                                placeholder="Call Schedule"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                style={{
-                                                                    height:
-                                                                        '28px',
-                                                                }}
-                                                                options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select call schedule',
-                                                                    },
-                                                                    ...(schedules &&
-                                                                    schedules.length >
-                                                                        0
-                                                                        ? schedules.map(
-                                                                              schedule => ({
-                                                                                  value:
-                                                                                      schedule._id,
-                                                                                  label:
-                                                                                      schedule.name,
-                                                                              })
-                                                                          )
-                                                                        : []),
-                                                                ]}
-                                                            />
-                                                            <Tooltip title="Call Schedule">
-                                                                <div>
-                                                                    <p>
-                                                                        Call Schedules let's you connect your team members to specific monitors, so only on-duty members who are responsible for certain monitors are alerted when an incident is created.
-                                                                    </p>
-                                                                </div>
-                                                            </Tooltip>
+                                                            <span class="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name={`callSchedule_${this.props.index}`}
+                                                                    id="callSchedule"
+                                                                    placeholder="Call Schedule"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    style={{
+                                                                        height:
+                                                                            '28px',
+                                                                    }}
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select call schedule',
+                                                                        },
+                                                                        ...(schedules &&
+                                                                        schedules.length >
+                                                                            0
+                                                                            ? schedules.map(
+                                                                                  schedule => ({
+                                                                                      value:
+                                                                                          schedule._id,
+                                                                                      label:
+                                                                                          schedule.name,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
+                                                                />
+                                                                <Tooltip title="Call Schedule">
+                                                                    <div>
+                                                                        <p>
+                                                                            Call
+                                                                            Schedules
+                                                                            let's
+                                                                            you
+                                                                            connect
+                                                                            your
+                                                                            team
+                                                                            members
+                                                                            to
+                                                                            specific
+                                                                            monitors,
+                                                                            so
+                                                                            only
+                                                                            on-duty
+                                                                            members
+                                                                            who
+                                                                            are
+                                                                            responsible
+                                                                            for
+                                                                            certain
+                                                                            monitors
+                                                                            are
+                                                                            alerted
+                                                                            when
+                                                                            an
+                                                                            incident
+                                                                            is
+                                                                            created.
+                                                                        </p>
+                                                                    </div>
+                                                                </Tooltip>
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
                                                 <ShouldRender
-                                                    if={this.props.monitorSlas.length > 0}
+                                                    if={
+                                                        this.props.monitorSlas
+                                                            .length > 0
+                                                    }
                                                 >
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
@@ -1259,29 +1616,64 @@ class NewMonitor extends Component {
                                                                             label:
                                                                                 'Select Monitor SLA',
                                                                         },
-                                                                        ...this.props.monitorSlas.map(sla => ({
-                                                                            value: sla._id,
-                                                                            label: sla.name,
-                                                                        }))
+                                                                        ...this.props.monitorSlas.map(
+                                                                            sla => ({
+                                                                                value:
+                                                                                    sla._id,
+                                                                                label:
+                                                                                    sla.name,
+                                                                            })
+                                                                        ),
                                                                     ]}
                                                                 />
                                                                 <Tooltip title="Monitor SLA">
-                                                                <div>
-                                                                    <p>
-                                                                        SLA is used to make sure your monitors provide a certain reliability of service. We’ll alert your team when a particular monitor is about to breach it’s SLA.
-                                                                    </p>
-                                                                </div>
+                                                                    <div>
+                                                                        <p>
+                                                                            SLA
+                                                                            is
+                                                                            used
+                                                                            to
+                                                                            make
+                                                                            sure
+                                                                            your
+                                                                            monitors
+                                                                            provide
+                                                                            a
+                                                                            certain
+                                                                            reliability
+                                                                            of
+                                                                            service.
+                                                                            We’ll
+                                                                            alert
+                                                                            your
+                                                                            team
+                                                                            when
+                                                                            a
+                                                                            particular
+                                                                            monitor
+                                                                            is
+                                                                            about
+                                                                            to
+                                                                            breach
+                                                                            it’s
+                                                                            SLA.
+                                                                        </p>
+                                                                    </div>
                                                                 </Tooltip>
-                                                                </span>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
                                                 <ShouldRender
-                                                    if={this.props.incidentSlas.length > 0}
+                                                    if={
+                                                        this.props.incidentSlas
+                                                            .length > 0
+                                                    }
                                                 >
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
-                                                            Incident Communication SLA
+                                                            Incident
+                                                            Communication SLA
                                                         </label>
 
                                                         <div className="bs-Fieldset-fields">
@@ -1304,20 +1696,73 @@ class NewMonitor extends Component {
                                                                             label:
                                                                                 'Select Incident Communication SLA',
                                                                         },
-                                                                        ...this.props.incidentSlas.map(sla => ({
-                                                                            value: sla._id,
-                                                                            label: sla.name,
-                                                                        }))
+                                                                        ...this.props.incidentSlas.map(
+                                                                            sla => ({
+                                                                                value:
+                                                                                    sla._id,
+                                                                                label:
+                                                                                    sla.name,
+                                                                            })
+                                                                        ),
                                                                     ]}
                                                                 />
                                                                 <Tooltip title="Incident Communication SLA">
-                                                                <div>
-                                                                    <p>
-                                                                        Incident communication SLA is used to make sure you keep you customers updated every few minutes on an active incident. Your team will get an email reminder when you forget to update an incident status, this will help you to communicate with your customers on time and keep them updated.
-                                                                    </p>
-                                                                </div>
+                                                                    <div>
+                                                                        <p>
+                                                                            Incident
+                                                                            communication
+                                                                            SLA
+                                                                            is
+                                                                            used
+                                                                            to
+                                                                            make
+                                                                            sure
+                                                                            you
+                                                                            keep
+                                                                            you
+                                                                            customers
+                                                                            updated
+                                                                            every
+                                                                            few
+                                                                            minutes
+                                                                            on
+                                                                            an
+                                                                            active
+                                                                            incident.
+                                                                            Your
+                                                                            team
+                                                                            will
+                                                                            get
+                                                                            an
+                                                                            email
+                                                                            reminder
+                                                                            when
+                                                                            you
+                                                                            forget
+                                                                            to
+                                                                            update
+                                                                            an
+                                                                            incident
+                                                                            status,
+                                                                            this
+                                                                            will
+                                                                            help
+                                                                            you
+                                                                            to
+                                                                            communicate
+                                                                            with
+                                                                            your
+                                                                            customers
+                                                                            on
+                                                                            time
+                                                                            and
+                                                                            keep
+                                                                            them
+                                                                            updated.
+                                                                        </p>
+                                                                    </div>
                                                                 </Tooltip>
-                                                               </span>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -1526,8 +1971,11 @@ const mapStateToProps = (state, ownProps) => {
     const type = selector(state, 'type_1000');
     const category = selector(state, 'resourceCategory_1000');
     const schedule = selector(state, 'callSchedule_1000');
-    const monitorSla = selector(state, 'monitorSla')
-    const incidentCommunicationSla = selector(state, 'incidentCommunicationSla')
+    const monitorSla = selector(state, 'monitorSla');
+    const incidentCommunicationSla = selector(
+        state,
+        'incidentCommunicationSla'
+    );
     let projectId = null;
 
     for (const project of state.component.componentList.components) {
@@ -1574,8 +2022,10 @@ const mapStateToProps = (state, ownProps) => {
                 : {},
             currentPlanId,
             projectId,
-            incidentSlas: state.incidentSla.incidentCommunicationSlas.incidentSlas,
-            requestingSla: state.incidentSla.incidentCommunicationSlas.requesting,
+            incidentSlas:
+                state.incidentSla.incidentCommunicationSlas.incidentSlas,
+            requestingSla:
+                state.incidentSla.incidentCommunicationSlas.requesting,
             fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
@@ -1602,8 +2052,10 @@ const mapStateToProps = (state, ownProps) => {
                 : {},
             currentPlanId,
             projectId,
-            incidentSlas: state.incidentSla.incidentCommunicationSlas.incidentSlas,
-            requestingSla: state.incidentSla.incidentCommunicationSlas.requesting,
+            incidentSlas:
+                state.incidentSla.incidentCommunicationSlas.incidentSlas,
+            requestingSla:
+                state.incidentSla.incidentCommunicationSlas.requesting,
             fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
