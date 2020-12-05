@@ -180,7 +180,11 @@ class Main extends Component {
             );
             return groupedMonitorData.map((groupedMonitors, i) => {
                 return (
-                    <div key={i} className="uptime-graph-header">
+                    <div
+                        key={i}
+                        className="uptime-graph-header"
+                        style={{ flexDirection: 'column' }}
+                    >
                         {groupedMonitors.map((monitor, i) => {
                             return (
                                 <>
