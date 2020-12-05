@@ -107,6 +107,9 @@ if (RATE_LIMITTER_ENABLED === 'true') {
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+// enable trust proxy
+app.set('trust proxy', true);
+
 app.use(express.static(path.join(__dirname, 'views')));
 app.use('/api', express.static(path.join(__dirname, 'views')));
 
