@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Field, reduxForm } from 'redux-form';
+import { Field, FieldArray, reduxForm } from 'redux-form';
 import {
     updatePrivateStatusPage,
     updatePrivateStatusPageRequest,
@@ -19,6 +19,7 @@ import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
+import { RenderField } from '../basic/RenderField';
 
 export class PrivateStatusPage extends Component {
     constructor(props) {
@@ -34,6 +35,13 @@ export class PrivateStatusPage extends Component {
         const { status } = this.props.statusPage;
         const { projectId } = status;
 
+        if (values.ipWhitelist && values.ipWhitelist.length > 0) {
+            const ipWhitelist = values.ipWhitelist.filter(
+                monitorId => typeof monitorId === 'string'
+            );
+            values.ipWhitelist = ipWhitelist;
+        }
+
         this.props
             .updatePrivateStatusPage(projectId._id || projectId, {
                 _id: status._id,
@@ -42,9 +50,15 @@ export class PrivateStatusPage extends Component {
                 isGroupedByMonitorCategory: values.isGroupedByMonitorCategory,
                 showScheduledEvents: values.showScheduledEvents,
                 moveIncidentToTheTop: values.moveIncidentToTheTop,
+                ipWhitelist: values.ipWhitelist,
+                enableIpWhitelist: values.enableIpWhitelist,
             })
             .then(() => {
-                this.props.fetchProjectStatusPage(projectId, true);
+                document.querySelector('#removeAllFields').click(); // hack to remove all fields of redux fieldArray
+                this.props.fetchProjectStatusPage(
+                    projectId._id || projectId,
+                    true
+                );
             });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -58,8 +72,82 @@ export class PrivateStatusPage extends Component {
             showMoreOptions: !prevState.showMoreOptions,
         }));
 
+    renderIpWhitelist = ({ fields }) => {
+        const { formValues } = this.props;
+        return (
+            <>
+                {formValues && formValues.showIpWhitelistInput && (
+                    <div
+                        style={{
+                            width: '100%',
+                        }}
+                    >
+                        <span
+                            id="removeAllFields"
+                            onClick={() => fields.removeAll()}
+                        ></span>
+                        <button
+                            id="addIpList"
+                            className="Button bs-ButtonLegacy ActionIconParent"
+                            type="button"
+                            onClick={() => {
+                                fields.push();
+                            }}
+                        >
+                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                <span>Add IP</span>
+                            </span>
+                        </button>
+                        {fields.map((field, index) => {
+                            return (
+                                <div
+                                    style={{
+                                        width: '65%',
+                                        marginBottom: 10,
+                                        marginTop: 10,
+                                    }}
+                                    key={index}
+                                >
+                                    <Field
+                                        component={RenderField}
+                                        name={field}
+                                        id={`ipWhitelist_${index}`}
+                                        placeholder="127.0.0.1"
+                                        className="bs-TextInput"
+                                        style={{
+                                            width: '100%',
+                                            padding: '3px 5px',
+                                        }}
+                                    />
+                                    <button
+                                        id="removeIp"
+                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                        style={{
+                                            marginTop: 10,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            fields.remove(index);
+                                        }}
+                                    >
+                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                            <span>Remove IP</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </>
+        );
+    };
+
     render() {
-        const { handleSubmit } = this.props;
+        const {
+            handleSubmit,
+            statusPage: { status },
+        } = this.props;
         const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -84,9 +172,7 @@ export class PrivateStatusPage extends Component {
                             }}
                         >
                             <label style={{ marginRight: 10 }}>
-                                {showMoreOptions
-                                    ? 'Hide more advanced options'
-                                    : 'Show more advanced options'}
+                                Show more advanced options
                             </label>
                             <div>
                                 <label className="Toggler-wrap">
@@ -521,6 +607,135 @@ export class PrivateStatusPage extends Component {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div
+                                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                }}
+                                                            >
+                                                                <div className="Flex-flex">
+                                                                    <label
+                                                                        style={{
+                                                                            height: 15,
+                                                                            display:
+                                                                                'inline-block',
+                                                                        }}
+                                                                        className="Checkbox"
+                                                                    >
+                                                                        <Field
+                                                                            component="input"
+                                                                            type="checkbox"
+                                                                            name="enableIpWhitelist"
+                                                                            data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                            className="Checkbox-source"
+                                                                            id="enableIpWhitelist"
+                                                                        />
+                                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                            <div className="Checkbox-target Box-root">
+                                                                                <div className="Checkbox-color Box-root"></div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </label>
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                            position:
+                                                                                'relative',
+                                                                            width:
+                                                                                '100%',
+                                                                        }}
+                                                                    >
+                                                                        <label
+                                                                            className="Checkbox"
+                                                                            htmlFor="enableIpWhitelist"
+                                                                        >
+                                                                            Enable
+                                                                            IP
+                                                                            Whitelist
+                                                                        </label>
+                                                                        <div>
+                                                                            <label
+                                                                                className="bs-Fieldset-explanation"
+                                                                                style={{
+                                                                                    marginBottom: 10,
+                                                                                    fontSize: 14,
+                                                                                }}
+                                                                            >
+                                                                                {status.ipWhitelist &&
+                                                                                status
+                                                                                    .ipWhitelist
+                                                                                    .length >
+                                                                                    0 ? (
+                                                                                    <span>
+                                                                                        {status.ipWhitelist.reduce(
+                                                                                            (
+                                                                                                text,
+                                                                                                value,
+                                                                                                i,
+                                                                                                array
+                                                                                            ) =>
+                                                                                                text +
+                                                                                                (i <
+                                                                                                array.length -
+                                                                                                    1
+                                                                                                    ? ', '
+                                                                                                    : ' and ') +
+                                                                                                value
+                                                                                        )}
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span>
+                                                                                        No
+                                                                                        IP
+                                                                                        is
+                                                                                        added
+                                                                                        yet
+                                                                                    </span>
+                                                                                )}
+                                                                            </label>
+
+                                                                            <div
+                                                                                className="bs-Fieldset-field"
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                    marginTop: 10,
+                                                                                }}
+                                                                            >
+                                                                                <FieldArray
+                                                                                    name="ipWhitelist"
+                                                                                    component={
+                                                                                        this
+                                                                                            .renderIpWhitelist
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
@@ -593,6 +808,7 @@ PrivateStatusPage.propTypes = {
     statusPage: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
+    formValues: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -623,9 +839,18 @@ const mapStateToProps = state => {
             status.isGroupedByMonitorCategory;
         initialValues.showScheduledEvents = status.showScheduledEvents;
         initialValues.moveIncidentToTheTop = status.moveIncidentToTheTop;
+        initialValues.enableIpWhitelist = status.enableIpWhitelist;
     }
+    initialValues.showIpWhitelistInput = true;
 
-    return { initialValues, statusPage, currentProject };
+    return {
+        initialValues,
+        statusPage,
+        currentProject,
+        formValues:
+            state.form.PrivateStatusPages &&
+            state.form.PrivateStatusPages.values,
+    };
 };
 
 export default connect(

@@ -120,6 +120,17 @@ module.exports = {
 
         return projectId;
     },
+
+    getStatusPageId: function(req) {
+        const statusPageId =
+            req.params.statusPageId ||
+            req.query.statusPageId ||
+            req.headers['statusPageId'] ||
+            req.body.statusPageId;
+
+        return statusPageId;
+    },
+
     isValidMonitor: async function(req, res, next) {
         const id = req.params.id;
         const monitor = await MonitorService.findBy({
