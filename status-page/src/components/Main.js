@@ -353,16 +353,6 @@ class Main extends Component {
 
         return (
             <div className="page-main-wrapper" style={backgroundMain}>
-                <div
-                    style={{
-                        fontSize: 16,
-                        marginTop: 10,
-                        marginBottom: 10,
-                        textAlign: 'center',
-                    }}
-                >
-                    {this.props.statusData.ip && this.props.statusData.ip}
-                </div>
                 {this.props.statusData && this.props.statusData.bannerPath ? (
                     <span>
                         <img

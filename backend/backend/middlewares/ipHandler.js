@@ -27,10 +27,11 @@ const _this = {
         }
 
         if (!clientIp) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'You are not allowed to view this page',
-            });
+            // return sendErrorResponse(req, res, {
+            //     code: 400,
+            //     message: 'You are not allowed to view this page',
+            // });
+            return next();
         }
 
         clientIp = clientIp.trim();
@@ -47,10 +48,11 @@ const _this = {
             return next();
         }
 
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'You are not allowed to view this page',
-        });
+        // return sendErrorResponse(req, res, {
+        //     code: 400,
+        //     message: 'You are not allowed to view this page',
+        // });
+        return next();
     },
 
     /**
