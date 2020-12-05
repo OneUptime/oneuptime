@@ -1124,7 +1124,7 @@ export function MonitorChart({
                 </ShouldRender>
             </>
         );
-    } else if (type === 'manual') {
+    } else if (type === 'manual' || type === 'incomingHttpRequest') {
         monitorInfo = (
             <div className="db-Trend">
                 <div className="block-chart-side line-chart">
