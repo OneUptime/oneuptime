@@ -20,7 +20,6 @@ const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -29,6 +28,7 @@ const https = require('https');
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false,
 });
+
 // Route
 // Description: Adding / Updating a new monitor to the project.
 // Params:
@@ -100,7 +100,8 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             data.type !== 'manual' &&
             data.type !== 'api' &&
             data.type !== 'server-monitor' &&
-            data.type !== 'script'
+            data.type !== 'script' &&
+            data.type !== 'incomingHttpRequest'
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,

@@ -70,6 +70,8 @@ export class MonitorTitle extends Component {
         const url =
             monitor && monitor.data && monitor.data.url
                 ? monitor.data.url
+                : monitor && monitor.data && monitor.data.link
+                ? monitor.data.link
                 : null;
 
         let badgeColor;
@@ -119,7 +121,8 @@ export class MonitorTitle extends Component {
                                 <span id="monitorId">{monitor._id}</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                {url && (
+                                {monitor.type !== 'incomingHttpRequest' &&
+                                url ? (
                                     <span>
                                         Currently{' '}
                                         {isCurrentlyNotMonitoring && 'Not'}{' '}
@@ -132,6 +135,19 @@ export class MonitorTitle extends Component {
                                             {url}
                                         </a>
                                     </span>
+                                ) : monitor.type === 'incomingHttpRequest' &&
+                                  url ? (
+                                    <span>
+                                        <a
+                                            href={url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {url}
+                                        </a>
+                                    </span>
+                                ) : (
+                                    ''
                                 )}
                                 {monitor.type === 'manual' &&
                                     monitor.data &&
