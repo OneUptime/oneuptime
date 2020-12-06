@@ -17,7 +17,7 @@ RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contri
 
 # Install app dependencies
 COPY package*.json /usr/src/app/
-RUN npm ci --only=production
+RUN npm ci 
 
 # Bundle app source
 COPY . /usr/src/app
