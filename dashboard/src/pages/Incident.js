@@ -250,6 +250,7 @@ class Incident extends React.Component {
     };
 
     render() {
+        console.log(this.props)
         let variable = null;
         const {
             component,
@@ -271,6 +272,25 @@ class Incident extends React.Component {
             this.props.monitor && this.props.monitor.type
                 ? this.props.monitor.type
                 : '';
+
+                
+        let scheduleAlert;
+        if(this.props.count === 0){
+            scheduleAlert =(
+                <div id="alertWarning" className="Box-root Margin-vertical--12">
+                    <div className="db-Trends bs-ContentSection Card-root">
+                        <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
+                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                This incident does not have an On-Call Schedule.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+
         if (this.props.incident) {
             variable = (
                 <div>
@@ -512,6 +532,7 @@ class Incident extends React.Component {
                                 <div className="react-settings-view react-view">
                                     <span>
                                         <div>
+                                            <div>{scheduleAlert}</div>
                                             <div>{variable}</div>
                                         </div>
                                     </span>
