@@ -10,13 +10,13 @@ module.exports = {
     run: async monitor => {
         try {
             if (monitor && monitor.type) {
-                if (monitor.agentless) {
+                if (monitor.agentlessConfig) {
                     const {
                         host,
                         port,
                         username,
                         identityFile,
-                    } = monitor.agentless;
+                    } = monitor.agentlessConfig;
                     const ssh = new NodeSSH();
 
                     ssh.connect({
@@ -62,6 +62,7 @@ module.exports = {
                             throw error;
                         });
                 } else {
+                    // local testing
                     let os;
                     try {
                         const { stdout: osLine, stderr } = await exec(
