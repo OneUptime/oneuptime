@@ -657,7 +657,6 @@ module.exports = {
             const resolvedincident = await _this.findOneBy({
                 _id: incident._id,
             });
-            let msg;
             const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
                 resolvedincident.createdAt
             );
@@ -692,96 +691,15 @@ module.exports = {
 
             // send notificaton to subscribers
             AlertService.sendResolvedIncidentToSubscribers(incident);
+            AlertService.sendResolveIncidentMail(incident);
 
-            if (resolvedincident.resolvedBy) {
-                msg = `${
-                    resolvedincident.monitorId.name
-                } monitor was down for ${downtimestring} and is now resolved by ${name ||
-                    resolvedincident.resolvedBy.name}`;
+            const msg = `${
+                resolvedincident.monitorId.name
+            } monitor was down for ${downtimestring} and is now resolved by ${name ||
+                (resolvedincident.resolvedBy &&
+                    resolvedincident.resolvedBy.name) ||
+                'fyipe'}`;
 
-                await NotificationService.create(
-                    incident.projectId,
-                    msg,
-                    resolvedincident.resolvedBy._id,
-                    'success'
-                );
-                // send slack notification
-                await SlackService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'resolved',
-                    component,
-                    downtimestring
-                );
-                // Ping webhook
-                // use sendIntegrationNotificatoin for project integration webhooks
-                await WebHookService.sendIntegrationNotification(
-                    incident.projectId,
-                    incident,
-                    resolvedincident.monitorId,
-                    'resolved',
-                    component,
-                    downtimestring
-                );
-                // Ms Teams
-                await MsTeamsService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'resolved',
-                    component,
-                    downtimestring
-                );
-
-                // handle asynchronous operation in the background
-                AlertService.sendResolvedIncidentToSubscribers(incident);
-                AlertService.sendResolveIncidentMail(incident);
-            } else {
-                msg = `${
-                    resolvedincident.monitorId.name
-                } monitor was down for ${downtimestring} and is now resolved by ${name ||
-                    'fyipe'}`;
-
-                await NotificationService.create(
-                    incident.projectId,
-                    msg,
-                    'fyipe',
-                    'success'
-                );
-                // send slack notification
-                await SlackService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'resolved',
-                    component,
-                    downtimestring
-                );
-                // Ping webhook
-                // use sendIntegrationNotificatoin for project integration webhooks
-                await WebHookService.sendIntegrationNotification(
-                    incident.projectId,
-                    incident,
-                    resolvedincident.monitorId,
-                    'resolved',
-                    component,
-                    downtimestring
-                );
-                // Ms Teams
-                await MsTeamsService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'resolved',
-                    component,
-                    downtimestring
-                );
-
-                // handle asynchronous operation in the background
-                AlertService.sendResolvedIncidentToSubscribers(incident);
-                AlertService.sendResolveIncidentMail(incident);
-            }
             NotificationService.create(
                 incident.projectId,
                 msg,

@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { reduxForm, Field, formValueSelector } from 'redux-form';
+import { reduxForm, Field, formValueSelector,change } from 'redux-form';
 import {
     createMonitor,
     createMonitorSuccess,
@@ -15,7 +15,7 @@ import {
     addSeat,
 } from '../../actions/monitor';
 import { RenderField } from '../basic/RenderField';
-import { makeCriteria } from '../../config';
+import { makeCriteria,API_URL } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
 import {
@@ -42,7 +42,7 @@ import PricingPlan from '../basic/PricingPlan';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
 import { history } from '../../store';
-
+import uuid from 'uuid';
 import {
     fetchCommunicationSlas
 } from '../../actions/incidentCommunicationSla';
@@ -55,6 +55,7 @@ class NewMonitor extends Component {
             advance: false,
             script: '',
             type: props.edit ? props.editMonitorProp.type : props.type,
+            httpRequestLink: `${API_URL}/incomingHttpRequest/${uuid.v4()}`,
         };
     }
 
@@ -143,11 +144,15 @@ class NewMonitor extends Component {
             postObj.data.script = thisObj.state.script;
         }
 
+        if (postObj.type === 'incomingHttpRequest')
+            postObj.data.link = thisObj.state.httpRequestLink;
+
         if (
             postObj.type === 'url' ||
             postObj.type === 'api' ||
             postObj.type === 'server-monitor' ||
-            postObj.type === 'script'
+            postObj.type === 'script' ||
+            postObj.type === 'incomingHttpRequest'
         ) {
             if (
                 values &&
@@ -464,7 +469,7 @@ class NewMonitor extends Component {
             currentPlanId,
         } = this.props;
         const type = this.state.type;
-
+        const {httpRequestLink} = this.state;
         const unlimitedMonitors = ['Scale', 'Enterprise'];
         const planCategory =
             currentPlanId === 'enterprise'
@@ -611,7 +616,7 @@ class NewMonitor extends Component {
                                                                 </div>
                                                             </Tooltip>
                                                             </span>
-                                                        </div>                                                        
+                                                        </div>
                                                     </div>
                                                 </ShouldRender>
                                                 <ShouldRender
@@ -689,6 +694,12 @@ class NewMonitor extends Component {
                                                                                 'server-monitor',
                                                                             label:
                                                                                 'Server',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                'incomingHttpRequest',
+                                                                            label:
+                                                                                'Incoming HTTP Request',
                                                                         },
                                                                     ]}
                                                                 />
@@ -947,6 +958,24 @@ class NewMonitor extends Component {
                                                                             want.
                                                                         </p>
                                                                     </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                Incoming HTTP Request
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Receives incoming HTTP get or post request and evaluates response body.
+                                                                        </p>
+                                                                    </div>
                                                                 </Tooltip>
                                                             </span>
                                                             <span
@@ -971,7 +1000,7 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-                                
+
                                                 <ShouldRender
                                                     if={type === 'api'}
                                                 >
@@ -1067,6 +1096,20 @@ class NewMonitor extends Component {
                                                                     ValidateField.url,
                                                                 ]}
                                                             />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
+                                                        type === 'incomingHttpRequest'
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Incoming URL
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields" style={{paddingTop:'7px'}}>
+                                                        <a href={httpRequestLink}>{httpRequestLink}</a>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -1329,7 +1372,8 @@ class NewMonitor extends Component {
                                                             type ===
                                                                 'server-monitor' ||
                                                             type ===
-                                                                'script') &&
+                                                                'script' ||
+                                                                type === 'incomingHttpRequest') &&
                                                         !this.state.advance
                                                     }
                                                 >
@@ -1356,7 +1400,8 @@ class NewMonitor extends Component {
                                                             type === 'url' ||
                                                             type ===
                                                                 'server-monitor' ||
-                                                            type === 'script')
+                                                            type === 'script' ||
+                                                            type === 'incomingHttpRequest')
                                                     }
                                                 >
                                                     <ShouldRender
