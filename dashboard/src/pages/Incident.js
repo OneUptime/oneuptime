@@ -176,8 +176,8 @@ class Incident extends React.Component {
         this.setState({
             tabIndex: index,
         });
-        if(index === 2){
-            this.fetchAllIncidentData()
+        if (index === 2) {
+            this.fetchAllIncidentData();
         }
     };
 

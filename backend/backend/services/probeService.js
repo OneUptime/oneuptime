@@ -1407,12 +1407,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1429,12 +1431,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1453,12 +1457,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1471,12 +1477,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1493,12 +1501,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1515,12 +1525,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1537,12 +1549,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'memoryUsage') {
@@ -1561,11 +1575,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1582,11 +1598,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1605,11 +1623,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1622,11 +1642,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1643,11 +1665,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1664,11 +1688,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1685,11 +1711,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'storageUsage') {
@@ -1707,11 +1735,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1727,11 +1761,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1749,11 +1789,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1765,11 +1811,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1785,11 +1837,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1805,11 +1863,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1825,11 +1889,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'temperature') {
@@ -1844,11 +1914,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1865,11 +1935,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1888,11 +1958,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1905,11 +1975,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1926,11 +1996,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1947,11 +2017,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1968,11 +2038,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {
@@ -2479,12 +2549,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2500,12 +2572,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2523,12 +2597,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2540,12 +2616,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2561,12 +2639,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2582,12 +2662,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2603,12 +2685,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'memoryUsage') {
@@ -2625,11 +2709,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2644,11 +2730,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2665,11 +2753,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2680,11 +2770,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2699,11 +2791,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2718,11 +2812,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2737,11 +2833,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'storageUsage') {
@@ -2753,11 +2851,17 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free > con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2767,11 +2871,17 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free < con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2787,21 +2897,33 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (con[i] && con[i].field1 && free === con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2811,11 +2933,17 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free !== con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2825,11 +2953,17 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free >= con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2839,11 +2973,17 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free <= con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'temperature') {
@@ -2857,11 +2997,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2877,11 +3017,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2899,11 +3039,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2915,11 +3055,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2935,11 +3075,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2955,11 +3095,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2975,11 +3115,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {
