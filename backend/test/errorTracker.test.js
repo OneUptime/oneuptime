@@ -435,17 +435,98 @@ describe('Error Tracker API', function() {
     //             done();
     //         });
     // });
-    it('should return an error when trying to ignore an issue without passing a valid action type', function(done) {
+    // it('should ignore an issue successfully', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues/action`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .send({ issueId: [errorEvent.issueId], action: 'ignore' })
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body).to.have.property('issues');
+    //             const currentIssue = res.body.issues.filter(
+    //                 issue => issue._id === errorEvent.issueId
+    //             )[0];
+    //             // expect it to have value of the user that ignored it
+    //             expect(currentIssue.ignoredById).to.have.property('_id');
+    //             expect(currentIssue.ignoredById).to.have.property('name');
+    //             done();
+    //         });
+    // });
+    // it('should resolve an issue and change the ignore state successfully', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues/action`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .send({ issueId: [errorEvent.issueId], action: 'resolve' })
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body).to.have.property('issues');
+    //             const currentIssue = res.body.issues.filter(
+    //                 issue => issue._id === errorEvent.issueId
+    //             )[0];
+    //             // expect it to have value of the user that resolved it
+    //             expect(currentIssue.resolvedById).to.have.property('_id');
+    //             expect(currentIssue.resolvedById).to.have.property('name');
+
+    //             // expect it to null the ignored section
+    //             expect(currentIssue.ignoredById).to.be.equal(null);
+    //             done();
+    //         });
+    // });
+    // it('should unresolve an issue and change the ignore and resolved state successfully', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues/action`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .send({ issueId: [errorEvent.issueId], action: 'unresolve' })
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body).to.have.property('issues');
+    //             const currentIssue = res.body.issues.filter(
+    //                 issue => issue._id === errorEvent.issueId
+    //             )[0];
+    //             // expect it to null the resolved section
+    //             expect(currentIssue.resolvedById).to.be.equal(null);
+
+    //             // expect it to null the ignored section
+    //             expect(currentIssue.ignoredById).to.be.equal(null);
+    //             done();
+    //         });
+    // });
+    // it('should not fetch errors attached to a fingerprint if fingerprint is not provided', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/error-events`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal(
+    //                 'Fingerprint Hash is required'
+    //             );
+    //             done();
+    //         });
+    // });
+    it('should fetch errors attached to a fingerprint successfully', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(
-                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues/action`
+                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/error-events`
             )
             .set('Authorization', authorization)
-            .send({ issueId: [errorEvent.issueId], action: 'test' })
+            .send({ fingerprintHash: errorEvent.fingerprintHash })
             .end(function(err, res) {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('Action is not allowed');
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                expect(res.body[0]._id).to.be.equal(errorEvent._id);
                 done();
             });
     });
