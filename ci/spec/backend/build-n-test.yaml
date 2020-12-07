@@ -18,7 +18,7 @@ build_n_test_backend:
         - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
         - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
         - sudo docker ps
-        - curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+        - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - cd backend
         - npm ci
