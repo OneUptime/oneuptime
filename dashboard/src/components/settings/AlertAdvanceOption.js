@@ -28,8 +28,9 @@ export class AlertAdvanceOption extends Component {
         const {
             currentProject,
             projectId,
-            //alertOptionsUpdate,
+            alertOptionsUpdate,
             openModal,
+            formValues,
         } = this.props;
         value._id = projectId;
         const userId = User.getUserId();
@@ -38,8 +39,18 @@ export class AlertAdvanceOption extends Component {
                   id: this.state.MessageBoxId,
                   content: AlertBilling,
                   title: 'Message',
-                  message: `Your card will be charged by X $`,
+                  message: `Your card will be charged by $${Number(
+                      formValues.rechargeToBalance
+                  )}`,
               })
+                ? alertOptionsUpdate(projectId, value).then(() => {
+                      const { paymentIntent } = this.props;
+                      if (paymentIntent) {
+                          //init payment
+                          this.handlePaymentIntent(paymentIntent);
+                      }
+                  })
+                : null
             : openModal({
                   id: projectId,
                   content: Unauthorised,
@@ -847,15 +858,6 @@ export class AlertAdvanceOption extends Component {
                                                     this.props.isRequesting
                                                 }
                                                 type="submit"
-                                                onClick={() => {
-                                                    this.props.openModal({
-                                                        id: this.state
-                                                            .MessageBoxId,
-                                                        content: AlertBilling,
-                                                        title: 'Message',
-                                                        message: `Your card will be charged by $`,
-                                                    });
-                                                }}
                                             >
                                                 <ShouldRender
                                                     if={
@@ -888,12 +890,12 @@ AlertAdvanceOption.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
     projectId: PropTypes.string,
-    //alertOptionsUpdate: PropTypes.func,
+    alertOptionsUpdate: PropTypes.func,
     formValues: PropTypes.object,
     change: PropTypes.func,
     alertEnable: PropTypes.bool,
     stripe: PropTypes.object,
-    //paymentIntent: PropTypes.string,
+    paymentIntent: PropTypes.string,
     openModal: PropTypes.func.isRequired,
     balance: PropTypes.number,
     currentProject: PropTypes.object,
