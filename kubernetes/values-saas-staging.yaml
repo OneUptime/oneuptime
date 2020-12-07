@@ -1,80 +1,54 @@
-##################################################################################  
-## Important: If you're implenting this in the enterprise environment, this should always be `false`. 
+##################################################################################
+## Important: If you're implenting this in the enterprise environment, this should always be `false`.
 ## Is this Fyipe SaaS service. This will deploy all the SaaS env vars
 
 ##
 
+saas:
+    isSaasService: true
+    slackErrorLog:
+        webhook: https://hooks.slack.com/services/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
+        channel: fyipe-logs
+    stripe:
+        publicKey: pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv
+        privateKey: sk_test_YxwnzywggtAd8jDaHecNmHiN
+    airtable:
+        key: keye3gzJRafDIhRKg
+        baseId: appgek0ngJaHhppeJ
+    amplitude:
+        key: 4b76c47248f969446af69dfdbf687d90
+    licensing:
+        airtable:
+            key: keye3gzJRafDIhRKg
+            baseId: appksCeuKfCS0e8fR
+        tokenSecret: LicenseTokenSecret
 
-saas: 
-  isSaasService: true
-  slackErrorLog:
-    webhook: https://hooks.slack.com/services/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
-    channel: fyipe-logs 
-  stripe: 
-    publicKey: pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv
-    privateKey: sk_test_YxwnzywggtAd8jDaHecNmHiN
-  airtable: 
-    key: keye3gzJRafDIhRKg
-    baseId: appgek0ngJaHhppeJ
-  amplitude: 
-    key: 4b76c47248f969446af69dfdbf687d90
-  licensing:
-    airtable: 
-      key: keye3gzJRafDIhRKg
-      baseId: appksCeuKfCS0e8fR
-    tokenSecret: LicenseTokenSecret
-
-httpTestServer: 
-  hosts:
-    host1: 
-      host: staging-test-server.fyipe.com
-      tls:
-        enabled: false
-        crt: 
-        key:
+httpTestServer:
+    hosts:
+        host1:
+            host: staging-test-server.fyipe.com
+            tls:
+                enabled: false
+                crt:
+                key:
 fyipe:
-  hosts:
-    host1: 
-      host: staging.fyipe.com
-      tls:
-        enabled: false
-        crt: 
-        key: 
-  licensingUrl: https://fyipe.com/license
+    hosts:
+        host1:
+            host: staging.fyipe.com
+            tls:
+                enabled: false
+                crt:
+                key:
+    licensingUrl: https://fyipe.com/license
 
 image:
-  registry: docker.io
-  repository: fyipeproject
-  tag: master
-  pullPolicy: Always
-  restartPolicy: Always
+    registry: docker.io
+    repository: fyipeproject
+    tag: master
+    pullPolicy: Always
+    restartPolicy: Always
 
 replicaCount: 1
 
-# This should be 32 chars in length. 
+# This should be 32 chars in length.
 encryptionKey: pg#K^C$-)IGOg6DYXDGq2jdmfws0MiR7
-
-
-## Service Configuration
-## For minikube, set this to NodePort, elsewhere use LoadBalancer
-##
-nginx-ingress-controller:
-  service:
-    type: LoadBalancer
-    # externalTrafficPolicy: Local
-  proxySetHeaders:
-    X-Forwarded-For: $http_cf_connecting_ip
-    X-Real-Ip: $http_cf_connecting_ip
-  publishService:
-    enabled: true
-  config:
-    # use-proxy-protocol: "true"
-    # use-forward-headers: "true"
-    # compute-full-forward-for: "true"
-    log-format-upstream: '$remote_addr - $http_cf_connecting_ip - $http_x_forwarded_for - $request_id - [$proxy_add_x_forwarded_for] - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status'
-    proxy-protocol: "true"
-    real-ip-header: "X-Forwarded-For"
-    # set-real-ip-from: "108.162.192.0/18"
-  #   proxy-headers-hash-max-size: "1024"
-  #   proxy-headers-hash-bucket-size: "512"
-  #   proxy-protocol-server-port: "443"

@@ -348,9 +348,6 @@ class Main extends Component {
             };
         }
 
-        console.log('******* ip list *********', this.props.statusData.ip);
-        console.log('****** ip item *******', this.props.statusData.reqItem);
-
         return (
             <div className="page-main-wrapper" style={backgroundMain}>
                 {this.props.statusData && this.props.statusData.bannerPath ? (
