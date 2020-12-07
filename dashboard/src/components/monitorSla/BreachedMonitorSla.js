@@ -23,14 +23,25 @@ const BreachedMonitorSla = ({ monitor, sla, userId, closeSla, closingSla }) => {
                 className="box-inner"
                 style={{ position: 'relative', padding: 20 }}
             >
-                <div
-                    style={{
-                        textTransform: 'uppercase',
-                        fontSize: 11,
-                        fontWeight: 900,
-                    }}
-                >
-                    {sla.name} Monitor SLA Breached
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span
+                        className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
+                        style={{
+                            filter: 'brightness(0) invert(1)',
+                            marginTop: 1,
+                            marginRight: 10,
+                            display: 'block',
+                        }}
+                    ></span>
+                    <div
+                        style={{
+                            textTransform: 'uppercase',
+                            fontSize: 11,
+                            fontWeight: 900,
+                        }}
+                    >
+                        Monitor SLA Breached
+                    </div>
                 </div>
 
                 <span
@@ -54,7 +65,7 @@ const BreachedMonitorSla = ({ monitor, sla, userId, closeSla, closingSla }) => {
                         className="bm__icon bm__icon--close"
                         onClick={() => {
                             setIsClosing(true);
-                            closeSla(projectId, sla._id);
+                            closeSla(projectId, monitor._id);
                         }}
                     ></span>
                 )}

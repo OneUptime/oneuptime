@@ -1277,12 +1277,12 @@ module.exports = {
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     },
 
-    closeBreachedMonitorSla: async function(projectId, slaId, userId) {
+    closeBreachedMonitorSla: async function(projectId, monitorId, userId) {
         try {
             const monitor = await MonitorModel.findOneAndUpdate(
                 {
+                    _id: monitorId,
                     projectId,
-                    monitorSla: slaId,
                     breachedMonitorSla: true,
                     deleted: false,
                 },
@@ -1291,6 +1291,7 @@ module.exports = {
                 },
                 { new: true }
             );
+
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.closeBreachedMonitorSla', error);
