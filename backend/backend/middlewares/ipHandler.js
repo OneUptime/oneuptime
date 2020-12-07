@@ -1,5 +1,4 @@
 const StatusPageService = require('../services/statusPageService');
-// eslint-disable-next-line no-unused-vars
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const apiMiddleware = require('./api');
 const ipaddr = require('ipaddr.js');
@@ -17,7 +16,7 @@ const _this = {
         const ipWhitelist = statusPage.ipWhitelist
             ? [...statusPage.ipWhitelist]
             : [];
-        // no ip whitelist? move to the next express option
+        // no ip whitelist? move to the next express option/middleware
         if (!ipWhitelist || ipWhitelist.length === 0) {
             return next();
         }
@@ -28,11 +27,10 @@ const _this = {
         }
 
         if (!clientIp) {
-            // return sendErrorResponse(req, res, {
-            //     code: 400,
-            //     message: 'You are not allowed to view this page',
-            // });
-            return next();
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You are not allowed to view this page',
+            });
         }
 
         clientIp = clientIp.trim();
@@ -49,11 +47,10 @@ const _this = {
             return next();
         }
 
-        // return sendErrorResponse(req, res, {
-        //     code: 400,
-        //     message: 'You are not allowed to view this page',
-        // });
-        return next();
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'You are not allowed to view this page',
+        });
     },
 
     /**
@@ -61,19 +58,15 @@ const _this = {
      * @param {Object} req Object made available by express
      */
     getClientIp: function(req) {
-        // eslint-disable-next-line no-console
-        console.log('IP: ');
-        // eslint-disable-next-line no-console
-        console.log(req.headers);
-
+        // Cloudflare Connecting Ip.
+        // https://support.cloudflare.com/hc/en-us/articles/200170786-Restoring-original-visitor-IPs-Logging-visitor-IP-addresses
         let ip =
+            req.headers['cf-connecting-ip'] ||
+            req.headers['x-original-forwarded-for'] ||
             req.headers['x-forwarded-for'] ||
             req.connection.remoteAddress ||
             req.socket.remoteAddress ||
             req.connection.socket.remoteAddress;
-
-        req.item = req.ip;
-        req.ipItem = ip;
 
         if (!ip) {
             return null;

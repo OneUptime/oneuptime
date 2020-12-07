@@ -348,11 +348,6 @@ class Main extends Component {
             };
         }
 
-        // eslint-disable-next-line no-console
-        console.log('******* ip list *********', this.props.statusData.ip);
-        // eslint-disable-next-line no-console
-        console.log('****** ip item *******', this.props.statusData.reqItem);
-
         return (
             <div className="page-main-wrapper" style={backgroundMain}>
                 {this.props.statusData && this.props.statusData.bannerPath ? (
