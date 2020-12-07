@@ -48,9 +48,6 @@ global.io = io;
 app.use(cors());
 
 app.use(function(req, res, next) {
-    
-    console.log("IP:")
-    console.log(req.headers);
 
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
