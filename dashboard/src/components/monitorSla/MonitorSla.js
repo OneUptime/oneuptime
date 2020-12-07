@@ -366,7 +366,7 @@ class MonitorSla extends Component {
                                         monitorSlas.length === 0) &&
                                     !requesting &&
                                     !fetchSlaError
-                                        ? 'You have no incident communication SLA'
+                                        ? 'You have no monitor SLA'
                                         : null}
                                     {fetchSlaError ? fetchSlaError : null}
                                 </span>
