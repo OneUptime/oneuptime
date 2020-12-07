@@ -1,11 +1,11 @@
 const StatusPageService = require('../services/statusPageService');
+// eslint-disable-next-line no-unused-vars
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const apiMiddleware = require('./api');
 const ipaddr = require('ipaddr.js');
 
 const _this = {
     ipWhitelist: async function(req, res, next) {
-
         const statusPageId = apiMiddleware.getStatusPageId(req);
         const statusPage = await StatusPageService.findOneBy({
             _id: statusPageId,
@@ -61,7 +61,9 @@ const _this = {
      * @param {Object} req Object made available by express
      */
     getClientIp: function(req) {
-        console.log("IP: ")
+        // eslint-disable-next-line no-console
+        console.log('IP: ');
+        // eslint-disable-next-line no-console
         console.log(req.headers);
 
         let ip =

@@ -348,7 +348,9 @@ class Main extends Component {
             };
         }
 
+        // eslint-disable-next-line no-console
         console.log('******* ip list *********', this.props.statusData.ip);
+        // eslint-disable-next-line no-console
         console.log('****** ip item *******', this.props.statusData.reqItem);
 
         return (
