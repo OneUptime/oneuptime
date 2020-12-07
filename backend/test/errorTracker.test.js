@@ -18,14 +18,15 @@ let token,
     componentId,
     errorTracker,
     errorEvent,
-    errorEventTwo;
-let sampleErrorEvent = {};
+    errorEventTwo,
+    issueCount = 0;
+const sampleErrorEvent = {};
 
 describe('Error Tracker API', function() {
     this.timeout(80000);
 
     before(function(done) {
-        this.timeout(90000);
+        this.timeout(95000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
@@ -320,42 +321,132 @@ describe('Error Tracker API', function() {
                 expect(errorEvent).to.have.property('fingerprintHash');
                 expect(errorEvent).to.have.property('issueId');
                 expect(errorEvent.errorTrackerId).to.be.equal(errorTracker._id);
+                issueCount = issueCount + 1;
                 done();
             });
     });
-    it('should create a new error event with the old fingerprint, create a new one with a different fingerprint and confirm the two have different issueId', function(done) {
+    // it('should create a new error event with the old fingerprint, create a new one with a different fingerprint and confirm the two have different issueId', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     sampleErrorEvent.eventId = 'samplId';
+    //     sampleErrorEvent.fingerprint = ['fingerprint'];
+    //     sampleErrorEvent.type = 'exception';
+    //     sampleErrorEvent.timeline = [];
+    //     sampleErrorEvent.tags = [];
+    //     sampleErrorEvent.exception = {};
+    //     sampleErrorEvent.errorTrackerKey = errorTracker.key;
+    //     request
+    //         .post(`/error-tracker/${errorTracker._id}/track`)
+    //         .set('Authorization', authorization)
+    //         .send(sampleErrorEvent)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body.issueId).to.be.equal(errorEvent.issueId);
+    //             sampleErrorEvent.fingerprint = ['random', 'testing'];
+    //             request
+    //                 .post(`/error-tracker/${errorTracker._id}/track`)
+    //                 .set('Authorization', authorization)
+    //                 .send(sampleErrorEvent)
+    //                 .end(function(err, res) {
+    //                     expect(res).to.have.status(200);
+    //                     issueCount = issueCount + 1;
+
+    //                     errorEventTwo = res.body;
+    //                     expect(errorEventTwo.type).to.be.equal(errorEvent.type);
+    //                     expect(errorEventTwo.fingerprintHash).to.not.be.equal(
+    //                         errorEvent.fingerprintHash
+    //                     );
+    //                     expect(errorEvent.issueId).to.not.be.equal(
+    //                         errorEventTwo.issueId
+    //                     );
+    //                     done();
+    //                 });
+    //         });
+    // });
+    // it('should return a list of issues under an error event', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body.data.errorTrackerIssues).to.be.an('array');
+    //             expect(res.body.data.count).to.be.equal(issueCount);
+    //             done();
+    //         });
+    // });
+    // it('should return an error event with its next and previous', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/error-events/${errorEvent._id}`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body.errorEvent).to.be.an('object');
+    //             expect(res.body.previous).to.be.equal(null); // since this error event is the first, nothing should come before it
+    //             expect(res.body.next).to.have.property('_id'); // since we createdd another eevent after it, the next should have another event ID
+    //             expect(res.body.totalEvents).to.be.equal(2);
+    //             done();
+    //         });
+    // });
+    // it('should return an error when trying to ignore an issue without passing the IssueID', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues/action`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal('Issue ID is required');
+    //             done();
+    //         });
+    // });
+    // it('should return an error when trying to ignore an issue without passing an array of issues', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues/action`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .send({ issueId: errorEvent.issueId })
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal(
+    //                 'Issue ID has to be of type array'
+    //             );
+    //             done();
+    //         });
+    // });
+    // it('should return an error when trying to ignore an issue without passing a valid action type', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues/action`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .send({ issueId: [errorEvent.issueId], action: 'test' })
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal('Action is not allowed');
+    //             done();
+    //         });
+    // });
+    it('should return an error when trying to ignore an issue without passing a valid action type', function(done) {
         const authorization = `Basic ${token}`;
-        sampleErrorEvent.eventId = 'samplId';
-        sampleErrorEvent.fingerprint = ['fingerprint'];
-        sampleErrorEvent.type = 'exception';
-        sampleErrorEvent.timeline = [];
-        sampleErrorEvent.tags = [];
-        sampleErrorEvent.exception = {};
-        sampleErrorEvent.errorTrackerKey = errorTracker.key;
         request
-            .post(`/error-tracker/${errorTracker._id}/track`)
+            .post(
+                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues/action`
+            )
             .set('Authorization', authorization)
-            .send(sampleErrorEvent)
+            .send({ issueId: [errorEvent.issueId], action: 'test' })
             .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body.issueId).to.be.equal(errorEvent.issueId);
-                sampleErrorEvent.fingerprint = ['random', 'testing'];
-                request
-                    .post(`/error-tracker/${errorTracker._id}/track`)
-                    .set('Authorization', authorization)
-                    .send(sampleErrorEvent)
-                    .end(function(err, res) {
-                        expect(res).to.have.status(200);
-                        errorEventTwo = res.body;
-                        expect(errorEventTwo.type).to.be.equal(errorEvent.type);
-                        expect(errorEventTwo.fingerprintHash).to.not.be.equal(
-                            errorEvent.fingerprintHash
-                        );
-                        expect(errorEvent.issueId).to.not.be.equal(
-                            errorEventTwo.issueId
-                        );
-                        done();
-                    });
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('Action is not allowed');
+                done();
             });
     });
     // delete error tracker
