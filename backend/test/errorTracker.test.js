@@ -19,7 +19,8 @@ let token,
     errorTracker,
     errorEvent,
     errorEventTwo,
-    issueCount = 0;
+    issueCount = 0,
+    errorEventMembers = 0;
 const sampleErrorEvent = {};
 
 describe('Error Tracker API', function() {
@@ -515,18 +516,104 @@ describe('Error Tracker API', function() {
     //             done();
     //         });
     // });
-    it('should fetch errors attached to a fingerprint successfully', function(done) {
+    // it('should fetch errors attached to a fingerprint successfully', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/error-events`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .send({ fingerprintHash: errorEvent.fingerprintHash })
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body).to.be.an('array');
+    //             expect(res.body[0]._id).to.be.equal(errorEvent._id);
+    //             done();
+    //         });
+    // });
+    // it('should fetch members attached to an issue successfully', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/members/${errorEvent.issueId}`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .send({ fingerprintHash: errorEvent.fingerprintHash })
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body).to.be.have.property('issueId');
+    //             expect(res.body).to.be.have.property('issueMembers');
+    //             expect(res.body.issueId).to.be.equal(errorEvent.issueId);
+    //             expect(res.body.issueMembers.length).to.be.equal(
+    //                 errorEventMembers
+    //             );
+    //             done();
+    //         });
+    // });
+    // it('should not assign member to issue due to no member ID passed', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/assign/${errorEvent.issueId}`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal(
+    //                 'Team Member ID is required'
+    //             );
+    //             done();
+    //         });
+    // });
+    // it('should not assign member to issue if member ID is not of required type', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/assign/${errorEvent.issueId}`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .send({ teamMemberId: userId })
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal(
+    //                 'Team Member ID has to be of type array'
+    //             );
+    //             done();
+    //         });
+    // });
+    it('should assign member to issue if member ID is of required type', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(
-                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/error-events`
+                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/assign/${errorEvent.issueId}`
             )
             .set('Authorization', authorization)
-            .send({ fingerprintHash: errorEvent.fingerprintHash })
+            .send({ teamMemberId: [userId] })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                expect(res.body[0]._id).to.be.equal(errorEvent._id);
+                errorEventMembers += 1;
+                expect(res.body.issueId).to.be.equal(errorEvent.issueId);
+                expect(res.body.members.length).to.be.equal(errorEventMembers);
+                expect(res.body.members[0].userId._id).to.be.equal(userId);
+                expect(res.body.members[0].issueId._id).to.be.equal(
+                    errorEvent.issueId
+                );
+                done();
+            });
+    });
+    it('should unassign member to issue if member ID is of required type', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(
+                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/unassign/${errorEvent.issueId}`
+            )
+            .set('Authorization', authorization)
+            .send({ teamMemberId: [userId] })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                errorEventMembers -= 1;
+                expect(res.body.issueId).to.be.equal(errorEvent.issueId);
+                expect(res.body.members.length).to.be.equal(errorEventMembers);
                 done();
             });
     });
