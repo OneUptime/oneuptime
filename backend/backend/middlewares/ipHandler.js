@@ -5,6 +5,7 @@ const ipaddr = require('ipaddr.js');
 
 const _this = {
     ipWhitelist: async function(req, res, next) {
+
         const statusPageId = apiMiddleware.getStatusPageId(req);
         const statusPage = await StatusPageService.findOneBy({
             _id: statusPageId,
