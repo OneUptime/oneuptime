@@ -1358,17 +1358,18 @@ describe('SMS/Calls Incident Alerts', function() {
             });
             expect(newIncident).to.have.status(200);
 
-            await sleep(10 * 1000);
+            await sleep(15 * 1000);
 
             // check the balance again
+
             const { balance, alertOptions } = await ProjectService.findOneBy({
                 _id: projectId,
             });
 
-            const rechargeAmount =
-                (alertOptions && alertOptions.rechargeToBalance) || NaN;
+            const { rechargeToBalance, minimumBalance } = alertOptions;
 
-            expect(balance).to.equal(rechargeAmount);
+            expect(balance).to.be.lessThan(rechargeToBalance);
+            expect(balance).to.be.greaterThan(minimumBalance);
         });
     });
     describe('Custom twilio settings are set', async () => {
