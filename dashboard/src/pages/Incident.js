@@ -250,7 +250,6 @@ class Incident extends React.Component {
     };
 
     render() {
-        console.log(this.props)
         let variable = null;
         const {
             component,

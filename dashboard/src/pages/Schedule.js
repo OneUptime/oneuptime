@@ -37,7 +37,6 @@ class Schedule extends Component {
     }
 
     render() {
-        console.log(this.props)
         const { editSchedule, error } = this.state;
 
         const {
