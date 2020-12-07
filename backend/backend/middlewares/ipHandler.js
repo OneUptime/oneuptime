@@ -60,6 +60,9 @@ const _this = {
      * @param {Object} req Object made available by express
      */
     getClientIp: function(req) {
+        console.log("IP: ")
+        console.log(req.headers);
+
         let ip =
             req.headers['x-forwarded-for'] ||
             req.connection.remoteAddress ||
