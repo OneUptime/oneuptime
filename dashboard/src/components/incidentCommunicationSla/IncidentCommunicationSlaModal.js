@@ -41,6 +41,8 @@ function validate(values) {
 class IncidentCommunicationSlaModal extends React.Component {
     state = {
         setCustom: false,
+        durationHelpTextTime: '60',
+        customDurationTime: 'X',
     };
 
     componentDidMount() {
@@ -105,7 +107,6 @@ class IncidentCommunicationSlaModal extends React.Component {
             createIncidentSlaModalId,
         } = this.props;
         const { setCustom } = this.state;
-
         return (
             <div
                 className="ModalLayer-contents"
@@ -198,7 +199,10 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                     }
                                                 >
                                                     <span>
-                                                        Duration (minutes)
+                                                        Duration{' '}
+                                                        {this.state.setCustom
+                                                            ? '(minutes)'
+                                                            : ''}
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -223,6 +227,23 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                                     padding:
                                                                         '3px 5px',
                                                                 }}
+                                                                onChange={(
+                                                                    event,
+                                                                    value
+                                                                ) => {
+                                                                    value
+                                                                        ? this.setState(
+                                                                              {
+                                                                                  customDurationTime: value,
+                                                                              }
+                                                                          )
+                                                                        : this.setState(
+                                                                              {
+                                                                                  customDurationTime:
+                                                                                      'X',
+                                                                              }
+                                                                          );
+                                                                }}
                                                             />
                                                         )}
                                                         {!setCustom && (
@@ -239,12 +260,6 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                                     RenderSelect
                                                                 }
                                                                 options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select a Duration',
-                                                                    },
                                                                     {
                                                                         value:
                                                                             '15',
@@ -281,10 +296,50 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                                                 setCustom: true,
                                                                             }
                                                                         );
+                                                                    value !==
+                                                                        'custom' &&
+                                                                        this.setState(
+                                                                            {
+                                                                                durationHelpTextTime: value,
+                                                                            }
+                                                                        );
                                                                 }}
                                                             />
                                                         )}
                                                     </div>
+                                                    <p className="bs-Fieldset-explanation">
+                                                        {!setCustom ? (
+                                                            <span>
+                                                                Make an SLA
+                                                                policy to update
+                                                                an incident
+                                                                status every{' '}
+                                                                {this.state
+                                                                    .durationHelpTextTime ===
+                                                                '60'
+                                                                    ? '1'
+                                                                    : this.state
+                                                                          .durationHelpTextTime}{' '}
+                                                                {this.state
+                                                                    .durationHelpTextTime ===
+                                                                '60'
+                                                                    ? 'hour'
+                                                                    : 'minutes.'}
+                                                            </span>
+                                                        ) : (
+                                                            <span>
+                                                                Make an SLA
+                                                                policy to update
+                                                                an incident
+                                                                status every{' '}
+                                                                {
+                                                                    this.state
+                                                                        .customDurationTime
+                                                                }{' '}
+                                                                {'minutes.'}
+                                                            </span>
+                                                        )}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
@@ -376,6 +431,14 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                         </span>
                                                     </div>
                                                 </label>
+                                                <p className="bs-Fieldset-explanation">
+                                                    <span>
+                                                        When an SLA is set to
+                                                        default, it is applied
+                                                        to all the incidents
+                                                        from all the monitors.
+                                                    </span>
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

@@ -83,7 +83,7 @@ describe('Incident Created test', () => {
                 await page.$eval('#btnAcknowledge_0', e => e.click());
                 await page.goto(utils.DASHBOARD_URL);
                 const closeAllButton = await page.waitForSelector(
-                    '#incidence-close-all-btn',
+                    '#incidents-close-all-btn',
                     { hidden: true }
                 );
                 expect(closeAllButton).toBe(null);
@@ -100,7 +100,7 @@ describe('Incident Created test', () => {
                 await page.$eval('#btnResolve_0', e => e.click());
                 await page.waitForSelector('#ResolveText_0', { visible: true });
                 const closeAllButton = await page.waitForSelector(
-                    '#incidence-close-all-btn',
+                    '#incidents-close-all-btn',
                     { visible: true }
                 );
                 expect(closeAllButton).toBeDefined();
@@ -113,8 +113,8 @@ describe('Incident Created test', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#incidence-close-all-btn');
-                await page.$eval('#incidence-close-all-btn', elem =>
+                await page.waitForSelector('#incidents-close-all-btn');
+                await page.$eval('#incidents-close-all-btn', elem =>
                     elem.click()
                 );
                 const closeButton = await page.waitForSelector(

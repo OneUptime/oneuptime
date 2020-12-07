@@ -16,7 +16,15 @@ const monitorSchema = new Schema({
     createdById: { type: String, ref: 'User' }, //userId.
     type: {
         type: String,
-        enum: ['url', 'device', 'manual', 'api', 'server-monitor', 'script'],
+        enum: [
+            'url',
+            'device',
+            'manual',
+            'api',
+            'server-monitor',
+            'script',
+            'incomingHttpRequest',
+        ],
     }, //type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
     resourceCategory: {
         type: String,
@@ -66,6 +74,7 @@ const monitorSchema = new Schema({
         ref: 'MonitorSla',
     },
     breachedMonitorSla: { type: Boolean, default: false },
+    breachClosedBy: [{ type: String, ref: 'User' }],
 });
 
 monitorSchema.virtual('project', {
