@@ -143,10 +143,7 @@ mongodb:
 nginx-ingress-controller:
   service:
     type: LoadBalancer
-  proxySetHeaders:
-    X-Forwarded-For: $remote_addr
 
-  
 
   ##################################################################################
 
