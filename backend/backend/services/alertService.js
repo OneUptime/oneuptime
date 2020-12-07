@@ -1128,7 +1128,7 @@ module.exports = {
         }
     },
 
-    sendInvestigationNoteToSubscriber: async function(incident, data, statusNoteStatus) {
+    sendInvestigationNoteToSubscribers: async function(incident, data, statusNoteStatus) {
         try {
             const note = data.content
             const _this = this;
@@ -1931,7 +1931,7 @@ module.exports = {
                             alertStatus = 'Disabled';
                         }
                     } else if(templateType === 'Investigation note is created') {
-                        await MailService.sendInvestigationNoteToSubscriber(
+                        await MailService.sendInvestigationNoteToSubscribers(
                             date,
                             subscriber.monitorName,
                             subscriber.contactEmail,
@@ -2207,7 +2207,7 @@ module.exports = {
                             alertStatus = 'Disabled';
                         }
                     } else if(templateType == 'Investigation note is created') {
-                        sendResult = await TwilioService.sendInvestigationNoteToSubscriber(
+                        sendResult = await TwilioService.sendInvestigationNoteToSubscribers(
                             date,
                             subscriber.monitorName,
                             contactPhone,

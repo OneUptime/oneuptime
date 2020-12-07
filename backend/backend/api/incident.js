@@ -473,7 +473,7 @@ router.post(
                     data.createdById = req.user.id;
                     incidentMessage = await IncidentMessageService.create(data);
                     if(data.type === 'investigation') {
-                        AlertService.sendInvestigationNoteToSubscriber(incident, data, "created")
+                        AlertService.sendInvestigationNoteToSubscribers(incident, data, "created")
                     }
                 } else {
                     const updatedMessage = {
@@ -488,7 +488,7 @@ router.post(
                         _id: data.id,
                     });
                     if (investigation.type === 'investigation') {
-                        AlertService.sendInvestigationNoteToSubscriber(incident, data, "updated")
+                        AlertService.sendInvestigationNoteToSubscribers(incident, data, "updated")
                     }
                 }
                 const status = `${incidentMessage.type} notes ${

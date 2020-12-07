@@ -1594,7 +1594,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      */
     
-    sendInvestigationNoteToSubscriber: async function(
+    sendInvestigationNoteToSubscribers: async function(
         incidentTime,
         monitorName,
         email,
@@ -1654,7 +1654,7 @@ const _this = {
             return info;
         } catch (error) {
             ErrorService.log(
-                'mailService.sendInvestigationNoteToSubscriber',
+                'mailService.sendInvestigationNoteToSubscribers',
                 error
             );
             await EmailStatusService.create({

@@ -218,7 +218,7 @@ const _this = {
         }
     },
 
-    sendInvestigationNoteToSubscriber: async function(
+    sendInvestigationNoteToSubscribers: async function(
         incidentTime,
         monitorName,
         number,
@@ -298,7 +298,7 @@ const _this = {
             }
         } catch(error) {
             ErrorService.log(
-                'twillioService.sendInvestigationNoteToSubscriber',
+                'twillioService.sendInvestigationNoteToSubscribers',
                 error
             );
             throw error;
