@@ -34,6 +34,7 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import IncidentStatusPages from '../components/incident/incidentStatusPages';
 
+
 class Incident extends React.Component {
     constructor(props) {
         super(props);
@@ -251,6 +252,9 @@ class Incident extends React.Component {
 
     render() {
         let variable = null;
+        const {currentProject, history} = this.props
+        const projectId = currentProject ? currentProject._id : null;
+        const redirectTo = `/dashboard/project/${projectId}/on-call`
         const {
             component,
             location: { pathname },
@@ -281,7 +285,15 @@ class Incident extends React.Component {
                         <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
                             <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
-                                This incident does not have an On-Call Schedule.
+                                No Team Member will be alerted when incident is created.
+                                </span>
+                                <span>
+                                    <button 
+                                    className="bs-Button bs-Button--grey"
+                                    onClick={() =>
+                                        history.push(redirectTo)
+                                    }
+                                    >Create On-Call Schedule</button>
                                 </span>
                             </div>
                         </div>
@@ -330,6 +342,7 @@ class Incident extends React.Component {
                                 ></div>
                             </TabList>
                         </div>
+                        <div>{scheduleAlert}</div>
                         {this.props.incident &&
                             this.props.incident.countDown &&
                             this.props.incident.countDown !== '0:0' && (
@@ -531,7 +544,7 @@ class Incident extends React.Component {
                                 <div className="react-settings-view react-view">
                                     <span>
                                         <div>
-                                            <div>{scheduleAlert}</div>
+                                          
                                             <div>{variable}</div>
                                         </div>
                                     </span>
