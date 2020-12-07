@@ -10,6 +10,7 @@ import { openModal, closeModal } from '../../actions/modal';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import { formatDecimal, formatBytes } from '../../config';
+import ShouldRender from '../../components/basic/ShouldRender';
 
 export class MonitorLogsList extends Component {
     constructor(props) {
@@ -149,36 +150,48 @@ export class MonitorLogsList extends Component {
                                                 </span>
                                             </div>
                                         </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{ height: '1px' }}
+                                        <ShouldRender
+                                            if={
+                                                this.props.monitorType &&
+                                                this.props.monitorType !==
+                                                    'incomingHttpRequest'
+                                            }
                                         >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                    <span>Status Code</span>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{ height: '1px' }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                    <span>Response Time</span>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{ height: '1px' }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                    <span>Response Body</span>
-                                                </span>
-                                            </div>
-                                        </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                        <span>Status Code</span>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                        <span>
+                                                            Response Time
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                        <span>
+                                                            Response Body
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </ShouldRender>
                                         <td
                                             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{ height: '1px' }}
@@ -509,6 +522,14 @@ export class MonitorLogsList extends Component {
                                                                             ? log
                                                                                   .probeId
                                                                                   .probeName
+                                                                            : this
+                                                                                  .props
+                                                                                  .monitorType &&
+                                                                              this
+                                                                                  .props
+                                                                                  .monitorType ===
+                                                                                  'incomingHttpRequest'
+                                                                            ? 'Fyipe'
                                                                             : 'Unknown Probe'}
                                                                     </span>
                                                                 </div>
@@ -611,136 +632,146 @@ export class MonitorLogsList extends Component {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td
-                                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                        style={{
-                                                            height: '1px',
-                                                        }}
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props
+                                                                .monitorType &&
+                                                            this.props
+                                                                .monitorType !==
+                                                                'incomingHttpRequest'
+                                                        }
                                                     >
-                                                        <div className="db-ListViewItem-link">
-                                                            <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <div className="Box-root Flex-flex">
+                                                        <td
+                                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                            style={{
+                                                                height: '1px',
+                                                            }}
+                                                        >
+                                                            <div className="db-ListViewItem-link">
+                                                                <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                         <div className="Box-root Flex-flex">
-                                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                                {log &&
-                                                                                log.responseStatus &&
-                                                                                parseInt(
-                                                                                    log.responseStatus
-                                                                                ) >=
-                                                                                    400 ? (
-                                                                                    <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                            <span>
-                                                                                                {
-                                                                                                    log.responseStatus
-                                                                                                }
+                                                                            <div className="Box-root Flex-flex">
+                                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                    {log &&
+                                                                                    log.responseStatus &&
+                                                                                    parseInt(
+                                                                                        log.responseStatus
+                                                                                    ) >=
+                                                                                        400 ? (
+                                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {
+                                                                                                        log.responseStatus
+                                                                                                    }
+                                                                                                </span>
                                                                                             </span>
-                                                                                        </span>
-                                                                                    </div>
-                                                                                ) : log &&
-                                                                                  log.responseStatus &&
-                                                                                  parseInt(
-                                                                                      log.responseStatus
-                                                                                  ) <
-                                                                                      400 ? (
-                                                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                            <span>
-                                                                                                {
-                                                                                                    log.responseStatus
-                                                                                                }
+                                                                                        </div>
+                                                                                    ) : log &&
+                                                                                      log.responseStatus &&
+                                                                                      parseInt(
+                                                                                          log.responseStatus
+                                                                                      ) <
+                                                                                          400 ? (
+                                                                                        <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {
+                                                                                                        log.responseStatus
+                                                                                                    }
+                                                                                                </span>
                                                                                             </span>
-                                                                                        </span>
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                            <span>
-                                                                                                Unknown
-                                                                                                Status
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    Unknown
+                                                                                                    Status
+                                                                                                </span>
                                                                                             </span>
-                                                                                        </span>
-                                                                                    </div>
-                                                                                )}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                </span>
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </td>
-                                                    <td
-                                                        className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                        style={{
-                                                            height: '1px',
-                                                        }}
-                                                    >
-                                                        <div className="db-ListViewItem-link">
-                                                            <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <div className="Box-root Flex">
-                                                                        <div className="Box-root Flex-flex">
-                                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                                <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                        <span>
-                                                                                            {formatMonitorResponseTime(
-                                                                                                log.responseTime
+                                                        </td>
+                                                        <td
+                                                            className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                            style={{
+                                                                height: '1px',
+                                                            }}
+                                                        >
+                                                            <div className="db-ListViewItem-link">
+                                                                <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                        <div className="Box-root Flex">
+                                                                            <div className="Box-root Flex-flex">
+                                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                    <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                            <span>
+                                                                                                {formatMonitorResponseTime(
+                                                                                                    log.responseTime
+                                                                                                )}
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                            style={{
+                                                                height: '1px',
+                                                            }}
+                                                        >
+                                                            <div className="db-ListViewItem-link">
+                                                                <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                        <div className="Box-root Flex">
+                                                                            <div className="Box-root Flex-flex">
+                                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                    <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                            {log.data &&
+                                                                                            typeof log.data ===
+                                                                                                'string' ? (
+                                                                                                <span>
+                                                                                                    {log.data
+                                                                                                        ? log
+                                                                                                              .data
+                                                                                                              .length >
+                                                                                                          20
+                                                                                                            ? log.data.substr(
+                                                                                                                  0,
+                                                                                                                  20
+                                                                                                              ) +
+                                                                                                              '&hellip;'
+                                                                                                            : log.data
+                                                                                                        : ''}
+                                                                                                </span>
+                                                                                            ) : (
+                                                                                                ''
                                                                                             )}
                                                                                         </span>
-                                                                                    </span>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                </span>
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </td>
-                                                    <td
-                                                        className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                        style={{
-                                                            height: '1px',
-                                                        }}
-                                                    >
-                                                        <div className="db-ListViewItem-link">
-                                                            <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <div className="Box-root Flex">
-                                                                        <div className="Box-root Flex-flex">
-                                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                                <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                        {log.data &&
-                                                                                        typeof log.data ===
-                                                                                            'string' ? (
-                                                                                            <span>
-                                                                                                {log.data
-                                                                                                    ? log
-                                                                                                          .data
-                                                                                                          .length >
-                                                                                                      20
-                                                                                                        ? log.data.substr(
-                                                                                                              0,
-                                                                                                              20
-                                                                                                          ) +
-                                                                                                          '&hellip;'
-                                                                                                        : log.data
-                                                                                                    : ''}
-                                                                                            </span>
-                                                                                        ) : (
-                                                                                            ''
-                                                                                        )}
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
+                                                        </td>
+                                                    </ShouldRender>
                                                     <td
                                                         className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                         style={{

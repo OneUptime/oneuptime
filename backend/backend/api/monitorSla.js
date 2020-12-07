@@ -177,4 +177,23 @@ router.delete(
     }
 );
 
+router.get(
+    '/:projectId/defaultMonitorSla',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId } = req.params;
+            const defaultMonitorSla = await MonitorSlaService.findOneBy({
+                projectId,
+                isDefault: true,
+            });
+
+            return sendItemResponse(req, res, defaultMonitorSla);
+        } catch (error) {
+            return sendErrorResponse(error);
+        }
+    }
+);
+
 module.exports = router;

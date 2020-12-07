@@ -844,19 +844,27 @@ module.exports = {
                 AlertType.Call
             );
             if (!hasEnoughBalance) {
-                return await _this.create({
-                    projectId: incident.projectId,
-                    monitorId,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
-                    alertVia: AlertType.Call,
-                    userId: user._id,
-                    incidentId: incident._id,
-                    alertStatus: null,
-                    error: true,
-                    errorMessage: 'Low Balance',
-                });
+                // try to recharge amount
+                const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
+                    user._id,
+                    project
+                );
+
+                if (!projectBalanceRecharged) {
+                    return await _this.create({
+                        projectId: incident.projectId,
+                        monitorId,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: AlertType.Call,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        alertStatus: null,
+                        error: true,
+                        errorMessage: 'Low Balance',
+                    });
+                }
             }
         }
         const alertStatus = await TwilioService.sendIncidentCreatedCall(
@@ -1027,19 +1035,27 @@ module.exports = {
                 AlertType.SMS
             );
             if (!hasEnoughBalance) {
-                return await _this.create({
-                    projectId: incident.projectId,
-                    monitorId,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
-                    alertVia: AlertType.SMS,
-                    userId: user._id,
-                    incidentId: incident._id,
-                    alertStatus: null,
-                    error: true,
-                    errorMessage: 'Low Balance',
-                });
+                // try to recharge amount
+                const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
+                    user._id,
+                    project
+                );
+
+                if (!projectBalanceRecharged) {
+                    return await _this.create({
+                        projectId: incident.projectId,
+                        monitorId,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: AlertType.SMS,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        alertStatus: null,
+                        error: true,
+                        errorMessage: 'Low Balance',
+                    });
+                }
             }
         }
 
@@ -2016,23 +2032,30 @@ module.exports = {
                     );
 
                     if (!hasEnoughBalance) {
-                        return await SubscriberAlertService.create({
-                            projectId: incident.projectId,
-                            incidentId: incident._id,
-                            subscriberId: subscriber._id,
-                            alertVia: AlertType.SMS,
-                            alertStatus: null,
-                            error: true,
-                            errorMessage: 'Low Balance',
-                            eventType:
-                                templateType ===
-                                'Subscriber Incident Acknowldeged'
-                                    ? 'acknowledged'
-                                    : templateType ===
-                                      'Subscriber Incident Resolved'
-                                    ? 'resolved'
-                                    : 'identified',
-                        });
+                        // try to recharge amount
+                        const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
+                            owner.userId,
+                            project
+                        );
+                        if (!projectBalanceRecharged) {
+                            return await SubscriberAlertService.create({
+                                projectId: incident.projectId,
+                                incidentId: incident._id,
+                                subscriberId: subscriber._id,
+                                alertVia: AlertType.SMS,
+                                alertStatus: null,
+                                error: true,
+                                errorMessage: 'Low Balance',
+                                eventType:
+                                    templateType ===
+                                    'Subscriber Incident Acknowldeged'
+                                        ? 'acknowledged'
+                                        : templateType ===
+                                          'Subscriber Incident Resolved'
+                                        ? 'resolved'
+                                        : 'identified',
+                            });
+                        }
                     }
                 }
 

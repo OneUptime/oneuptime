@@ -25,6 +25,7 @@ const { isUserAdmin } = require('../middlewares/project');
 const storage = require('../middlewares/upload');
 const { isAuthorized } = require('../middlewares/authorization');
 const IncidentTimelineService = require('../services/incidentTimelineService');
+const { ipWhitelist } = require('../middlewares/ipHandler');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -326,6 +327,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             statusPage = await StatusPageService.findOneBy({
                 _id: data._id,
             });
+            data.ipList = statusPage.ipWhitelist;
             const imagesPath = {
                 faviconPath: statusPage.faviconPath,
                 logoPath: statusPage.logoPath,
@@ -446,7 +448,7 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
 });
 
 // External status page api - get the data to show on status page
-router.get('/:statusPageId', checkUser, async function(req, res) {
+router.get('/:statusPageId', checkUser, ipWhitelist, async function(req, res) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
     const user = req.user;
@@ -476,7 +478,11 @@ router.get('/:statusPageId', checkUser, async function(req, res) {
                 message: 'You are unauthorized to access the page.',
             });
         } else {
-            return sendItemResponse(req, res, statusPage);
+            return sendItemResponse(req, res, {
+                ...statusPage,
+                ip: req.ipItem,
+                reqItem: req.item,
+            });
         }
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -580,27 +586,29 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
-router.get('/:projectId/:statusPageId/notes', checkUser, async function(
-    req,
-    res
-) {
-    const statusPageId = req.params.statusPageId;
-    const skip = req.query.skip || 0;
-    const limit = req.query.limit || 5;
-    try {
-        // Call the StatusPageService.
-        const response = await StatusPageService.getNotes(
-            { _id: statusPageId },
-            skip,
-            limit
-        );
-        const notes = response.notes;
-        const count = response.count;
-        return sendListResponse(req, res, notes, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId/:statusPageId/notes',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        const statusPageId = req.params.statusPageId;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 5;
+        try {
+            // Call the StatusPageService.
+            const response = await StatusPageService.getNotes(
+                { _id: statusPageId },
+                skip,
+                limit
+            );
+            const notes = response.notes;
+            const count = response.count;
+            return sendListResponse(req, res, notes, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get('/:projectId/incident/:incidentId', checkUser, async function(
     req,
@@ -684,47 +692,51 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
     }
 });
 
-router.get('/:projectId/:statusPageId/events', checkUser, async function(
-    req,
-    res
-) {
-    const statusPageId = req.params.statusPageId;
-    const skip = req.query.skip || 0;
-    const limit = req.query.limit || 5;
-    try {
-        // Call the StatusPageService.
-        const response = await StatusPageService.getEvents(
-            { _id: statusPageId },
-            skip,
-            limit
-        );
-        const events = response.events;
-        const count = response.count;
-        return sendListResponse(req, res, events, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId/:statusPageId/events',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        const statusPageId = req.params.statusPageId;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 5;
+        try {
+            // Call the StatusPageService.
+            const response = await StatusPageService.getEvents(
+                { _id: statusPageId },
+                skip,
+                limit
+            );
+            const events = response.events;
+            const count = response.count;
+            return sendListResponse(req, res, events, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.get('/:projectId/:statusPageId/futureEvents', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageId } = req.params;
-        const { skip = 0, limit = 5 } = req.query;
+router.get(
+    '/:projectId/:statusPageId/futureEvents',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageId } = req.params;
+            const { skip = 0, limit = 5 } = req.query;
 
-        const response = await StatusPageService.getFutureEvents(
-            { _id: statusPageId },
-            skip,
-            limit
-        );
-        const { events, count } = response;
-        return sendListResponse(req, res, events, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const response = await StatusPageService.getFutureEvents(
+                { _id: statusPageId },
+                skip,
+                limit
+            );
+            const { events, count } = response;
+            return sendListResponse(req, res, events, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get('/:projectId/notes/:scheduledEventId', checkUser, async function(
     req,
@@ -920,23 +932,25 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
     }
 });
 
-router.get('/:projectId/:statusPageId/timelines', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageId } = req.params;
+router.get(
+    '/:projectId/:statusPageId/timelines',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageId } = req.params;
 
-        const incidents = await StatusPageService.getNotes({
-            _id: statusPageId,
-        });
-        const response = await IncidentTimelineService.getIncidentLastTimelines(
-            incidents.notes
-        );
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const incidents = await StatusPageService.getNotes({
+                _id: statusPageId,
+            });
+            const response = await IncidentTimelineService.getIncidentLastTimelines(
+                incidents.notes
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 module.exports = router;

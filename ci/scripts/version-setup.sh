@@ -23,5 +23,5 @@ version admin-dashboard
 version init-script
 version licensing
 version helm-chart
-version log-js
+version js-sdk
 version .

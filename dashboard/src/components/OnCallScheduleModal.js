@@ -48,11 +48,12 @@ class OnCallScheduleModal extends Component {
                                                 return (
                                                     <li key={i}>
                                                         <b
-                                                            onClick={() =>
+                                                            onClick={() => {
                                                                 history.push(
                                                                     `/dashboard/project/${
                                                                         this
                                                                             .props
+                                                                            .data
                                                                             .currentProjectId
                                                                     }/sub-project/${schedule.projectId &&
                                                                         schedule
@@ -61,8 +62,10 @@ class OnCallScheduleModal extends Component {
                                                                         schedule
                                                                             .scheduleId
                                                                             ._id}`
-                                                                )
-                                                            }
+                                                                );
+
+                                                                this.props.closeThisDialog();
+                                                            }}
                                                             style={{
                                                                 cursor:
                                                                     'pointer',
@@ -76,10 +79,17 @@ class OnCallScheduleModal extends Component {
                                                             >
                                                                 &middot;
                                                             </span>{' '}
-                                                            {schedule.scheduleId &&
-                                                                schedule
-                                                                    .scheduleId
-                                                                    .name}
+                                                            <span
+                                                                style={{
+                                                                    textDecoration:
+                                                                        'underline',
+                                                                }}
+                                                            >
+                                                                {schedule.scheduleId &&
+                                                                    schedule
+                                                                        .scheduleId
+                                                                        .name}
+                                                            </span>
                                                             :
                                                         </b>{' '}
                                                         {!schedule.isOnDutyAllTheTime ? (
@@ -141,9 +151,11 @@ class OnCallScheduleModal extends Component {
                                                             </span>
                                                         ) : (
                                                             <span>
-                                                                You&#39;re on
-                                                                duty all the
-                                                                time
+                                                                You&#39;re
+                                                                currently on
+                                                                call duty for
+                                                                these call
+                                                                schedules.
                                                             </span>
                                                         )}
                                                     </li>

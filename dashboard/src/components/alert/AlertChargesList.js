@@ -43,7 +43,7 @@ export class AlertChargesList extends Component {
             count,
             skip,
             limit,
-            projectId
+            projectId,
         } = this.props;
         const canNext = count > parseInt(skip) + parseInt(limit) ? true : false;
         const canPrev = parseInt(skip) <= 0 ? false : true;
@@ -139,13 +139,15 @@ export class AlertChargesList extends Component {
                                                         onClick={() => {
                                                             history.push(
                                                                 '/dashboard/project/' +
-                                                                projectId + '/' 
-                                                                +alertCharge.monitorId.componentId +
-                                                                '/monitoring/' +
-                                                                alertCharge
-                                                                    .monitorId
-                                                                    ._id
-
+                                                                    projectId +
+                                                                    '/' +
+                                                                    alertCharge
+                                                                        .monitorId
+                                                                        .componentId +
+                                                                    '/monitoring/' +
+                                                                    alertCharge
+                                                                        .monitorId
+                                                                        ._id
                                                             );
                                                         }}
                                                         className="Box-root Margin-right--16"

@@ -23,5 +23,5 @@ licenses/*
 certifications/*
 api-docs/public/assets/*
 server-monitor/out/scripts/prettify/*
-log-js/dist/logger.js
-log-js/dist/logger.min.js
+js-sdk/dist/logger.js
+js-sdk/dist/logger.min.js

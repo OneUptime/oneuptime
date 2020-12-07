@@ -18,7 +18,15 @@ module.exports = {
                 .skip(skip)
                 .populate('createdById', 'name')
                 .populate('projectId', 'name')
-                .populate('monitorId', 'name');
+                .populate({
+                    path: 'monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name',
+                    },
+                });
+
             return integrations;
         } catch (error) {
             ErrorService.log('IntegrationService.findBy', error);
@@ -99,7 +107,14 @@ module.exports = {
                 .sort([['createdAt, -1']])
                 .populate('createdById', 'name')
                 .populate('projectId', 'name')
-                .populate('monitorId', 'name');
+                .populate({
+                    path: 'monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name',
+                    },
+                });
             return integration;
         } catch (error) {
             ErrorService.log('IntegrationService.findOneBy', error);
