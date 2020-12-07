@@ -316,12 +316,12 @@ describe('Error Tracker API', function() {
             .send(sampleErrorEvent)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                errorEvent = res.body;
+                errorEvent = res.body; // save as an error event
                 expect(errorEvent.type).to.be.equal(sampleErrorEvent.type);
                 expect(errorEvent).to.have.property('fingerprintHash');
                 expect(errorEvent).to.have.property('issueId');
                 expect(errorEvent.errorTrackerId).to.be.equal(errorTracker._id);
-                issueCount = issueCount + 1;
+                issueCount = issueCount + 1; // increment number of new issue created
                 done();
             });
     });
@@ -339,7 +339,7 @@ describe('Error Tracker API', function() {
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
             .end(function(err, res) {
-                expect(res).to.have.status(200);
+                expect(res).to.have.status(200); // weve created an error event with the existing issue fingerprint
                 expect(res.body.issueId).to.be.equal(errorEvent.issueId);
                 sampleErrorEvent.fingerprint = ['random', 'testing'];
                 request
@@ -348,7 +348,7 @@ describe('Error Tracker API', function() {
                     .send(sampleErrorEvent)
                     .end(function(err, res) {
                         expect(res).to.have.status(200);
-                        issueCount = issueCount + 1;
+                        issueCount = issueCount + 1; // weve created a new issue entirely
 
                         errorEventTwo = res.body;
                         expect(errorEventTwo.type).to.be.equal(errorEvent.type);
@@ -372,7 +372,23 @@ describe('Error Tracker API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.data.errorTrackerIssues).to.be.an('array');
-                expect(res.body.data.count).to.be.equal(issueCount);
+                expect(res.body.data.count).to.be.equal(issueCount); // confirm the issue count is accurate
+                done();
+            });
+    });
+    it('should return a list of issues under an error event based on limit', function(done) {
+        const authorization = `Basic ${token}`;
+        const limit = 1;
+        request
+            .post(
+                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues`
+            )
+            .set('Authorization', authorization)
+            .send({ limit })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.data.errorTrackerIssues).to.be.an('array');
+                expect(res.body.data.count).to.be.equal(limit); // confirm the issue count is accurate based on the limit
                 done();
             });
     });
@@ -532,6 +548,22 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
+    it('should fetch errors attached to a fingerprint successfully based on limit', function(done) {
+        const authorization = `Basic ${token}`;
+        const limit = 1;
+        request
+            .post(
+                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/error-events`
+            )
+            .set('Authorization', authorization)
+            .send({ fingerprintHash: errorEvent.fingerprintHash, limit })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                expect(res.body.length).to.be.equal(limit);
+                done();
+            });
+    });
     it('should fetch members attached to an issue successfully', function(done) {
         const authorization = `Basic ${token}`;
         request
@@ -592,13 +624,13 @@ describe('Error Tracker API', function() {
             .send({ teamMemberId: [userId] })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                errorEventMembers += 1;
+                errorEventMembers += 1; // increase the member count
                 expect(res.body.issueId).to.be.equal(errorEvent.issueId);
                 expect(res.body.members.length).to.be.equal(errorEventMembers);
-                expect(res.body.members[0].userId._id).to.be.equal(userId);
+                expect(res.body.members[0].userId._id).to.be.equal(userId); // confirm the user id matches
                 expect(res.body.members[0].issueId._id).to.be.equal(
                     errorEvent.issueId
-                );
+                ); // confirm the issue id matches
                 done();
             });
     });
@@ -619,17 +651,17 @@ describe('Error Tracker API', function() {
             });
     });
     // delete error tracker
-    // it('should delete the error tracker', function(done) {
-    //     const authorization = `Basic ${token}`;
-    //     request
-    //         .delete(
-    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}`
-    //         )
-    //         .set('Authorization', authorization)
-    //         .end(function(err, res) {
-    //             expect(res).to.have.status(200);
-    //             expect(res.body.deleted).to.be.equal(true);
-    //             done();
-    //         });
-    // });
+    it('should delete the error tracker', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .delete(
+                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.deleted).to.be.equal(true);
+                done();
+            });
+    });
 });
