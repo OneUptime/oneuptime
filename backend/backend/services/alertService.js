@@ -16,16 +16,21 @@ module.exports = {
         const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
 
-        if (balance > alertChargeAmount.minimumBalance) {
-            await PaymentService.chargeAlert(
-                userId,
-                projectId,
-                alertChargeAmount.price
+        const customThresholdAmount = project.alertOptions
+            ? project.alertOptions.rechargeToBalance
+            : null;
+
+        const isBalanceMoreThanMinimum =
+            balance > alertChargeAmount.minimumBalance;
+        if (customThresholdAmount) {
+            const isBalanceMoreThanCustomThresholdAmount =
+                balance > customThresholdAmount;
+            return (
+                isBalanceMoreThanMinimum &&
+                isBalanceMoreThanCustomThresholdAmount
             );
-            return true;
-        } else {
-            return false;
         }
+        return isBalanceMoreThanMinimum;
     },
 
     doesPhoneNumberComplyWithHighRiskConfig: async function(
@@ -912,6 +917,17 @@ module.exports = {
                     incident._id,
                     user.alertPhoneNumber
                 );
+                // cut payment for call notification
+                const countryType = getCountryType(user.alertPhoneNumber);
+                const alertChargeAmount = getAlertChargeAmount(
+                    AlertType.Call,
+                    countryType
+                );
+                await PaymentService.chargeAlert(
+                    user._id,
+                    incident.projectId,
+                    alertChargeAmount.price
+                );
             }
         }
     },
@@ -1095,6 +1111,18 @@ module.exports = {
                     monitorId,
                     incident._id,
                     user.alertPhoneNumber
+                );
+
+                // cut payment for sms notification
+                const countryType = getCountryType(user.alertPhoneNumber);
+                const alertChargeAmount = getAlertChargeAmount(
+                    AlertType.SMS,
+                    countryType
+                );
+                await PaymentService.chargeAlert(
+                    user._id,
+                    incident.projectId,
+                    alertChargeAmount.price
                 );
             }
         }
@@ -1910,6 +1938,7 @@ module.exports = {
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
+                let owner;
                 const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
                     {
                         name: 'twilio',
@@ -1963,7 +1992,7 @@ module.exports = {
                 }
 
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    const owner = project.users.filter(
+                    owner = project.users.filter(
                         user => user.role === 'Owner'
                     )[0];
                     const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
@@ -2193,6 +2222,17 @@ module.exports = {
                                 incident._id,
                                 contactPhone,
                                 alertId
+                            );
+                            // cut payment for subscriber sms notification
+                            const countryType = getCountryType(contactPhone);
+                            const alertChargeAmount = getAlertChargeAmount(
+                                AlertType.SMS,
+                                countryType
+                            );
+                            await PaymentService.chargeAlert(
+                                owner.userId,
+                                incident.projectId,
+                                alertChargeAmount.price
                             );
                         }
                     }
