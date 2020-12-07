@@ -34,34 +34,31 @@ export class AlertAdvanceOption extends Component {
         } = this.props;
         value._id = projectId;
         const userId = User.getUserId();
-        isOwnerOrAdmin(userId, currentProject)
-            ? openModal({
-                  id: this.state.MessageBoxId,
-                  content: AlertBilling,
-                  title: 'Message',
-                  message: `Your card will be charged by $${Number(
-                      formValues.rechargeToBalance
-                  )}`,
-              })
-                ? alertOptionsUpdate(projectId, value).then(() => {
-                      const { paymentIntent } = this.props;
-                      if (paymentIntent) {
-                          //init payment
-                          this.handlePaymentIntent(paymentIntent);
-                      }
-                  })
-                : null
-            : openModal({
-                  id: projectId,
-                  content: Unauthorised,
-              });
-        // ? alertOptionsUpdate(projectId, value).then(() => {
-        //       const { paymentIntent } = this.props;
-        //       if (paymentIntent) {
-        //           //init payment
-        //           this.handlePaymentIntent(paymentIntent);
-        //       }
-        //   })
+        if (isOwnerOrAdmin(userId, currentProject)) {
+            if (
+                openModal({
+                    id: this.state.MessageBoxId,
+                    content: AlertBilling,
+                    title: 'Message',
+                    message: `Your card will be charged by $${Number(
+                        formValues.rechargeToBalance
+                    )}`,
+                })
+            ) {
+                alertOptionsUpdate(projectId, value).then(() => {
+                    const { paymentIntent } = this.props;
+                    if (paymentIntent) {
+                        //init payment
+                        this.handlePaymentIntent(paymentIntent);
+                    }
+                });
+            }
+        } else {
+            openModal({
+                id: projectId,
+                content: Unauthorised,
+            });
+        }
     };
 
     handlePaymentIntent = paymentIntentClientSecret => {
