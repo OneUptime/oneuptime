@@ -17,7 +17,7 @@ const _this = {
         const ipWhitelist = statusPage.ipWhitelist
             ? [...statusPage.ipWhitelist]
             : [];
-        // no ip whitelist? move to the next express option
+        // no ip whitelist? move to the next express option/middleware
         if (!ipWhitelist || ipWhitelist.length === 0) {
             return next();
         }
@@ -28,11 +28,10 @@ const _this = {
         }
 
         if (!clientIp) {
-            // return sendErrorResponse(req, res, {
-            //     code: 400,
-            //     message: 'You are not allowed to view this page',
-            // });
-            return next();
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You are not allowed to view this page',
+            });
         }
 
         clientIp = clientIp.trim();
@@ -49,11 +48,10 @@ const _this = {
             return next();
         }
 
-        // return sendErrorResponse(req, res, {
-        //     code: 400,
-        //     message: 'You are not allowed to view this page',
-        // });
-        return next();
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'You are not allowed to view this page',
+        });
     },
 
     /**
@@ -71,9 +69,6 @@ const _this = {
             req.connection.remoteAddress ||
             req.socket.remoteAddress ||
             req.connection.socket.remoteAddress;
-
-        req.item = req.ip;
-        req.ipItem = ip;
 
         if (!ip) {
             return null;
