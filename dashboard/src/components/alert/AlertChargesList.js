@@ -98,6 +98,16 @@ export class AlertChargesList extends Component {
                                     style={{ height: '1px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Phone Number</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Alert Charge($)</span>
                                         </span>
@@ -220,15 +230,34 @@ export class AlertChargesList extends Component {
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                            <span>
+                                                                {alertCharge.alertId
+                                                                    ? alertCharge
+                                                                          .alertId
+                                                                          .alertVia
+                                                                    : alertCharge
+                                                                          .subscriberAlertId
+                                                                          .alertVia}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td
+                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                            style={{
+                                                height: '1px',
+                                                minWidth: '100px',
+                                            }}
+                                        >
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root Margin-right--16">
                                                         <span>
-                                                            {alertCharge.alertId
-                                                                ? alertCharge
-                                                                      .alertId
-                                                                      .alertVia
-                                                                : alertCharge
-                                                                      .subscriberAlertId
-                                                                      .alertVia}
+                                                            {alertCharge.sentTo}
                                                         </span>
                                                     </div>
                                                 </span>
