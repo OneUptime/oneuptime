@@ -13,6 +13,13 @@ process.on('exit', () => {
     console.log('Server Shutting Shutdown');
 });
 
+process.on('unhandledRejection', (err) => {
+    /* eslint-disable no-console */
+    console.error('Unhandled rejection in server process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
 process.on('uncaughtException', err => {
     /* eslint-disable no-console */
     console.error('Uncaught exception in server process occurred');
@@ -41,6 +48,11 @@ global.io = io;
 app.use(cors());
 
 app.use(function(req, res, next) {
+    console.log("IP");
+    console.log(req.headers);
+    console.log("IP");
+    console.log(req.ip);
+
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -107,12 +119,19 @@ if (RATE_LIMITTER_ENABLED === 'true') {
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+// enable trust proxy
+app.set('trust proxy', true);
+
 app.use(express.static(path.join(__dirname, 'views')));
 app.use('/api', express.static(path.join(__dirname, 'views')));
 
 app.use(require('./backend/middlewares/auditLogs').log);
 
 // Routes(API)
+app.use(
+    ['/incomingHttpRequest', '/api/incomingHttpRequest'],
+    require('./backend/api/incomingHttpRequest')
+);
 app.use(['/alert', '/api/alert'], require('./backend/api/alert'));
 app.use(['/user', '/api/user'], require('./backend/api/user'));
 app.use(['/token', '/api/token'], require('./backend/api/token'));
@@ -229,6 +248,10 @@ app.use(
 app.use(
     ['/incidentSla', '/api/incidentSla'],
     require('./backend/api/incidentCommunicationSla')
+);
+app.use(
+    ['/monitorSla', '/api/monitorSla'],
+    require('./backend/api/monitorSla')
 );
 
 app.set('port', process.env.PORT || 3002);

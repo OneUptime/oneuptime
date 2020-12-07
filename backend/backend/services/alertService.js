@@ -16,16 +16,21 @@ module.exports = {
         const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
 
-        if (balance > alertChargeAmount.minimumBalance) {
-            await PaymentService.chargeAlert(
-                userId,
-                projectId,
-                alertChargeAmount.price
+        const customThresholdAmount = project.alertOptions
+            ? project.alertOptions.rechargeToBalance
+            : null;
+
+        const isBalanceMoreThanMinimum =
+            balance > alertChargeAmount.minimumBalance;
+        if (customThresholdAmount) {
+            const isBalanceMoreThanCustomThresholdAmount =
+                balance > customThresholdAmount;
+            return (
+                isBalanceMoreThanMinimum &&
+                isBalanceMoreThanCustomThresholdAmount
             );
-            return true;
-        } else {
-            return false;
         }
+        return isBalanceMoreThanMinimum;
     },
 
     doesPhoneNumberComplyWithHighRiskConfig: async function(
@@ -839,19 +844,27 @@ module.exports = {
                 AlertType.Call
             );
             if (!hasEnoughBalance) {
-                return await _this.create({
-                    projectId: incident.projectId,
-                    monitorId,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
-                    alertVia: AlertType.Call,
-                    userId: user._id,
-                    incidentId: incident._id,
-                    alertStatus: null,
-                    error: true,
-                    errorMessage: 'Low Balance',
-                });
+                // try to recharge amount
+                const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
+                    user._id,
+                    project
+                );
+
+                if (!projectBalanceRecharged) {
+                    return await _this.create({
+                        projectId: incident.projectId,
+                        monitorId,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: AlertType.Call,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        alertStatus: null,
+                        error: true,
+                        errorMessage: 'Low Balance',
+                    });
+                }
             }
         }
         const alertStatus = await TwilioService.sendIncidentCreatedCall(
@@ -903,6 +916,17 @@ module.exports = {
                     monitorId,
                     incident._id,
                     user.alertPhoneNumber
+                );
+                // cut payment for call notification
+                const countryType = getCountryType(user.alertPhoneNumber);
+                const alertChargeAmount = getAlertChargeAmount(
+                    AlertType.Call,
+                    countryType
+                );
+                await PaymentService.chargeAlert(
+                    user._id,
+                    incident.projectId,
+                    alertChargeAmount.price
                 );
             }
         }
@@ -1011,19 +1035,27 @@ module.exports = {
                 AlertType.SMS
             );
             if (!hasEnoughBalance) {
-                return await _this.create({
-                    projectId: incident.projectId,
-                    monitorId,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
-                    alertVia: AlertType.SMS,
-                    userId: user._id,
-                    incidentId: incident._id,
-                    alertStatus: null,
-                    error: true,
-                    errorMessage: 'Low Balance',
-                });
+                // try to recharge amount
+                const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
+                    user._id,
+                    project
+                );
+
+                if (!projectBalanceRecharged) {
+                    return await _this.create({
+                        projectId: incident.projectId,
+                        monitorId,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: AlertType.SMS,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        alertStatus: null,
+                        error: true,
+                        errorMessage: 'Low Balance',
+                    });
+                }
             }
         }
 
@@ -1079,6 +1111,18 @@ module.exports = {
                     monitorId,
                     incident._id,
                     user.alertPhoneNumber
+                );
+
+                // cut payment for sms notification
+                const countryType = getCountryType(user.alertPhoneNumber);
+                const alertChargeAmount = getAlertChargeAmount(
+                    AlertType.SMS,
+                    countryType
+                );
+                await PaymentService.chargeAlert(
+                    user._id,
+                    incident.projectId,
+                    alertChargeAmount.price
                 );
             }
         }
@@ -1894,6 +1938,7 @@ module.exports = {
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
+                let owner;
                 const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
                     {
                         name: 'twilio',
@@ -1947,7 +1992,7 @@ module.exports = {
                 }
 
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    const owner = project.users.filter(
+                    owner = project.users.filter(
                         user => user.role === 'Owner'
                     )[0];
                     const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
@@ -1987,23 +2032,30 @@ module.exports = {
                     );
 
                     if (!hasEnoughBalance) {
-                        return await SubscriberAlertService.create({
-                            projectId: incident.projectId,
-                            incidentId: incident._id,
-                            subscriberId: subscriber._id,
-                            alertVia: AlertType.SMS,
-                            alertStatus: null,
-                            error: true,
-                            errorMessage: 'Low Balance',
-                            eventType:
-                                templateType ===
-                                'Subscriber Incident Acknowldeged'
-                                    ? 'acknowledged'
-                                    : templateType ===
-                                      'Subscriber Incident Resolved'
-                                    ? 'resolved'
-                                    : 'identified',
-                        });
+                        // try to recharge amount
+                        const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
+                            owner.userId,
+                            project
+                        );
+                        if (!projectBalanceRecharged) {
+                            return await SubscriberAlertService.create({
+                                projectId: incident.projectId,
+                                incidentId: incident._id,
+                                subscriberId: subscriber._id,
+                                alertVia: AlertType.SMS,
+                                alertStatus: null,
+                                error: true,
+                                errorMessage: 'Low Balance',
+                                eventType:
+                                    templateType ===
+                                    'Subscriber Incident Acknowldeged'
+                                        ? 'acknowledged'
+                                        : templateType ===
+                                          'Subscriber Incident Resolved'
+                                        ? 'resolved'
+                                        : 'identified',
+                            });
+                        }
                     }
                 }
 
@@ -2170,6 +2222,17 @@ module.exports = {
                                 incident._id,
                                 contactPhone,
                                 alertId
+                            );
+                            // cut payment for subscriber sms notification
+                            const countryType = getCountryType(contactPhone);
+                            const alertChargeAmount = getAlertChargeAmount(
+                                AlertType.SMS,
+                                countryType
+                            );
+                            await PaymentService.chargeAlert(
+                                owner.userId,
+                                incident.projectId,
+                                alertChargeAmount.price
                             );
                         }
                     }
@@ -2364,7 +2427,3 @@ const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
 const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
-const {
-    ACKNOWLEDGED_MAIL_TEMPLATE,
-    RESOLVED_MAIL_TEMPLATE,
-} = require('../constants/incidentMailTemplateTypes');

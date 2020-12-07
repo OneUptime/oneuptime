@@ -286,14 +286,18 @@ module.exports = {
             }
 
             for (let i = 0; i < emails.length; i++) {
+                const email = emails[i];
+                if (!email) {
+                    continue;
+                }
                 // Finds registered users and new users that will be added as team members.
-                const user = await UserService.findOneBy({ email: emails[i] });
+                const user = await UserService.findOneBy({ email });
 
                 if (user) {
                     invitedTeamMembers.push(user);
                 } else {
                     const newUser = await UserService.create({
-                        email: emails[i],
+                        email,
                         createdAt: Date.now(),
                     });
 

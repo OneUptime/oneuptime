@@ -84,6 +84,9 @@ module.exports = {
                     let monitor = new MonitorModel();
                     monitor.name = data.name;
                     monitor.type = data.type;
+                    monitor.monitorSla = data.monitorSla;
+                    monitor.incidentCommunicationSla =
+                        data.incidentCommunicationSla;
                     monitor.createdById = data.createdById;
                     if (data.type === 'url' || data.type === 'api') {
                         monitor.data = {};
@@ -98,6 +101,9 @@ module.exports = {
                     } else if (data.type === 'script') {
                         monitor.data = {};
                         monitor.data.script = data.data.script;
+                    } else if (data.type === 'incomingHttpRequest') {
+                        monitor.data = {};
+                        monitor.data.link = data.data.link;
                     }
                     if (resourceCategory) {
                         monitor.resourceCategory = data.resourceCategory;
@@ -109,7 +115,8 @@ module.exports = {
                         data.type === 'url' ||
                         data.type === 'api' ||
                         data.type === 'server-monitor' ||
-                        data.type === 'script'
+                        data.type === 'script' ||
+                        data.type === 'incomingHttpRequest'
                     ) {
                         monitor.criteria = _.isEmpty(data.criteria)
                             ? MonitorCriteriaService.create(data.type)
@@ -162,6 +169,9 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
+
+            await this.updateMonitorSlaStat(query);
+
             let monitor = await MonitorModel.findOneAndUpdate(
                 query,
                 { $set: data },
@@ -237,7 +247,8 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate('componentId', 'name')
                 .populate('resourceCategory', 'name')
-                .populate('incidentCommunicationSla');
+                .populate('incidentCommunicationSla')
+                .populate('monitorSla');
             return monitors;
         } catch (error) {
             ErrorService.log('monitorService.findBy', error);
@@ -256,7 +267,8 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate('componentId', 'name')
                 .populate('resourceCategory', 'name')
-                .populate('incidentCommunicationSla');
+                .populate('incidentCommunicationSla')
+                .populate('monitorSla');
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
@@ -589,6 +601,8 @@ module.exports = {
                 moment(startDate),
                 'days'
             );
+
+            await this.updateMonitorSlaStat({ _id: monitorId });
 
             const monitor = await this.findOneBy({ _id: monitorId });
             const isNewMonitor =
@@ -990,6 +1004,299 @@ module.exports = {
             return monitors;
         }
     },
+
+    // checks if the monitor uptime stat is within the defined uptime on monitor sla
+    // then update the monitor => breachedMonitorSla
+    updateMonitorSlaStat: async function(query) {
+        try {
+            const _this = this;
+            const currentDate = moment().format();
+            let startDate = moment(currentDate).subtract(30, 'days'); // default frequency
+            const monitor = await this.findOneBy(query);
+            if (monitor) {
+                // eslint-disable-next-line prefer-const
+                let { monitorSla, projectId } = monitor;
+
+                if (!monitorSla) {
+                    monitorSla = await MonitorSlaService.findOneBy({
+                        projectId: projectId._id,
+                        isDefault: true,
+                    });
+                }
+
+                if (monitorSla) {
+                    startDate = moment(currentDate)
+                        .subtract(Number(monitorSla.frequency), 'days')
+                        .format();
+
+                    const monitorStatus = await _this.getMonitorStatuses(
+                        monitor._id,
+                        startDate,
+                        currentDate
+                    );
+                    const { uptimePercent } = await _this.calculateTime(
+                        monitorStatus[0].statuses,
+                        startDate,
+                        Number(monitorSla.frequency)
+                    );
+
+                    const monitorUptime =
+                        uptimePercent !== 100 && !isNaN(uptimePercent)
+                            ? uptimePercent.toFixed(3)
+                            : '100';
+                    const slaUptime = Number(monitorSla.monitorUptime).toFixed(
+                        3
+                    );
+
+                    if (Number(monitorUptime) < Number(slaUptime)) {
+                        // monitor sla is breached for this monitor
+                        await MonitorModel.findOneAndUpdate(
+                            { _id: monitor._id },
+                            { $set: { breachedMonitorSla: true } }
+                        );
+                    } else {
+                        await MonitorModel.findOneAndUpdate(
+                            { _id: monitor._id },
+                            { $set: { breachedMonitorSla: false } }
+                        );
+                    }
+
+                    const monitorData = await this.findOneBy({
+                        _id: monitor._id,
+                    });
+                    await RealTimeService.monitorEdit(monitorData);
+                }
+            }
+        } catch (error) {
+            ErrorService.log('monitorService.updateMonitorSlaStat', error);
+            throw error;
+        }
+    },
+
+    calculateTime: async function(statuses, start, range) {
+        const timeBlock = [];
+        let totalUptime = 0;
+        let totalTime = 0;
+
+        let dayStart = moment(start).startOf('day');
+
+        const reversedStatuses = statuses.slice().reverse();
+
+        for (let i = 0; i < range; i++) {
+            const dayStartIn = dayStart;
+            const dayEnd =
+                i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
+
+            const timeObj = {
+                date: dayStart.toISOString(),
+                downTime: 0,
+                upTime: 0,
+                degradedTime: 0,
+            };
+            /**
+             * If two incidents of the same time overlap, we merge them
+             * If two incidents of different type overlap, The priority will be:
+             * offline, degraded and online.
+             *      if the less important incident starts after and finish before the other incident, we remove it.
+             *      if the less important incident overlaps with the other incident, we update its start/end time.
+             *      if the less important incident start before and finish after the other incident, we divide it into two parts
+             *          the first part ends before the important incident,
+             *          the second part start after the important incident.
+             * The time report will be generate after the following steps:
+             * 1- selecting the incident that happendend during the selected day.
+             *   In other words: The incidents that overlap with `dayStartIn` and `dayEnd`.
+             * 2- Sorting them, to reduce the complexity of the next step (https://www.geeksforgeeks.org/merging-intervals/).
+             * 3- Checking for overlaps between incidents. Merge incidents of the same type, reduce the time of the less important incidents.
+             * 4- Fill the timeObj
+             */
+            //First step
+            let incidentsHappenedDuringTheDay = [];
+            reversedStatuses.forEach(monitorStatus => {
+                if (monitorStatus.endTime === null) {
+                    monitorStatus.endTime = new Date().toISOString();
+                }
+
+                if (
+                    moment(monitorStatus.startTime).isBefore(dayEnd) &&
+                    moment(monitorStatus.endTime).isAfter(dayStartIn)
+                ) {
+                    const start = moment(monitorStatus.startTime).isBefore(
+                        dayStartIn
+                    )
+                        ? dayStartIn
+                        : moment(monitorStatus.startTime);
+                    const end = moment(monitorStatus.endTime).isAfter(dayEnd)
+                        ? dayEnd
+                        : moment(monitorStatus.endTime);
+                    incidentsHappenedDuringTheDay.push({
+                        start,
+                        end,
+                        status: monitorStatus.status,
+                    });
+                }
+            });
+            //Second step
+            incidentsHappenedDuringTheDay.sort((a, b) =>
+                moment(a.start).isSame(b.start)
+                    ? 0
+                    : moment(a.start).isAfter(b.start)
+                    ? 1
+                    : -1
+            );
+            //Third step
+            for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
+                const firstIncidentIndex = i;
+                const nextIncidentIndex = i + 1;
+                const firstIncident =
+                    incidentsHappenedDuringTheDay[firstIncidentIndex];
+                const nextIncident =
+                    incidentsHappenedDuringTheDay[nextIncidentIndex];
+                if (
+                    moment(firstIncident.end).isSameOrBefore(nextIncident.start)
+                )
+                    continue;
+
+                if (firstIncident.status === nextIncident.status) {
+                    const end = moment(firstIncident.end).isAfter(
+                        nextIncident.end
+                    )
+                        ? firstIncident.end
+                        : nextIncident.end;
+                    firstIncident.end = end;
+                    incidentsHappenedDuringTheDay.splice(nextIncidentIndex, 1);
+                } else {
+                    //if the firstIncident has a higher priority
+                    if (
+                        firstIncident.status === 'offline' ||
+                        (firstIncident.status === 'degraded' &&
+                            nextIncident.status === 'online')
+                    ) {
+                        if (
+                            moment(firstIncident.end).isAfter(nextIncident.end)
+                        ) {
+                            incidentsHappenedDuringTheDay.splice(
+                                nextIncidentIndex,
+                                1
+                            );
+                        } else {
+                            nextIncident.start = firstIncident.end;
+                            //we will need to shift the next incident to keep the array sorted.
+                            incidentsHappenedDuringTheDay.splice(
+                                nextIncidentIndex,
+                                1
+                            );
+                            let j = nextIncidentIndex;
+                            while (j < incidentsHappenedDuringTheDay.length) {
+                                if (
+                                    moment(nextIncident.start).isBefore(
+                                        incidentsHappenedDuringTheDay[j].start
+                                    )
+                                )
+                                    break;
+                                j += 1;
+                            }
+                            incidentsHappenedDuringTheDay.splice(
+                                j,
+                                0,
+                                nextIncident
+                            );
+                        }
+                    } else {
+                        if (
+                            moment(firstIncident.end).isBefore(nextIncident.end)
+                        ) {
+                            firstIncident.end = nextIncident.start;
+                        } else {
+                            /**
+                             * The firstIncident is less important than the next incident,
+                             * it also starts before and ends after the nextIncident.
+                             * In the case The first incident needs to be devided into to two parts.
+                             * The first part comes before the nextIncident,
+                             * the second one comes after the nextIncident.
+                             */
+                            const newIncident = {
+                                start: nextIncident.end,
+                                end: firstIncident.end,
+                                status: firstIncident.status,
+                            };
+                            firstIncident.end = nextIncident.start;
+                            let j = nextIncidentIndex + 1;
+                            while (j < incidentsHappenedDuringTheDay.length) {
+                                if (
+                                    moment(newIncident.start).isBefore(
+                                        incidentsHappenedDuringTheDay[j].start
+                                    )
+                                )
+                                    break;
+                                j += 1;
+                            }
+                            incidentsHappenedDuringTheDay.splice(
+                                j,
+                                0,
+                                newIncident
+                            );
+                        }
+                    }
+                }
+                i--;
+            }
+            //Remove events having start and end time equal.
+            incidentsHappenedDuringTheDay = incidentsHappenedDuringTheDay.filter(
+                event => !moment(event.start).isSame(event.end)
+            );
+            //Last step
+            for (const incident of incidentsHappenedDuringTheDay) {
+                const { start, end, status } = incident;
+                if (status === 'offline') {
+                    timeObj.downTime =
+                        timeObj.downTime + end.diff(start, 'seconds');
+                    timeObj.date = end.toISOString();
+                }
+                if (status === 'degraded') {
+                    timeObj.degradedTime =
+                        timeObj.degradedTime + end.diff(start, 'seconds');
+                }
+                if (status === 'online') {
+                    timeObj.upTime =
+                        timeObj.upTime + end.diff(start, 'seconds');
+                }
+            }
+
+            totalUptime = totalUptime + timeObj.upTime;
+            totalTime =
+                totalTime +
+                timeObj.upTime +
+                timeObj.degradedTime +
+                timeObj.downTime;
+
+            timeBlock.push(Object.assign({}, timeObj));
+
+            dayStart = dayStart.subtract(1, 'days');
+        }
+
+        return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
+    },
+
+    closeBreachedMonitorSla: async function(projectId, slaId, userId) {
+        try {
+            const monitor = await MonitorModel.findOneAndUpdate(
+                {
+                    projectId,
+                    monitorSla: slaId,
+                    breachedMonitorSla: true,
+                    deleted: false,
+                },
+                {
+                    $push: { breachClosedBy: userId },
+                },
+                { new: true }
+            );
+            return monitor;
+        } catch (error) {
+            ErrorService.log('monitorService.closeBreachedMonitorSla', error);
+            throw error;
+        }
+    },
 };
 
 const MonitorModel = require('../models/monitor');
@@ -1017,3 +1324,4 @@ const moment = require('moment');
 const _ = require('lodash');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const ScheduledEventService = require('./scheduledEventService');
+const MonitorSlaService = require('./monitorSlaService');

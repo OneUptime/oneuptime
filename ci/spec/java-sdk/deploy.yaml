@@ -1,0 +1,79 @@
+## DEPLOYMENT STAGE - JAVA SDK
+deploy_staging_java-sdk:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+        - echo "Setup machine for running log java tests"
+        - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+        - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+        - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+        - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+        - sudo docker ps
+        - cd java-sdk
+        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
+        # - gpg --list-keys
+        # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
+        # - gpg --keyserver keyserver.ubuntu.com --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
+        - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
+        - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
+        - mvn clean deploy
+        - git init
+        - git add .
+        - git commit -m "staging deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
+        - git checkout staging || git checkout -b staging
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/java-sdk.git staging --force
+        - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - master
+            - hotfix-master
+    environment:
+        name: staging
+
+deploy_production_java-sdk:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+        - echo "Setup machine for running log java tests"
+        - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+        - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+        - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
+        - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+        - sudo docker ps
+        - cd java-sdk
+        - git status
+        - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
+        # - git checkout -f master
+        - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID"
+        - mvn clean deploy -P release
+        - git init
+        - git add .
+        - git commit -m "production deployment version 3.0.$CI_PIPELINE_IID"
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/java-sdk.git master --force
+        - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
+            - hotfix-release
+    environment:
+        name: production

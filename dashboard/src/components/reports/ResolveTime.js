@@ -87,12 +87,17 @@ class ResolveTime extends Component {
             return element;
         });
 
+        // calculate each columns' width in the chart
+        // for 9 or more columns, use 90%
+        // for less, subtract 10% for each step-down
+        const barGroupWidth = `${90 - (9 - resolveTime.length) * 10}%`;
+
         if (resolveTime && resolveTime.length > 0) {
             return (
                 <Chart
                     width={'100%'}
                     height={'400px'}
-                    chartType="Bar"
+                    chartType="ColumnChart"
                     loader={<Loader />}
                     data={chartData}
                     options={{
@@ -100,14 +105,18 @@ class ResolveTime extends Component {
                             startup: true,
                         },
                         bar: {
-                            groupWidth: '40%',
+                            groupWidth: barGroupWidth,
                         },
+                        chartArea: { left: '5%', width: '100%' },
                         hAxis: {
+                            title: 'Date',
                             textStyle: {
-                                color: '#757575',
+                                color: '#797979',
                             },
                         },
                         vAxis: {
+                            title: 'Resolve Time (Minutes)',
+
                             minValue: 0,
                             gridlines: {
                                 minSpacing: 20,
@@ -117,7 +126,7 @@ class ResolveTime extends Component {
                                 count: 0,
                             },
                             textStyle: {
-                                color: '#757575',
+                                color: '#797979',
                             },
                         },
                         colors: ['#000000'],

@@ -338,6 +338,11 @@ module.exports = {
                 ErrorService.log('statusPageService.updateOneBy', error);
                 throw error;
             }
+            if (data.ipWhitelist && data.ipWhitelist.length > 0) {
+                const ipList = [...data.ipList, ...data.ipWhitelist];
+                data.ipWhitelist = ipList;
+            }
+
             if (!query) {
                 query = {};
             }

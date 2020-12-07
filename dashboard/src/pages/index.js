@@ -4,6 +4,7 @@ import Monitor from './Monitor';
 import IncidentLog from './IncidentLog';
 import Incident from './Incident';
 import IncidentSettings from './IncidentSettings';
+import MonitorSettings from './MonitorSettings';
 
 import StatusPage from './StatusPage';
 import StatusPages from './StatusPages';
@@ -99,4 +100,5 @@ export default {
     Advanced,
     ComponentSettings,
     ComponentSettingsAdvanced,
+    MonitorSettings,
 };

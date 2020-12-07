@@ -19,10 +19,13 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, Validate } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import MessageBox from './MessageBox';
+import formatEmails from '../../utils/formatEmails';
 
 function validate(values) {
     const errors = {};
 
+    // remove white spaces
+    values.emails = values.emails ? values.emails.replace(/\s/g, '') : '';
     const emails = values.emails ? values.emails.split(',') : [];
     if (!Validate.isValidBusinessEmails(emails)) {
         errors.emails = 'Please enter business emails of the members.';
@@ -49,6 +52,7 @@ export class FormModal extends Component {
     }
 
     submitForm = values => {
+        values.emails = formatEmails(values.emails);
         const {
             teamCreate,
             closeThisDialog,

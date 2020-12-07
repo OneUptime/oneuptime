@@ -33,16 +33,22 @@ import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import { fetchCommunicationSlas } from '../actions/incidentCommunicationSla';
+import { fetchMonitorSlas } from '../actions/monitorSla';
 
 class MonitorView extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
         super(props);
+        this.state = {
+            tabIndex: 0,
+        };
     }
 
     componentWillMount() {
         resetIdCounter();
     }
+
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -83,11 +89,17 @@ class MonitorView extends React.Component {
                     .utc(),
                 moment().utc()
             ); //0 -> skip, 5-> limit.
+
+            this.props.fetchMonitorSlas(subProjectId);
+            this.props.fetchCommunicationSlas(subProjectId);
         }
     }
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        this.setState({
+            tabIndex: index,
+        });
     };
 
     ready = () => {
@@ -118,6 +130,14 @@ class MonitorView extends React.Component {
                 .utc(),
             moment().utc()
         ); //0 -> skip, 5-> limit.
+
+        this.props.fetchMonitorSlas(subProjectId);
+        this.props.fetchCommunicationSlas(subProjectId);
+    };
+
+    isDefaultMonitorSlaSet = () => {
+        const { monitorSlas } = this.props;
+        return monitorSlas && monitorSlas.some(sla => sla.isDefault);
     };
 
     render() {
@@ -126,6 +146,7 @@ class MonitorView extends React.Component {
             location: { pathname },
             component,
             monitor,
+            monitorSlas,
         } = this.props;
         const subProjectId = this.props.monitor
             ? this.props.monitor.projectId._id || this.props.monitor.projectId
@@ -135,6 +156,7 @@ class MonitorView extends React.Component {
         const monitorType = monitor && monitor.type ? monitor.type : '';
 
         const componentMonitorsRoute = getParentRoute(pathname);
+        const defaultMonitorSla = monitorSlas.find(sla => sla.isDefault);
 
         return (
             <Dashboard ready={this.ready}>
@@ -156,6 +178,7 @@ class MonitorView extends React.Component {
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
                         onSelect={tabIndex => this.tabSelected(tabIndex)}
+                        selectedIndex={this.state.tabIndex}
                     >
                         <div className="Flex-flex Flex-direction--columnReverse">
                             <TabList
@@ -180,6 +203,114 @@ class MonitorView extends React.Component {
                                 ></div>
                             </TabList>
                         </div>
+                        {!this.props.requestingMonitorSla &&
+                            this.props.monitor &&
+                            (this.props.monitor.monitorSla ||
+                                this.isDefaultMonitorSlaSet()) &&
+                            !this.props.monitor.breachedMonitorSla && (
+                                <div
+                                    className="Box-root Margin-vertical--12"
+                                    style={{ marginTop: 0, cursor: 'pointer' }}
+                                    id="noMonitorSlaBreached"
+                                >
+                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                        <div className="Box-root Box-background--green Card-shadow--medium Border-radius--4">
+                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
+                                                <span
+                                                    className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                    style={{
+                                                        filter:
+                                                            'brightness(0) invert(1)',
+                                                        marginTop: 1,
+                                                        marginRight: 10,
+                                                    }}
+                                                ></span>
+                                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                                    {this.props.monitor
+                                                        .monitorSla ? (
+                                                        <span>
+                                                            For the past{' '}
+                                                            {
+                                                                this.props
+                                                                    .monitor
+                                                                    .monitorSla
+                                                                    .frequency
+                                                            }{' '}
+                                                            days, this monitor
+                                                            has not breached the
+                                                            defined SLA
+                                                        </span>
+                                                    ) : (
+                                                        <span>
+                                                            For the past{' '}
+                                                            {
+                                                                defaultMonitorSla.frequency
+                                                            }{' '}
+                                                            days, this monitor
+                                                            has not breached the
+                                                            defined SLA
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        {!this.props.requestingMonitorSla &&
+                            this.props.monitor &&
+                            this.props.monitor.breachedMonitorSla &&
+                            (this.props.monitor.monitorSla ||
+                                this.isDefaultMonitorSlaSet()) && (
+                                <div
+                                    className="Box-root Margin-vertical--12"
+                                    style={{ marginTop: 0 }}
+                                    id="monitorSlaBreached"
+                                >
+                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                        <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
+                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
+                                                <span
+                                                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
+                                                    style={{
+                                                        filter:
+                                                            'brightness(0) invert(1)',
+                                                        marginTop: 1,
+                                                        marginRight: 10,
+                                                    }}
+                                                ></span>
+                                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                                    {this.props.monitor
+                                                        .monitorSla ? (
+                                                        <span>
+                                                            In the last{' '}
+                                                            {
+                                                                this.props
+                                                                    .monitor
+                                                                    .monitorSla
+                                                                    .frequency
+                                                            }{' '}
+                                                            days, the SLA for
+                                                            this monitor was
+                                                            breached
+                                                        </span>
+                                                    ) : (
+                                                        <span>
+                                                            In the last{' '}
+                                                            {
+                                                                defaultMonitorSla.frequency
+                                                            }{' '}
+                                                            days, the SLA for
+                                                            this monitor was
+                                                            breached
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         <div className="Box-root">
                             <div>
                                 <div>
@@ -348,7 +479,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'server-monitor')
+                                                                                        'server-monitor' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'incomingHttpRequest')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
@@ -499,6 +635,9 @@ const mapStateToProps = (state, props) => {
             initialValues.incidentCommunicationSla =
                 monitor.incidentCommunicationSla._id;
         }
+        if (monitor.monitorSla && monitor.monitorSla._id) {
+            initialValues.monitorSla = monitor.monitorSla._id;
+        }
         if (
             monitor.type === 'url' ||
             monitor.type === 'api' ||
@@ -578,6 +717,10 @@ const mapStateToProps = (state, props) => {
         component,
         probeList: state.probe.probes,
         currentProject: state.project.currentProject,
+        requestingIncidentSla:
+            state.incidentSla.incidentCommunicationSlas.requesting,
+        requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
+        monitorSlas: state.monitorSla.monitorSlas.slas,
     };
 };
 
@@ -591,6 +734,8 @@ const mapDispatchToProps = dispatch => {
             getProbes,
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
+            fetchCommunicationSlas,
+            fetchMonitorSlas,
         },
         dispatch
     );
@@ -616,6 +761,11 @@ MonitorView.propTypes = {
     currentProject: PropTypes.object.isRequired,
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchCommunicationSlas: PropTypes.func,
+    fetchMonitorSlas: PropTypes.func,
+    requestingIncidentSla: PropTypes.bool,
+    requestingMonitorSla: PropTypes.bool,
+    monitorSlas: PropTypes.array,
 };
 
 MonitorView.displayName = 'MonitorView';

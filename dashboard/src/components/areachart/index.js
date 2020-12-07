@@ -115,7 +115,7 @@ class AreaChart extends Component {
             );
         }
         if (data && data.length > 0) {
-            processedData = (type === 'manual'
+            processedData = (type === 'manual' || type === 'incomingHttpRequest'
                 ? data.map(a => {
                       return {
                           name: this.parseDate(a.date),
@@ -142,14 +142,21 @@ class AreaChart extends Component {
                 <Chart data={processedData}>
                     <Tooltip content={<CustomTooltip />} />
                     <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                    {type === 'manual' ? <YAxis reversed hide /> : ''}
+                    {type === 'manual' || type === 'incomingHttpRequest' ? (
+                        <YAxis reversed hide />
+                    ) : (
+                        ''
+                    )}
                     <Area
                         type="linear"
                         isAnimationActive={false}
                         name={_.startCase(
                             _.toLower(
                                 `${
-                                    type === 'manual' ? 'average' : 'max'
+                                    type === 'manual' ||
+                                    type === 'incomingHttpRequest'
+                                        ? 'average'
+                                        : 'max'
                                 } ${name}`
                             )
                         )}

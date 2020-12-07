@@ -188,24 +188,32 @@ export class MonitorViewLogsBox extends Component {
                                     }}
                                 />
                             </div>
-                            <div style={{ height: '28px', width: '250px' }}>
-                                <Select
-                                    name="probe_selector"
-                                    value={this.state.probeValue}
-                                    onChange={this.handleProbeChange}
-                                    placeholder="All Probes"
-                                    className="db-select-pr"
-                                    id="probe_selector"
-                                    isDisabled={
-                                        !(
-                                            this.props.monitorLogs &&
-                                            !this.props.monitorLogs.requesting
-                                        )
-                                    }
-                                    style={{ height: '28px' }}
-                                    options={probeOptions}
-                                />
-                            </div>
+                            <ShouldRender
+                                if={
+                                    this.props.monitorType !==
+                                    'incomingHttpRequest'
+                                }
+                            >
+                                <div style={{ height: '28px', width: '250px' }}>
+                                    <Select
+                                        name="probe_selector"
+                                        value={this.state.probeValue}
+                                        onChange={this.handleProbeChange}
+                                        placeholder="All Probes"
+                                        className="db-select-pr"
+                                        id="probe_selector"
+                                        isDisabled={
+                                            !(
+                                                this.props.monitorLogs &&
+                                                !this.props.monitorLogs
+                                                    .requesting
+                                            )
+                                        }
+                                        style={{ height: '28px' }}
+                                        options={probeOptions}
+                                    />
+                                </div>
+                            </ShouldRender>
                         </div>
                     </ShouldRender>
                 </div>

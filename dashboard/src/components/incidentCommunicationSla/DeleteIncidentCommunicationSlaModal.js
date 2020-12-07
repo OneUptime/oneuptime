@@ -111,7 +111,7 @@ class DeleteIncidentCommunicationSlaModal extends Component {
                                         </span>
                                     </button>
                                     <button
-                                        id="DeleteIncidentSlaBtn"
+                                        id="deleteIncidentSlaBtn"
                                         className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                         type="button"
                                         onClick={this.handleDelete}

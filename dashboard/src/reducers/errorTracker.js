@@ -40,6 +40,10 @@ import {
     RESOLVE_ERROR_EVENT_REQUEST,
     RESOLVE_ERROR_EVENT_RESET,
     RESOLVE_ERROR_EVENT_SUCCESS,
+    UPDATE_ERROR_EVENT_MEMBER_FAILURE,
+    UPDATE_ERROR_EVENT_MEMBER_REQUEST,
+    UPDATE_ERROR_EVENT_MEMBER_RESET,
+    UPDATE_ERROR_EVENT_MEMBER_SUCCESS,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -69,6 +73,8 @@ const INITIAL_STATE = {
         error: null,
         success: false,
     },
+    deleteErrorTracker: false,
+    errorTrackerIssueMembers: {},
 };
 export default function errorTracker(state = INITIAL_STATE, action) {
     let temporaryIssues, temporaryErrorEvents, temporaryErrorTrackers;
@@ -589,6 +595,75 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case RESOLVE_ERROR_EVENT_RESET:
             return Object.assign({}, state, {
                 errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
+            });
+        case UPDATE_ERROR_EVENT_MEMBER_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackerIssueMembers: {
+                    ...state.errorTrackerIssueMembers,
+                    [action.payload.issueId]: {
+                        ...state.errorTrackerIssueMembers[
+                            action.payload.issueId
+                        ],
+                        [action.payload.memberId]: {
+                            requesting: true,
+                            error: null,
+                        },
+                    },
+                },
+            });
+        case UPDATE_ERROR_EVENT_MEMBER_RESET:
+            return Object.assign({}, state, {
+                errorTrackerIssueMembers: {
+                    ...state.errorTrackerIssueMembers,
+                    [action.payload.issueId]: {
+                        ...state.errorTrackerIssueMembers[
+                            action.payload.issueId
+                        ],
+                        [action.payload.memberId]: {
+                            requesting: false,
+                            error: null,
+                        },
+                    },
+                },
+            });
+        case UPDATE_ERROR_EVENT_MEMBER_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackerIssueMembers: {
+                    ...state.errorTrackerIssueMembers,
+                    [action.payload.issueId]: {
+                        ...state.errorTrackerIssueMembers[
+                            action.payload.issueId
+                        ],
+                        [action.payload.memberId]: {
+                            requesting: false,
+                            error: null,
+                        },
+                    },
+                },
+            });
+        case UPDATE_ERROR_EVENT_MEMBER_SUCCESS:
+            temporaryIssues = state.errorTrackerIssues[
+                action.payload.errorTrackerId
+            ].errorTrackerIssues.map(issue => {
+                if (issue._id === action.payload.issueId) {
+                    issue.members = action.payload.members;
+                }
+                return issue;
+            });
+            return Object.assign({}, state, {
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    [action.payload.errorTrackerId]: {
+                        ...state.errorTrackerIssues[
+                            action.payload.errorTrackerId
+                        ],
+                        errorTrackerIssues: temporaryIssues,
+                    },
+                },
+                errorTrackerIssueMembers: {
+                    ...state.errorTrackerIssueMembers,
+                    [action.payload.issueId]: {},
+                },
             });
         default:
             return state;

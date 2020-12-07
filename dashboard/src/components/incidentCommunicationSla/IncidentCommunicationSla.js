@@ -149,9 +149,10 @@ class IncidentCommunicationSla extends Component {
                                     </div>
                                 </header>
                                 {incidentSlas.length > 0 &&
-                                    incidentSlas.map((incidentSla, index) => (
+                                    incidentSlas.map(incidentSla => (
                                         <div
                                             key={incidentSla._id}
+                                            id={`incidentSla_${incidentSla.name}`}
                                             className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
                                             style={{
                                                 backgroundColor: 'white',
@@ -228,8 +229,8 @@ class IncidentCommunicationSla extends Component {
                                                         }
                                                     >
                                                         <button
-                                                            id={`defaultIncidentSlaBtn_${index}`}
-                                                            title="edit"
+                                                            id={`defaultIncidentSlaBtn_${incidentSla.name}`}
+                                                            title="set default"
                                                             className="bs-Button bs-DeprecatedButton"
                                                             style={{
                                                                 marginLeft: 20,
@@ -285,7 +286,7 @@ class IncidentCommunicationSla extends Component {
                                                         </button>
                                                     </ShouldRender>
                                                     <button
-                                                        id={`editIncidentSlaBtn_${index}`}
+                                                        id={`editIncidentSlaBtn_${incidentSla.name}`}
                                                         title="edit"
                                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                                         style={{
@@ -305,7 +306,7 @@ class IncidentCommunicationSla extends Component {
                                                         <span>Edit</span>
                                                     </button>
                                                     <button
-                                                        id={`deleteIncidentSlaBtn_${index}`}
+                                                        id={`deleteIncidentSlaBtn_${incidentSla.name}`}
                                                         title="delete"
                                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
                                                         style={{

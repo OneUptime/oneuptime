@@ -140,7 +140,11 @@ export class AlertChargesList extends Component {
                                                             history.push(
                                                                 '/dashboard/project/' +
                                                                     projectId +
-                                                                    '/monitors/' +
+                                                                    '/' +
+                                                                    alertCharge
+                                                                        .monitorId
+                                                                        .componentId +
+                                                                    '/monitoring/' +
                                                                     alertCharge
                                                                         .monitorId
                                                                         ._id

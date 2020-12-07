@@ -50,6 +50,12 @@ import {
     GET_MONITOR_LOGS_FAILURE,
     GET_MONITOR_LOGS_RESET,
     TOGGLE_EDIT,
+    FETCH_BREACHED_MONITOR_SLA_FAILURE,
+    FETCH_BREACHED_MONITOR_SLA_REQUEST,
+    FETCH_BREACHED_MONITOR_SLA_SUCCESS,
+    CLOSE_BREACHED_MONITOR_SLA_FAILURE,
+    CLOSE_BREACHED_MONITOR_SLA_REQUEST,
+    CLOSE_BREACHED_MONITOR_SLA_SUCCESS,
 } from '../constants/monitor';
 import moment from 'moment';
 
@@ -96,6 +102,17 @@ const INITIAL_STATE = {
     fetchMonitorCriteriaRequest: false,
     fetchMonitorsSubscriberRequest: false,
     deleteMonitor: false,
+    monitorSlaBreaches: {
+        requesting: false,
+        error: null,
+        success: false,
+        slaBreaches: [],
+    },
+    closeBreachedMonitorSla: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
@@ -1063,7 +1080,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                     (monitorType === 'url' ||
                         monitorType === 'api' ||
                         monitorType === 'script' ||
-                        monitorType === 'server-monitor')
+                        monitorType === 'server-monitor' ||
+                        monitorType === 'incomingHttpRequest')
                     ? state.monitorCriteria.criteria[monitorType]
                     : null
             );
@@ -1078,6 +1096,9 @@ export default function monitor(state = INITIAL_STATE, action) {
                         resourceCategory_1000: action.payload.category,
                         subProject_1000: action.payload.subProject,
                         callSchedule_1000: action.payload.schedule,
+                        monitorSla: action.payload.monitorSla,
+                        incidentCommunicationSla:
+                            action.payload.incidentCommunicationSla,
                     },
                 },
             });
@@ -1473,6 +1494,79 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorLogs: INITIAL_STATE.monitorLogs,
             });
+
+        case FETCH_BREACHED_MONITOR_SLA_REQUEST:
+            return {
+                ...state,
+                monitorSlaBreaches: {
+                    ...state.monitorSlaBreaches,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            };
+
+        case FETCH_BREACHED_MONITOR_SLA_SUCCESS:
+            return {
+                ...state,
+                monitorSlaBreaches: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    slaBreaches: action.payload,
+                },
+            };
+
+        case FETCH_BREACHED_MONITOR_SLA_FAILURE:
+            return {
+                ...state,
+                monitorSlaBreaches: {
+                    ...state.monitorSlaBreaches,
+                    success: false,
+                    requesting: false,
+                    error: action.payload,
+                },
+            };
+
+        case CLOSE_BREACHED_MONITOR_SLA_REQUEST:
+            return {
+                ...state,
+                closeBreachedMonitorSla: {
+                    ...state.closeBreachedMonitorSla,
+                    success: false,
+                    requesting: true,
+                    error: null,
+                },
+            };
+
+        case CLOSE_BREACHED_MONITOR_SLA_SUCCESS: {
+            const slaBreaches = state.monitorSlaBreaches.slaBreaches.filter(
+                monitor => String(monitor._id) !== String(action.payload._id)
+            );
+
+            return {
+                ...state,
+                closeBreachedMonitorSla: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                monitorSlaBreaches: {
+                    ...state.monitorSlaBreaches,
+                    slaBreaches,
+                },
+            };
+        }
+
+        case CLOSE_BREACHED_MONITOR_SLA_FAILURE:
+            return {
+                ...state,
+                closeBreachedMonitorSla: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
 
         default:
             return state;

@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { reduxForm, Field, formValueSelector } from 'redux-form';
+import { reduxForm, Field, formValueSelector,change } from 'redux-form';
 import {
     createMonitor,
     createMonitorSuccess,
@@ -15,7 +15,7 @@ import {
     addSeat,
 } from '../../actions/monitor';
 import { RenderField } from '../basic/RenderField';
-import { makeCriteria } from '../../config';
+import { makeCriteria,API_URL } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
 import {
@@ -42,10 +42,11 @@ import PricingPlan from '../basic/PricingPlan';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
 import { history } from '../../store';
-
+import uuid from 'uuid';
 import {
     fetchCommunicationSlas
 } from '../../actions/incidentCommunicationSla';
+import { fetchMonitorSlas } from '../../actions/monitorSla';
 
 class NewMonitor extends Component {
     constructor(props) {
@@ -54,6 +55,7 @@ class NewMonitor extends Component {
             advance: false,
             script: '',
             type: props.edit ? props.editMonitorProp.type : props.type,
+            httpRequestLink: `${API_URL}/incomingHttpRequest/${uuid.v4()}`,
         };
     }
 
@@ -64,6 +66,7 @@ class NewMonitor extends Component {
         );
         //load call schedules
         if (projectMember) {
+            this.props.fetchMonitorSlas(this.props.currentProject._id)
             this.props.fetchCommunicationSlas(this.props.currentProject._id)
             this.props.fetchSchedules(this.props.currentProject._id);
         }
@@ -117,6 +120,7 @@ class NewMonitor extends Component {
         postObj.componentId = thisObj.props.componentId;
         postObj.projectId = this.props.projectId;
         postObj.incidentCommunicationSla = values.incidentCommunicationSla;
+        postObj.monitorSla = values.monitorSla;
         postObj.name = values[`name_${this.props.index}`];
         postObj.type = values[`type_${this.props.index}`]
             ? values[`type_${this.props.index}`]
@@ -140,11 +144,15 @@ class NewMonitor extends Component {
             postObj.data.script = thisObj.state.script;
         }
 
+        if (postObj.type === 'incomingHttpRequest')
+            postObj.data.link = thisObj.state.httpRequestLink;
+
         if (
             postObj.type === 'url' ||
             postObj.type === 'api' ||
             postObj.type === 'server-monitor' ||
-            postObj.type === 'script'
+            postObj.type === 'script' ||
+            postObj.type === 'incomingHttpRequest'
         ) {
             if (
                 values &&
@@ -361,6 +369,8 @@ class NewMonitor extends Component {
             this.props.category,
             this.props.subProject,
             this.props.schedule,
+            this.props.monitorSla,
+            this.props.incidentCommunicationSla,
             value
         );
     };
@@ -447,7 +457,7 @@ class NewMonitor extends Component {
         const requesting =
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||
             (this.props.monitor.editMonitor.requesting && this.props.edit) ||
-            (this.props.requestingSla);
+            this.props.requestingSla || this.props.requestingMonitorSla;
 
         const {
             handleSubmit,
@@ -459,7 +469,7 @@ class NewMonitor extends Component {
             currentPlanId,
         } = this.props;
         const type = this.state.type;
-
+        const {httpRequestLink} = this.state;
         const unlimitedMonitors = ['Scale', 'Enterprise'];
         const planCategory =
             currentPlanId === 'enterprise'
@@ -565,6 +575,7 @@ class NewMonitor extends Component {
                                                             Resource Category
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
                                                             <Field
                                                                 className="db-select-nw"
                                                                 component={
@@ -597,6 +608,14 @@ class NewMonitor extends Component {
                                                                         : []),
                                                                 ]}
                                                             />
+                                                            <Tooltip title="Resource Category">
+                                                                <div>
+                                                                    <p>
+                                                                        Resource Categories lets you group resources by categories on Status Page.
+                                                                    </p>
+                                                                </div>
+                                                            </Tooltip>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -675,6 +694,12 @@ class NewMonitor extends Component {
                                                                                 'server-monitor',
                                                                             label:
                                                                                 'Server',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                'incomingHttpRequest',
+                                                                            label:
+                                                                                'Incoming HTTP Request',
                                                                         },
                                                                     ]}
                                                                 />
@@ -933,6 +958,24 @@ class NewMonitor extends Component {
                                                                             want.
                                                                         </p>
                                                                     </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                Incoming HTTP Request
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Receives incoming HTTP get or post request and evaluates response body.
+                                                                        </p>
+                                                                    </div>
                                                                 </Tooltip>
                                                             </span>
                                                             <span
@@ -954,44 +997,6 @@ class NewMonitor extends Component {
                                                                     }
                                                                 </span>
                                                             </span>
-                                                        </div>
-                                                    </div>
-                                                </ShouldRender>
-                                                <ShouldRender
-                                                    if={this.props.incidentSlas.length > 0}
-                                                >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Incident Communication SLA
-                                                        </label>
-
-                                                        <div className="bs-Fieldset-fields">
-                                                            <span className="flex">
-                                                                <Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="incidentCommunicationSla"
-                                                                    id="incidentCommunicationSla"
-                                                                    placeholder="Incident Communication SLA"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select monitor type',
-                                                                        },
-                                                                        ...this.props.incidentSlas.map(sla => ({
-                                                                            value: sla._id,
-                                                                            label: sla.name,
-                                                                        }))
-                                                                    ]}
-                                                                />
-                                                               </span>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -1091,6 +1096,20 @@ class NewMonitor extends Component {
                                                                     ValidateField.url,
                                                                 ]}
                                                             />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
+                                                        type === 'incomingHttpRequest'
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Incoming URL
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields" style={{paddingTop:'7px'}}>
+                                                        <a href={httpRequestLink}>{httpRequestLink}</a>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -1207,6 +1226,7 @@ class NewMonitor extends Component {
                                                             Call Schedule
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
+                                                            <span class="flex" >
                                                             <Field
                                                                 className="db-select-nw"
                                                                 component={
@@ -1243,6 +1263,104 @@ class NewMonitor extends Component {
                                                                         : []),
                                                                 ]}
                                                             />
+                                                            <Tooltip title="Call Schedule">
+                                                                <div>
+                                                                    <p>
+                                                                        Call Schedules let's you connect your team members to specific monitors, so only on-duty members who are responsible for certain monitors are alerted when an incident is created.
+                                                                    </p>
+                                                                </div>
+                                                            </Tooltip>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={this.props.monitorSlas.length > 0}
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Monitor SLA
+                                                        </label>
+
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="monitorSla"
+                                                                    id="monitorSla"
+                                                                    placeholder="Monitor SLA"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select Monitor SLA',
+                                                                        },
+                                                                        ...this.props.monitorSlas.map(sla => ({
+                                                                            value: sla._id,
+                                                                            label: sla.name,
+                                                                        }))
+                                                                    ]}
+                                                                />
+                                                                <Tooltip title="Monitor SLA">
+                                                                <div>
+                                                                    <p>
+                                                                        SLA is used to make sure your monitors provide a certain reliability of service. We’ll alert your team when a particular monitor is about to breach it’s SLA.
+                                                                    </p>
+                                                                </div>
+                                                                </Tooltip>
+                                                                </span>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={this.props.incidentSlas.length > 0}
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Incident Communication SLA
+                                                        </label>
+
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="incidentCommunicationSla"
+                                                                    id="incidentCommunicationSla"
+                                                                    placeholder="Incident Communication SLA"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select Incident Communication SLA',
+                                                                        },
+                                                                        ...this.props.incidentSlas.map(sla => ({
+                                                                            value: sla._id,
+                                                                            label: sla.name,
+                                                                        }))
+                                                                    ]}
+                                                                />
+                                                                <Tooltip title="Incident Communication SLA">
+                                                                <div>
+                                                                    <p>
+                                                                        Incident communication SLA is used to make sure you keep you customers updated every few minutes on an active incident. Your team will get an email reminder when you forget to update an incident status, this will help you to communicate with your customers on time and keep them updated.
+                                                                    </p>
+                                                                </div>
+                                                                </Tooltip>
+                                                               </span>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -1254,7 +1372,8 @@ class NewMonitor extends Component {
                                                             type ===
                                                                 'server-monitor' ||
                                                             type ===
-                                                                'script') &&
+                                                                'script' ||
+                                                                type === 'incomingHttpRequest') &&
                                                         !this.state.advance
                                                     }
                                                 >
@@ -1281,7 +1400,8 @@ class NewMonitor extends Component {
                                                             type === 'url' ||
                                                             type ===
                                                                 'server-monitor' ||
-                                                            type === 'script')
+                                                            type === 'script' ||
+                                                            type === 'incomingHttpRequest')
                                                     }
                                                 >
                                                     <ShouldRender
@@ -1441,6 +1561,7 @@ const mapDispatchToProps = dispatch =>
             showUpgradeForm,
             toggleEdit,
             fetchCommunicationSlas,
+            fetchMonitorSlas,
         },
         dispatch
     );
@@ -1450,7 +1571,8 @@ const mapStateToProps = (state, ownProps) => {
     const type = selector(state, 'type_1000');
     const category = selector(state, 'resourceCategory_1000');
     const schedule = selector(state, 'callSchedule_1000');
-    // const incidentCommunicationSla = selector(state, 'incidentCommunicationSla');
+    const monitorSla = selector(state, 'monitorSla')
+    const incidentCommunicationSla = selector(state, 'incidentCommunicationSla')
     let projectId = null;
 
     for (const project of state.component.componentList.components) {
@@ -1484,6 +1606,8 @@ const mapStateToProps = (state, ownProps) => {
             type,
             category,
             schedule,
+            monitorSla,
+            incidentCommunicationSla,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
             resourceCategoryList:
@@ -1498,6 +1622,9 @@ const mapStateToProps = (state, ownProps) => {
             incidentSlas: state.incidentSla.incidentCommunicationSlas.incidentSlas,
             requestingSla: state.incidentSla.incidentCommunicationSlas.requesting,
             fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
+            monitorSlas: state.monitorSla.monitorSlas.slas,
+            requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
+            fetchSlaError: state.monitorSla.monitorSlas.error,
         };
     } else {
         return {
@@ -1508,6 +1635,8 @@ const mapStateToProps = (state, ownProps) => {
             type,
             category,
             schedule,
+            monitorSla,
+            incidentCommunicationSla,
             resourceCategoryList:
                 state.resourceCategories.resourceCategoryListForNewResource
                     .resourceCategories,
@@ -1521,6 +1650,9 @@ const mapStateToProps = (state, ownProps) => {
             incidentSlas: state.incidentSla.incidentCommunicationSlas.incidentSlas,
             requestingSla: state.incidentSla.incidentCommunicationSlas.requesting,
             fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
+            monitorSlas: state.monitorSla.monitorSlas.slas,
+            requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
+            fetchSlaError: state.monitorSla.monitorSlas.error,
         };
     }
 };
@@ -1546,6 +1678,8 @@ NewMonitor.propTypes = {
     category: PropTypes.string,
     subProject: PropTypes.string,
     schedule: PropTypes.string,
+    monitorSla: PropTypes.string,
+    incidentCommunicationSla: PropTypes.string,
     resourceCategoryList: PropTypes.array,
     schedules: PropTypes.array,
     monitorId: PropTypes.string,
@@ -1564,6 +1698,13 @@ NewMonitor.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     requestingSla: PropTypes.bool,
+    fetchMonitorSlas: PropTypes.func,
+    monitorSlas: PropTypes.array,
+    fetchMonitorSlaError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    requestingMonitorSla: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

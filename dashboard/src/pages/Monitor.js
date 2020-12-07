@@ -345,7 +345,6 @@ class DashboardView extends Component {
                                                                 }
                                                             />
                                                         </RenderIfSubProjectAdmin>
-
                                                         <RenderIfSubProjectMember>
                                                             <ShouldRender
                                                                 if={
