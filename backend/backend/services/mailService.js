@@ -2091,7 +2091,7 @@ const _this = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: userEmail,
                 subject: 'Breach of Incident SLA',
-                template: 'breack_sla_notification',
+                template: 'breach_sla_notification',
                 context: {
                     name: name ? name.split(' ')[0].toString() : '',
                     currentYear: new Date().getFullYear(),
