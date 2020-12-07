@@ -1,5 +1,5 @@
-## DEPLOYMENT STAGE - Log JS
-deploy_staging_log-js:
+## DEPLOYMENT STAGE - JS SDK
+deploy_staging_js-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -9,7 +9,7 @@ deploy_staging_log-js:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
-        - cd log-js
+        - cd js-sdk
         - npm install
         - npm run build
         - sudo npm install -g json
@@ -20,14 +20,14 @@ deploy_staging_log-js:
         - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
-        - json -I -f package.json -e 'this.name="fyipe-log-js-staging"'
+        - json -I -f package.json -e 'this.name="fyipe-staging"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - git init
         - git add .
         - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
         - git checkout staging || git checkout -b staging
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/js-sdk.git staging --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
@@ -38,7 +38,7 @@ deploy_staging_log-js:
     environment:
         name: staging
 
-deploy_production_log-js:
+deploy_production_js-sdk:
     stage: Deploy
     retry: 2
     script:
@@ -47,7 +47,7 @@ deploy_production_log-js:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
-        - cd log-js
+        - cd js-sdk
         - npm install
         - npm run build
         - sudo npm install -g json
@@ -57,12 +57,12 @@ deploy_production_log-js:
         # - git checkout -f master
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
-        - json -I -f package.json -e 'this.name="fyipe-log-js"'
+        - json -I -f package.json -e 'this.name="fyipe"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - git add .
         - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/js-sdk.git master --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh

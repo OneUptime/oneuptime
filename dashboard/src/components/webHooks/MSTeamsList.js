@@ -116,7 +116,10 @@ class MSTeamsList extends React.Component {
                                 {!monitorId && (
                                     <WebHookTableHeader text="Monitors" />
                                 )}
-                                <WebHookTableHeader text="Action" />
+                                <WebHookTableHeader
+                                    text="Action"
+                                    name="webhooklist"
+                                />
                             </tr>
                         </thead>
                         <tbody className="Table-body">

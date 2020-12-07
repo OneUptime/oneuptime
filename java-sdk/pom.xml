@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.hackerbay.fyipe</groupId>
-    <artifactId>log-java</artifactId>
+    <artifactId>java-sdk</artifactId>
     <version>1.0-SNAPSHOT</version>
     <build>
         <plugins>
@@ -114,9 +114,9 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:git://github.com/Fyipe/log-java.git</connection>
-        <developerConnection>scm:git:ssh://github.com:Fyipe/log-java.git</developerConnection>
-        <url>http://github.com/Fyipe/log-java</url>
+        <connection>scm:git:git://github.com/Fyipe/java-sdk.git</connection>
+        <developerConnection>scm:git:ssh://github.com:Fyipe/java-sdk.git</developerConnection>
+        <url>http://github.com/Fyipe/java-sdk</url>
     </scm>
     <distributionManagement>
         <snapshotRepository>

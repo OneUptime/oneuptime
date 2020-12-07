@@ -16,17 +16,57 @@ let MonitorService = require('../backend/services/monitorService');
 let ResourceCategoryService = require('../backend/services/resourceCategoryService');
 let NotificationService = require('../backend/services/notificationService');
 let AirtableService = require('../backend/services/airtableService');
+const uuid = require('uuid');
 
 let VerificationTokenModel = require('../backend/models/verificationToken');
 let ComponentModel = require('../backend/models/component');
 
 let token, userId, projectId, monitorId, resourceCategoryId;
-
+const httpMonitorId = uuid.v4();
 let resourceCategory = {
     resourceCategoryName: 'New Monitor Category',
 };
 
 let componentId;
+
+const httpMonitorCriteria = {
+      "up": {
+        "and": [
+          {
+            "responseType": "responseBody",
+            "filter": "notEmpty"
+          }
+        ],
+        "or": [],
+        "createAlert": false,
+        "autoAcknowledge": false,
+        "autoResolve": false
+      },
+      "degraded": {
+        "and": [
+          {
+            "responseType": "responseBody",
+            "filter": "empty"
+          }
+        ],
+        "or": [],
+        "createAlert": true,
+        "autoAcknowledge": true,
+        "autoResolve": true
+      },
+      "down": {
+        "and": [],
+        "or": [
+          {
+            "responseType": "responseBody",
+            "filter": "empty"
+          }
+        ],
+        "createAlert": true,
+        "autoAcknowledge": true,
+        "autoResolve": true
+      }
+  };
 
 describe('Monitor API', function() {
     this.timeout(30000);
@@ -590,6 +630,124 @@ describe('API Monitor API', function() {
     });
 });
 
+describe('IncomingHttpRequest Monitor', function() {
+    this.timeout(30000);
+
+    before(function(done) {
+        this.timeout(30000);
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(err, res) {
+                let project = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+
+                ComponentModel.create({ name: 'Test Component' }, function(
+                    err,
+                    component
+                ) {
+                    componentId = component;
+                    VerificationTokenModel.findOne({ userId }, function(
+                        err,
+                        verificationToken
+                    ) {
+                        request
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end(function() {
+                                request
+                                    .post('/user/login')
+                                    .send({
+                                        email: userData.user.email,
+                                        password: userData.user.password,
+                                    })
+                                    .end(function(err, res) {
+                                        token = res.body.tokens.jwtAccessToken;
+                                        done();
+                                    });
+                            });
+                    });
+                });
+            });
+        });
+    });
+
+    after(async function() {
+        await GlobalConfig.removeTestConfig();
+        await MonitorService.hardDeleteBy({ _id: monitorId });
+        await UserService.hardDeleteBy({
+            email: userData.user.email,
+        });
+        await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteAll({ tableName: 'User' });
+    });
+
+    it('should create a new IncomingHttpRequest monitor', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Monitor 120',
+                projectId,
+                criteria: httpMonitorCriteria,
+                type: 'incomingHttpRequest',
+                data: { link: `${global.apiHost}/incomingHttpRequest/${httpMonitorId}`},
+                componentId,
+            })
+            .end(function(err, res) {
+                monitorId = res.body._id;
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal('New Monitor 120');
+                done();
+            });
+    });
+
+    it('should report monitor down when api has no body in post request', function(done) {
+        request
+            .post(`/incomingHttpRequest/${httpMonitorId}`)
+            .send({})
+            .end(function(err, res) {
+                expect(res.body.monitorId).to.be.equal(monitorId);
+                expect(res.body.status).to.be.equal("offline");
+                done();
+            });
+    });
+
+    it('should report monitor down when api has no body in get request', function(done) {
+        request
+            .get(`/incomingHttpRequest/${httpMonitorId}`)
+            .end(function(err, res) {
+                expect(res.body.monitorId).to.be.equal(monitorId);
+                expect(res.body.status).to.be.equal("offline");
+                done();
+            });
+    });
+
+    it('should report monitor up when api has a valid body in post request', function(done) {
+        request
+        .post(`/incomingHttpRequest/${httpMonitorId}`)
+        .send({id: '123456'})
+            .end(function(err, res) {
+                expect(res.body.monitorId).to.be.equal(monitorId);
+                expect(res.body.status).to.be.equal("online");
+                done();
+            });
+    });
+
+    it('should report monitor up when api has a valid body in get request', function(done) {
+        request
+            .get(`/incomingHttpRequest/${httpMonitorId}`)
+            .send({id: '123456'})
+            .end(function(err, res) {
+                expect(res.body.monitorId).to.be.equal(monitorId);
+                expect(res.body.status).to.be.equal("online");
+                done();
+            });
+    });
+});
+
 describe('Monitor API with resource Category', function() {
     this.timeout(30000);
 
@@ -1056,7 +1214,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                 );
                 done();
             });
-    }); */
+    });*/
 
     it('should delete a monitor', async () => {
         let authorization = `Basic ${token}`;

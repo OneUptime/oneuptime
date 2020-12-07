@@ -1,4 +1,4 @@
-[![maven](https://img.shields.io/maven-central/v/io.hackerbay.fyipe/log-java)](https://search.maven.org/artifact/io.hackerbay.fyipe/log-java)
+[![maven](https://img.shields.io/maven-central/v/io.hackerbay.fyipe/java-sdk)](https://search.maven.org/artifact/io.hackerbay.fyipe/java-sdk)
 
 # Fyipe Application Logger
 
@@ -13,14 +13,14 @@ You can install to use in your project by adding the following to your `pom.xml`
 ```xml
 <dependency>
     <groupId>io.hackerbay.fyipe</groupId>
-    <artifactId>log-java</artifactId>
+    <artifactId>java-sdk</artifactId>
     <version>CURRENT_VERSION</version>
 </dependency>
 ```
 
 ### Others
 
-Check [Maven Central Repository](https://search.maven.org/artifact/io.hackerbay.fyipe/log-java) for other modes of installation.
+Check [Maven Central Repository](https://search.maven.org/artifact/io.hackerbay.fyipe/java-sdk) for other modes of installation.
 
 <a name="module_api"></a>
 

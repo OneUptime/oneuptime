@@ -214,9 +214,8 @@ router.get(
                     message: 'Component not Found',
                 });
             }
-
             const totalResources = [];
-            const limit = req.query.limit || 5;
+            const limit = 1000;
             const skip = req.query.skip || 0;
 
             // fetch monitors

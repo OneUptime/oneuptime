@@ -205,19 +205,23 @@ export class RenderOption extends Component {
                                     label: 'Response Time',
                                     show:
                                         type !== 'script' &&
-                                        type !== 'server-monitor',
+                                        type !== 'server-monitor' &&
+                                        type !== 'incomingHttpRequest',
                                 },
                                 {
                                     value: 'doesRespond',
                                     label: 'Is Online',
-                                    show: type !== 'script',
+                                    show:
+                                        type !== 'script' &&
+                                        type !== 'incomingHttpRequest',
                                 },
                                 {
                                     value: 'statusCode',
                                     label: 'Status Code',
                                     show:
                                         type !== 'script' &&
-                                        type !== 'server-monitor',
+                                        type !== 'server-monitor' &&
+                                        type !== 'incomingHttpRequest',
                                 },
                                 {
                                     value: 'responseBody',
@@ -231,7 +235,8 @@ export class RenderOption extends Component {
                                     label: 'SSL',
                                     show:
                                         type !== 'script' &&
-                                        type !== 'server-monitor',
+                                        type !== 'server-monitor' &&
+                                        type !== 'incomingHttpRequest',
                                 },
                                 {
                                     value: 'executes',

@@ -22,9 +22,6 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 import _ from 'lodash';
 import moment from 'moment-timezone';
-import flattenArray from '../../utils/flattenArray';
-import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
-import OngoingScheduledEvent from '../scheduledEvent/OngoingScheduledEvent';
 
 class TopContent extends Component {
     componentDidMount() {
@@ -350,27 +347,6 @@ class TopContent extends Component {
         }
 
         let ongoingEventList;
-        if (
-            this.props.subProjectOngoingScheduledEvents &&
-            this.props.subProjectOngoingScheduledEvents.length > 0
-        ) {
-            let ongoingScheduledEvents = this.props.subProjectOngoingScheduledEvents.map(
-                eventData => eventData.ongoingScheduledEvents
-            );
-            ongoingScheduledEvents = flattenArray(ongoingScheduledEvents);
-            ongoingEventList = ongoingScheduledEvents.map(event => (
-                <RenderIfUserInSubProject
-                    key={event._id}
-                    subProjectId={event.projectId._id || event.projectId}
-                >
-                    <OngoingScheduledEvent
-                        event={event}
-                        monitorList={this.props.monitorList}
-                        projectId={this.props.currentProjectId}
-                    />
-                </RenderIfUserInSubProject>
-            ));
-        }
 
         return (
             <div
@@ -551,7 +527,6 @@ const mapStateToProps = (state, props) => {
         monitors,
         escalation: state.schedule.escalation,
         escalations: state.schedule.escalations,
-        monitorList: state.monitor.monitorsList.monitors,
         user: state.profileSettings.profileSetting.data,
         subProjectOngoingScheduledEvents:
             state.scheduledEvent.subProjectOngoingScheduledEvent.events,
@@ -601,7 +576,6 @@ TopContent.propTypes = {
     openModal: PropTypes.func.isRequired,
     escalation: PropTypes.object,
     escalations: PropTypes.array,
-    monitorList: PropTypes.array,
     user: PropTypes.object.isRequired,
     currentProjectId: PropTypes.string.isRequired,
 };

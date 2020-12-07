@@ -1,11 +1,11 @@
 {
-    "name": "fyipe-log-js-tracker",
+    "name": "fyipe",
     "version": "3.0.0",
-    "description": "A fyipe JS package that send logs from your applications to your fyipe dashboard.",
+    "description": "Fyipe is a JS package that tracks error event and send logs from your applications to your fyipe dashboard.",
     "main": "dist/logger.js",
     "scripts": {
         "build-dev": "npm run build && npm link",
-        "test": "mocha --require @babel/polyfill --require @babel/register",
+        "test": "mocha test/logger.test.js --require @babel/polyfill --require @babel/register",
         "build": "webpack --mode production",
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli'"
@@ -45,6 +45,6 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/Fyipe/log-js"
+        "url": "https://github.com/Fyipe/js-sdk"
     }
 }

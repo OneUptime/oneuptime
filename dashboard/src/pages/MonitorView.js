@@ -479,7 +479,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'server-monitor')
+                                                                                        'server-monitor' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'incomingHttpRequest')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">

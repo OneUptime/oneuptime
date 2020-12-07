@@ -25,6 +25,12 @@ import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduled
 import flattenArray from '../utils/flattenArray';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
 import ComponentIssue from '../components/component/ComponentIssue';
+import {
+    fetchBreachedMonitorSla,
+    closeBreachedMonitorSla,
+} from '../actions/monitor';
+import { fetchDefaultMonitorSla } from '../actions/monitorSla';
+import BreachedMonitorSla from '../components/monitorSla/BreachedMonitorSla';
 
 class Home extends Component {
     componentDidMount() {
@@ -42,6 +48,8 @@ class Home extends Component {
             this.props.fetchSubProjectOngoingScheduledEvents(
                 this.props.currentProjectId
             );
+            this.props.fetchBreachedMonitorSla(this.props.currentProjectId);
+            this.props.fetchDefaultMonitorSla(this.props.currentProjectId);
         }
         if (this.props.currentProjectId) {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
@@ -63,6 +71,8 @@ class Home extends Component {
             this.props.fetchSubProjectOngoingScheduledEvents(
                 this.props.currentProjectId
             );
+            this.props.fetchBreachedMonitorSla(this.props.currentProjectId);
+            this.props.fetchDefaultMonitorSla(this.props.currentProjectId);
         }
         if (prevProps.currentProjectId !== this.props.currentProjectId) {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
@@ -88,13 +98,18 @@ class Home extends Component {
     };
 
     closeAllIncidents = async () => {
-        const incidence = this.props.incidents;
-        for (const incident of incidence) {
+        const incidents = this.props.incidents;
+        for (const incident of incidents) {
             if (incident.resolved) {
                 this.props.closeIncident(incident.projectId, incident._id);
             }
         }
     };
+
+    handleClosingSla = (projectId, slaId) => {
+        this.props.closeBreachedMonitorSla(projectId, slaId);
+    };
+
     render() {
         const {
             escalations,
@@ -260,6 +275,47 @@ class Home extends Component {
             ));
         }
 
+        let breachedMonitorSlaList;
+        if (this.props.monitorSlaBreaches && this.props.monitorSlaBreaches) {
+            breachedMonitorSlaList = this.props.monitorSlaBreaches.map(
+                monitor =>
+                    !monitor.monitorSla &&
+                    !this.props
+                        .defaultMonitorSla ? null : !monitor.monitorSla &&
+                      this.props.defaultMonitorSla ? (
+                        <RenderIfUserInSubProject
+                            key={monitor._id}
+                            subProjectId={
+                                monitor.projectId._id || monitor.projectId
+                            }
+                        >
+                            <BreachedMonitorSla
+                                monitor={monitor}
+                                sla={this.props.defaultMonitorSla}
+                                userId={this.props.user.id}
+                                closeSla={this.handleClosingSla}
+                                closingSla={this.props.closingSla}
+                            />
+                        </RenderIfUserInSubProject>
+                    ) : (
+                        <RenderIfUserInSubProject
+                            key={monitor._id}
+                            subProjectId={
+                                monitor.projectId._id || monitor.projectId
+                            }
+                        >
+                            <BreachedMonitorSla
+                                monitor={monitor}
+                                sla={monitor.monitorSla}
+                                userId={this.props.user.id}
+                                closeSla={this.handleClosingSla}
+                                closingSla={this.props.closingSla}
+                            />
+                        </RenderIfUserInSubProject>
+                    )
+            );
+        }
+
         return (
             <Dashboard
                 showDeleteBtn={showDeleteBtn}
@@ -294,10 +350,6 @@ class Home extends Component {
                                                     >
                                                         {userSchedules ? (
                                                             <>
-                                                                {ongoingEventList &&
-                                                                    ongoingEventList.length >
-                                                                        0 &&
-                                                                    ongoingEventList}
                                                                 {/* <ShouldRender
                                                                     if={
                                                                         activeSchedules &&
@@ -358,6 +410,16 @@ class Home extends Component {
                                                                         }
                                                                     />
                                                                 </ShouldRender>
+
+                                                                {ongoingEventList &&
+                                                                    ongoingEventList.length >
+                                                                        0 &&
+                                                                    ongoingEventList}
+
+                                                                {breachedMonitorSlaList &&
+                                                                    breachedMonitorSlaList.length >
+                                                                        0 &&
+                                                                    breachedMonitorSlaList}
 
                                                                 <div className="Box-root Margin-bottom--12">
                                                                     {/* Here, component, monitor and team member notifier */}
@@ -506,6 +568,15 @@ Home.propTypes = {
     multipleIncidentRequest: PropTypes.object,
     tutorialStat: PropTypes.object,
     getSmtpConfig: PropTypes.func.isRequired,
+    fetchBreachedMonitorSla: PropTypes.func,
+    fetchDefaultMonitorSla: PropTypes.func,
+    closeBreachedMonitorSla: PropTypes.func,
+    monitorSlaBreaches: PropTypes.array,
+    defaultMonitorSla: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null]),
+    ]),
+    closingSla: PropTypes.bool,
 };
 
 const mapStateToProps = (state, props) => {
@@ -556,6 +627,9 @@ const mapStateToProps = (state, props) => {
             state.scheduledEvent.subProjectOngoingScheduledEvent.events,
         multipleIncidentRequest: state.incident.unresolvedincidents,
         tutorialStat,
+        monitorSlaBreaches: state.monitor.monitorSlaBreaches.slaBreaches,
+        defaultMonitorSla: state.monitorSla.defaultMonitorSla.sla,
+        closingSla: state.monitor.closeBreachedMonitorSla.requesting,
     };
 };
 
@@ -569,6 +643,9 @@ const mapDispatchToProps = dispatch => {
             fetchSubProjectOngoingScheduledEvents,
             getSmtpConfig,
             closeIncident,
+            fetchBreachedMonitorSla,
+            closeBreachedMonitorSla,
+            fetchDefaultMonitorSla,
         },
         dispatch
     );

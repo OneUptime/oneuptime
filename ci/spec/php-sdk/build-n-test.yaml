@@ -1,8 +1,8 @@
-build_n_test_log-php:
+build_n_test_php-sdk:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_log-php log-php backend`
+        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_php-sdk php-sdk backend`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
@@ -16,14 +16,14 @@ build_n_test_log-php:
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-        - sudo docker run --env-file ./backend/.env -e ENCRYPTION_KEY=$ENCRYPTION_KEY --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+        - sudo docker run --env-file ./backend/.env  -e ENCRYPTION_KEY=$ENCRYPTION_KEY --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
-        - cd log-php
+        - cd php-sdk
         - composer install
         - composer test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_log-php log-php backend
+        - ./ci/scripts/storehash.sh build_n_test_php-sdk php-sdk backend
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:

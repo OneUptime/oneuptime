@@ -209,6 +209,7 @@ export class SidebarNavItem extends Component {
 
         const routeStyle = {
             position: 'relative',
+            marginBottom: route.title === 'Back to Dashboard' ? '10px' : '',
             marginTop:
                 route.title === 'Back to Dashboard'
                     ? '20px'
