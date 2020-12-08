@@ -81,7 +81,7 @@ module.exports = {
      * @param {*} alertType type of alert
      * @returns {{success : boolean, message : string}} whether the balance is recharged successfully
      */
-    rechargeLowProjectBalanceSync: async function(
+    checkAndRechargeProjectBalance: async function(
         project,
         userId,
         alertPhoneNumber,

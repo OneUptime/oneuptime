@@ -810,7 +810,7 @@ module.exports = {
                 });
             }
 
-            const status = await PaymentService.rechargeLowProjectBalanceSync(
+            const status = await PaymentService.checkAndRechargeProjectBalance(
                 project,
                 user._id,
                 user.alertPhoneNumber,
@@ -995,7 +995,7 @@ module.exports = {
                 });
             }
 
-            const status = await PaymentService.rechargeLowProjectBalanceSync(
+            const status = await PaymentService.checkAndRechargeProjectBalance(
                 project,
                 user._id,
                 user.alertPhoneNumber,
@@ -1985,7 +1985,7 @@ module.exports = {
                         });
                     }
 
-                    const status = await PaymentService.rechargeLowProjectBalanceSync(
+                    const status = await PaymentService.checkAndRechargeProjectBalance(
                         project,
                         owner.userId,
                         contactPhone,
@@ -2300,14 +2300,23 @@ module.exports = {
         }
     },
     getBalanceStatus: async function(projectId, alertPhoneNumber, alertType) {
-        const project = await ProjectService.findOneBy({ _id: projectId });
-        const balance = project.balance;
-        const countryType = getCountryType(alertPhoneNumber);
-        const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
-        return {
-            chargeAmount: alertChargeAmount.price,
-            closingBalance: balance,
-        };
+        try {
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            const balance = project.balance;
+            const countryType = getCountryType(alertPhoneNumber);
+            const alertChargeAmount = getAlertChargeAmount(
+                alertType,
+                countryType
+            );
+            const closingBalance = balance - alertChargeAmount.price;
+            return {
+                chargeAmount: alertChargeAmount.price,
+                closingBalance,
+            };
+        } catch (error) {
+            ErrorService.log('AlertService.getBalanceStatus', error);
+            throw error;
+        }
     },
 
     //Return true, if the limit is not reached yet.
