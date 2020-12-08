@@ -3,7 +3,11 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
-import { editMonitor, fetchLighthouseLogs } from '../../actions/monitor';
+import {
+    editMonitor,
+    fetchLighthouseLogs,
+    lighthouseScanReq,
+} from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader, Spinner } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
@@ -84,10 +88,14 @@ export class MonitorViewLighthouseLogsBox extends Component {
 
     scanWebsites = () => {
         const { currentProject, monitor, editMonitor } = this.props;
-        editMonitor(currentProject._id, {
-            ...monitor,
-            lighthouseScanStatus: 'scan',
-        });
+        editMonitor(
+            currentProject._id,
+            {
+                ...monitor,
+                lighthouseScanStatus: 'scan',
+            },
+            'website-scan'
+        );
     };
 
     render() {
@@ -291,11 +299,18 @@ MonitorViewLighthouseLogsBox.propTypes = {
     requesting: PropTypes.bool,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
+    lighthouseScanReq: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { editMonitor, fetchLighthouseLogs, openModal, closeModal },
+        {
+            editMonitor,
+            fetchLighthouseLogs,
+            openModal,
+            closeModal,
+            lighthouseScanReq,
+        },
         dispatch
     );
 

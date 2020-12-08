@@ -587,7 +587,6 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 fetchLighthouseLogsRequest: true,
             });
-
         case FETCH_LIGHTHOUSE_LOGS_SUCCESS:
             return Object.assign({}, state, {
                 monitorsList: {
@@ -615,6 +614,9 @@ export default function monitor(state = INITIAL_STATE, action) {
                                               monitor.currentLighthouseLog =
                                                   mainSiteUrlLogs[0];
                                           }
+                                          //   action.payload.logs.data.map(
+                                          //       item => (item.scanning = true)
+                                          //   );
                                           monitor.lighthouseLogs = {
                                               data: action.payload.logs.data,
                                               skip: action.payload.skip,
@@ -1051,11 +1053,13 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                       action.payload.data.url
                                               );
                                               if (logIndex > -1) {
+                                                  action.payload.data.scanning = false;
                                                   monitor.lighthouseLogs.data[
                                                       logIndex
                                                   ] = action.payload.data;
                                               }
                                           } else {
+                                            action.payload.data.scanning = false;
                                               monitor.lighthouseLogs = {
                                                   data: [action.payload.data],
                                                   skip: 0,
