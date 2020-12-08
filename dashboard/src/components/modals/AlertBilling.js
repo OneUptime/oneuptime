@@ -21,16 +21,14 @@ class AlertBilling extends Component {
                     id: messageBoxId,
                 });
             case 'Enter':
-                return closeModal({
-                    id: messageBoxId,
-                });
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
     };
 
     render() {
-        const { data } = this.props;
+        const { data, confirmThisDialog } = this.props;
         let { title, message, messageBoxId } = this.props;
         if (data) {
             title = data.title;
@@ -81,9 +79,7 @@ class AlertBilling extends Component {
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                     type="button"
                                     id="modal-ok"
-                                    onClick={() => {
-                                        return true;
-                                    }}
+                                    onClick={confirmThisDialog}
                                     autoFocus={true}
                                 >
                                     <span>OK</span>
@@ -104,6 +100,7 @@ AlertBilling.displayName = 'AlertBilling';
 
 AlertBilling.propTypes = {
     closeModal: PropTypes.func.isRequired,
+    confirmThisDialog: PropTypes.func.isRequired,
     title: PropTypes.string,
     message: PropTypes.string,
     messageBoxId: PropTypes.string,
