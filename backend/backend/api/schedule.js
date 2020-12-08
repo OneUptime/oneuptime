@@ -395,26 +395,6 @@ router.post(
                             });
                         }
 
-                        //if any of these values are notspecified, then.
-                        if (
-                            (!teamMember.startTime ||
-                                !teamMember.endTime ||
-                                !teamMember.timezone) &&
-                            (teamMember.startTime ||
-                                teamMember.endTime ||
-                                teamMember.timezone)
-                        ) {
-                            return sendErrorResponse(req, res, {
-                                code: 400,
-                                message:
-                                    'On-Call Start Time, On-Call End Time, and Timezone are required if you select to add "On-call duty times" for a team member' +
-                                    (req.body.length > 1
-                                        ? ' in Escalation Policy ' +
-                                          escalationPolicyCount
-                                        : ''),
-                            });
-                        }
-
                         if (
                             teamMember.startTime &&
                             typeof teamMember.startTime === 'string'

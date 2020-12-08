@@ -153,14 +153,12 @@ class Home extends Component {
 
                 const startTime = moment(
                     (userSchedule &&
-                        userSchedule.timezone &&
                         userSchedule.startTime) ||
                         dayStart
                 ).format('HH:mm');
 
                 const endTime = moment(
                     (userSchedule &&
-                        userSchedule.timezone &&
                         userSchedule.endTime) ||
                         dayEnd
                 ).format('HH:mm');
@@ -193,8 +191,8 @@ class Home extends Component {
                 nowToEnd = nowToEnd < 0 ? nowToEnd + 24 : nowToEnd;
 
                 const isUserActive =
-                    (hoursToEnd !== nowToEnd || hoursToStart <= 0) &&
-                    nowToEnd > 0;
+                    ((hoursToEnd !== nowToEnd || hoursToStart <= 0) &&
+                    nowToEnd > 0) || (userSchedule.startTime >= userSchedule.endTime);
 
                 const timezone = (userSchedule && userSchedule.timezone
                     ? moment(userSchedule.startTime || dayStart).tz(

@@ -269,17 +269,16 @@ class TopContent extends Component {
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
 
-                const startTime = (userSchedule && userSchedule.timezone
-                    ? moment(userSchedule.startTime || dayStart).tz(
-                          userSchedule.timezone
-                      )
-                    : moment(userSchedule.startTime || dayStart)
+                const startTime = moment(
+                    (userSchedule &&
+                        userSchedule.startTime) ||
+                        dayStart
                 ).format('HH:mm');
-                const endTime = (userSchedule && userSchedule.timezone
-                    ? moment(userSchedule.endTime || dayEnd).tz(
-                          userSchedule.timezone
-                      )
-                    : moment(userSchedule.endTime || dayEnd)
+
+                const endTime = moment(
+                    (userSchedule &&
+                        userSchedule.endTime) ||
+                        dayEnd
                 ).format('HH:mm');
 
                 let hours = Math.ceil(
@@ -310,8 +309,8 @@ class TopContent extends Component {
                 nowToEnd = nowToEnd < 0 ? nowToEnd + 24 : nowToEnd;
 
                 const isUserActive =
-                    (hoursToEnd !== nowToEnd || hoursToStart <= 0) &&
-                    nowToEnd > 0;
+                    ((hoursToEnd !== nowToEnd || hoursToStart <= 0) &&
+                    nowToEnd > 0) || (userSchedule.startTime >= userSchedule.endTime);
 
                 const timezone = (userSchedule && userSchedule.timezone
                     ? moment(userSchedule.startTime || dayStart).tz(
