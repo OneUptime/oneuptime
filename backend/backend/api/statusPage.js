@@ -327,7 +327,6 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             statusPage = await StatusPageService.findOneBy({
                 _id: data._id,
             });
-            data.ipList = statusPage.ipWhitelist;
             const imagesPath = {
                 faviconPath: statusPage.faviconPath,
                 logoPath: statusPage.logoPath,
