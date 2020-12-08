@@ -189,12 +189,12 @@ export function resetCreateMonitor() {
 
 //Edit new monitor
 //props -> {name: '', type, data -> { data.url}}
-export function editMonitor(projectId, values) {
-    values.projectId = values.projectId
-        ? values.projectId._id || values.projectId
-        : projectId;
-
+export function editMonitor(projectId, values, websiteScan) {
+    values.projectId = values.projectId._id || values.projectId;
     return function(dispatch) {
+        if (websiteScan === 'website-scan') {
+            dispatch(lighthouseScanReq(values));
+        }
         const promise = putApi(`monitor/${projectId}/${values._id}`, values);
         if (
             !values.lighthouseScanStatus ||
@@ -241,6 +241,12 @@ export function editMonitorRequest() {
     };
 }
 
+export function lighthouseScanReq(payload) {
+    return {
+        type: types.LIGHTHOUS_SCANNING_REQUEST,
+        payload: payload,
+    };
+}
 export function editMonitorFailure(error) {
     return {
         type: types.EDIT_MONITOR_FAILURE,
