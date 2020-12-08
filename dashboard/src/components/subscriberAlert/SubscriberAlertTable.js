@@ -11,10 +11,7 @@ import DataPathHoC from '../DataPathHoC';
 
 function HTD1() {
     return (
-        <td
-            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-            style={{ height: '1px', minWidth: '270px' }}
-        >
+        <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                 <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                     <span>Monitor</span>
@@ -24,20 +21,25 @@ function HTD1() {
     );
 }
 
-function HTD2() {
+function HTD2({ name, style }) {
     return (
         <td
             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-            style={{ height: '1px' }}
+            style={style}
         >
             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                    <span>Subscriber</span>
+                <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                    <span>{name}</span>
                 </span>
             </div>
         </td>
     );
 }
+
+HTD2.propTypes = {
+    name: PropTypes.string.isRequired,
+    style: PropTypes.object,
+};
 
 function HTD3() {
     return (
@@ -127,7 +129,7 @@ TD1.propTypes = {
 function TD2({ text }) {
     return (
         <td
-            className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
         >
             <div className="db-ListViewItem-link">
@@ -300,7 +302,8 @@ function SubscriberAlertTableHeader() {
     return (
         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
             <HTD1 />
-            <HTD2 />
+            <HTD2 name="Incident ID" />
+            <HTD2 name="Subscriber" />
             <HTD3 />
             <HTD4 />
             <HTD5 />
@@ -311,7 +314,7 @@ function SubscriberAlertTableHeader() {
 
 class SubscriberAlertTableRowsClass extends React.Component {
     render() {
-        const { alerts, monitor } = this.props;
+        const { alerts, monitor, incidentIdNumber } = this.props;
         return alerts.length > 0
             ? alerts.map((alert, index) => (
                   <tr
@@ -343,16 +346,21 @@ class SubscriberAlertTableRowsClass extends React.Component {
                   >
                       <TD1 text={monitor ? monitor.name : 'Unknown'} />
                       <TD2
+                          text={incidentIdNumber ? `#${incidentIdNumber}` : ''}
+                      />
+                      <TD2
                           text={
                               alert.subscriberId
-                                  ? alert.subscriberId.contactEmail ||
-                                    (alert.subscriberId.contactPhone &&
-                                        `+${countryTelephoneCode(
-                                            alert.subscriberId.countryCode.toUpperCase()
-                                        )}${
-                                            alert.subscriberId.contactPhone
-                                        }`) ||
-                                    alert.subscriberId.contactWebhook
+                                  ? alert.alertVia === 'webhook'
+                                      ? alert.subscriberId.contactWebhook
+                                      : alert.subscriberId.contactEmail ||
+                                        (alert.subscriberId.contactPhone &&
+                                            `+${countryTelephoneCode(
+                                                alert.subscriberId.countryCode.toUpperCase()
+                                            )}${
+                                                alert.subscriberId.contactPhone
+                                            }`) ||
+                                        alert.subscriberId.contactWebhook
                                   : 'Unknown'
                           }
                       />
@@ -370,6 +378,7 @@ SubscriberAlertTableRowsClass.propTypes = {
     alerts: PropTypes.array.isRequired,
     monitor: PropTypes.object.isRequired,
     openModal: PropTypes.func.isRequired,
+    incidentIdNumber: PropTypes.string.isRequired,
 };
 
 const SubscriberAlertTableRows = connect(null, dispatch =>
