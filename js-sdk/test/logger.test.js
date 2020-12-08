@@ -18,12 +18,12 @@ describe('FyipeLogger', function() {
     this.timeout(timeout + 1000);
     let projectId, token, componentId, applicationLog;
     // create a new user
-    user.email = generateRandomBusinessEmail();
     const component = { name: 'Our Component' };
 
     before(function(done) {
         this.timeout(60000);
         sleep(30000).then(() => {
+            user.email = generateRandomBusinessEmail();
             request
                 .post('/user/signup')
                 .send(user)

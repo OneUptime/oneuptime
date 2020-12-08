@@ -5,7 +5,7 @@
     "main": "dist/logger.js",
     "scripts": {
         "build-dev": "npm run build && npm link",
-        "test": "mocha test/logger.test.js --require @babel/polyfill --require @babel/register",
+        "test": "mocha --require @babel/polyfill --require @babel/register",
         "build": "webpack --mode production",
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli'"

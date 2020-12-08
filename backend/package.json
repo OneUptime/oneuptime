@@ -60,13 +60,13 @@
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
     },
     "devDependencies": {
-        "chai": "^4.2.0",
-        "chai-http": "^4.3.0",
-        "chai-subset": "^1.6.0",
         "depcheck": "^0.9.2",
         "mocha": "^8.2.1",
         "nodemon": "^2.0.4",
         "npm-audit-ci-wrapper": "^2.5.1",
-        "sinon": "^4.5.0"
+        "sinon": "^4.5.0",
+        "chai": "^4.2.0",
+        "chai-http": "^4.3.0",
+        "chai-subset": "^1.6.0"
     }
 }
