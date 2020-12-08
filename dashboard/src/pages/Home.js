@@ -106,8 +106,8 @@ class Home extends Component {
         }
     };
 
-    handleClosingSla = (projectId, slaId) => {
-        this.props.closeBreachedMonitorSla(projectId, slaId);
+    handleClosingSla = (projectId, monitorId) => {
+        this.props.closeBreachedMonitorSla(projectId, monitorId);
     };
 
     render() {
@@ -151,9 +151,19 @@ class Home extends Component {
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
 
-                const startTime = moment((userSchedule && userSchedule.timezone && userSchedule.startTime) || dayStart).format("HH:mm");
+                const startTime = moment(
+                    (userSchedule &&
+                        userSchedule.timezone &&
+                        userSchedule.startTime) ||
+                        dayStart
+                ).format('HH:mm');
 
-                const endTime = moment((userSchedule && userSchedule.timezone && userSchedule.endTime) || dayEnd).format("HH:mm");
+                const endTime = moment(
+                    (userSchedule &&
+                        userSchedule.timezone &&
+                        userSchedule.endTime) ||
+                        dayEnd
+                ).format('HH:mm');
 
                 let hours = Math.ceil(
                     moment(endTime, 'HH:mm').diff(
@@ -193,7 +203,8 @@ class Home extends Component {
                     : moment(userSchedule.startTime || dayStart)
                 ).zoneAbbr();
 
-                const isOnDutyAllTheTime = (userSchedule.startTime >= userSchedule.endTime)
+                const isOnDutyAllTheTime =
+                    userSchedule.startTime >= userSchedule.endTime;
 
                 const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
@@ -336,7 +347,7 @@ class Home extends Component {
                                                     >
                                                         {userSchedules ? (
                                                             <>
-                                                                 <ShouldRender
+                                                                <ShouldRender
                                                                     if={
                                                                         activeSchedules &&
                                                                         activeSchedules.length >
@@ -354,7 +365,6 @@ class Home extends Component {
                                                                                 .currentProjectId
                                                                         }
                                                                     />
-                                                                    
                                                                 </ShouldRender>
 
                                                                 <ShouldRender
