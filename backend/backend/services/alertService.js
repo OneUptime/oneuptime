@@ -16,16 +16,21 @@ module.exports = {
         const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
 
-        if (balance > alertChargeAmount.minimumBalance) {
-            await PaymentService.chargeAlert(
-                userId,
-                projectId,
-                alertChargeAmount.price
+        const customThresholdAmount = project.alertOptions
+            ? project.alertOptions.rechargeToBalance
+            : null;
+
+        const isBalanceMoreThanMinimum =
+            balance > alertChargeAmount.minimumBalance;
+        if (customThresholdAmount) {
+            const isBalanceMoreThanCustomThresholdAmount =
+                balance > customThresholdAmount;
+            return (
+                isBalanceMoreThanMinimum &&
+                isBalanceMoreThanCustomThresholdAmount
             );
-            return true;
-        } else {
-            return false;
         }
+        return isBalanceMoreThanMinimum;
     },
 
     doesPhoneNumberComplyWithHighRiskConfig: async function(
@@ -839,19 +844,27 @@ module.exports = {
                 AlertType.Call
             );
             if (!hasEnoughBalance) {
-                return await _this.create({
-                    projectId: incident.projectId,
-                    monitorId,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
-                    alertVia: AlertType.Call,
-                    userId: user._id,
-                    incidentId: incident._id,
-                    alertStatus: null,
-                    error: true,
-                    errorMessage: 'Low Balance',
-                });
+                // try to recharge amount
+                const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
+                    user._id,
+                    project
+                );
+
+                if (!projectBalanceRecharged) {
+                    return await _this.create({
+                        projectId: incident.projectId,
+                        monitorId,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: AlertType.Call,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        alertStatus: null,
+                        error: true,
+                        errorMessage: 'Low Balance',
+                    });
+                }
             }
         }
         const alertStatus = await TwilioService.sendIncidentCreatedCall(
@@ -903,6 +916,17 @@ module.exports = {
                     monitorId,
                     incident._id,
                     user.alertPhoneNumber
+                );
+                // cut payment for call notification
+                const countryType = getCountryType(user.alertPhoneNumber);
+                const alertChargeAmount = getAlertChargeAmount(
+                    AlertType.Call,
+                    countryType
+                );
+                await PaymentService.chargeAlert(
+                    user._id,
+                    incident.projectId,
+                    alertChargeAmount.price
                 );
             }
         }
@@ -1011,19 +1035,27 @@ module.exports = {
                 AlertType.SMS
             );
             if (!hasEnoughBalance) {
-                return await _this.create({
-                    projectId: incident.projectId,
-                    monitorId,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
-                    alertVia: AlertType.SMS,
-                    userId: user._id,
-                    incidentId: incident._id,
-                    alertStatus: null,
-                    error: true,
-                    errorMessage: 'Low Balance',
-                });
+                // try to recharge amount
+                const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
+                    user._id,
+                    project
+                );
+
+                if (!projectBalanceRecharged) {
+                    return await _this.create({
+                        projectId: incident.projectId,
+                        monitorId,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: AlertType.SMS,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        alertStatus: null,
+                        error: true,
+                        errorMessage: 'Low Balance',
+                    });
+                }
             }
         }
 
@@ -1080,7 +1112,61 @@ module.exports = {
                     incident._id,
                     user.alertPhoneNumber
                 );
+
+                // cut payment for sms notification
+                const countryType = getCountryType(user.alertPhoneNumber);
+                const alertChargeAmount = getAlertChargeAmount(
+                    AlertType.SMS,
+                    countryType
+                );
+                await PaymentService.chargeAlert(
+                    user._id,
+                    incident.projectId,
+                    alertChargeAmount.price
+                );
             }
+        }
+    },
+
+    sendInvestigationNoteToSubscribers: async function(incident, data, statusNoteStatus) {
+        try {
+            const note = data.content
+            const _this = this;
+            const monitor = await MonitorService.findOneBy({
+                _id: incident.monitorId._id
+            })
+            const component = await ComponentService.findOneBy({
+                _id:
+                monitor.componentId && monitor.componentId._id
+                ? monitor.componentId._id
+                : monitor.componentId,
+            });
+            if(incident) {
+                const monitorId = incident.monitorId._id
+                    ? incident.monitorId._id
+                    : incident.monitorId;
+                const subscribers = await SubscriberService.subscribersForAlert(
+                    {
+                        monitorId: monitorId,
+                    }
+                );
+                for (const subscriber of subscribers) {
+                    await _this.sendSubscriberAlert(
+                        subscriber,
+                        incident,
+                        'Investigation note is created',
+                        null,
+                        note,
+                        statusNoteStatus
+                    )
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendStatusPageToSubscribers',
+                error
+            );
+            throw error;
         }
     },
 
@@ -1641,8 +1727,8 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        // eslint-disable-next-line no-unused-vars
-        component
+        note,
+        statusNoteStatus
     ) {
         try {
             const _this = this;
@@ -1663,6 +1749,7 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
+            const statusUrl = `${global.dashboardHost}/project/${incident.projectId}/${component._id}/incidents/${incident._id}`
 
             let statusPageUrl;
             if (statusPage) {
@@ -1843,6 +1930,22 @@ module.exports = {
                         } else {
                             alertStatus = 'Disabled';
                         }
+                    } else if(templateType === 'Investigation note is created') {
+                        await MailService.sendInvestigationNoteToSubscribers(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            incident,
+                            project.name,
+                            emailTemplate,
+                            component.name,
+                            note,
+                            statusUrl,
+                            statusNoteStatus
+                        );
+                        alertStatus = 'Sent';
                     } else {
                         if (project.sendCreatedIncidentNotificationEmail) {
                             if (statusPage) {
@@ -1894,6 +1997,7 @@ module.exports = {
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
+                let owner;
                 const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
                     {
                         name: 'twilio',
@@ -1947,7 +2051,7 @@ module.exports = {
                 }
 
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    const owner = project.users.filter(
+                    owner = project.users.filter(
                         user => user.role === 'Owner'
                     )[0];
                     const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
@@ -1987,23 +2091,30 @@ module.exports = {
                     );
 
                     if (!hasEnoughBalance) {
-                        return await SubscriberAlertService.create({
-                            projectId: incident.projectId,
-                            incidentId: incident._id,
-                            subscriberId: subscriber._id,
-                            alertVia: AlertType.SMS,
-                            alertStatus: null,
-                            error: true,
-                            errorMessage: 'Low Balance',
-                            eventType:
-                                templateType ===
-                                'Subscriber Incident Acknowldeged'
-                                    ? 'acknowledged'
-                                    : templateType ===
-                                      'Subscriber Incident Resolved'
-                                    ? 'resolved'
-                                    : 'identified',
-                        });
+                        // try to recharge amount
+                        const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
+                            owner.userId,
+                            project
+                        );
+                        if (!projectBalanceRecharged) {
+                            return await SubscriberAlertService.create({
+                                projectId: incident.projectId,
+                                incidentId: incident._id,
+                                subscriberId: subscriber._id,
+                                alertVia: AlertType.SMS,
+                                alertStatus: null,
+                                error: true,
+                                errorMessage: 'Low Balance',
+                                eventType:
+                                    templateType ===
+                                    'Subscriber Incident Acknowldeged'
+                                        ? 'acknowledged'
+                                        : templateType ===
+                                          'Subscriber Incident Resolved'
+                                        ? 'resolved'
+                                        : 'identified',
+                            });
+                        }
                     }
                 }
 
@@ -2095,6 +2206,19 @@ module.exports = {
                         } else {
                             alertStatus = 'Disabled';
                         }
+                    } else if(templateType == 'Investigation note is created') {
+                        sendResult = await TwilioService.sendInvestigationNoteToSubscribers(
+                            date,
+                            subscriber.monitorName,
+                            contactPhone,
+                            smsTemplate,
+                            incident,
+                            project.name,
+                            incident.projectId,
+                            component.name,
+                            statusUrl
+                        );
+                        alertStatus = 'Success';
                     } else {
                         if (project.sendCreatedIncidentNotificationSms) {
                             if (statusPage) {
@@ -2170,6 +2294,17 @@ module.exports = {
                                 incident._id,
                                 contactPhone,
                                 alertId
+                            );
+                            // cut payment for subscriber sms notification
+                            const countryType = getCountryType(contactPhone);
+                            const alertChargeAmount = getAlertChargeAmount(
+                                AlertType.SMS,
+                                countryType
+                            );
+                            await PaymentService.chargeAlert(
+                                owner.userId,
+                                incident.projectId,
+                                alertChargeAmount.price
                             );
                         }
                     }

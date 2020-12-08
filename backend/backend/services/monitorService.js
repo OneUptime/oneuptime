@@ -101,6 +101,9 @@ module.exports = {
                     } else if (data.type === 'script') {
                         monitor.data = {};
                         monitor.data.script = data.data.script;
+                    } else if (data.type === 'incomingHttpRequest') {
+                        monitor.data = {};
+                        monitor.data.link = data.data.link;
                     }
                     if (resourceCategory) {
                         monitor.resourceCategory = data.resourceCategory;
@@ -112,7 +115,8 @@ module.exports = {
                         data.type === 'url' ||
                         data.type === 'api' ||
                         data.type === 'server-monitor' ||
-                        data.type === 'script'
+                        data.type === 'script' ||
+                        data.type === 'incomingHttpRequest'
                     ) {
                         monitor.criteria = _.isEmpty(data.criteria)
                             ? MonitorCriteriaService.create(data.type)
@@ -1273,12 +1277,12 @@ module.exports = {
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     },
 
-    closeBreachedMonitorSla: async function(projectId, slaId, userId) {
+    closeBreachedMonitorSla: async function(projectId, monitorId, userId) {
         try {
             const monitor = await MonitorModel.findOneAndUpdate(
                 {
+                    _id: monitorId,
                     projectId,
-                    monitorSla: slaId,
                     breachedMonitorSla: true,
                     deleted: false,
                 },
@@ -1287,6 +1291,7 @@ module.exports = {
                 },
                 { new: true }
             );
+
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.closeBreachedMonitorSla', error);

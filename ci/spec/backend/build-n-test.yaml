@@ -12,14 +12,18 @@ build_n_test_backend:
         - sudo docker run --name=samlIdp -p 9876:8080 -p 8443:8443 -e SIMPLESAMLPHP_SP_ENTITY_ID=hackerbay.io -e SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback -e SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp -v $PWD/saml/users.php:/var/www/simplesamlphp/config/authsources.php -d kristophjunge/test-saml-idp
         - sudo docker build -t fyipeproject/init-script:3.0.$CI_PIPELINE_IID ./init-script
         - sudo docker run -e NODE_ENV=development -e IS_SAAS_SERVICE=true -e IS_TESTING=true --net=host -d fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-        - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
         - sudo docker build -t fyipeproject/probe:3.0.$CI_PIPELINE_IID ./probe
         - sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e SERVER_URL=http://localhost:3020 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
         - sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e SERVER_URL=http://localhost:3020 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe:3.0.$CI_PIPELINE_IID
         - sudo docker build -t fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID ./http-test-server
         - sudo docker run -p 3010:3010 -d fyipeproject/http-test-server:3.0.$CI_PIPELINE_IID
         - sudo docker ps
-        - sudo docker run --name fyipe --env-file ./backend/.env -e ENCRYPTION_KEY=$ENCRYPTION_KEY -e TEST_EMAIL_SMTP_PORT=$TEST_EMAIL_SMTP_PORT -e TEST_EMAIL_SMTP_SERVER=$TEST_EMAIL_SMTP_SERVER -e TEST_EMAIL=$TEST_EMAIL -e TEST_EMAIL_NAME=$TEST_EMAIL -e TEST_EMAIL_PASSWORD=$TEST_EMAIL_PASSWORD -e IS_SAAS_SERVICE=true -e IS_TESTING=true -e DOCKER_UNMASKED_USERNAME=$DOCKER_UNMASKED_USERNAME -e DOCKER_UNMASKED_PASSWORD=$DOCKER_UNMASKED_PASSWORD -e DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL -e DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH -e DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS -e GITHUB_UNMASKED_USERNAME=$GITHUB_UNMASKED_USERNAME -e GITHUB_UNMASKED_PASSWORD=$GITHUB_UNMASKED_PASSWORD -e GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm test
+        - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - cd backend
+        - npm ci
+        - ENCRYPTION_KEY=$ENCRYPTION_KEY TEST_EMAIL_SMTP_PORT=$TEST_EMAIL_SMTP_PORT TEST_EMAIL_SMTP_SERVER=$TEST_EMAIL_SMTP_SERVER TEST_EMAIL=$TEST_EMAIL TEST_EMAIL_NAME=$TEST_EMAIL TEST_EMAIL_PASSWORD=$TEST_EMAIL_PASSWORD IS_SAAS_SERVICE=true IS_TESTING=true DOCKER_UNMASKED_USERNAME=$DOCKER_UNMASKED_USERNAME DOCKER_UNMASKED_PASSWORD=$DOCKER_UNMASKED_PASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_UNMASKED_USERNAME=$GITHUB_UNMASKED_USERNAME GITHUB_UNMASKED_PASSWORD=$GITHUB_UNMASKED_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm test
+        - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_backend backend init-script probe http-test-server
         - chmod +x ./ci/scripts/cleanup.sh

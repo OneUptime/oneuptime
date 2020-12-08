@@ -35,7 +35,6 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import { fetchCommunicationSlas } from '../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../actions/monitorSla';
-
 class MonitorView extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
@@ -147,7 +146,50 @@ class MonitorView extends React.Component {
             component,
             monitor,
             monitorSlas,
+            scheduleWarning,
+            monitorId,
+            projectId,
+            history,
         } = this.props;
+        const redirectTo = `/dashboard/project/${projectId}/on-call`;
+        let scheduleAlert;
+        if (scheduleWarning.includes(monitorId) === false) {
+            scheduleAlert = (
+                <div id="alertWarning" className="Box-root Margin-vertical--12">
+                    <div className="db-Trends bs-ContentSection Card-root">
+                        <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
+                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                    <img
+                                        width="17"
+                                        style={{
+                                            marginRight: 5,
+                                            verticalAlign: 'bottom',
+                                            color: 'red',
+                                        }}
+                                        alt="warning"
+                                        src={`${'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCAxOTEuODEyIDE5MS44MTIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDUxMiA1MTIiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxnPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgoJPHBhdGggc3R5bGU9IiIgZD0iTTk1LjkwNiwxMjEuMDAzYzYuOTAzLDAsMTIuNS01LjU5NywxMi41LTEyLjVWNTEuNTExYzAtNi45MDQtNS41OTctMTIuNS0xMi41LTEyLjUgICBzLTEyLjUsNS41OTYtMTIuNSwxMi41djU2Ljk5M0M4My40MDYsMTE1LjQwNyw4OS4wMDMsMTIxLjAwMyw5NS45MDYsMTIxLjAwM3oiIGZpbGw9IiNmZmZmZmYiIGRhdGEtb3JpZ2luYWw9IiMxZDFkMWIiLz4KCTxwYXRoIHN0eWxlPSIiIGQ9Ik05NS45MDksMTI3LjgwN2MtMy4yOSwwLTYuNTIxLDEuMzMtOC44NDEsMy42NmMtMi4zMjksMi4zMi0zLjY1OSw1LjU0LTMuNjU5LDguODMgICBzMS4zMyw2LjUyLDMuNjU5LDguODRjMi4zMiwyLjMzLDUuNTUxLDMuNjYsOC44NDEsMy42NnM2LjUxLTEuMzMsOC44NC0zLjY2YzIuMzE5LTIuMzIsMy42Ni01LjU1LDMuNjYtOC44NHMtMS4zNDEtNi41MS0zLjY2LTguODMgICBDMTAyLjQxOSwxMjkuMTM3LDk5LjE5OSwxMjcuODA3LDk1LjkwOSwxMjcuODA3eiIgZmlsbD0iI2ZmZmZmZiIgZGF0YS1vcmlnaW5hbD0iIzFkMWQxYiIvPgoJPHBhdGggc3R5bGU9IiIgZD0iTTk1LjkwNiwwQzQzLjAyNCwwLDAsNDMuMDIzLDAsOTUuOTA2czQzLjAyMyw5NS45MDYsOTUuOTA2LDk1LjkwNnM5NS45MDUtNDMuMDIzLDk1LjkwNS05NS45MDYgICBTMTQ4Ljc4OSwwLDk1LjkwNiwweiBNOTUuOTA2LDE3Ni44MTJDNTEuMjk0LDE3Ni44MTIsMTUsMTQwLjUxOCwxNSw5NS45MDZTNTEuMjk0LDE1LDk1LjkwNiwxNSAgIGM0NC42MTEsMCw4MC45MDUsMzYuMjk0LDgwLjkwNSw4MC45MDZTMTQwLjUxOCwxNzYuODEyLDk1LjkwNiwxNzYuODEyeiIgZmlsbD0iI2ZmZmZmZiIgZGF0YS1vcmlnaW5hbD0iIzFkMWQxYiIvPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjwvZz48L3N2Zz4K'}`}
+                                    />
+                                    <span>
+                                        No Team Member will be alerted when
+                                        incident is created.
+                                    </span>
+                                </span>
+                                <span>
+                                    <button
+                                        className="bs-Button bs-Button--grey"
+                                        onClick={() => history.push(redirectTo)}
+                                    >
+                                        Create On-Call Schedule
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         const subProjectId = this.props.monitor
             ? this.props.monitor.projectId._id || this.props.monitor.projectId
             : null;
@@ -203,6 +245,7 @@ class MonitorView extends React.Component {
                                 ></div>
                             </TabList>
                         </div>
+                        <div>{scheduleAlert}</div>
                         {!this.props.requestingMonitorSla &&
                             this.props.monitor &&
                             (this.props.monitor.monitorSla ||
@@ -479,7 +522,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'server-monitor')
+                                                                                        'server-monitor' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'incomingHttpRequest')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
@@ -598,7 +646,17 @@ class MonitorView extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { componentId, monitorId } = props.match.params;
+    const scheduleWarning = [];
+    const { projectId, componentId, monitorId } = props.match.params;
+
+    state.schedule.subProjectSchedules.forEach(item => {
+        item.schedules.forEach(item => {
+            item.monitorIds.forEach(monitor => {
+                scheduleWarning.push(monitor._id);
+            });
+        });
+    });
+
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
@@ -704,6 +762,9 @@ const mapStateToProps = (state, props) => {
         }
     }
     return {
+        scheduleWarning,
+        projectId,
+        monitorId,
         componentId,
         monitor,
         edit: state.monitor.monitorsList.editMode,
@@ -737,6 +798,8 @@ const mapDispatchToProps = dispatch => {
 };
 
 MonitorView.propTypes = {
+    projectId: PropTypes.string,
+    monitorId: PropTypes.string,
     componentId: PropTypes.string,
     monitor: PropTypes.object,
     edit: PropTypes.bool,
@@ -761,6 +824,8 @@ MonitorView.propTypes = {
     requestingIncidentSla: PropTypes.bool,
     requestingMonitorSla: PropTypes.bool,
     monitorSlas: PropTypes.array,
+    history: PropTypes.func,
+    scheduleWarning: PropTypes.array,
 };
 
 MonitorView.displayName = 'MonitorView';
