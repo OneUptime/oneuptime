@@ -650,8 +650,8 @@ const mapStateToProps = (state, props) => {
     
     state.schedule.subProjectSchedules.forEach(item =>{
         item.schedules.forEach(item =>{
-            item.monitorIds.forEach(c=>{
-                scheduleWarning.push(c._id)
+            item.monitorIds.forEach(monitor=>{
+                scheduleWarning.push(monitor._id)
             }) 
         })
     })
