@@ -753,16 +753,16 @@ router.get(
 );
 
 router.post(
-    '/:projectId/closeSla/:slaId',
+    '/:projectId/closeSla/:monitorId',
     getUser,
     isAuthorized,
     async function(req, res) {
         try {
-            const { projectId, slaId } = req.params;
+            const { projectId, monitorId } = req.params;
             const userId = req.user ? req.user.id : null;
             const monitor = await MonitorService.closeBreachedMonitorSla(
                 projectId,
-                slaId,
+                monitorId,
                 userId
             );
 

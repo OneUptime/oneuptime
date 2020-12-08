@@ -17,9 +17,13 @@ const _this = {
         const ipWhitelist = statusPage.ipWhitelist
             ? [...statusPage.ipWhitelist]
             : [];
-        // no ip whitelist? move to the next express option/middleware
+        // if ip whitelist is enabled and no ip is saved
+        // block the access
         if (!ipWhitelist || ipWhitelist.length === 0) {
-            return next();
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You are not allowed to view this page',
+            });
         }
 
         let clientIp = _this.getClientIp(req); // returns client ip or null

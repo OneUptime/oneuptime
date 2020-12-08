@@ -28,31 +28,14 @@ export class PrivateStatusPage extends Component {
         this.state = {
             subscriberAdvanceOptionModalId: uuid.v4(),
             showMoreOptions: false,
-            editIpWhitelist: false,
         };
     }
 
     submitForm = values => {
         const { status } = this.props.statusPage;
-        const { editIpWhitelist } = this.state;
         const { projectId } = status;
 
-        if (
-            editIpWhitelist &&
-            values.editIpWhitelist &&
-            values.editIpWhitelist.length > 0
-        ) {
-            const ipWhitelist = values.editIpWhitelist.filter(
-                ip => typeof ip === 'string'
-            );
-            values.ipWhitelist = ipWhitelist;
-        }
-
-        if (
-            !editIpWhitelist &&
-            values.ipWhitelist &&
-            values.ipWhitelist.length > 0
-        ) {
+        if (values.ipWhitelist && values.ipWhitelist.length > 0) {
             const ipWhitelist = values.ipWhitelist.filter(
                 ip => typeof ip === 'string'
             );
@@ -69,15 +52,8 @@ export class PrivateStatusPage extends Component {
                 moveIncidentToTheTop: values.moveIncidentToTheTop,
                 ipWhitelist: values.ipWhitelist,
                 enableIpWhitelist: values.enableIpWhitelist,
-                editIpWhitelist,
             })
             .then(() => {
-                !editIpWhitelist &&
-                    document.querySelector('#removeAllFields').click(); // hack to remove all fields of redux fieldArray
-
-                this.setState({
-                    editIpWhitelist: false,
-                });
                 this.props.fetchProjectStatusPage(
                     projectId._id || projectId,
                     true
@@ -95,91 +71,6 @@ export class PrivateStatusPage extends Component {
             showMoreOptions: !prevState.showMoreOptions,
         }));
 
-    renderEditIpWhitelist = ({ fields }) => {
-        return (
-            <div
-                style={{
-                    width: '100%',
-                }}
-            >
-                <span
-                    id="removeAllEditFields"
-                    onClick={() => fields.removeAll()}
-                ></span>
-                <div className="Flex-flex">
-                    <button
-                        id="editIpList"
-                        className="Button bs-ButtonLegacy ActionIconParent"
-                        type="button"
-                        onClick={() => {
-                            this.setState({
-                                editIpWhitelist: true,
-                            });
-                        }}
-                    >
-                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                            <span>Edit IPs</span>
-                        </span>
-                    </button>
-                    <button
-                        id="cancelEditIpList"
-                        className="Button bs-ButtonLegacy ActionIconParent"
-                        type="button"
-                        onClick={() => {
-                            this.setState({
-                                editIpWhitelist: false,
-                            });
-                        }}
-                        style={{ marginLeft: 10 }}
-                    >
-                        <span className="bs-Button bs-FileUploadButton">
-                            <span>Cancel</span>
-                        </span>
-                    </button>
-                </div>
-                {fields.map((field, index) => {
-                    return (
-                        <div
-                            style={{
-                                width: '65%',
-                                marginBottom: 10,
-                                marginTop: 10,
-                            }}
-                            key={index}
-                        >
-                            <Field
-                                component={RenderField}
-                                name={field}
-                                id={`ipWhitelist_${index}`}
-                                placeholder="118.127.63.27"
-                                className="bs-TextInput"
-                                style={{
-                                    width: '100%',
-                                    padding: '3px 5px',
-                                }}
-                            />
-                            <button
-                                id="removeIp"
-                                className="Button bs-ButtonLegacy ActionIconParent"
-                                style={{
-                                    marginTop: 10,
-                                }}
-                                type="button"
-                                onClick={() => {
-                                    fields.remove(index);
-                                }}
-                            >
-                                <span className="bs-Button bs-Button--icon bs-Button--delete">
-                                    <span>Remove IP</span>
-                                </span>
-                            </button>
-                        </div>
-                    );
-                })}
-            </div>
-        );
-    };
-
     renderIpWhitelist = ({ fields }) => {
         const { formValues } = this.props;
         return (
@@ -190,43 +81,18 @@ export class PrivateStatusPage extends Component {
                             width: '100%',
                         }}
                     >
-                        <span
-                            id="removeAllFields"
-                            onClick={() => fields.removeAll()}
-                        ></span>
-                        <div className="Flex-flex">
-                            <button
-                                id="addIpList"
-                                className="Button bs-ButtonLegacy ActionIconParent"
-                                type="button"
-                                onClick={() => {
-                                    this.setState({
-                                        editIpWhitelist: false,
-                                    });
-                                    fields.push();
-                                }}
-                            >
-                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                    <span>Add IP</span>
-                                </span>
-                            </button>
-                            <button
-                                id="editIpList"
-                                className="Button bs-ButtonLegacy ActionIconParent"
-                                type="button"
-                                onClick={() => {
-                                    this.setState({
-                                        editIpWhitelist: true,
-                                    });
-                                    fields.removeAll();
-                                }}
-                                style={{ marginLeft: 10 }}
-                            >
-                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                    <span>Edit IPs</span>
-                                </span>
-                            </button>
-                        </div>
+                        <button
+                            id="addIpList"
+                            className="Button bs-ButtonLegacy ActionIconParent"
+                            type="button"
+                            onClick={() => {
+                                fields.push();
+                            }}
+                        >
+                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                <span>Add IP</span>
+                            </span>
+                        </button>
                         {fields.map((field, index) => {
                             return (
                                 <div
@@ -273,10 +139,7 @@ export class PrivateStatusPage extends Component {
     };
 
     render() {
-        const {
-            handleSubmit,
-            statusPage: { status },
-        } = this.props;
+        const { handleSubmit, formValues } = this.props;
         const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -810,58 +673,38 @@ export class PrivateStatusPage extends Component {
                                                                                     fontSize: 14,
                                                                                 }}
                                                                             >
-                                                                                {status.ipWhitelist &&
-                                                                                status
-                                                                                    .ipWhitelist
-                                                                                    .length >
-                                                                                    0 ? (
-                                                                                    <span>
-                                                                                        {status.ipWhitelist.reduce(
-                                                                                            (
-                                                                                                text,
-                                                                                                value,
-                                                                                                i,
-                                                                                                array
-                                                                                            ) =>
-                                                                                                text +
-                                                                                                (i <
-                                                                                                array.length -
-                                                                                                    1
-                                                                                                    ? ', '
-                                                                                                    : ' and ') +
-                                                                                                value
-                                                                                        )}
-                                                                                    </span>
-                                                                                ) : (
-                                                                                    <span>
-                                                                                        No
-                                                                                        IP
-                                                                                        is
-                                                                                        added
-                                                                                        yet
-                                                                                    </span>
-                                                                                )}
+                                                                                <span>
+                                                                                    Enabling
+                                                                                    this
+                                                                                    will
+                                                                                    restrict
+                                                                                    access
+                                                                                    to
+                                                                                    anyone
+                                                                                    accessing
+                                                                                    the
+                                                                                    status
+                                                                                    page
+                                                                                    from
+                                                                                    an
+                                                                                    IP
+                                                                                    not
+                                                                                    specified
+                                                                                    in
+                                                                                    the
+                                                                                    whitelist
+                                                                                </span>
                                                                             </label>
 
-                                                                            <div
-                                                                                className="bs-Fieldset-field"
-                                                                                style={{
-                                                                                    width:
-                                                                                        '100%',
-                                                                                    marginTop: 10,
-                                                                                }}
-                                                                            >
-                                                                                {this
-                                                                                    .state
-                                                                                    .editIpWhitelist ? (
-                                                                                    <FieldArray
-                                                                                        name="editIpWhitelist"
-                                                                                        component={
-                                                                                            this
-                                                                                                .renderEditIpWhitelist
-                                                                                        }
-                                                                                    />
-                                                                                ) : (
+                                                                            {formValues.enableIpWhitelist && (
+                                                                                <div
+                                                                                    className="bs-Fieldset-field"
+                                                                                    style={{
+                                                                                        width:
+                                                                                            '100%',
+                                                                                        marginTop: 10,
+                                                                                    }}
+                                                                                >
                                                                                     <FieldArray
                                                                                         name="ipWhitelist"
                                                                                         component={
@@ -869,8 +712,8 @@ export class PrivateStatusPage extends Component {
                                                                                                 .renderIpWhitelist
                                                                                         }
                                                                                     />
-                                                                                )}
-                                                                            </div>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -981,7 +824,7 @@ const mapStateToProps = state => {
         initialValues.showScheduledEvents = status.showScheduledEvents;
         initialValues.moveIncidentToTheTop = status.moveIncidentToTheTop;
         initialValues.enableIpWhitelist = status.enableIpWhitelist;
-        initialValues.editIpWhitelist = status.ipWhitelist;
+        initialValues.ipWhitelist = status.ipWhitelist;
     }
     initialValues.showIpWhitelistInput = true;
 

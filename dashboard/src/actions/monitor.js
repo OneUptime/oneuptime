@@ -933,12 +933,15 @@ export const closeBreachedMonitorSlaFailure = error => ({
     payload: error,
 });
 
-export const closeBreachedMonitorSla = (projectId, slaId) => async dispatch => {
+export const closeBreachedMonitorSla = (
+    projectId,
+    monitorId
+) => async dispatch => {
     try {
         dispatch(closeBreachedMonitorSlaRequest());
 
         const response = await postApi(
-            `monitor/${projectId}/closeSla/${slaId}`
+            `monitor/${projectId}/closeSla/${monitorId}`
         );
         dispatch(closeBreachedMonitorSlaSuccess(response.data));
     } catch (error) {
