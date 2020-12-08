@@ -10,7 +10,7 @@ const scheduleSchema = new Schema({
     }, //which project this schedule belongs to.
     createdById: { type: String, ref: 'User' },
     monitorIds: [
-        { type: String, ref: 'Monitor', default: [], alias: 'monitors' },
+        { type: Schema.Types.ObjectId, ref: 'Monitor', default: [], alias: 'monitors' },
     ],
     escalationIds: [
         { type: String, ref: 'Escalation', default: [], alias: 'escalations' },
