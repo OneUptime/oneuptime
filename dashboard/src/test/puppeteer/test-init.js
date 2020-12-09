@@ -176,6 +176,23 @@ module.exports = {
         await page.click(`#more-details-${applicationLog}`);
         await page.waitForSelector(`#application-log-title-${applicationLog}`);
     },
+    navigateToErrorTrackerDetails: async function(
+        component,
+        errorTracker,
+        page
+    ) {
+        // Navigate to Components page
+        await this.navigateToComponentDetails(component, page);
+
+        // then goto list of error trackers
+        await page.waitForSelector('#errorTracking');
+        await page.click('#errorTracking');
+
+        // Navigate to details page of error tracker assumed created
+        await page.waitForSelector(`#more-details-${errorTracker}`);
+        await page.click(`#more-details-${errorTracker}`);
+        await page.waitForSelector(`#error-tracker-title-${errorTracker}`);
+    },
     registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
             email: 'masteradmin@hackerbay.io',
