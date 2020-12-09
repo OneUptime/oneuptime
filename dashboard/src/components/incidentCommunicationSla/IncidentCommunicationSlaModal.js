@@ -435,8 +435,9 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                     <span>
                                                         When an SLA is set to
                                                         default, it is applied
-                                                        to all the incidents
-                                                        from all the monitors.
+                                                        to all the incidents in
+                                                        all the monitors in a
+                                                        project.
                                                     </span>
                                                 </p>
                                             </div>
