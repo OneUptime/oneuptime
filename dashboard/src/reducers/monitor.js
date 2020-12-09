@@ -614,9 +614,6 @@ export default function monitor(state = INITIAL_STATE, action) {
                                               monitor.currentLighthouseLog =
                                                   mainSiteUrlLogs[0];
                                           }
-                                          //   action.payload.logs.data.map(
-                                          //       item => (item.scanning = true)
-                                          //   );
                                           monitor.lighthouseLogs = {
                                               data: action.payload.logs.data,
                                               skip: action.payload.skip,
@@ -1059,7 +1056,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                   ] = action.payload.data;
                                               }
                                           } else {
-                                            action.payload.data.scanning = false;
+                                              action.payload.data.scanning = false;
                                               monitor.lighthouseLogs = {
                                                   data: [action.payload.data],
                                                   skip: 0,
