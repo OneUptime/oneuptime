@@ -817,7 +817,7 @@ module.exports = {
                 AlertType.Call
             );
 
-            if (!status.sucess) {
+            if (!status.success) {
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId,
@@ -1088,20 +1088,24 @@ module.exports = {
         }
     },
 
-    sendInvestigationNoteToSubscribers: async function(incident, data, statusNoteStatus) {
+    sendInvestigationNoteToSubscribers: async function(
+        incident,
+        data,
+        statusNoteStatus
+    ) {
         try {
-            const note = data.content
+            const note = data.content;
             const _this = this;
             const monitor = await MonitorService.findOneBy({
-                _id: incident.monitorId._id
-            })
+                _id: incident.monitorId._id,
+            });
             const component = await ComponentService.findOneBy({
                 _id:
-                monitor.componentId && monitor.componentId._id
-                ? monitor.componentId._id
-                : monitor.componentId,
+                    monitor.componentId && monitor.componentId._id
+                        ? monitor.componentId._id
+                        : monitor.componentId,
             });
-            if(incident) {
+            if (incident) {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
                     : incident.monitorId;
@@ -1118,14 +1122,11 @@ module.exports = {
                         null,
                         note,
                         statusNoteStatus
-                    )
+                    );
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'alertService.sendStatusPageToSubscribers',
-                error
-            );
+            ErrorService.log('alertService.sendStatusPageToSubscribers', error);
             throw error;
         }
     },
@@ -1709,7 +1710,7 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
-            const statusUrl = `${global.dashboardHost}/project/${incident.projectId}/${component._id}/incidents/${incident._id}`
+            const statusUrl = `${global.dashboardHost}/project/${incident.projectId}/${component._id}/incidents/${incident._id}`;
 
             let statusPageUrl;
             if (statusPage) {
@@ -1890,7 +1891,9 @@ module.exports = {
                         } else {
                             alertStatus = 'Disabled';
                         }
-                    } else if(templateType === 'Investigation note is created') {
+                    } else if (
+                        templateType === 'Investigation note is created'
+                    ) {
                         await MailService.sendInvestigationNoteToSubscribers(
                             date,
                             subscriber.monitorName,
@@ -2160,7 +2163,9 @@ module.exports = {
                         } else {
                             alertStatus = 'Disabled';
                         }
-                    } else if(templateType == 'Investigation note is created') {
+                    } else if (
+                        templateType == 'Investigation note is created'
+                    ) {
                         sendResult = await TwilioService.sendInvestigationNoteToSubscribers(
                             date,
                             subscriber.monitorName,
