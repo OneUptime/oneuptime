@@ -16,6 +16,7 @@ import { env } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
+import AlertBilling from '../modals/AlertBilling';
 import Tooltip from '../basic/Tooltip';
 
 export class AlertAdvanceOption extends Component {
@@ -27,23 +28,36 @@ export class AlertAdvanceOption extends Component {
         const {
             currentProject,
             projectId,
-            alertOptionsUpdate,
             openModal,
+            formValues,
+            alertOptionsUpdate,
         } = this.props;
         value._id = projectId;
         const userId = User.getUserId();
-        isOwnerOrAdmin(userId, currentProject)
-            ? alertOptionsUpdate(projectId, value).then(() => {
-                  const { paymentIntent } = this.props;
-                  if (paymentIntent) {
-                      //init payment
-                      this.handlePaymentIntent(paymentIntent);
-                  }
-              })
-            : openModal({
-                  id: projectId,
-                  content: Unauthorised,
-              });
+        if (isOwnerOrAdmin(userId, currentProject)) {
+            openModal({
+                id: this.state.MessageBoxId,
+                content: AlertBilling,
+                title: 'Message',
+                onConfirm: () => {
+                    return alertOptionsUpdate(projectId, value).then(() => {
+                        const { paymentIntent } = this.props;
+                        if (paymentIntent) {
+                            //init payment
+                            this.handlePaymentIntent(paymentIntent);
+                        }
+                    });
+                },
+                message: `Your card will be charged by $${Number(
+                    formValues.rechargeToBalance
+                )}`,
+            });
+        } else {
+            openModal({
+                id: projectId,
+                content: Unauthorised,
+            });
+        }
     };
 
     handlePaymentIntent = paymentIntentClientSecret => {
