@@ -163,3 +163,38 @@ export const setActiveSla = incidentSlaId => ({
     type: types.SET_ACTIVE_SLA,
     payload: incidentSlaId,
 });
+
+export const fetchDefaultCommunicationSlaRequest = () => ({
+    type: types.FETCH_DEFAULT_COMMUNICATION_SLA_REQUEST,
+});
+
+export const fetchDefaultCommunicationSlaSuccess = payload => ({
+    type: types.FETCH_DEFAULT_COMMUNICATION_SLA_SUCCESS,
+    payload,
+});
+
+export const fetchDefaultCommunicationSlaFailure = error => ({
+    type: types.FETCH_DEFAULT_COMMUNICATION_SLA_FAILURE,
+    payload: error,
+});
+
+export const fetchDefaultCommunicationSla = projectId => async dispatch => {
+    try {
+        dispatch(fetchDefaultCommunicationSlaRequest());
+
+        const response = await getApi(
+            `incidentSla/${projectId}/defaultCommunicationSla`
+        );
+        dispatch(fetchDefaultCommunicationSlaSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(fetchDefaultCommunicationSlaFailure(errorMsg));
+    }
+};
