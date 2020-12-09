@@ -69,7 +69,7 @@ module.exports = {
 
             return false;
         } catch (error) {
-            ErrorService.log('PaymentService.rechargeProjectBalance', error);
+            ErrorService.log('PaymentService.fillProjectBalance', error);
             return false;
         }
     },
