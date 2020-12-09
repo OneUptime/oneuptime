@@ -119,7 +119,10 @@ module.exports = {
 
             return status;
         } catch (error) {
-            ErrorService.log('PaymentService.rechargeLowBalanceSync', error);
+            ErrorService.log(
+                'PaymentService.checkAndRechargeProjectBalance',
+                error
+            );
             throw error;
         } finally {
             if (release) {
