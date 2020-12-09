@@ -1300,6 +1300,74 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(alertsSentList.includes('sms')).to.equal(true);
             expect(alertsSentList.includes('call')).to.equal(true);
         });
+
+        /**
+         * Global twilio settings: set
+         * Custom twilio settings: not set
+         * Global twilio settings SMS enable : true
+         * Global twilio settings Call enable : true
+         * SMS/Call alerts enabled for the project (billing): true
+         */
+        it('should not cut project balance for invalid twilio settings', async function() {
+            // update global setting to enable call and sms
+            const globalSettings = await GlobalConfigModel.findOne({
+                name: 'twilio',
+            });
+            const { value } = globalSettings;
+            value['sms-enabled'] = true;
+            value['call-enabled'] = true;
+            // add a wrong config to twilio
+            value.phone = '+111111111';
+
+            await GlobalConfigModel.findOneAndUpdate(
+                { name: 'twilio' },
+                { value }
+            );
+
+            // enable billing for the project
+            const billingEndpointResponse = await request
+                .put(`/project/${projectId}/alertOptions`)
+                .set('Authorization', authorization)
+                .send({
+                    alertEnable: true,
+                    billingNonUSCountries: true,
+                    billingRiskCountries: true,
+                    billingUS: true,
+                    minimumBalance: '100',
+                    rechargeToBalance: '200',
+                    _id: projectId,
+                });
+            expect(billingEndpointResponse).to.have.status(200);
+
+            // get the project balance before an alert is sent
+            const {
+                balance: originalProjectBalance,
+            } = await ProjectService.findOneBy({ _id: projectId });
+
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
+                    monitorId,
+                    projectId,
+                    title: 'test monitor  is offline.',
+                    incidentType: 'offline',
+                    description: 'Incident description',
+                },
+            });
+            expect(newIncident).to.have.status(200);
+
+            await sleep(10 * 1000);
+
+            const {
+                balance: newProjectBalance,
+            } = await ProjectService.findOneBy({ _id: projectId });
+
+            expect(newProjectBalance).to.equal(originalProjectBalance);
+        });
+
         /**
          * Global twilio settings: set
          * Custom twilio settings: not set
