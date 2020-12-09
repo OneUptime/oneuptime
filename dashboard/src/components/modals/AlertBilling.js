@@ -3,6 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes, { string } from 'prop-types';
 import { closeModal } from '../../actions/modal';
+import { FormLoader } from '../basic/Loader';
 
 class AlertBilling extends Component {
     componentDidMount() {
@@ -28,7 +29,7 @@ class AlertBilling extends Component {
     };
 
     render() {
-        const { data, confirmThisDialog } = this.props;
+        const { data, confirmThisDialog, isRequesting } = this.props;
         let { title, message, messageBoxId } = this.props;
         if (data) {
             title = data.title;
@@ -80,12 +81,18 @@ class AlertBilling extends Component {
                                     type="button"
                                     id="modal-ok"
                                     onClick={confirmThisDialog}
+                                    disabled={isRequesting}
                                     autoFocus={true}
                                 >
-                                    <span>OK</span>
-                                    <span className="create-btn__keycode">
-                                        <span className="keycode__icon keycode__icon--enter" />
-                                    </span>
+                                    {!isRequesting && (
+                                        <>
+                                            <span>OK</span>
+                                            <span className="create-btn__keycode">
+                                                <span className="keycode__icon keycode__icon--enter" />
+                                            </span>
+                                        </>
+                                    )}
+                                    {isRequesting && <FormLoader />}
                                 </button>
                             </div>
                         </div>
@@ -102,6 +109,7 @@ AlertBilling.propTypes = {
     closeModal: PropTypes.func.isRequired,
     confirmThisDialog: PropTypes.func.isRequired,
     title: PropTypes.string,
+    isRequesting: PropTypes.bool,
     message: PropTypes.string,
     messageBoxId: PropTypes.string,
     data: PropTypes.shape({
@@ -116,6 +124,7 @@ const mapStateToProps = state => {
         messageBoxId: state.modal.modals[0].id,
         title: state.modal.modals[0].title,
         message: state.modal.modals[0].message,
+        isRequesting: state.project.alertOptionsUpdate.requesting,
     };
 };
 

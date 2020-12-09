@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, Field, change } from 'redux-form';
-import { FormLoader } from '../basic/Loader';
 import { ValidateField, User } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import { alertOptionsUpdate } from '../../actions/project';
@@ -855,18 +854,7 @@ export class AlertAdvanceOption extends Component {
                                                 }
                                                 type="submit"
                                             >
-                                                <ShouldRender
-                                                    if={
-                                                        !this.props.isRequesting
-                                                    }
-                                                >
-                                                    <span>Save</span>
-                                                </ShouldRender>
-                                                <ShouldRender
-                                                    if={this.props.isRequesting}
-                                                >
-                                                    <FormLoader />
-                                                </ShouldRender>
+                                                <span>Save</span>
                                             </button>
                                         </div>
                                     </div>
