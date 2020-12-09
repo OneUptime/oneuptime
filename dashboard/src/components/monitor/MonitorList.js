@@ -7,7 +7,6 @@ import sortByName from '../../utils/sortByName';
 
 export function MonitorList(props) {
     let monitorDetails = null;
-
     if (props.monitors && props.monitors.length > 0) {
         const monitors = sortByName(props.monitors);
         monitorDetails = monitors.map((monitor, i) => (

@@ -1088,6 +1088,48 @@ module.exports = {
         }
     },
 
+    sendInvestigationNoteToSubscribers: async function(incident, data, statusNoteStatus) {
+        try {
+            const note = data.content
+            const _this = this;
+            const monitor = await MonitorService.findOneBy({
+                _id: incident.monitorId._id
+            })
+            const component = await ComponentService.findOneBy({
+                _id:
+                monitor.componentId && monitor.componentId._id
+                ? monitor.componentId._id
+                : monitor.componentId,
+            });
+            if(incident) {
+                const monitorId = incident.monitorId._id
+                    ? incident.monitorId._id
+                    : incident.monitorId;
+                const subscribers = await SubscriberService.subscribersForAlert(
+                    {
+                        monitorId: monitorId,
+                    }
+                );
+                for (const subscriber of subscribers) {
+                    await _this.sendSubscriberAlert(
+                        subscriber,
+                        incident,
+                        'Investigation note is created',
+                        null,
+                        note,
+                        statusNoteStatus
+                    )
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendStatusPageToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+
     sendCreatedIncidentToSubscribers: async function(incident, component) {
         try {
             const _this = this;
@@ -1645,8 +1687,8 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        // eslint-disable-next-line no-unused-vars
-        component
+        note,
+        statusNoteStatus
     ) {
         try {
             const _this = this;
@@ -1667,6 +1709,7 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
+            const statusUrl = `${global.dashboardHost}/project/${incident.projectId}/${component._id}/incidents/${incident._id}`
 
             let statusPageUrl;
             if (statusPage) {
@@ -1847,6 +1890,22 @@ module.exports = {
                         } else {
                             alertStatus = 'Disabled';
                         }
+                    } else if(templateType === 'Investigation note is created') {
+                        await MailService.sendInvestigationNoteToSubscribers(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            incident,
+                            project.name,
+                            emailTemplate,
+                            component.name,
+                            note,
+                            statusUrl,
+                            statusNoteStatus
+                        );
+                        alertStatus = 'Sent';
                     } else {
                         if (project.sendCreatedIncidentNotificationEmail) {
                             if (statusPage) {
@@ -2101,6 +2160,19 @@ module.exports = {
                         } else {
                             alertStatus = 'Disabled';
                         }
+                    } else if(templateType == 'Investigation note is created') {
+                        sendResult = await TwilioService.sendInvestigationNoteToSubscribers(
+                            date,
+                            subscriber.monitorName,
+                            contactPhone,
+                            smsTemplate,
+                            incident,
+                            project.name,
+                            incident.projectId,
+                            component.name,
+                            statusUrl
+                        );
+                        alertStatus = 'Success';
                     } else {
                         if (project.sendCreatedIncidentNotificationSms) {
                             if (statusPage) {
