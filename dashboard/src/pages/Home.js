@@ -106,8 +106,8 @@ class Home extends Component {
         }
     };
 
-    handleClosingSla = (projectId, slaId) => {
-        this.props.closeBreachedMonitorSla(projectId, slaId);
+    handleClosingSla = (projectId, monitorId) => {
+        this.props.closeBreachedMonitorSla(projectId, monitorId);
     };
 
     render() {

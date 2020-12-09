@@ -58,6 +58,10 @@ function BreadCrumbs({ styles, showDeleteBtn, close, name }) {
                     className="bs-Button"
                 >
                     <span style={{ display: 'flex', alignItems: 'center' }}>
+                        <div
+                            className=" bs-ticks "
+                            style={{ marginTop: '0' }}
+                        ></div>
                         Close all Resolved Incidents
                         <span style={{ marginLeft: '5px' }}>
                             {loading && (

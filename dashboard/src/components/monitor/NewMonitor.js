@@ -1668,7 +1668,24 @@ class NewMonitor extends Component {
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
-                                                                <Field
+                                                            { this.props.edit ? (<Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="monitorSla"
+                                                                    id="monitorSla"
+                                                                    placeholder="Monitor SLA"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    options={[
+                                                                        ...this.props.monitorSlas.map(sla => ({
+                                                                            value: sla._id,
+                                                                            label: sla.name,
+                                                                        }))
+                                                                    ]}
+                                                                />) : (<Field
                                                                     className="db-select-nw"
                                                                     component={
                                                                         RenderSelect
@@ -1695,7 +1712,8 @@ class NewMonitor extends Component {
                                                                             })
                                                                         ),
                                                                     ]}
-                                                                />
+                                                                />)}
+                                                                
                                                                 <Tooltip title="Monitor SLA">
                                                                     <div>
                                                                         <p>
