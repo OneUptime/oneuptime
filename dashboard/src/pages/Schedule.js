@@ -16,7 +16,6 @@ import { getEscalation } from '../actions/schedule';
 import { teamLoading } from '../actions/team';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-
 class Schedule extends Component {
     constructor(props) {
         super(props);
@@ -47,7 +46,6 @@ class Schedule extends Component {
             schedule,
         } = this.props;
         const name = schedule ? schedule.name : null;
-
         if (error) {
             return <div></div>;
         }
@@ -74,7 +72,6 @@ class Schedule extends Component {
                                             <div>
                                                 <div>
                                                     <RenameScheduleBox />
-
                                                     <MonitorBox />
 
                                                     {!editSchedule &&
