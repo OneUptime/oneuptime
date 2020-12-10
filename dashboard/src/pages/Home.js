@@ -169,7 +169,7 @@ class Home extends Component {
 
                 const isUpcoming = moment(startTime, 'HH:mm')
                     .diff(moment(now, 'HH:mm'),
-                        'minutes') < 86400;
+                        'minutes');
 
                 const isOnDutyAllTheTime =
                     userSchedule.startTime >= userSchedule.endTime;
@@ -181,7 +181,7 @@ class Home extends Component {
                 if (isUserActive) {
                     activeSchedules.push(tempObj);
                 } else {
-                    if (isUpcoming) {
+                    if (isUpcoming > -86400 && isUpcoming < 86400) {
                         upcomingSchedules.push(tempObj);
                     } else {
                         inactiveSchedules.push(tempObj);
