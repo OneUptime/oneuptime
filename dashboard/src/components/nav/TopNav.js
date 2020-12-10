@@ -96,25 +96,23 @@ class TopContent extends Component {
             {typeof incidentCounter === 'number' && (
                 <Fade>
                     <div
-                        className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
-                            incidentCounter && incidentCounter > 0
+                        className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${incidentCounter && incidentCounter > 0
                                 ? 'red'
                                 : incidentCounter === 0
-                                ? 'green'
-                                : null
-                        } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer`}
+                                    ? 'green'
+                                    : null
+                            } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer`}
                         style={{ paddingBottom: '6px', paddingTop: '6px' }}
                         onClick={this.handleActiveIncidentClick}
                         id="activeIncidents"
                     >
                         <span
-                            className={`db-SideNav-icon db-SideNav-icon--${
-                                incidentCounter && incidentCounter > 0
+                            className={`db-SideNav-icon db-SideNav-icon--${incidentCounter && incidentCounter > 0
                                     ? 'info'
                                     : incidentCounter === 0
-                                    ? 'tick'
-                                    : null
-                            } db-SideNav-icon--selected`}
+                                        ? 'tick'
+                                        : null
+                                } db-SideNav-icon--selected`}
                             style={{
                                 filter: 'brightness(0) invert(1)',
                                 marginTop: '1px',
@@ -161,9 +159,8 @@ class TopContent extends Component {
                         marginRight: '5px',
                     }}
                 />
-                <span id="ongoingEventsText">{`${count} Scheduled Event${
-                    count === 1 ? '' : 's'
-                } Currently Active`}</span>
+                <span id="ongoingEventsText">{`${count} Scheduled Event${count === 1 ? '' : 's'
+                    } Currently Active`}</span>
             </div>
         ) : null;
     };
@@ -202,8 +199,8 @@ class TopContent extends Component {
     render() {
         const IMG_URL =
             this.props.profilePic &&
-            this.props.profilePic !== '' &&
-            this.props.profilePic !== 'null'
+                this.props.profilePic !== '' &&
+                this.props.profilePic !== 'null'
                 ? `url(${API_URL}/file/${this.props.profilePic})`
                 : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
         const userId = User.getUserId();
@@ -271,22 +268,22 @@ class TopContent extends Component {
                 const startTime = moment(
                     (userSchedule &&
                         userSchedule.startTime) ||
-                        dayStart
+                    dayStart
                 ).format('HH:mm');
 
                 const endTime = moment(
                     (userSchedule &&
                         userSchedule.endTime) ||
-                        dayEnd
+                    dayEnd
                 ).format('HH:mm');
 
-                const isUserActive = moment(now,'HH:mm')
-                    .isBetween(moment(oncallstart,'HH:mm'), 
-                        moment(oncallend,'HH:mm')) || 
-                        (userSchedule.startTime >= userSchedule.endTime);
+                const isUserActive = moment(now, 'HH:mm')
+                    .isBetween(moment(oncallstart, 'HH:mm'),
+                        moment(oncallend, 'HH:mm')) ||
+                    (userSchedule.startTime >= userSchedule.endTime);
 
                 const isUpcoming = moment(startTime, 'HH:mm')
-                    .diff(moment(now, 'HH:mm'), 
+                    .diff(moment(now, 'HH:mm'),
                         'minutes') < 86400;
 
                 const isOnDutyAllTheTime =
@@ -357,8 +354,8 @@ class TopContent extends Component {
                                         </ShouldRender>
                                     </>
                                 ) : (
-                                    ''
-                                )}
+                                        ''
+                                    )}
                             </ShouldRender>
                         </span>
 
@@ -386,31 +383,31 @@ class TopContent extends Component {
                                         }}
                                     >
                                         <span className="Text-color--disabled Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            {}
+                                            { }
                                             {this.props.feedback.feedback
                                                 .success ||
-                                            this.props.feedback.feedback
-                                                .requesting ? (
-                                                <span>
-                                                    Thank you for your feedback.
-                                                </span>
-                                            ) : null}
+                                                this.props.feedback.feedback
+                                                    .requesting ? (
+                                                    <span>
+                                                        Thank you for your feedback.
+                                                    </span>
+                                                ) : null}
                                             {!this.props.feedback.feedback
                                                 .success &&
-                                            !this.props.feedback.feedback
-                                                .requesting &&
-                                            !this.props.feedback.feedback
-                                                .error ? (
-                                                <span>
-                                                    Anything we can do to help?
-                                                </span>
-                                            ) : null}
+                                                !this.props.feedback.feedback
+                                                    .requesting &&
+                                                !this.props.feedback.feedback
+                                                    .error ? (
+                                                    <span>
+                                                        Anything we can do to help?
+                                                    </span>
+                                                ) : null}
                                             {this.props.feedback.feedback
                                                 .error ? (
-                                                <span>
-                                                    Sorry, Please try again.
-                                                </span>
-                                            ) : null}
+                                                    <span>
+                                                        Sorry, Please try again.
+                                                    </span>
+                                                ) : null}
                                         </span>
                                     </div>
                                     <span />
@@ -473,8 +470,8 @@ const mapStateToProps = (state, props) => {
     const { projectId } = props;
     const monitors = projectId
         ? state.monitor.monitorsList.monitors.find(project => {
-              return project._id === projectId;
-          })
+            return project._id === projectId;
+        })
         : [];
     const currentProjectId = state.project.currentProject
         ? state.project.currentProject._id
