@@ -1593,7 +1593,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    
+
     sendInvestigationNoteToSubscribers: async function(
         incidentTime,
         monitorName,
@@ -1625,7 +1625,7 @@ const _this = {
                 componentName,
                 incidentNote,
                 statusPageUrl,
-                statusNoteStatus
+                statusNoteStatus,
             };
             template = template(data);
             subject = subject(data);
@@ -2117,18 +2117,36 @@ const _this = {
             : false;
     },
 
-    sendSlaNotification: async function({ userEmail, name, projectId }) {
+    sendSlaNotification: async function({
+        userEmail,
+        name,
+        projectId,
+        incidentSla,
+        monitorName,
+        incidentUrl,
+        projectName,
+        componentName,
+        incidentId,
+        reason,
+    }) {
         const smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
         try {
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: userEmail,
-                subject: 'About to Breach Incident SLA',
+                subject: `About to Breach Incident SLA`,
                 template: 'sla_notification',
                 context: {
                     name: name ? name.split(' ')[0].toString() : '',
                     currentYear: new Date().getFullYear(),
+                    incidentSla,
+                    monitorName,
+                    incidentUrl,
+                    projectName,
+                    componentName,
+                    incidentId,
+                    reason,
                 },
             };
 
@@ -2168,18 +2186,36 @@ const _this = {
             throw error;
         }
     },
-    sendSlaBreachNotification: async function({ userEmail, name, projectId }) {
+    sendSlaBreachNotification: async function({
+        userEmail,
+        name,
+        projectId,
+        incidentSla,
+        monitorName,
+        incidentUrl,
+        projectName,
+        componentName,
+        incidentId,
+        reason,
+    }) {
         const smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
         try {
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: userEmail,
-                subject: 'Breach of Incident SLA',
+                subject: `Breached Incident SLA`,
                 template: 'breach_sla_notification',
                 context: {
                     name: name ? name.split(' ')[0].toString() : '',
                     currentYear: new Date().getFullYear(),
+                    incidentSla,
+                    monitorName,
+                    incidentUrl,
+                    projectName,
+                    componentName,
+                    incidentId,
+                    reason,
                 },
             };
 

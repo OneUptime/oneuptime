@@ -120,10 +120,10 @@ module.exports = {
                 }
 
                 incident = await incident.save();
+                incident = await _this.findOneBy({ _id: incident._id });
 
                 _this.startInterval(data.projectId, data.monitorId, incident);
 
-                incident = await _this.findOneBy({ _id: incident._id });
                 const notification = await _this._sendIncidentCreatedAlert(
                     incident
                 );
@@ -821,6 +821,13 @@ module.exports = {
             let countDown = incidentCommunicationSla.duration * 60;
             const alertTime = incidentCommunicationSla.alertTime * 60;
 
+            const data = {
+                projectId,
+                monitor,
+                incidentCommunicationSla,
+                incident,
+            };
+
             // count down every second
             const intervalId = setInterval(async () => {
                 countDown -= 1;
@@ -836,7 +843,7 @@ module.exports = {
 
                 if (countDown === alertTime) {
                     // send mail to team
-                    await AlertService.sendSlaEmailToTeamMembers(projectId);
+                    await AlertService.sendSlaEmailToTeamMembers(data);
                 }
 
                 if (countDown === 0) {
@@ -847,10 +854,7 @@ module.exports = {
                     );
 
                     // send mail to team
-                    await AlertService.sendSlaEmailToTeamMembers(
-                        projectId,
-                        true
-                    );
+                    await AlertService.sendSlaEmailToTeamMembers(data, true);
                 }
             }, 1000);
 

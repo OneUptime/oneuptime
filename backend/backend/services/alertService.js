@@ -657,7 +657,10 @@ module.exports = {
         }
     },
 
-    sendSlaEmailToTeamMembers: async function(projectId, breached = false) {
+    sendSlaEmailToTeamMembers: async function(
+        { projectId, monitor, incidentCommunicationSla, incident },
+        breached = false
+    ) {
         try {
             const teamMembers = await TeamService.getTeamMembersBy({
                 _id: projectId,
@@ -686,12 +689,28 @@ module.exports = {
                     return;
                 }
 
+                const incidentSla = incidentCommunicationSla.name;
+                const projectName = monitor.projectId.name;
+                const monitorName = monitor.name;
+                const incidentId = `#${incident.idNumber}`;
+                const reason = incident.reason;
+                const componentId = incident.monitorId.componentId._id;
+                const componentName = incident.monitorId.componentId.name;
+                const incidentUrl = `${global.dashboardHost}/project/${projectId}/${componentId}/incidents/${incident._id}`;
+
                 if (breached) {
                     for (const member of teamMembers) {
                         await MailService.sendSlaBreachNotification({
                             userEmail: member.email,
                             name: member.name,
                             projectId,
+                            incidentSla,
+                            monitorName,
+                            incidentUrl,
+                            projectName,
+                            componentName,
+                            incidentId,
+                            reason,
                         });
                     }
                 } else {
@@ -700,6 +719,13 @@ module.exports = {
                             userEmail: member.email,
                             name: member.name,
                             projectId,
+                            incidentSla,
+                            monitorName,
+                            incidentUrl,
+                            projectName,
+                            componentName,
+                            incidentId,
+                            reason,
                         });
                     }
                 }
