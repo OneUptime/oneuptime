@@ -11336,4 +11336,24 @@ table {
     margin-bottom: 10px;
     width: 100%;
 }
+.TopNavCardText{
+    display: block;
+}
 
+@media (max-width: 1335px) 
+{
+    .TopNavCardText
+    {
+        text-overflow: ellipsis;
+        overflow: hidden; 
+        width: 100px; 
+        white-space: nowrap;
+    }
+}
+@media (max-width: 1030px) 
+{
+    .TopNavCardText
+    {
+        display:none;
+    }
+}

@@ -118,10 +118,10 @@ class TopContent extends Component {
                             style={{
                                 filter: 'brightness(0) invert(1)',
                                 marginTop: '1px',
-                                marginRight: '5px',
+                                marginRight: '3px',
                             }}
                         />
-                        <span id="activeIncidentsText">
+                        <span className={`TopNavCardText`}>
                             <ShouldRender
                                 if={incidentCounter && incidentCounter > 0}
                             >
@@ -158,10 +158,10 @@ class TopContent extends Component {
                     style={{
                         filter: 'brightness(0) invert(1)',
                         marginTop: '-1px',
-                        marginRight: '5px',
+                        marginRight: '3px',
                     }}
                 />
-                <span id="ongoingEventsText">{`${count} Scheduled Event${
+                <span className={`TopNavCardText`}>{`${count} Scheduled Event${
                     count === 1 ? '' : 's'
                 } Currently Active`}</span>
             </div>
@@ -189,10 +189,10 @@ class TopContent extends Component {
                     style={{
                         filter: 'brightness(0) invert(1)',
                         marginTop: '1px',
-                        marginRight: '5px',
+                        marginRight: '3px',
                     }}
                 />
-                <span id="onCallScheduleText">
+                <span className={`TopNavCardText`}>
                     {`You're currently on-call duty.`}
                 </span>
             </div>
