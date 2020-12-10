@@ -715,7 +715,7 @@ const mapStateToProps = (state, ownProps) => {
     const monitorData = state.monitor.monitorsList.monitors.find(
         data => String(data._id) === String(ownProps.data.projectId)
     );
-    const monitors = monitorData.monitors;
+    const monitors = monitorData ? monitorData.monitors : [];
 
     return {
         createIncidentSlaModalId: state.modal.modals[0].id,

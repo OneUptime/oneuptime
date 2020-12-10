@@ -533,7 +533,7 @@ const mapStateToProps = (state, ownProps) => {
     const monitorData = state.monitor.monitorsList.monitors.find(
         data => String(data._id) === String(ownProps.projectId)
     );
-    const monitors = monitorData.monitors;
+    const monitors = monitorData ? monitorData.monitors : [];
 
     return {
         requesting: state.incidentSla.incidentCommunicationSlas.requesting,
