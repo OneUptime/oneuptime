@@ -107,112 +107,109 @@ class EditIncidentCommunicationSlaModal extends React.Component {
 
     renderMonitors = ({ fields }) => {
         const { monitorError } = this.state;
-        const { formValues } = this.props;
         return (
             <>
-                {formValues && !formValues.selectAllMonitors && (
-                    <div
+                <div
+                    style={{
+                        width: '100%',
+                        position: 'relative',
+                    }}
+                >
+                    <button
+                        id="addMoreMonitor"
+                        className="Button bs-ButtonLegacy ActionIconParent"
                         style={{
-                            width: '100%',
-                            position: 'relative',
+                            position: 'absolute',
+                            zIndex: 1,
+                            right: 0,
+                        }}
+                        type="button"
+                        onClick={() => {
+                            fields.push();
                         }}
                     >
-                        <button
-                            id="addMoreMonitor"
-                            className="Button bs-ButtonLegacy ActionIconParent"
+                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                            <span>Add Monitor</span>
+                        </span>
+                    </button>
+                    {fields.map((field, index) => {
+                        return (
+                            <div
+                                style={{
+                                    width: '65%',
+                                    marginBottom: 10,
+                                }}
+                                key={index}
+                            >
+                                <Field
+                                    className="db-select-nw Table-cell--width--maximized"
+                                    component={RenderSelect}
+                                    name={field}
+                                    id={`monitorfield_${index}`}
+                                    placeholder="Monitor"
+                                    style={{
+                                        height: '28px',
+                                        width: '100%',
+                                    }}
+                                    options={[
+                                        {
+                                            value: '',
+                                            label: 'Select a Monitor',
+                                        },
+                                        ...(this.props.monitors &&
+                                        this.props.monitors.length > 0
+                                            ? this.props.monitors.map(
+                                                  monitor => ({
+                                                      value: monitor._id,
+                                                      label: `${monitor.componentId.name} / ${monitor.name}`,
+                                                  })
+                                              )
+                                            : []),
+                                    ]}
+                                />
+                                <button
+                                    id="removeMonitor"
+                                    className="Button bs-ButtonLegacy ActionIconParent"
+                                    style={{
+                                        marginTop: 10,
+                                    }}
+                                    type="button"
+                                    onClick={() => {
+                                        fields.remove(index);
+                                    }}
+                                >
+                                    <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                        <span>Remove Monitor</span>
+                                    </span>
+                                </button>
+                            </div>
+                        );
+                    })}
+                    {monitorError && (
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
                             style={{
-                                position: 'absolute',
-                                zIndex: 1,
-                                right: 0,
-                            }}
-                            type="button"
-                            onClick={() => {
-                                fields.push();
+                                marginTop: '5px',
+                                alignItems: 'center',
                             }}
                         >
-                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                <span>Add Monitor</span>
-                            </span>
-                        </button>
-                        {fields.map((field, index) => {
-                            return (
-                                <div
-                                    style={{
-                                        width: '65%',
-                                        marginBottom: 10,
-                                    }}
-                                    key={index}
-                                >
-                                    <Field
-                                        className="db-select-nw Table-cell--width--maximized"
-                                        component={RenderSelect}
-                                        name={field}
-                                        id={`monitorfield_${index}`}
-                                        placeholder="Monitor"
-                                        style={{
-                                            height: '28px',
-                                            width: '100%',
-                                        }}
-                                        options={[
-                                            {
-                                                value: '',
-                                                label: 'Select a Monitor',
-                                            },
-                                            ...(this.props.monitors &&
-                                            this.props.monitors.length > 0
-                                                ? this.props.monitors.map(
-                                                      monitor => ({
-                                                          value: monitor._id,
-                                                          label: `${monitor.componentId.name} / ${monitor.name}`,
-                                                      })
-                                                  )
-                                                : []),
-                                        ]}
-                                    />
-                                    <button
-                                        id="removeMonitor"
-                                        className="Button bs-ButtonLegacy ActionIconParent"
-                                        style={{
-                                            marginTop: 10,
-                                        }}
-                                        type="button"
-                                        onClick={() => {
-                                            fields.remove(index);
-                                        }}
-                                    >
-                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
-                                            <span>Remove Monitor</span>
-                                        </span>
-                                    </button>
-                                </div>
-                            );
-                        })}
-                        {monitorError && (
                             <div
-                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                style={{
-                                    marginTop: '5px',
-                                    alignItems: 'center',
-                                }}
+                                className="Box-root Margin-right--8"
+                                style={{ marginTop: '2px' }}
                             >
-                                <div
-                                    className="Box-root Margin-right--8"
-                                    style={{ marginTop: '2px' }}
-                                >
-                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                </div>
-                                <div className="Box-root">
-                                    <span
-                                        id="monitorError"
-                                        style={{ color: 'red' }}
-                                    >
-                                        {monitorError}
-                                    </span>
-                                </div>
+                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
                             </div>
-                        )}
-                    </div>
-                )}
+                            <div className="Box-root">
+                                <span
+                                    id="monitorError"
+                                    style={{ color: 'red' }}
+                                >
+                                    {monitorError}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </>
         );
     };
@@ -573,7 +570,7 @@ const mapStateToProps = state => {
     const monitorData = state.monitor.monitorsList.monitors.find(
         data => String(data._id) === String(projectId)
     );
-    const monitors = monitorData.monitors;
+    const monitors = monitorData ? monitorData.monitors : [];
     if (!initialValues.isDefault) {
         initialValues.monitors = monitors
             .filter(
