@@ -1735,14 +1735,43 @@ module.exports = {
                 const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
                     incident.createdAt
                 );
-                webhookNotificationSent = await WebHookService.sendSubscriberNotification(
-                    subscriber,
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    component,
-                    downTimeString
-                );
+
+                let alertStatus = 'Pending';
+
+                try {
+                    webhookNotificationSent = await WebHookService.sendSubscriberNotification(
+                        subscriber,
+                        incident.projectId,
+                        incident,
+                        incident.monitorId,
+                        component,
+                        downTimeString
+                    );
+                    alertStatus = webhookNotificationSent ? 'Sent' : 'Not Sent';
+                } catch (error) {
+                    alertStatus = null;
+                    throw error;
+                } finally {
+                    SubscriberAlertService.create({
+                        projectId: incident.projectId,
+                        incidentId: incident._id,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.Webhook,
+                        alertStatus: alertStatus,
+                        eventType:
+                            templateType === 'Subscriber Incident Acknowldeged'
+                                ? 'acknowledged'
+                                : templateType ===
+                                  'Subscriber Incident Resolved'
+                                ? 'resolved'
+                                : 'identified',
+                    }).catch(error => {
+                        ErrorService.log(
+                            'AlertService.sendSubscriberAlert',
+                            error
+                        );
+                    });
+                }
             }
             if (
                 !webhookNotificationSent ||

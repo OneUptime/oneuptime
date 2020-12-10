@@ -19,6 +19,9 @@ class MonitorSla extends Component {
     constructor() {
         super();
         this.limit = 10;
+        this.state = {
+            flag: false,
+        };
     }
 
     componentDidMount() {
@@ -28,6 +31,9 @@ class MonitorSla extends Component {
 
     prevClicked = (skip, limit) => {
         const { projectId, fetchMonitorSlas } = this.props;
+        this.setState({
+            flag: false,
+        });
 
         fetchMonitorSlas(
             projectId,
@@ -38,6 +44,9 @@ class MonitorSla extends Component {
 
     nextClicked = (skip, limit) => {
         const { projectId, fetchMonitorSlas } = this.props;
+        this.setState({
+            flag: false,
+        });
 
         fetchMonitorSlas(projectId, skip + limit, limit);
     };
@@ -240,6 +249,9 @@ class MonitorSla extends Component {
                                                                             monitorSla._id,
                                                                     }
                                                                 );
+                                                                this.setState({
+                                                                    flag: true,
+                                                                });
                                                             }}
                                                             disabled={
                                                                 requesting
@@ -343,7 +355,7 @@ class MonitorSla extends Component {
                                 </ShouldRender>
                             </div>
                         </div>
-                        <ShouldRender if={requesting}>
+                        <ShouldRender if={requesting && !this.state.flag}>
                             <ListLoader />
                         </ShouldRender>
                         <ShouldRender
