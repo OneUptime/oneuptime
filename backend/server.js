@@ -13,7 +13,7 @@ process.on('exit', () => {
     console.log('Server Shutting Shutdown');
 });
 
-process.on('unhandledRejection', (err) => {
+process.on('unhandledRejection', err => {
     /* eslint-disable no-console */
     console.error('Unhandled rejection in server process occurred');
     /* eslint-disable no-console */
@@ -48,7 +48,6 @@ global.io = io;
 app.use(cors());
 
 app.use(function(req, res, next) {
-
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
