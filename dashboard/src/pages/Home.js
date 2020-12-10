@@ -144,10 +144,9 @@ class Home extends Component {
 
         if (userSchedules && userSchedules.length > 0) {
             userSchedules.forEach(userSchedule => {
-                const now = (userSchedule && userSchedule.timezone
-                    ? moment().tz(userSchedule.timezone)
-                    : moment()
-                ).format('HH:mm');
+                const now = (userSchedule && moment()).format('HH:mm');
+                const oncallstart = moment(userSchedule.startTime).format('HH:mm');
+                const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
 
@@ -163,43 +162,14 @@ class Home extends Component {
                         dayEnd
                 ).format('HH:mm');
 
-                let hours = Math.ceil(
-                    moment(endTime, 'HH:mm').diff(
-                        moment(startTime, 'HH:mm'),
-                        'minutes'
-                    ) / 60
-                );
-                hours = hours < 0 ? hours + 24 : hours;
-
-                let hoursToStart = Math.ceil(
-                    moment(startTime, 'HH:mm').diff(
-                        moment(now, 'HH:mm'),
-                        'minutes'
-                    ) / 60
-                );
-                hoursToStart =
-                    hoursToStart < 0 ? hoursToStart + 24 : hoursToStart;
-
-                const hoursToEnd = hours + hoursToStart;
-
-                let nowToEnd = Math.ceil(
-                    moment(endTime, 'HH:mm').diff(
-                        moment(now, 'HH:mm'),
-                        'minutes'
-                    ) / 60
-                );
-                nowToEnd = nowToEnd < 0 ? nowToEnd + 24 : nowToEnd;
-
-                const isUserActive =
-                    ((hoursToEnd !== nowToEnd || hoursToStart <= 0) &&
-                    nowToEnd > 0) || (userSchedule.startTime >= userSchedule.endTime);
-
-                const timezone = (userSchedule && userSchedule.timezone
-                    ? moment(userSchedule.startTime || dayStart).tz(
-                          userSchedule.timezone
-                      )
-                    : moment(userSchedule.startTime || dayStart)
-                ).zoneAbbr();
+                const isUserActive = moment(now,'HH:mm')
+                    .isBetween(moment(oncallstart,'HH:mm'), 
+                        moment(oncallend,'HH:mm')) || 
+                        (userSchedule.startTime >= userSchedule.endTime);
+                    
+                const isUpcoming = moment(startTime, 'HH:mm')
+                    .diff(moment(now, 'HH:mm'), 
+                        'minutes') < 86400;
 
                 const isOnDutyAllTheTime =
                     userSchedule.startTime >= userSchedule.endTime;
@@ -207,14 +177,11 @@ class Home extends Component {
                 const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
-                tempObj.timezone = timezone;
 
                 if (isUserActive) {
                     activeSchedules.push(tempObj);
                 } else {
-                    hoursToStart =
-                        hoursToStart <= 0 ? hoursToStart + 24 : hoursToStart;
-                    if (hoursToStart < 24) {
+                    if (isUpcoming) {
                         upcomingSchedules.push(tempObj);
                     } else {
                         inactiveSchedules.push(tempObj);
