@@ -304,7 +304,7 @@ describe('Error Trackers', () => {
         'Should reset tracker key for created errir tracker',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await init.navigateToApplicationLogDetails(
+                await init.navigateToErrorTrackerDetails(
                     componentName,
                     errorTrackerName,
                     page
