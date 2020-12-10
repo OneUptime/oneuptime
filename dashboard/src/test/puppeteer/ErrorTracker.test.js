@@ -209,6 +209,7 @@ describe('Error Trackers', () => {
                 await page.waitForSelector(`#edit_${errorTrackerName}`);
                 await page.click(`#edit_${errorTrackerName}`);
 
+                await page.waitFor(5000);
                 let spanElement = await page.waitForSelector(
                     `#error-tracker-edit-title-${errorTrackerName}`
                 );
@@ -388,14 +389,101 @@ describe('Error Trackers', () => {
                     hidden: true,
                 });
 
-                await page.waitForSelector('#tracking');
-                await page.click('#tracking');
+                await page.waitForSelector('#errorTracking');
+                await page.click('#errorTracking');
                 let spanElement = await page.waitForSelector(
                     `#error-tracker-title-${errorTrackerName}-new`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(`${errorTrackerName}-new`);
+                const title = `${errorTrackerName}-new (0)`;
+                spanElement.should.be.exactly(title);
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should update category for created error tracker',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const categoryName = 'Another-Category';
+                // create a new resource category
+                await init.addResourceCategory(categoryName, page);
+
+                await init.navigateToErrorTrackerDetails(
+                    componentName,
+                    `${errorTrackerName}-new`,
+                    page
+                );
+                await page.waitForSelector(`#edit_${errorTrackerName}-new`);
+                await page.click(`#edit_${errorTrackerName}-new`);
+                // Fill and submit edit Error tracker form
+                await page.waitForSelector('#form-new-error-tracker');
+                // change category here
+                await init.selectByText(
+                    '#resourceCategory',
+                    categoryName,
+                    page
+                );
+                await page.click('button[type=submit]');
+                await page.waitForSelector('#addErrorTrackerButton', {
+                    hidden: true,
+                });
+
+                await page.waitForSelector(`#${errorTrackerName}-new-badge`, {
+                    visible: true,
+                });
+                // confirm the new category shows in the details page.
+                let spanElement = await page.$(
+                    `#${errorTrackerName}-new-badge`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(categoryName.toUpperCase());
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should delete category for created log container and reflect',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const categoryName = 'Another-Category';
+
+                // confirm the error tracker has a category
+                await init.navigateToErrorTrackerDetails(
+                    componentName,
+                    `${errorTrackerName}-new`,
+                    page
+                );
+
+                let spanElement = await page.$(
+                    `#${errorTrackerName}-new-badge`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(categoryName.toUpperCase());
+
+                // delete the category
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+
+                await page.waitForSelector('li#resources a');
+                await page.click('li#resources a');
+
+                await page.waitForSelector(`#delete_${categoryName}`);
+                await page.click(`#delete_${categoryName}`);
+                await page.waitForSelector('#deleteResourceCategory');
+                await page.click('#deleteResourceCategory');
+                await page.waitFor(5000);
+
+                // go back to log details and confirm it is not there anymore
+                const spanElementBadge = await page.$(
+                    `#${errorTrackerName}-new-badge`,
+                    { hidden: true }
+                );
+                expect(spanElementBadge).toBeNull();
             });
         },
         operationTimeOut
