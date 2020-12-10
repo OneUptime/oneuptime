@@ -7,7 +7,7 @@
         "build-dev": "npm run build && npm link",
         "test": "mocha --require @babel/polyfill --require @babel/register",
         "build": "webpack --mode production",
-        "audit": "npm-audit-ci-wrapper --threshold=high",
+        "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli'"
     },
     "keywords": [
@@ -30,7 +30,6 @@
         "chai-http": "^4.3.0",
         "depcheck": "^0.9.2",
         "mocha": "^7.2.0",
-        "npm-audit-ci-wrapper": "^2.6.6",
         "webpack": "^4.43.0",
         "webpack-cli": "^3.3.11"
     },

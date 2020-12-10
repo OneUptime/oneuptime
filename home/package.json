@@ -8,7 +8,7 @@
         "lighthouse-test": "jest --forceExit lighthouse-tests/test/index.test.js --env=node",
         "lighthouse": "start-server-and-test http://localhost:1444",
         "smoketest": "jest --forceExit smoketest/index.test.js --env=node",
-        "audit": "npm-audit-ci-wrapper --threshold=high",
+        "audit": "npm audit --audit-level=low",
         "light-house": "node lighthouse.js --web",
         "light-house-mobile": "node lighthouse.js --mobile",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,puppeteer'"
@@ -29,7 +29,6 @@
         "jest": "^26.2.2",
         "lighthouse": "^6.2.0",
         "nodemon": "^2.0.4",
-        "npm-audit-ci-wrapper": "^2.5.1",
         "ora": "^4.0.3",
         "puppeteer": "^1.20.0",
         "start-server-and-test": "^1.9.1"

@@ -19,6 +19,9 @@ class IncidentCommunicationSla extends Component {
     constructor() {
         super();
         this.limit = 10;
+        this.state = {
+            flag: false,
+        };
     }
 
     componentDidMount() {
@@ -28,6 +31,9 @@ class IncidentCommunicationSla extends Component {
 
     prevClicked = (skip, limit) => {
         const { projectId, fetchCommunicationSlas } = this.props;
+        this.setState({
+            flag: false,
+        });
 
         fetchCommunicationSlas(
             projectId,
@@ -38,6 +44,9 @@ class IncidentCommunicationSla extends Component {
 
     nextClicked = (skip, limit) => {
         const { projectId, fetchCommunicationSlas } = this.props;
+        this.setState({
+            flag: false,
+        });
 
         fetchCommunicationSlas(projectId, skip + limit, limit);
     };
@@ -388,7 +397,7 @@ class IncidentCommunicationSla extends Component {
                                 </ShouldRender>
                             </div>
                         </div>
-                        <ShouldRender if={requesting}>
+                        <ShouldRender if={requesting && !this.state.flag}>
                             <ListLoader />
                         </ShouldRender>
                         <ShouldRender
