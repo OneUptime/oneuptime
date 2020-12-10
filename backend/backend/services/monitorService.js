@@ -172,15 +172,18 @@ module.exports = {
 
             await this.updateMonitorSlaStat(query);
 
-            let monitor = await MonitorModel.findOneAndUpdate(
-                query,
-                { $set: data },
-                {
-                    new: true,
-                }
-            );
+            if (data) {
+                await MonitorModel.findOneAndUpdate(
+                    query,
+                    { $set: data },
+                    {
+                        new: true,
+                    }
+                );
+            }
+
             if (unsetData) {
-                monitor = await MonitorModel.findOneAndUpdate(
+                await MonitorModel.findOneAndUpdate(
                     query,
                     { $unset: unsetData },
                     {
@@ -188,7 +191,7 @@ module.exports = {
                     }
                 );
             }
-            monitor = await this.findOneBy(query);
+            const monitor = await this.findOneBy(query);
 
             await RealTimeService.monitorEdit(monitor);
 
