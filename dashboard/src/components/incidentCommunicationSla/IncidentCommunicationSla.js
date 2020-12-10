@@ -49,6 +49,230 @@ class IncidentCommunicationSla extends Component {
         updateCommunicationSla(projectId, incidentSlaId, data, true);
     };
 
+    handleMonitorList = monitors => {
+        if (monitors.length === 0) {
+            return 'No monitor in this event';
+        }
+        if (monitors.length === 1) {
+            return monitors[0].name;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].name} and ${monitors[1].name}`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].name}, ${monitors[1].name} and ${monitors[2].name}`;
+        }
+
+        return `${monitors[0].name}, ${monitors[1].name} and ${monitors.length -
+            2} others`;
+    };
+
+    handleIncidentSlas = () => {
+        const {
+            requesting,
+            projectId,
+            incidentSlas,
+            openModal,
+            activeSla,
+            monitors,
+        } = this.props;
+
+        return (
+            incidentSlas &&
+            incidentSlas.length > 0 &&
+            incidentSlas.map(incidentSla => {
+                const slaMonitors = monitors.filter(
+                    monitor =>
+                        monitor.incidentCommunicationSla &&
+                        String(monitor.incidentCommunicationSla._id) ===
+                            String(incidentSla._id)
+                );
+                return (
+                    <div
+                        key={incidentSla._id}
+                        id={`incidentSla_${incidentSla.name}`}
+                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                        style={{
+                            backgroundColor: 'white',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        {incidentSla.isDefault ? (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{
+                                    display: 'flex',
+                                    width: '20vw',
+                                }}
+                            >
+                                <div className="bs-ObjectList-cell-row">
+                                    {incidentSla.name}
+                                </div>
+                                <div
+                                    style={{
+                                        marginLeft: 5,
+                                    }}
+                                    className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                >
+                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                        <span>Default</span>
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{
+                                    display: 'flex',
+                                    width: '20vw',
+                                }}
+                            >
+                                <div className="bs-ObjectList-cell-row">
+                                    {incidentSla.name}
+                                </div>
+                            </div>
+                        )}
+                        <div
+                            className="bs-ObjectList-cell bs-u-v-middle"
+                            style={{ width: '20vw' }}
+                        >
+                            <div className="bs-ObjectList-cell-row">
+                                {incidentSla.duration}
+                            </div>
+                        </div>
+                        <div
+                            className="bs-ObjectList-cell bs-u-v-middle"
+                            style={{ width: '20vw' }}
+                        >
+                            <div className="bs-ObjectList-cell-row">
+                                {incidentSla.alertTime}
+                            </div>
+                        </div>
+                        {incidentSla.isDefault ? (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{ width: '20vw' }}
+                            >
+                                <div className="bs-ObjectList-cell-row">
+                                    All monitors without SLA
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{ width: '20vw' }}
+                            >
+                                <div className="bs-ObjectList-cell-row">
+                                    {this.handleMonitorList(slaMonitors)}
+                                </div>
+                            </div>
+                        )}
+
+                        <div
+                            className="bs-ObjectList-cell bs-u-v-middle"
+                            style={{ width: '20vw' }}
+                        >
+                            <div
+                                className="bs-ObjectList-cell-row"
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'flex-end',
+                                    marginRight: 15,
+                                }}
+                            >
+                                <ShouldRender if={!incidentSla.isDefault}>
+                                    <button
+                                        id={`defaultIncidentSlaBtn_${incidentSla.name}`}
+                                        title="set default"
+                                        className="bs-Button bs-DeprecatedButton"
+                                        style={{
+                                            marginLeft: 20,
+                                            minWidth: 100,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            this.setAsDefault({
+                                                projectId,
+                                                incidentSlaId: incidentSla._id,
+                                            });
+                                        }}
+                                        disabled={requesting}
+                                    >
+                                        <ShouldRender
+                                            if={
+                                                !requesting ||
+                                                String(activeSla) !==
+                                                    String(incidentSla._id)
+                                            }
+                                        >
+                                            <span>Set as Default</span>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                requesting &&
+                                                String(activeSla) ===
+                                                    String(incidentSla._id)
+                                            }
+                                        >
+                                            <ListLoader
+                                                style={{
+                                                    marginTop: 0,
+                                                }}
+                                            />
+                                        </ShouldRender>
+                                    </button>
+                                </ShouldRender>
+                                <button
+                                    id={`editIncidentSlaBtn_${incidentSla.name}`}
+                                    title="edit"
+                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                    style={{
+                                        marginLeft: 20,
+                                    }}
+                                    type="button"
+                                    onClick={() => {
+                                        openModal({
+                                            id: incidentSla._id,
+                                            content: EditIncidentCommunicationSlaModal,
+                                            sla: incidentSla,
+                                            projectId,
+                                        });
+                                    }}
+                                >
+                                    <span>Edit</span>
+                                </button>
+                                <button
+                                    id={`deleteIncidentSlaBtn_${incidentSla.name}`}
+                                    title="delete"
+                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                    style={{
+                                        marginLeft: 20,
+                                    }}
+                                    type="button"
+                                    onClick={() => {
+                                        openModal({
+                                            id: incidentSla._id,
+                                            content: DataPathHoC(
+                                                DeleteIncidentCommunicationSlaModal,
+                                                {
+                                                    projectId,
+                                                    incidentSlaId:
+                                                        incidentSla._id,
+                                                }
+                                            ),
+                                        });
+                                    }}
+                                >
+                                    <span>Delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })
+        );
+    };
+
     render() {
         const {
             limit,
@@ -59,8 +283,6 @@ class IncidentCommunicationSla extends Component {
             fetchSlaError,
             currentProject,
             incidentSlas,
-            openModal,
-            activeSla,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
 
@@ -138,6 +360,9 @@ class IncidentCommunicationSla extends Component {
                                     <div className="bs-ObjectList-cell">
                                         Alert Time (minutes)
                                     </div>
+                                    <div className="bs-ObjectList-cell">
+                                        Monitor(s)
+                                    </div>
                                     <div
                                         className="bs-ObjectList-cell"
                                         style={{
@@ -148,192 +373,7 @@ class IncidentCommunicationSla extends Component {
                                         Action
                                     </div>
                                 </header>
-                                {incidentSlas.length > 0 &&
-                                    incidentSlas.map(incidentSla => (
-                                        <div
-                                            key={incidentSla._id}
-                                            id={`incidentSla_${incidentSla.name}`}
-                                            className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                                            style={{
-                                                backgroundColor: 'white',
-                                                cursor: 'pointer',
-                                            }}
-                                        >
-                                            {incidentSla.isDefault ? (
-                                                <div
-                                                    className="bs-ObjectList-cell bs-u-v-middle"
-                                                    style={{
-                                                        display: 'flex',
-                                                        width: '20vw',
-                                                    }}
-                                                >
-                                                    <div className="bs-ObjectList-cell-row">
-                                                        {incidentSla.name}
-                                                    </div>
-                                                    <div
-                                                        style={{
-                                                            marginLeft: 5,
-                                                        }}
-                                                        className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                                    >
-                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                            <span>Default</span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div
-                                                    className="bs-ObjectList-cell bs-u-v-middle"
-                                                    style={{
-                                                        display: 'flex',
-                                                        width: '20vw',
-                                                    }}
-                                                >
-                                                    <div className="bs-ObjectList-cell-row">
-                                                        {incidentSla.name}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <div
-                                                className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '20vw' }}
-                                            >
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {incidentSla.duration}
-                                                </div>
-                                            </div>
-                                            <div
-                                                className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '20vw' }}
-                                            >
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {incidentSla.alertTime}
-                                                </div>
-                                            </div>
-                                            <div
-                                                className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '40vw' }}
-                                            >
-                                                <div
-                                                    className="bs-ObjectList-cell-row"
-                                                    style={{
-                                                        display: 'flex',
-                                                        justifyContent:
-                                                            'flex-end',
-                                                        marginRight: 15,
-                                                    }}
-                                                >
-                                                    <ShouldRender
-                                                        if={
-                                                            !incidentSla.isDefault
-                                                        }
-                                                    >
-                                                        <button
-                                                            id={`defaultIncidentSlaBtn_${incidentSla.name}`}
-                                                            title="set default"
-                                                            className="bs-Button bs-DeprecatedButton"
-                                                            style={{
-                                                                marginLeft: 20,
-                                                                minWidth: 100,
-                                                            }}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                this.setAsDefault(
-                                                                    {
-                                                                        projectId,
-                                                                        incidentSlaId:
-                                                                            incidentSla._id,
-                                                                    }
-                                                                );
-                                                            }}
-                                                            disabled={
-                                                                requesting
-                                                            }
-                                                        >
-                                                            <ShouldRender
-                                                                if={
-                                                                    !requesting ||
-                                                                    String(
-                                                                        activeSla
-                                                                    ) !==
-                                                                        String(
-                                                                            incidentSla._id
-                                                                        )
-                                                                }
-                                                            >
-                                                                <span>
-                                                                    Set as
-                                                                    Default
-                                                                </span>
-                                                            </ShouldRender>
-                                                            <ShouldRender
-                                                                if={
-                                                                    requesting &&
-                                                                    String(
-                                                                        activeSla
-                                                                    ) ===
-                                                                        String(
-                                                                            incidentSla._id
-                                                                        )
-                                                                }
-                                                            >
-                                                                <ListLoader
-                                                                    style={{
-                                                                        marginTop: 0,
-                                                                    }}
-                                                                />
-                                                            </ShouldRender>
-                                                        </button>
-                                                    </ShouldRender>
-                                                    <button
-                                                        id={`editIncidentSlaBtn_${incidentSla.name}`}
-                                                        title="edit"
-                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
-                                                        style={{
-                                                            marginLeft: 20,
-                                                        }}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            openModal({
-                                                                id:
-                                                                    incidentSla._id,
-                                                                content: EditIncidentCommunicationSlaModal,
-                                                                sla: incidentSla,
-                                                                projectId,
-                                                            });
-                                                        }}
-                                                    >
-                                                        <span>Edit</span>
-                                                    </button>
-                                                    <button
-                                                        id={`deleteIncidentSlaBtn_${incidentSla.name}`}
-                                                        title="delete"
-                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                                        style={{
-                                                            marginLeft: 20,
-                                                        }}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            openModal({
-                                                                id:
-                                                                    incidentSla._id,
-                                                                content: DataPathHoC(
-                                                                    DeleteIncidentCommunicationSlaModal,
-                                                                    {
-                                                                        projectId,
-                                                                        incidentSlaId:
-                                                                            incidentSla._id,
-                                                                    }
-                                                                ),
-                                                            });
-                                                        }}
-                                                    >
-                                                        <span>Delete</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                {this.handleIncidentSlas()}
                                 <ShouldRender
                                     if={
                                         !(
@@ -475,6 +515,7 @@ IncidentCommunicationSla.propTypes = {
     updateCommunicationSla: PropTypes.func,
     setActiveSla: PropTypes.func,
     activeSla: PropTypes.string,
+    monitors: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -488,7 +529,12 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, ownProps) => {
+    const monitorData = state.monitor.monitorsList.monitors.find(
+        data => String(data._id) === String(ownProps.projectId)
+    );
+    const monitors = monitorData.monitors;
+
     return {
         requesting: state.incidentSla.incidentCommunicationSlas.requesting,
         fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
@@ -498,6 +544,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         incidentSlas: state.incidentSla.incidentCommunicationSlas.incidentSlas,
         activeSla: state.incidentSla.activeSla,
+        monitors,
     };
 };
 
