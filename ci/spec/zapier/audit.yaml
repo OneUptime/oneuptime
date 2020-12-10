@@ -9,7 +9,7 @@ audit_zapier:
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
-        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - cd zapier
         - npm ci
