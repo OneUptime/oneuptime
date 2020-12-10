@@ -35,7 +35,8 @@ module.exports = {
             );
 
             if (data.monitors && data.monitors.length > 0) {
-                const monitorIds = [...data.monitors];
+                let monitorIds = [...data.monitors];
+                monitorIds = [...new Set(monitorIds)];
                 for (const monitorId of monitorIds) {
                     await MonitorService.updateOneBy(
                         { _id: monitorId },
@@ -135,6 +136,7 @@ module.exports = {
                 const removedMonitors = [];
                 if (data.monitors && data.monitors.length > 0) {
                     let monitorIds = [...data.monitors];
+                    monitorIds = [...new Set(monitorIds)];
                     monitorIds = monitorIds.map(id => String(id));
                     initialMonitorIds.forEach(monitorId => {
                         if (!monitorIds.includes(String(monitorId))) {
