@@ -536,7 +536,8 @@ router.post(
                     );
                     issues.push(issue);
 
-                    // TODO update a timeline object
+                    // update a timeline object
+                    await RealTimeService.sendIssueStatusChange(issue, action);
                 }
             }
 

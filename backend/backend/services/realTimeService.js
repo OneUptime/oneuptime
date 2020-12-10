@@ -983,6 +983,19 @@ module.exports = {
             throw error;
         }
     },
+    sendIssueStatusChange: async (issue, type) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const errorTrackerId = issue.errorTrackerId._id;
+
+            global.io.emit(`${type}Issue-${errorTrackerId}`, issue);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendIssueStatusChange', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
