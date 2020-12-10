@@ -346,6 +346,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }
             } else {
                 if (data.lighthouseData) {
+                    data.scanning = false;
                     log = await ProbeService.saveLighthouseLog(data);
                 } else {
                     log = await ProbeService.saveMonitorLog(data);
@@ -353,8 +354,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         await MonitorService.updateBy(
                             { _id: req.params.monitorId },
                             {
-                                scriptRunStatus: 'completed',
-                                scriptRunBy: req.probe.id,
+                                lighthouseScanStatus: data.lighthouseScanStatus,
+                            }
+                        );
+                    } else {
+                        await MonitorService.updateOneBy(
+                            { _id: data.monitorId },
+                            {
+                                lighthouseScannedAt: Date.now(),
+                                lighthouseScanStatus: data.lighthouseScanStatus, // scanned || failed
+                                lighthouseScannedBy: data.probeId,
                             }
                         );
                     }

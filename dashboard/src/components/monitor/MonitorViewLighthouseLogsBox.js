@@ -86,16 +86,13 @@ export class MonitorViewLighthouseLogsBox extends Component {
         fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5, data.value);
     };
 
-    scanWebsites = () => {
+    scanWebsites = async () => {
         const { currentProject, monitor, editMonitor } = this.props;
-        editMonitor(
-            currentProject._id,
-            {
-                ...monitor,
-                lighthouseScanStatus: 'scan',
-            },
-            'website-scan'
-        );
+        await editMonitor(currentProject._id, {
+            ...monitor,
+            lighthouseScanStatus: 'scan',
+        });
+        this.props.fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5);
     };
 
     render() {

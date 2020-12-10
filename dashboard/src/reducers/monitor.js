@@ -1050,7 +1050,6 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                       action.payload.data.url
                                               );
                                               if (logIndex > -1) {
-                                                  action.payload.data.scanning = false;
                                                   monitor.lighthouseLogs.data[
                                                       logIndex
                                                   ] = action.payload.data;
