@@ -301,7 +301,7 @@ describe('Error Trackers', () => {
         operationTimeOut
     );
     test(
-        'Should reset tracker key for created errir tracker',
+        'Should reset tracker key for created error tracker',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToErrorTrackerDetails(
@@ -365,6 +365,37 @@ describe('Error Trackers', () => {
 
                 expect(spanElement).toBeDefined();
                 spanElement.should.not.be.equal(errorTrackerKey);
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should update name for created error tracker',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await init.navigateToErrorTrackerDetails(
+                    componentName,
+                    errorTrackerName,
+                    page
+                );
+                await page.waitForSelector(`#edit_${errorTrackerName}`);
+                await page.click(`#edit_${errorTrackerName}`);
+                // Fill and submit edit Error tracker form
+                await page.waitForSelector('#form-new-error-tracker');
+                await page.type('input[id=name]', '-new');
+                await page.click('button[type=submit]');
+                await page.waitForSelector('#addErrorTrackerButton', {
+                    hidden: true,
+                });
+
+                await page.waitForSelector('#tracking');
+                await page.click('#tracking');
+                let spanElement = await page.waitForSelector(
+                    `#error-tracker-title-${errorTrackerName}-new`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(`${errorTrackerName}-new`);
             });
         },
         operationTimeOut
