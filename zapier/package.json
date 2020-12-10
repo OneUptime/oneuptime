@@ -8,7 +8,7 @@
     "main": "index.js",
     "scripts": {
         "test": "mocha --recursive",
-        "audit": "npm-audit-ci-wrapper --threshold=high",
+        "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*'"
     },
     "engine": {
@@ -22,7 +22,6 @@
         "babel-preset-react": "^6.24.1",
         "depcheck": "^0.9.2",
         "mocha": "^8.1.1",
-        "npm-audit-ci-wrapper": "^2.2.1",
         "should": "11.2.1"
     }
 }
