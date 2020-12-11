@@ -86,7 +86,6 @@ export class MonitorTitle extends Component {
                 badgeColor = 'blue';
                 break;
         }
-
         const isCurrentlyNotMonitoring =
             (lastAlive &&
                 moment(this.state.now).diff(moment(lastAlive), 'seconds') >=

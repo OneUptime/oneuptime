@@ -1593,7 +1593,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    
+
     sendInvestigationNoteToSubscribers: async function(
         incidentTime,
         monitorName,
@@ -1625,7 +1625,7 @@ const _this = {
                 componentName,
                 incidentNote,
                 statusPageUrl,
-                statusNoteStatus
+                statusNoteStatus,
             };
             template = template(data);
             subject = subject(data);

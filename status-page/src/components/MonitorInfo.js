@@ -27,6 +27,7 @@ const calculateTime = (statuses, start, range) => {
             downTime: 0,
             upTime: 0,
             degradedTime: 0,
+            disabledTime: 0,
             status: null,
             emptytime: dayStart.toISOString(),
         };
@@ -68,6 +69,9 @@ const calculateTime = (statuses, start, range) => {
                     timeObj.status = monitorStatus.status;
                 }
 
+                if (monitor.endTime === null && monitor.status === 'disabled') {
+                    timeObj.status = monitor.status;
+                }
                 const start = moment(monitorStatus.startTime).isBefore(
                     dayStartIn
                 )
@@ -115,7 +119,9 @@ const calculateTime = (statuses, start, range) => {
             } else {
                 //if the firstIncident has a higher priority
                 if (
-                    firstIncident.status === 'offline' ||
+                    firstIncident.status === 'disabled' ||
+                    (firstIncident.status === 'offline' &&
+                        nextIncident.status !== 'disabled') ||
                     (firstIncident.status === 'degraded' &&
                         nextIncident.status === 'online')
                 ) {
@@ -187,6 +193,11 @@ const calculateTime = (statuses, start, range) => {
         //Last step
         for (const incident of incidentsHappenedDuringTheDay) {
             const { start, end, status } = incident;
+            if (status === 'disabled') {
+                timeObj.disabledTime =
+                    timeObj.disabledTime + end.diff(start, 'seconds');
+                timeObj.date = end.toISOString();
+            }
             if (status === 'offline') {
                 timeObj.downTime =
                     timeObj.downTime + end.diff(start, 'seconds');
@@ -206,9 +217,11 @@ const calculateTime = (statuses, start, range) => {
             totalTime +
             timeObj.upTime +
             timeObj.degradedTime +
-            timeObj.downTime;
+            timeObj.downTime +
+            timeObj.disabledTime;
         if (timeObj.status === null || timeObj.status === 'online') {
-            if (timeObj.downTime > 0) timeObj.status = 'offline';
+            if (timeObj.disabledTime > 0) timeObj.status = 'disabled';
+            else if (timeObj.downTime > 0) timeObj.status = 'offline';
             else if (timeObj.degradedTime > 0) timeObj.status = 'degraded';
             else if (timeObj.upTime > 0) timeObj.status = 'online';
         }
@@ -381,8 +394,10 @@ class MonitorInfo extends Component {
                 status.backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`; // "degraded-status";
             } else if (monitorStatus === 'online') {
                 status.backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`; // "online-status";
-            } else {
+            } else if (monitorStatus === 'offline') {
                 status.backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`; // "red-downtime";
+            } else {
+                status.backgroundColor = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`; // "grey-disabled";
             }
         }
 

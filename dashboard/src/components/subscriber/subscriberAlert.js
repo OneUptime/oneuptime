@@ -92,9 +92,6 @@ export class SubscriberAlert extends Component {
                                                     this.props.incident
                                                         .monitorId
                                                 }
-                                                incidentIdNumber={
-                                                    this.props.incident.idNumber
-                                                }
                                                 isRequesting={
                                                     this.props.isRequesting
                                                 }

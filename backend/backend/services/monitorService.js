@@ -431,6 +431,7 @@ module.exports = {
                 $and: [
                     {
                         deleted: false,
+                        disabled: false,
                         scriptRunStatus: { $nin: ['inProgress'] },
                     },
                     {

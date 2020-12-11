@@ -233,7 +233,7 @@ const _this = {
             let { template } = await _this.getTemplate(
                 smsTemplate,
                 'Investigation note is created'
-                );
+            );
             const data = {
                 projectName,
                 monitorName: monitorName,
@@ -296,7 +296,7 @@ const _this = {
                     return error;
                 }
             }
-        } catch(error) {
+        } catch (error) {
             ErrorService.log(
                 'twillioService.sendInvestigationNoteToSubscribers',
                 error
