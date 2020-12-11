@@ -179,6 +179,27 @@ module.exports = {
         }
     },
 
+    createMonitorDisabledStatus: async function(data) {
+        try {
+            let monitorStatus = await MonitorStatusService.findOneBy({
+                monitorId: data.monitorId,
+            });
+            const lastStatus =
+                monitorStatus && monitorStatus.status
+                    ? monitorStatus.status
+                    : null;
+
+            if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
+                data.lastStatus = lastStatus ? lastStatus : null;
+                monitorStatus = await MonitorStatusService.create(data);
+            }
+            return monitorStatus;
+        } catch (error) {
+            ErrorService.log('ProbeService.createMonitorDisabledStatus', error);
+            throw error;
+        }
+    },
+
     saveMonitorLog: async function(data) {
         try {
             const _this = this;

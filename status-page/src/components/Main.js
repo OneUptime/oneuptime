@@ -280,14 +280,20 @@ class Main extends Component {
             primaryText,
             downtimeColor,
             uptimeColor,
-            degradedColor;
+            degradedColor,
+            disabledColor,
+            disabled;
         let statusBackground;
         if (this.props.statusData && this.props.statusData.monitorsData) {
             serviceStatus = getServiceStatus(this.props.monitorState, probes);
             isGroupedByMonitorCategory = this.props.statusData
                 .isGroupedByMonitorCategory;
             const colors = this.props.statusData.colors;
-
+            const disabledMonitors =
+                this.props.monitorState &&
+                this.props.monitorState.filter(m => m.disabled);
+            disabled =
+                disabledMonitors && disabledMonitors.length ? true : false;
             if (serviceStatus === 'all') {
                 status = 'status-bubble status-up';
                 statusMessage = 'All services are online';
@@ -329,6 +335,10 @@ class Main extends Component {
 
             degradedColor = {
                 backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`,
+            };
+
+            disabledColor = {
+                backgroundColor: `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`,
             };
 
             if (serviceStatus === 'all') {
@@ -673,6 +683,8 @@ class Main extends Component {
                                             downtimeColor={downtimeColor}
                                             uptimeColor={uptimeColor}
                                             degradedColor={degradedColor}
+                                            disabledColor={disabledColor}
+                                            disabled={disabled}
                                         />
                                     ) : (
                                         ''
