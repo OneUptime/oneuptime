@@ -2128,6 +2128,8 @@ const _this = {
         componentName,
         incidentId,
         reason,
+        incidentSlaTimeline,
+        incidentSlaRemaining,
     }) {
         const smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
@@ -2147,6 +2149,8 @@ const _this = {
                     componentName,
                     incidentId,
                     reason,
+                    incidentSlaTimeline,
+                    incidentSlaRemaining,
                 },
             };
 
@@ -2197,6 +2201,7 @@ const _this = {
         componentName,
         incidentId,
         reason,
+        incidentSlaTimeline,
     }) {
         const smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
@@ -2216,6 +2221,7 @@ const _this = {
                     componentName,
                     incidentId,
                     reason,
+                    incidentSlaTimeline,
                 },
             };
 

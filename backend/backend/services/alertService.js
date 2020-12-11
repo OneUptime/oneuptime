@@ -658,7 +658,7 @@ module.exports = {
     },
 
     sendSlaEmailToTeamMembers: async function(
-        { projectId, monitor, incidentCommunicationSla, incident },
+        { projectId, monitor, incidentCommunicationSla, incident, alertTime },
         breached = false
     ) {
         try {
@@ -697,6 +697,10 @@ module.exports = {
                 const componentId = incident.monitorId.componentId._id;
                 const componentName = incident.monitorId.componentId.name;
                 const incidentUrl = `${global.dashboardHost}/project/${projectId}/${componentId}/incidents/${incident._id}`;
+                let incidentSlaTimeline =
+                    incidentCommunicationSla.duration * 60;
+                incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
+                const incidentSlaRemaining = secondsToHms(alertTime);
 
                 if (breached) {
                     for (const member of teamMembers) {
@@ -711,6 +715,7 @@ module.exports = {
                             componentName,
                             incidentId,
                             reason,
+                            incidentSlaTimeline,
                         });
                     }
                 } else {
@@ -726,6 +731,8 @@ module.exports = {
                             componentName,
                             incidentId,
                             reason,
+                            incidentSlaTimeline,
+                            incidentSlaRemaining,
                         });
                     }
                 }
@@ -2522,3 +2529,4 @@ const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
 const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
+const secondsToHms = require('../utils/secondsToHms');

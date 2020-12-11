@@ -826,6 +826,7 @@ module.exports = {
                 monitor,
                 incidentCommunicationSla,
                 incident,
+                alertTime,
             };
 
             // count down every second
