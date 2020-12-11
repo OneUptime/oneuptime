@@ -34,6 +34,7 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import IncidentStatusPages from '../components/incident/incidentStatusPages';
 import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
+import secondsToHms from '../utils/secondsToHms';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -388,11 +389,11 @@ class Incident extends React.Component {
                                                         SLA, you need to update
                                                         the incident note for
                                                         this incident in{' '}
-                                                        {
+                                                        {secondsToHms(
                                                             this.props.incident
                                                                 .countDown
-                                                        }{' '}
-                                                        minutes . Click{' '}
+                                                        )}
+                                                        {'. '} Click{' '}
                                                         <span
                                                             onClick={() =>
                                                                 this.tabSelected(
