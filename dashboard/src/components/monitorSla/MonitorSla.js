@@ -356,7 +356,7 @@ class MonitorSla extends Component {
                                         Frequency (days)
                                     </div>
                                     <div className="bs-ObjectList-cell">
-                                        Monitor Uptime
+                                        Monitor Uptime (%)
                                     </div>
                                     <div className="bs-ObjectList-cell">
                                         Monitor(s)
