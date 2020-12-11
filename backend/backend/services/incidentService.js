@@ -39,112 +39,124 @@ module.exports = {
     create: async function(data) {
         try {
             const _this = this;
-            //create a promise;
-            const project = await ProjectService.findOneBy({
-                _id: data.projectId,
-            });
-            const users =
-                project && project.users && project.users.length
-                    ? project.users.map(({ userId }) => userId)
-                    : [];
             const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
             });
-
-            if (monitor) {
-                let incident = new IncidentModel();
-                const incidentsCountInProject = await _this.countBy({
-                    projectId: data.projectId,
-                });
-                const deletedIncidentsCountInProject = await _this.countBy({
-                    projectId: data.projectId,
-                    deleted: true,
-                });
-
-                incident.projectId = data.projectId || null;
-                incident.monitorId = data.monitorId || null;
-                incident.createdById = data.createdById || null;
-                incident.notClosedBy = users;
-                incident.incidentType = data.incidentType;
-                incident.manuallyCreated = data.manuallyCreated || false;
-                if (data.reason && data.reason.length > 0) {
-                    incident.reason = data.reason.join('\n');
-                }
-                incident.response = data.response || null;
-                incident.idNumber =
-                    incidentsCountInProject +
-                    deletedIncidentsCountInProject +
-                    1;
-
-                if (!incident.manuallyCreated) {
-                    const incidentSettings = await IncidentSettingsService.findOne(
-                        {
-                            projectId: data.projectId,
-                        }
-                    );
-
-                    const templatesInput = {
-                        incidentType: data.incidentType,
-                        monitorName: monitor.name,
-                        projectName: project.name,
-                        time: Moment().format('h:mm:ss a'),
-                        date: Moment().format('MMM Do YYYY'),
-                    };
-
-                    const titleTemplate = Handlebars.compile(
-                        incidentSettings.title
-                    );
-                    const descriptionTemplate = Handlebars.compile(
-                        incidentSettings.description
-                    );
-
-                    incident.title = titleTemplate(templatesInput);
-                    incident.description = descriptionTemplate(templatesInput);
-                    incident.incidentPriority =
-                        incidentSettings.incidentPriority;
-
-                    if (data.probeId) {
-                        incident.probes = [
-                            {
-                                probeId: data.probeId,
-                                updatedAt: Date.now(),
-                                status: true,
-                                reportedStatus: data.incidentType,
-                            },
-                        ];
-                    }
-                } else {
-                    incident.title = data.title;
-                    incident.description = data.description;
-                    incident.incidentPriority = data.incidentPriority;
-                }
-
-                incident = await incident.save();
-                incident = await _this.findOneBy({ _id: incident._id });
-
-                _this.startInterval(data.projectId, data.monitorId, incident);
-
-                const notification = await _this._sendIncidentCreatedAlert(
-                    incident
-                );
-                incident.notificationId = notification._id;
-                incident = await incident.save();
-
-                await RealTimeService.sendCreatedIncident(incident);
-
-                await IncidentTimelineService.create({
-                    incidentId: incident._id,
-                    createdById: data.createdById,
-                    probeId: data.probeId,
-                    status: data.incidentType,
-                });
-
-                return incident;
-            } else {
-                const error = new Error('Monitor is not present.');
+            if (monitor && monitor.disabled) {
+                const error = new Error('Monitor is disabled.');
                 ErrorService.log('incidentService.create', error);
                 error.code = 400;
                 throw error;
+            } else {
+                const project = await ProjectService.findOneBy({
+                    _id: data.projectId,
+                });
+                const users =
+                    project && project.users && project.users.length
+                        ? project.users.map(({ userId }) => userId)
+                        : [];
+
+                if (monitor) {
+                    let incident = new IncidentModel();
+                    const incidentsCountInProject = await _this.countBy({
+                        projectId: data.projectId,
+                    });
+                    const deletedIncidentsCountInProject = await _this.countBy({
+                        projectId: data.projectId,
+                        deleted: true,
+                    });
+
+                    incident.projectId = data.projectId || null;
+                    incident.monitorId = data.monitorId || null;
+                    incident.createdById = data.createdById || null;
+                    incident.notClosedBy = users;
+                    incident.incidentType = data.incidentType;
+                    incident.manuallyCreated = data.manuallyCreated || false;
+                    if (data.reason && data.reason.length > 0) {
+                        incident.reason = data.reason.join('\n');
+                    }
+                    incident.response = data.response || null;
+                    incident.idNumber =
+                        incidentsCountInProject +
+                        deletedIncidentsCountInProject +
+                        1;
+
+                    if (!incident.manuallyCreated) {
+                        const incidentSettings = await IncidentSettingsService.findOne(
+                            {
+                                projectId: data.projectId,
+                            }
+                        );
+
+                        const templatesInput = {
+                            incidentType: data.incidentType,
+                            monitorName: monitor.name,
+                            projectName: project.name,
+                            time: Moment().format('h:mm:ss a'),
+                            date: Moment().format('MMM Do YYYY'),
+                        };
+
+                        const titleTemplate = Handlebars.compile(
+                            incidentSettings.title
+                        );
+                        const descriptionTemplate = Handlebars.compile(
+                            incidentSettings.description
+                        );
+
+                        incident.title = titleTemplate(templatesInput);
+                        incident.description = descriptionTemplate(
+                            templatesInput
+                        );
+                        incident.incidentPriority =
+                            incidentSettings.incidentPriority;
+
+                        if (data.probeId) {
+                            incident.probes = [
+                                {
+                                    probeId: data.probeId,
+                                    updatedAt: Date.now(),
+                                    status: true,
+                                    reportedStatus: data.incidentType,
+                                },
+                            ];
+                        }
+                    } else {
+                        incident.title = data.title;
+                        incident.description = data.description;
+                        incident.incidentPriority = data.incidentPriority;
+                    }
+
+                    incident = await incident.save();
+                    incident = await _this.findOneBy({ _id: incident._id });
+
+                    _this.startInterval(
+                        data.projectId,
+                        data.monitorId,
+                        incident
+                    );
+
+                    const notification = await _this._sendIncidentCreatedAlert(
+                        incident
+                    );
+                    incident.notificationId = notification._id;
+                    incident = await incident.save();
+
+                    await RealTimeService.sendCreatedIncident(incident);
+
+                    await IncidentTimelineService.create({
+                        incidentId: incident._id,
+                        createdById: data.createdById,
+                        probeId: data.probeId,
+                        status: data.incidentType,
+                    });
+
+                    return incident;
+                } else {
+                    const error = new Error('Monitor is not present.');
+                    ErrorService.log('incidentService.create', error);
+                    error.code = 400;
+                    throw error;
+                }
             }
         } catch (error) {
             ErrorService.log('incidentService.create', error);

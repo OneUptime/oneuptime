@@ -18,6 +18,7 @@ import { FormLoader } from '../basic/Loader';
 import CreateManualIncident from '../modals/CreateManualIncident';
 import ShouldRender from '../basic/ShouldRender';
 import MonitorUrl from '../modals/MonitorUrl';
+import DisabledMessage from '../modals/DisabledMessage';
 import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
 import { history } from '../../store';
@@ -211,7 +212,10 @@ export class MonitorDetail extends Component {
         );
 
         const requesting = monitorState.fetchMonitorLogsRequest;
-        const status = requesting
+        const monitorDisabled = monitor.disabled;
+        const status = monitorDisabled
+            ? 'disabled'
+            : requesting
             ? 'requesting'
             : getMonitorStatus(monitor.incidents, logs);
 
@@ -487,7 +491,9 @@ export class MonitorDetail extends Component {
                                     this.props.openModal({
                                         id: createIncidentModalId,
                                         content: DataPathHoC(
-                                            CreateManualIncident,
+                                            monitorDisabled
+                                                ? DisabledMessage
+                                                : CreateManualIncident,
                                             {
                                                 monitorId: monitor._id,
                                                 projectId:
@@ -635,7 +641,8 @@ export class MonitorDetail extends Component {
                                                                         which
                                                                         belong
                                                                         to this
-                                                                        monitor.
+                                                                        monitor
+                                                                        2.
                                                                     </span>
                                                                 </span>
                                                             </div>
@@ -698,7 +705,7 @@ export class MonitorDetail extends Component {
                                                                     incidents
                                                                     which belong
                                                                     to this
-                                                                    monitor.
+                                                                    monitor 1.
                                                                 </span>
                                                             </span>
                                                         </div>
