@@ -32,6 +32,7 @@ class ResourceTabularList extends Component {
             case 'api monitor':
             case 'server monitor':
             case 'script monitor':
+            case 'incomingHttpRequest monitor':
                 route = 'monitoring';
                 break;
             case 'application security':
@@ -65,13 +66,17 @@ class ResourceTabularList extends Component {
             case 'api monitor':
             case 'server monitor':
             case 'script monitor':
+            case 'incomingHttpRequest monitor':
                 // get monitor status
                 monitor = monitors.filter(
                     monitor => monitor._id === componentResource._id
                 )[0];
                 // Monitor already exists in the list of monitors
                 if (monitor) {
-                    if (monitor.statuses && monitor.statuses[0]) {
+                    if (monitor.disabled) {
+                        // Get the latest status here if the monitor is changing status elsewheree
+                        monitorStatus = 'disabled';
+                    } else if (monitor.statuses && monitor.statuses[0]) {
                         // Get the latest status here if the monitor is changing status elsewheree
                         monitorStatus = monitor.statuses[0].statuses[0].status;
                     } else {

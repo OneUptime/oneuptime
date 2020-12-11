@@ -5,34 +5,6 @@
  */
 
 module.exports = {
-    hasEnoughBalance: async function(
-        projectId,
-        alertPhoneNumber,
-        userId,
-        alertType
-    ) {
-        const project = await ProjectService.findOneBy({ _id: projectId });
-        const balance = project.balance;
-        const countryType = getCountryType(alertPhoneNumber);
-        const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
-
-        const customThresholdAmount = project.alertOptions
-            ? project.alertOptions.rechargeToBalance
-            : null;
-
-        const isBalanceMoreThanMinimum =
-            balance > alertChargeAmount.minimumBalance;
-        if (customThresholdAmount) {
-            const isBalanceMoreThanCustomThresholdAmount =
-                balance > customThresholdAmount;
-            return (
-                isBalanceMoreThanMinimum &&
-                isBalanceMoreThanCustomThresholdAmount
-            );
-        }
-        return isBalanceMoreThanMinimum;
-    },
-
     doesPhoneNumberComplyWithHighRiskConfig: async function(
         projectId,
         alertPhoneNumber
@@ -837,34 +809,28 @@ module.exports = {
                             : 'Calls to High Risk country not enabled for this project',
                 });
             }
-            const hasEnoughBalance = await _this.hasEnoughBalance(
-                project._id,
-                user.alertPhoneNumber,
+
+            const status = await PaymentService.checkAndRechargeProjectBalance(
+                project,
                 user._id,
+                user.alertPhoneNumber,
                 AlertType.Call
             );
-            if (!hasEnoughBalance) {
-                // try to recharge amount
-                const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
-                    user._id,
-                    project
-                );
 
-                if (!projectBalanceRecharged) {
-                    return await _this.create({
-                        projectId: incident.projectId,
-                        monitorId,
-                        schedule: schedule._id,
-                        escalation: escalation._id,
-                        onCallScheduleStatus: onCallScheduleStatus._id,
-                        alertVia: AlertType.Call,
-                        userId: user._id,
-                        incidentId: incident._id,
-                        alertStatus: null,
-                        error: true,
-                        errorMessage: 'Low Balance',
-                    });
-                }
+            if (!status.success) {
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: AlertType.Call,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    alertStatus: null,
+                    error: true,
+                    errorMessage: status.message,
+                });
             }
         }
         const alertStatus = await TwilioService.sendIncidentCreatedCall(
@@ -1028,34 +994,28 @@ module.exports = {
                             : 'SMS to High Risk country not enabled for this project',
                 });
             }
-            const hasEnoughBalance = await _this.hasEnoughBalance(
-                incident.projectId,
-                user.alertPhoneNumber,
+
+            const status = await PaymentService.checkAndRechargeProjectBalance(
+                project,
                 user._id,
+                user.alertPhoneNumber,
                 AlertType.SMS
             );
-            if (!hasEnoughBalance) {
-                // try to recharge amount
-                const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
-                    user._id,
-                    project
-                );
 
-                if (!projectBalanceRecharged) {
-                    return await _this.create({
-                        projectId: incident.projectId,
-                        monitorId,
-                        schedule: schedule._id,
-                        escalation: escalation._id,
-                        onCallScheduleStatus: onCallScheduleStatus._id,
-                        alertVia: AlertType.SMS,
-                        userId: user._id,
-                        incidentId: incident._id,
-                        alertStatus: null,
-                        error: true,
-                        errorMessage: 'Low Balance',
-                    });
-                }
+            if (!status.success) {
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: AlertType.SMS,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    alertStatus: null,
+                    error: true,
+                    errorMessage: status.message,
+                });
             }
         }
 
@@ -1139,7 +1099,6 @@ module.exports = {
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId._id,
             });
-            // eslint-disable-next-line no-unused-vars
             const component = await ComponentService.findOneBy({
                 _id:
                     monitor.componentId && monitor.componentId._id
@@ -1776,14 +1735,43 @@ module.exports = {
                 const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
                     incident.createdAt
                 );
-                webhookNotificationSent = await WebHookService.sendSubscriberNotification(
-                    subscriber,
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    component,
-                    downTimeString
-                );
+
+                let alertStatus = 'Pending';
+
+                try {
+                    webhookNotificationSent = await WebHookService.sendSubscriberNotification(
+                        subscriber,
+                        incident.projectId,
+                        incident,
+                        incident.monitorId,
+                        component,
+                        downTimeString
+                    );
+                    alertStatus = webhookNotificationSent ? 'Sent' : 'Not Sent';
+                } catch (error) {
+                    alertStatus = null;
+                    throw error;
+                } finally {
+                    SubscriberAlertService.create({
+                        projectId: incident.projectId,
+                        incidentId: incident._id,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.Webhook,
+                        alertStatus: alertStatus,
+                        eventType:
+                            templateType === 'Subscriber Incident Acknowldeged'
+                                ? 'acknowledged'
+                                : templateType ===
+                                  'Subscriber Incident Resolved'
+                                ? 'resolved'
+                                : 'identified',
+                    }).catch(error => {
+                        ErrorService.log(
+                            'AlertService.sendSubscriberAlert',
+                            error
+                        );
+                    });
+                }
             }
             if (
                 !webhookNotificationSent ||
@@ -2087,38 +2075,32 @@ module.exports = {
                                     : 'identified',
                         });
                     }
-                    const hasEnoughBalance = await _this.hasEnoughBalance(
-                        incident.projectId,
-                        contactPhone,
+
+                    const status = await PaymentService.checkAndRechargeProjectBalance(
+                        project,
                         owner.userId,
+                        contactPhone,
                         AlertType.SMS
                     );
 
-                    if (!hasEnoughBalance) {
-                        // try to recharge amount
-                        const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
-                            owner.userId,
-                            project
-                        );
-                        if (!projectBalanceRecharged) {
-                            return await SubscriberAlertService.create({
-                                projectId: incident.projectId,
-                                incidentId: incident._id,
-                                subscriberId: subscriber._id,
-                                alertVia: AlertType.SMS,
-                                alertStatus: null,
-                                error: true,
-                                errorMessage: 'Low Balance',
-                                eventType:
-                                    templateType ===
-                                    'Subscriber Incident Acknowldeged'
-                                        ? 'acknowledged'
-                                        : templateType ===
-                                          'Subscriber Incident Resolved'
-                                        ? 'resolved'
-                                        : 'identified',
-                            });
-                        }
+                    if (!status.success) {
+                        return await SubscriberAlertService.create({
+                            projectId: incident.projectId,
+                            incidentId: incident._id,
+                            subscriberId: subscriber._id,
+                            alertVia: AlertType.SMS,
+                            alertStatus: null,
+                            error: true,
+                            errorMessage: status.message,
+                            eventType:
+                                templateType ===
+                                'Subscriber Incident Acknowldeged'
+                                    ? 'acknowledged'
+                                    : templateType ===
+                                      'Subscriber Incident Resolved'
+                                    ? 'resolved'
+                                    : 'identified',
+                        });
                     }
                 }
 
@@ -2424,14 +2406,23 @@ module.exports = {
         }
     },
     getBalanceStatus: async function(projectId, alertPhoneNumber, alertType) {
-        const project = await ProjectService.findOneBy({ _id: projectId });
-        const balance = project.balance;
-        const countryType = getCountryType(alertPhoneNumber);
-        const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
-        return {
-            chargeAmount: alertChargeAmount.price,
-            closingBalance: balance,
-        };
+        try {
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            const balance = project.balance;
+            const countryType = getCountryType(alertPhoneNumber);
+            const alertChargeAmount = getAlertChargeAmount(
+                alertType,
+                countryType
+            );
+            const closingBalance = balance - alertChargeAmount.price;
+            return {
+                chargeAmount: alertChargeAmount.price,
+                closingBalance,
+            };
+        } catch (error) {
+            ErrorService.log('AlertService.getBalanceStatus', error);
+            throw error;
+        }
     },
 
     //Return true, if the limit is not reached yet.

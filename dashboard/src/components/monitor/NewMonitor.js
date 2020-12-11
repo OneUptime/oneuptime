@@ -1580,77 +1580,50 @@ class NewMonitor extends Component {
                                                             Call Schedule
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <span class="flex">
-                                                                <Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name={`callSchedule_${this.props.index}`}
-                                                                    id="callSchedule"
-                                                                    placeholder="Call Schedule"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    style={{
-                                                                        height:
-                                                                            '28px',
-                                                                    }}
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select call schedule',
-                                                                        },
-                                                                        ...(schedules &&
-                                                                        schedules.length >
-                                                                            0
-                                                                            ? schedules.map(
-                                                                                  schedule => ({
-                                                                                      value:
-                                                                                          schedule._id,
-                                                                                      label:
-                                                                                          schedule.name,
-                                                                                  })
-                                                                              )
-                                                                            : []),
-                                                                    ]}
-                                                                />
-                                                                <Tooltip title="Call Schedule">
-                                                                    <div>
-                                                                        <p>
-                                                                            Call
-                                                                            Schedules
-                                                                            let's
-                                                                            you
-                                                                            connect
-                                                                            your
-                                                                            team
-                                                                            members
-                                                                            to
-                                                                            specific
-                                                                            monitors,
-                                                                            so
-                                                                            only
-                                                                            on-duty
-                                                                            members
-                                                                            who
-                                                                            are
-                                                                            responsible
-                                                                            for
-                                                                            certain
-                                                                            monitors
-                                                                            are
-                                                                            alerted
-                                                                            when
-                                                                            an
-                                                                            incident
-                                                                            is
-                                                                            created.
-                                                                        </p>
-                                                                    </div>
-                                                                </Tooltip>
+                                                            <span className="flex" >
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name={`callSchedule_${this.props.index}`}
+                                                                id="callSchedule"
+                                                                placeholder="Call Schedule"
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                }}
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select call schedule',
+                                                                    },
+                                                                    ...(schedules &&
+                                                                    schedules.length >
+                                                                        0
+                                                                        ? schedules.map(
+                                                                              schedule => ({
+                                                                                  value:
+                                                                                      schedule._id,
+                                                                                  label:
+                                                                                      schedule.name,
+                                                                              })
+                                                                          )
+                                                                        : []),
+                                                                ]}
+                                                            />
+                                                            <Tooltip title="Call Schedule">
+                                                                <div>
+                                                                    <p>
+                                                                        Call Schedules let's you connect your team members to specific monitors, so only on-duty members who are responsible for certain monitors are alerted when an incident is created.
+                                                                    </p>
+                                                                </div>
+                                                            </Tooltip>
                                                             </span>
                                                         </div>
                                                     </div>
