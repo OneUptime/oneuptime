@@ -14,6 +14,7 @@ import {
 import IncidentCommunicationSlaModal from './IncidentCommunicationSlaModal';
 import EditIncidentCommunicationSlaModal from './EditIncidentCommunicationSlaModal';
 import DeleteIncidentCommunicationSlaModal from './DeleteIncidentCommunicationSlaModal';
+import secondsToHms from '../../utils/secondsToHms';
 
 class IncidentCommunicationSla extends Component {
     constructor() {
@@ -146,7 +147,7 @@ class IncidentCommunicationSla extends Component {
                             style={{ width: '20vw' }}
                         >
                             <div className="bs-ObjectList-cell-row">
-                                {incidentSla.duration}
+                                {secondsToHms(incidentSla.duration * 60)}
                             </div>
                         </div>
                         <div
@@ -154,7 +155,7 @@ class IncidentCommunicationSla extends Component {
                             style={{ width: '20vw' }}
                         >
                             <div className="bs-ObjectList-cell-row">
-                                {incidentSla.alertTime}
+                                {secondsToHms(incidentSla.alertTime * 60)}
                             </div>
                         </div>
                         {incidentSla.isDefault ? (
@@ -364,10 +365,10 @@ class IncidentCommunicationSla extends Component {
                                         Name
                                     </div>
                                     <div className="bs-ObjectList-cell">
-                                        Duration (minutes)
+                                        Duration
                                     </div>
                                     <div className="bs-ObjectList-cell">
-                                        Alert Time (minutes)
+                                        Alert Time
                                     </div>
                                     <div className="bs-ObjectList-cell">
                                         Monitor(s)
