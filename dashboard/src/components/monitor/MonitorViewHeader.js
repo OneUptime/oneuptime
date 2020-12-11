@@ -28,6 +28,7 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import CreateManualIncident from '../modals/CreateManualIncident';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
+import DisabledMessage from '../modals/DisabledMessage';
 
 export class MonitorViewHeader extends Component {
     constructor(props) {
@@ -171,7 +172,10 @@ export class MonitorViewHeader extends Component {
         );
         const monitorType = monitor.type;
         const requesting = monitorState.fetchMonitorLogsRequest;
-        const status = requesting
+        const monitorDisabled = monitor.disabled;
+        const status = monitorDisabled
+            ? 'disabled'
+            : requesting
             ? 'requesting'
             : getMonitorStatus(
                   monitor.incidents,
@@ -264,7 +268,9 @@ export class MonitorViewHeader extends Component {
                                             this.props.openModal({
                                                 id: createIncidentModalId,
                                                 content: DataPathHoC(
-                                                    CreateManualIncident,
+                                                    monitorDisabled
+                                                        ? DisabledMessage
+                                                        : CreateManualIncident,
                                                     {
                                                         monitorId: monitor._id,
                                                         projectId:
