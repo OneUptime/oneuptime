@@ -47,27 +47,24 @@ class ErrorTrackerHeader extends Component {
         return (
             <div>
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                        <div>
-                            <ShouldRender
-                                if={
-                                    errorTracker &&
+                    <div>
+                        <ShouldRender
+                            if={errorTracker && errorTracker.resourceCategory}
+                        >
+                            <div className="Box-root">
+                                <Badge
+                                    color={'slate5'}
+                                    id={`${errorTracker.name}-badge`}
+                                >
+                                    {errorTracker &&
                                     errorTracker.resourceCategory
-                                }
-                            >
-                                <div className="Box-root">
-                                    <Badge
-                                        color={'slate5'}
-                                        id={`${errorTracker.name}-badge`}
-                                    >
-                                        {errorTracker &&
-                                        errorTracker.resourceCategory
-                                            ? errorTracker.resourceCategory.name
-                                            : ''}
-                                    </Badge>
-                                </div>
-                            </ShouldRender>
-                        </div>
+                                        ? errorTracker.resourceCategory.name
+                                        : ''}
+                                </Badge>
+                            </div>
+                        </ShouldRender>
+                    </div>
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                 <span
