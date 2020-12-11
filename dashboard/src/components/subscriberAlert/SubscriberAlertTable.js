@@ -302,7 +302,6 @@ function SubscriberAlertTableHeader() {
     return (
         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
             <HTD1 />
-            <HTD2 name="Incident ID" />
             <HTD2 name="Subscriber" />
             <HTD3 />
             <HTD4 />
@@ -314,7 +313,7 @@ function SubscriberAlertTableHeader() {
 
 class SubscriberAlertTableRowsClass extends React.Component {
     render() {
-        const { alerts, monitor, incidentIdNumber } = this.props;
+        const { alerts, monitor } = this.props;
         return alerts.length > 0
             ? alerts.map((alert, index) => (
                   <tr
@@ -345,9 +344,7 @@ class SubscriberAlertTableRowsClass extends React.Component {
                       }
                   >
                       <TD1 text={monitor ? monitor.name : 'Unknown'} />
-                      <TD2
-                          text={incidentIdNumber ? `#${incidentIdNumber}` : ''}
-                      />
+
                       <TD2
                           text={
                               alert.subscriberId
@@ -378,7 +375,6 @@ SubscriberAlertTableRowsClass.propTypes = {
     alerts: PropTypes.array.isRequired,
     monitor: PropTypes.object.isRequired,
     openModal: PropTypes.func.isRequired,
-    incidentIdNumber: PropTypes.string.isRequired,
 };
 
 const SubscriberAlertTableRows = connect(null, dispatch =>

@@ -325,6 +325,68 @@ export function deleteProjectMonitors(projectId) {
     };
 }
 
+//Disable a monitor
+export function disableMonitor(monitorId, projectId) {
+    return function(dispatch) {
+        const promise = postApi(
+            `monitor/${projectId}/disableMonitor/${monitorId}`,
+            {
+                monitorId,
+            }
+        );
+        dispatch(disableMonitorRequest(monitorId));
+
+        promise.then(
+            function(monitor) {
+                dispatch(
+                    disableMonitorSuccess({
+                        monitorId: monitor.data._id,
+                        disable: monitor.data.disabled,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    disableMonitorFailure({ error: errors(error), monitorId })
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function disableMonitorSuccess(monitorData) {
+    return {
+        type: types.DISABLE_MONITOR_SUCCESS,
+        payload: monitorData,
+    };
+}
+
+export function disableMonitorRequest(monitorId) {
+    return {
+        type: types.DISABLE_MONITOR_REQUEST,
+        payload: monitorId,
+    };
+}
+
+export function disableMonitorFailure(error) {
+    return {
+        type: types.DISABLE_MONITOR_FAILURE,
+        payload: error,
+    };
+}
+
 //Fetch Incidents of monitors
 //props -> {name: '', type, data -> { data.url}}
 export function fetchMonitorsIncidents(projectId, monitorId, skip, limit) {

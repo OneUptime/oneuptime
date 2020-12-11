@@ -133,13 +133,22 @@ module.exports = {
 
     isValidMonitor: async function(req, res, next) {
         const id = req.params.id;
-        const monitor = await MonitorService.findBy({
+        let monitor = await MonitorService.findBy({
             type: 'incomingHttpRequest',
             'data.link': `${global.apiHost}/incomingHttpRequest/${id}`,
         });
         if (monitor && monitor.length) {
-            req.monitor = monitor && monitor[0] ? monitor[0] : monitor;
-            next();
+            monitor = monitor && monitor[0] ? monitor[0] : monitor;
+            if (monitor && monitor.disabled) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Sorry this monitor is disabled.Please enable it to start monitoring again.',
+                });
+            } else {
+                req.monitor = monitor;
+                next();
+            }
         } else {
             return sendErrorResponse(req, res, {
                 code: 400,

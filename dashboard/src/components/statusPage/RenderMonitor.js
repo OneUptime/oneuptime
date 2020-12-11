@@ -187,6 +187,13 @@ let RenderMonitor = ({
                                             disabled={!shouldEdit}
                                         />
                                     )}
+                                    {type === 'incomingHttpRequest' && (
+                                        <Checkbox
+                                            label="Uptime"
+                                            name={`${monitor}.uptime`}
+                                            disabled={!shouldEdit}
+                                        />
+                                    )}
                                     {type === 'server-monitor' && (
                                         <Fragment>
                                             <Checkbox
