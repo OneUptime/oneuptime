@@ -1099,6 +1099,7 @@ module.exports = {
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId._id,
             });
+            // eslint-disable-next-line no-unused-vars
             const component = await ComponentService.findOneBy({
                 _id:
                     monitor.componentId && monitor.componentId._id
