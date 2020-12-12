@@ -55,6 +55,10 @@ class NewMonitor extends Component {
             script: '',
             type: props.edit ? props.editMonitorProp.type : props.type,
             httpRequestLink: `${API_URL}/incomingHttpRequest/${uuid.v4()}`,
+            mode: props.edit ? props.editMonitorProp.mode : props.mode,
+            authentication: props.edit
+                ? props.editMonitorProp.authentication
+                : props.authentication,
         };
     }
 
@@ -373,6 +377,14 @@ class NewMonitor extends Component {
         );
     };
 
+    changeMode = (e, value) => {
+        this.setState({ mode: value });
+    };
+
+    changeAuthentication = (e, value) => {
+        this.setState({ authentication: value });
+    };
+
     scriptTextChange = newValue => {
         this.setState({ script: newValue });
     };
@@ -467,8 +479,7 @@ class NewMonitor extends Component {
             project,
             currentPlanId,
         } = this.props;
-        const type = this.state.type;
-        const { httpRequestLink } = this.state;
+        const { type, mode, authentication, httpRequestLink } = this.state;
         const unlimitedMonitors = ['Scale', 'Enterprise'];
         const planCategory =
             currentPlanId === 'enterprise'
@@ -1025,7 +1036,8 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={
                                                         type ===
-                                                        'server-monitor'
+                                                            'server-monitor' &&
+                                                        !this.props.edit
                                                     }
                                                 >
                                                     <div className="bs-Fieldset-row">
@@ -1046,15 +1058,15 @@ class NewMonitor extends Component {
                                                                     disabled={
                                                                         requesting
                                                                     }
-                                                                    // onChange={(
-                                                                    //     e,
-                                                                    //     v
-                                                                    // ) =>
-                                                                    //     this.changeBox(
-                                                                    //         e,
-                                                                    //         v
-                                                                    //     )
-                                                                    // }
+                                                                    onChange={(
+                                                                        e,
+                                                                        v
+                                                                    ) =>
+                                                                        this.changeMode(
+                                                                            e,
+                                                                            v
+                                                                        )
+                                                                    }
                                                                     validate={
                                                                         ValidateField.select
                                                                     }
@@ -1083,261 +1095,284 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
 
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Host
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                component={
-                                                                    RenderField
-                                                                }
-                                                                type="text"
-                                                                name={`host_${this.props.index}`}
-                                                                id="host"
-                                                                placeholder="example.compute-1.amazonaws.com"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                validate={
-                                                                    ValidateField.text
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Username
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                component={
-                                                                    RenderField
-                                                                }
-                                                                type="text"
-                                                                name={`username_${this.props.index}`}
-                                                                id="username"
-                                                                placeholder="root"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                validate={
-                                                                    ValidateField.text
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Port
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                component={
-                                                                    RenderField
-                                                                }
-                                                                type="text"
-                                                                name={`port_${this.props.index}`}
-                                                                id="port"
-                                                                placeholder="22"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                validate={
-                                                                    ValidateField.text
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Authentication
-                                                            Method
-                                                        </label>
-
-                                                        <div className="bs-Fieldset-fields">
-                                                            <span className="flex">
+                                                    <ShouldRender
+                                                        if={
+                                                            mode === 'agentless'
+                                                        }
+                                                    >
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">
+                                                                Host
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
                                                                 <Field
-                                                                    className="db-select-nw"
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                     component={
-                                                                        RenderSelect
+                                                                        RenderField
                                                                     }
-                                                                    name={`authentication_${this.props.index}`}
-                                                                    id="authentication"
-                                                                    placeholder="Authentication Method"
+                                                                    type="text"
+                                                                    name={`host_${this.props.index}`}
+                                                                    id="host"
+                                                                    placeholder="example.compute-1.amazonaws.com"
                                                                     disabled={
                                                                         requesting
                                                                     }
-                                                                    // onChange={(
-                                                                    //     e,
-                                                                    //     v
-                                                                    // ) =>
-                                                                    //     this.changeBox(
-                                                                    //         e,
-                                                                    //         v
-                                                                    //     )
-                                                                    // }
                                                                     validate={
-                                                                        ValidateField.select
+                                                                        ValidateField.text
                                                                     }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select authentication method',
-                                                                        },
-                                                                        {
-                                                                            value:
-                                                                                'password',
-                                                                            label:
-                                                                                'Password',
-                                                                        },
-                                                                        {
-                                                                            value:
-                                                                                'identityFile',
-                                                                            label:
-                                                                                'Identity File',
-                                                                        },
-                                                                    ]}
-                                                                ></Field>
-                                                            </span>
+                                                                />
+                                                            </div>
                                                         </div>
-                                                    </div>
 
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Password
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                component={
-                                                                    RenderField
-                                                                }
-                                                                type="password"
-                                                                name={`password_${this.props.index}`}
-                                                                id="password"
-                                                                placeholder="Password"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                validate={
-                                                                    ValidateField.text
-                                                                }
-                                                            />
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">
+                                                                Username
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    type="text"
+                                                                    name={`username_${this.props.index}`}
+                                                                    id="username"
+                                                                    placeholder="root"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    validate={
+                                                                        ValidateField.text
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
-                                                    </div>
 
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Identity File
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <div
-                                                                className="Box-root Flex-flex Flex-alignItems--center"
-                                                                style={{
-                                                                    flexWrap:
-                                                                        'wrap',
-                                                                }}
-                                                            >
-                                                                <div>
-                                                                    <label
-                                                                        className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                        type="button"
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">
+                                                                Port
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    type="text"
+                                                                    name={`port_${this.props.index}`}
+                                                                    id="port"
+                                                                    placeholder="22"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    validate={
+                                                                        ValidateField.text
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">
+                                                                Authentication
+                                                                Method
+                                                            </label>
+
+                                                            <div className="bs-Fieldset-fields">
+                                                                <span className="flex">
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name={`authentication_${this.props.index}`}
+                                                                        id="authentication"
+                                                                        placeholder="Authentication Method"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                            v
+                                                                        ) =>
+                                                                            this.changeAuthentication(
+                                                                                e,
+                                                                                v
+                                                                            )
+                                                                        }
+                                                                        validate={
+                                                                            ValidateField.select
+                                                                        }
+                                                                        options={[
+                                                                            {
+                                                                                value:
+                                                                                    '',
+                                                                                label:
+                                                                                    'Select authentication method',
+                                                                            },
+                                                                            {
+                                                                                value:
+                                                                                    'password',
+                                                                                label:
+                                                                                    'Password',
+                                                                            },
+                                                                            {
+                                                                                value:
+                                                                                    'identityFile',
+                                                                                label:
+                                                                                    'Identity File',
+                                                                            },
+                                                                        ]}
+                                                                    ></Field>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        <ShouldRender
+                                                            if={
+                                                                authentication ===
+                                                                'password'
+                                                            }
+                                                        >
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Password
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                        component={
+                                                                            RenderField
+                                                                        }
+                                                                        type="password"
+                                                                        name={`password_${this.props.index}`}
+                                                                        id="password"
+                                                                        placeholder="Password"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        validate={
+                                                                            ValidateField.text
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </ShouldRender>
+
+                                                        <ShouldRender
+                                                            if={
+                                                                authentication ===
+                                                                'identityFile'
+                                                            }
+                                                        >
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Identity
+                                                                    File
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <div
+                                                                        className="Box-root Flex-flex Flex-alignItems--center"
+                                                                        style={{
+                                                                            flexWrap:
+                                                                                'wrap',
+                                                                        }}
                                                                     >
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                true
-                                                                            }
-                                                                        >
-                                                                            <span className="bs-Button--icon bs-Button--new"></span>
-                                                                            <span>
-                                                                                Upload
-                                                                                Identity
-                                                                                File
-                                                                            </span>
-                                                                        </ShouldRender>
+                                                                        <div>
+                                                                            <label
+                                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                                type="button"
+                                                                            >
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        true
+                                                                                    }
+                                                                                >
+                                                                                    <span className="bs-Button--icon bs-Button--new"></span>
+                                                                                    <span>
+                                                                                        Upload
+                                                                                        Identity
+                                                                                        File
+                                                                                    </span>
+                                                                                </ShouldRender>
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        false
+                                                                                    }
+                                                                                >
+                                                                                    <span className="bs-Button--icon bs-Button--edit"></span>
+                                                                                    <span>
+                                                                                        Change
+                                                                                        Identity
+                                                                                        File
+                                                                                    </span>
+                                                                                </ShouldRender>
+                                                                                <div className="bs-FileUploadButton-inputWrap">
+                                                                                    <Field
+                                                                                        className="bs-FileUploadButton-input"
+                                                                                        component={
+                                                                                            UploadFile
+                                                                                        }
+                                                                                        name="identityFile"
+                                                                                        id="identityFile"
+                                                                                        accept="image/jpeg, image/jpg, image/png"
+                                                                                        // onChange={
+                                                                                        //     this
+                                                                                        //         .changefile
+                                                                                        // }
+                                                                                        // disabled={
+                                                                                        //     profileSettings &&
+                                                                                        //     profileSettings.requesting
+                                                                                        // }
+                                                                                        // fileInputKey={
+                                                                                        //     profileSettingState.fileInputKey
+                                                                                        // }
+                                                                                    />
+                                                                                </div>
+                                                                            </label>
+                                                                        </div>
                                                                         <ShouldRender
                                                                             if={
                                                                                 false
                                                                             }
                                                                         >
-                                                                            <span className="bs-Button--icon bs-Button--edit"></span>
-                                                                            <span>
-                                                                                Change
-                                                                                Identity
-                                                                                File
-                                                                            </span>
+                                                                            <div
+                                                                                className="bs-Fieldset-fields"
+                                                                                style={{
+                                                                                    padding:
+                                                                                        '0',
+                                                                                }}
+                                                                            >
+                                                                                <button
+                                                                                    className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                                    type="button"
+                                                                                    // onClick={
+                                                                                    //     this
+                                                                                    //         .removeProfilePic
+                                                                                    // }
+                                                                                    // disabled={
+                                                                                    //     profileSettings &&
+                                                                                    //     profileSettings.requesting
+                                                                                    // }
+                                                                                    style={{
+                                                                                        margin:
+                                                                                            '10px 10px 0 0',
+                                                                                    }}
+                                                                                >
+                                                                                    <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                                    <span>
+                                                                                        Remove
+                                                                                        Identity
+                                                                                        File
+                                                                                    </span>
+                                                                                </button>
+                                                                            </div>
                                                                         </ShouldRender>
-                                                                        <div className="bs-FileUploadButton-inputWrap">
-                                                                            <Field
-                                                                                className="bs-FileUploadButton-input"
-                                                                                component={
-                                                                                    UploadFile
-                                                                                }
-                                                                                name="identityFile"
-                                                                                id="identityFile"
-                                                                                accept="image/jpeg, image/jpg, image/png"
-                                                                                // onChange={
-                                                                                //     this
-                                                                                //         .changefile
-                                                                                // }
-                                                                                // disabled={
-                                                                                //     profileSettings &&
-                                                                                //     profileSettings.requesting
-                                                                                // }
-                                                                                // fileInputKey={
-                                                                                //     profileSettingState.fileInputKey
-                                                                                // }
-                                                                            />
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
-                                                                <ShouldRender
-                                                                    if={false}
-                                                                >
-                                                                    <div
-                                                                        className="bs-Fieldset-fields"
-                                                                        style={{
-                                                                            padding:
-                                                                                '0',
-                                                                        }}
-                                                                    >
-                                                                        <button
-                                                                            className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                            type="button"
-                                                                            // onClick={
-                                                                            //     this
-                                                                            //         .removeProfilePic
-                                                                            // }
-                                                                            // disabled={
-                                                                            //     profileSettings &&
-                                                                            //     profileSettings.requesting
-                                                                            // }
-                                                                            style={{
-                                                                                margin:
-                                                                                    '10px 10px 0 0',
-                                                                            }}
-                                                                        >
-                                                                            <span className="bs-Button--icon bs-Button--delete"></span>
-                                                                            <span>
-                                                                                Remove
-                                                                                Identity
-                                                                                File
-                                                                            </span>
-                                                                        </button>
                                                                     </div>
-                                                                </ShouldRender>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </div>
+                                                        </ShouldRender>
+                                                    </ShouldRender>
                                                 </ShouldRender>
 
                                                 <ShouldRender
@@ -1580,50 +1615,77 @@ class NewMonitor extends Component {
                                                             Call Schedule
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <span className="flex" >
-                                                            <Field
-                                                                className="db-select-nw"
-                                                                component={
-                                                                    RenderSelect
-                                                                }
-                                                                name={`callSchedule_${this.props.index}`}
-                                                                id="callSchedule"
-                                                                placeholder="Call Schedule"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                style={{
-                                                                    height:
-                                                                        '28px',
-                                                                }}
-                                                                options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select call schedule',
-                                                                    },
-                                                                    ...(schedules &&
-                                                                    schedules.length >
-                                                                        0
-                                                                        ? schedules.map(
-                                                                              schedule => ({
-                                                                                  value:
-                                                                                      schedule._id,
-                                                                                  label:
-                                                                                      schedule.name,
-                                                                              })
-                                                                          )
-                                                                        : []),
-                                                                ]}
-                                                            />
-                                                            <Tooltip title="Call Schedule">
-                                                                <div>
-                                                                    <p>
-                                                                        Call Schedules let's you connect your team members to specific monitors, so only on-duty members who are responsible for certain monitors are alerted when an incident is created.
-                                                                    </p>
-                                                                </div>
-                                                            </Tooltip>
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name={`callSchedule_${this.props.index}`}
+                                                                    id="callSchedule"
+                                                                    placeholder="Call Schedule"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    style={{
+                                                                        height:
+                                                                            '28px',
+                                                                    }}
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select call schedule',
+                                                                        },
+                                                                        ...(schedules &&
+                                                                        schedules.length >
+                                                                            0
+                                                                            ? schedules.map(
+                                                                                  schedule => ({
+                                                                                      value:
+                                                                                          schedule._id,
+                                                                                      label:
+                                                                                          schedule.name,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
+                                                                />
+                                                                <Tooltip title="Call Schedule">
+                                                                    <div>
+                                                                        <p>
+                                                                            Call
+                                                                            Schedules
+                                                                            let's
+                                                                            you
+                                                                            connect
+                                                                            your
+                                                                            team
+                                                                            members
+                                                                            to
+                                                                            specific
+                                                                            monitors,
+                                                                            so
+                                                                            only
+                                                                            on-duty
+                                                                            members
+                                                                            who
+                                                                            are
+                                                                            responsible
+                                                                            for
+                                                                            certain
+                                                                            monitors
+                                                                            are
+                                                                            alerted
+                                                                            when
+                                                                            an
+                                                                            incident
+                                                                            is
+                                                                            created.
+                                                                        </p>
+                                                                    </div>
+                                                                </Tooltip>
                                                             </span>
                                                         </div>
                                                     </div>
@@ -1641,52 +1703,61 @@ class NewMonitor extends Component {
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
-                                                            { this.props.edit ? (<Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="monitorSla"
-                                                                    id="monitorSla"
-                                                                    placeholder="Monitor SLA"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        ...this.props.monitorSlas.map(sla => ({
-                                                                            value: sla._id,
-                                                                            label: sla.name,
-                                                                        }))
-                                                                    ]}
-                                                                />) : (<Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="monitorSla"
-                                                                    id="monitorSla"
-                                                                    placeholder="Monitor SLA"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select Monitor SLA',
-                                                                        },
-                                                                        ...this.props.monitorSlas.map(
-                                                                            sla => ({
+                                                                {this.props
+                                                                    .edit ? (
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="monitorSla"
+                                                                        id="monitorSla"
+                                                                        placeholder="Monitor SLA"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        options={[
+                                                                            ...this.props.monitorSlas.map(
+                                                                                sla => ({
+                                                                                    value:
+                                                                                        sla._id,
+                                                                                    label:
+                                                                                        sla.name,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                ) : (
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="monitorSla"
+                                                                        id="monitorSla"
+                                                                        placeholder="Monitor SLA"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        options={[
+                                                                            {
                                                                                 value:
-                                                                                    sla._id,
+                                                                                    '',
                                                                                 label:
-                                                                                    sla.name,
-                                                                            })
-                                                                        ),
-                                                                    ]}
-                                                                />)}
-                                                                
+                                                                                    'Select Monitor SLA',
+                                                                            },
+                                                                            ...this.props.monitorSlas.map(
+                                                                                sla => ({
+                                                                                    value:
+                                                                                        sla._id,
+                                                                                    label:
+                                                                                        sla.name,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                )}
+
                                                                 <Tooltip title="Monitor SLA">
                                                                     <div>
                                                                         <p>
