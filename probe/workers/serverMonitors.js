@@ -15,16 +15,28 @@ module.exports = {
                         host,
                         port,
                         username,
+                        authentication,
+                        password,
                         identityFile,
                     } = monitor.agentlessConfig;
                     const ssh = new NodeSSH();
 
-                    ssh.connect({
+                    const config = {
                         host,
                         port,
                         username,
-                        privateKey: fs.readFileSync(identityFile, 'utf8'),
-                    })
+                    };
+
+                    if (authentication === 'password') {
+                        config.password = password;
+                    } else {
+                        config.privateKey = fs.readFileSync(
+                            identityFile,
+                            'utf8'
+                        );
+                    }
+
+                    ssh.connect(config)
                         .then(async function() {
                             let os;
                             try {
