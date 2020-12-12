@@ -15,6 +15,9 @@ function StatusIndicator({ status, resourceName, monitorName }) {
         case 'offline':
             statusColor = 'red';
             break;
+        case 'disabled':
+            statusColor = 'slate5';
+            break;
         default:
             statusColor = 'slate';
     }

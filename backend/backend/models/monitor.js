@@ -51,6 +51,7 @@ const monitorSchema = new Schema({
     formData: [Object],
     text: String,
     headers: [Object],
+    disabled: { type: Boolean, default: false },
     deleted: { type: Boolean, default: false },
 
     deletedAt: {

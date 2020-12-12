@@ -16,6 +16,7 @@ import MonitorViewIncidentBox from '../components/monitor/MonitorViewIncidentBox
 import MonitorViewLighthouseLogsBox from '../components/monitor/MonitorViewLighthouseLogsBox';
 import MonitorViewSubscriberBox from '../components/monitor/MonitorViewSubscriberBox';
 import MonitorViewDeleteBox from '../components/monitor/MonitorViewDeleteBox';
+import MonitorViewDisableBox from '../components/monitor/MonitorViewDisableBox';
 import NewMonitor from '../components/monitor/NewMonitor';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
@@ -199,7 +200,8 @@ class MonitorView extends React.Component {
 
         const componentMonitorsRoute = getParentRoute(pathname);
         const defaultMonitorSla = monitorSlas.find(sla => sla.isDefault);
-
+        const disabledMonitor =
+            this.props.monitor && this.props.monitor.disabled;
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
@@ -246,6 +248,52 @@ class MonitorView extends React.Component {
                             </TabList>
                         </div>
                         <div>{scheduleAlert}</div>
+                        {disabledMonitor && this.state.tabIndex === 0 ? (
+                            <div
+                                className="Box-root Margin-vertical--12"
+                                style={{ marginTop: 0, cursor: 'pointer' }}
+                                id="noMonitorSlaBreached"
+                            >
+                                <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                    <div className="Box-root Box-background--slate9 Card-shadow--medium Border-radius--4">
+                                        <div
+                                            className="bs-ContentSection-content Box-root Flex-flex Padding-horizontal--20 Padding-vertical--12"
+                                            style={{
+                                                justifyContent: 'space-between',
+                                            }}
+                                        >
+                                            <div
+                                                className="ContentHeader-title Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16"
+                                                style={{
+                                                    color: 'rgb(76, 76, 76)',
+                                                    paddingTop: '5px',
+                                                }}
+                                            >
+                                                <span>
+                                                    This monitor is currently
+                                                    disabled and not
+                                                    monitoring.Re Enable it to
+                                                    start monitoring again.
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <button
+                                                    className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                                    id={`reEnable_${this.props.monitor.name}`}
+                                                    onClick={() =>
+                                                        this.tabSelected(3)
+                                                    }
+                                                >
+                                                    <span>Enable</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            ''
+                        )}
                         {!this.props.requestingMonitorSla &&
                             this.props.monitor &&
                             (this.props.monitor.monitorSla ||
@@ -623,6 +671,37 @@ class MonitorView extends React.Component {
                                                                                     }
                                                                                 />
                                                                             </div>
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor &&
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type &&
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type !==
+                                                                                        'manual'
+                                                                                }
+                                                                            >
+                                                                                <div className="Box-root Margin-bottom--12">
+                                                                                    <MonitorViewDisableBox
+                                                                                        componentId={
+                                                                                            this
+                                                                                                .props
+                                                                                                .componentId
+                                                                                        }
+                                                                                        monitor={
+                                                                                            this
+                                                                                                .props
+                                                                                                .monitor
+                                                                                        }
+                                                                                    />
+                                                                                </div>
+                                                                            </ShouldRender>
                                                                         </RenderIfSubProjectAdmin>
                                                                     </Fade>
                                                                 </TabPanel>
