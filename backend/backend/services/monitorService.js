@@ -111,6 +111,9 @@ module.exports = {
                     monitor.visibleOnStatusPage = data.visibleOnStatusPage;
                     monitor.componentId = data.componentId;
                     monitor.projectId = data.projectId;
+                    if (data.agentlessConfig) {
+                        monitor.agentlessConfig = data.agentlessConfig;
+                    }
                     if (
                         data.type === 'url' ||
                         data.type === 'api' ||

@@ -76,37 +76,6 @@ class NewMonitor extends Component {
         this.props.fetchMonitorCriteria();
     }
 
-    //Client side validation
-    validate = values => {
-        const errors = {};
-        if (!ValidateField.text(values[`name_${this.props.index}`])) {
-            errors.name = 'Name is required.';
-        }
-        if (values[`type_${this.props.index}`] === 'url') {
-            if (!ValidateField.text(values[`url_${this.props.index}`])) {
-                errors.url = 'URL is required.';
-            } else if (!ValidateField.url(values[`url_${this.props.index}`])) {
-                errors.url = 'URL is invalid.';
-            }
-        }
-
-        if (values[`type_${this.props.index}`] === 'device') {
-            if (!ValidateField.text(values[`deviceId_${this.props.index}`])) {
-                errors.deviceId = 'Device ID is required.';
-            } else if (
-                !ValidateField.url(values[`deviceId_${this.props.index}`])
-            ) {
-                errors.deviceId = 'Device ID is invalid.';
-            }
-        }
-
-        if (!values['resourceCategoriesId']) {
-            errors.resourceCategories = 'Resource Category is required';
-        }
-
-        return errors;
-    };
-
     componentDidUpdate() {
         const { monitor } = this.props;
         if (
@@ -145,6 +114,20 @@ class NewMonitor extends Component {
 
         if (postObj.type === 'script') {
             postObj.data.script = thisObj.state.script;
+        }
+
+        if (
+            postObj.type === 'server-monitor' &&
+            values[`mode_${this.props.index}`] === 'agentless'
+        ) {
+            postObj.agentlessConfig = {
+                host: values[`host_${this.props.index}`],
+                port: values[`port_${this.props.index}`],
+                username: values[`username_${this.props.index}`],
+                authentication: values[`authentication_${this.props.index}`],
+                password: values[`password_${this.props.index}`],
+                identityFile: values[`identityFile_${this.props.index}`],
+            };
         }
 
         if (postObj.type === 'incomingHttpRequest')
@@ -1126,30 +1109,6 @@ class NewMonitor extends Component {
 
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">
-                                                                Username
-                                                            </label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderField
-                                                                    }
-                                                                    type="text"
-                                                                    name={`username_${this.props.index}`}
-                                                                    id="username"
-                                                                    placeholder="root"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    validate={
-                                                                        ValidateField.text
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
                                                                 Port
                                                             </label>
                                                             <div className="bs-Fieldset-fields">
@@ -1162,6 +1121,30 @@ class NewMonitor extends Component {
                                                                     name={`port_${this.props.index}`}
                                                                     id="port"
                                                                     placeholder="22"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    validate={
+                                                                        ValidateField.text
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">
+                                                                Username
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    type="text"
+                                                                    name={`username_${this.props.index}`}
+                                                                    id="username"
+                                                                    placeholder="root"
                                                                     disabled={
                                                                         requesting
                                                                     }
@@ -1313,9 +1296,9 @@ class NewMonitor extends Component {
                                                                                         component={
                                                                                             UploadFile
                                                                                         }
-                                                                                        name="identityFile"
+                                                                                        name={`identityFile_${this.props.index}`}
                                                                                         id="identityFile"
-                                                                                        accept="image/jpeg, image/jpg, image/png"
+                                                                                        accept=".pem, .ppk"
                                                                                         // onChange={
                                                                                         //     this
                                                                                         //         .changefile
@@ -2104,6 +2087,8 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = (state, ownProps) => {
     const name = selector(state, 'name_1000');
     const type = selector(state, 'type_1000');
+    const mode = selector(state, 'mode_1000');
+    const authentication = selector(state, 'authentication_1000');
     const category = selector(state, 'resourceCategory_1000');
     const schedule = selector(state, 'callSchedule_1000');
     const monitorSla = selector(state, 'monitorSla');
@@ -2142,6 +2127,8 @@ const mapStateToProps = (state, ownProps) => {
             currentProject: state.project.currentProject,
             name,
             type,
+            mode,
+            authentication,
             category,
             schedule,
             monitorSla,
@@ -2173,6 +2160,8 @@ const mapStateToProps = (state, ownProps) => {
             currentProject: state.project.currentProject,
             name,
             type,
+            mode,
+            authentication,
             category,
             schedule,
             monitorSla,
@@ -2217,6 +2206,8 @@ NewMonitor.propTypes = {
     edit: PropTypes.bool,
     name: PropTypes.string,
     type: PropTypes.string,
+    mode: PropTypes.string,
+    authentication: PropTypes.string,
     category: PropTypes.string,
     subProject: PropTypes.string,
     schedule: PropTypes.string,
