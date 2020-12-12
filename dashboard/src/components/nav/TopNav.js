@@ -347,7 +347,10 @@ class TopContent extends Component {
         }
 
         let ongoingEventList;
-
+        const x = document.getElementById('myId')
+            ? document.getElementById('myId').childElementCount
+            : 0;
+        console.log(`Child element count: ${x}`);
         return (
             <div
                 tabIndex="0"
@@ -372,7 +375,10 @@ class TopContent extends Component {
                         <FeedBackModal />
                     </ClickOutside>
 
-                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                    <div
+                        className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart"
+                        id="myId"
+                    >
                         <span>
                             <ShouldRender
                                 if={!this.props.escalation.requesting}
