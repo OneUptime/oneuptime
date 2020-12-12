@@ -97,10 +97,10 @@ class TopContent extends Component {
                 <Fade>
                     <div
                         className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${incidentCounter && incidentCounter > 0
-                                ? 'red'
-                                : incidentCounter === 0
-                                    ? 'green'
-                                    : null
+                            ? 'red'
+                            : incidentCounter === 0
+                                ? 'green'
+                                : null
                             } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer`}
                         style={{ paddingBottom: '6px', paddingTop: '6px' }}
                         onClick={this.handleActiveIncidentClick}
@@ -108,10 +108,10 @@ class TopContent extends Component {
                     >
                         <span
                             className={`db-SideNav-icon db-SideNav-icon--${incidentCounter && incidentCounter > 0
-                                    ? 'info'
-                                    : incidentCounter === 0
-                                        ? 'tick'
-                                        : null
+                                ? 'info'
+                                : incidentCounter === 0
+                                    ? 'tick'
+                                    : null
                                 } db-SideNav-icon--selected`}
                             style={{
                                 filter: 'brightness(0) invert(1)',
@@ -264,6 +264,8 @@ class TopContent extends Component {
                 const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
+                const sameDay = oncallstart < oncallend;
+                const differentDay = oncallstart >= oncallend;
 
                 const startTime = moment(
                     (userSchedule &&
@@ -277,17 +279,30 @@ class TopContent extends Component {
                     dayEnd
                 ).format('HH:mm');
 
-                const isUserActive = moment(now, 'HH:mm')
+                const compareDate = (oncallstart, oncallend) => {
+                    const start = new Date(new Date()
+                        .setHours(oncallstart.split(":")[0],
+                            oncallstart.split(":")[1])).getTime();
+                    const end = new Date(new Date(new Date().getTime() + 86400000)
+                        .setHours(oncallend.split(":")[0],
+                            oncallend.split(":")[1])).getTime();
+                    const current = new Date().getTime();
+
+                    if (current >= start && current <= end) return true;
+                    return false;
+                }
+
+                const isUserActive = (sameDay && moment(now, 'HH:mm')
                     .isBetween(moment(oncallstart, 'HH:mm'),
-                        moment(oncallend, 'HH:mm')) ||
-                    (userSchedule.startTime >= userSchedule.endTime);
+                        moment(oncallend, 'HH:mm'))) || (differentDay &&
+                            (compareDate(oncallstart, oncallend) || (oncallstart === oncallend)));
 
                 const isUpcoming = moment(startTime, 'HH:mm')
                     .diff(moment(now, 'HH:mm'),
                         'minutes');
 
                 const isOnDutyAllTheTime =
-                    userSchedule.startTime >= userSchedule.endTime;
+                    userSchedule.startTime === userSchedule.endTime;
 
                 const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;

@@ -149,6 +149,8 @@ class Home extends Component {
                 const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
+                const sameDay = oncallstart < oncallend;
+                const differentDay = oncallstart >= oncallend;
 
                 const startTime = moment(
                     (userSchedule &&
@@ -162,17 +164,30 @@ class Home extends Component {
                     dayEnd
                 ).format('HH:mm');
 
-                const isUserActive = moment(now, 'HH:mm')
+                const compareDate = (oncallstart, oncallend) => {
+                    const start = new Date(new Date()
+                        .setHours(oncallstart.split(":")[0],
+                            oncallstart.split(":")[1])).getTime();
+                    const end = new Date(new Date(new Date().getTime() + 86400000)
+                        .setHours(oncallend.split(":")[0],
+                            oncallend.split(":")[1])).getTime();
+                    const current = new Date().getTime();
+
+                    if (current >= start && current <= end) return true;
+                    return false;
+                }
+
+                const isUserActive = (sameDay && moment(now, 'HH:mm')
                     .isBetween(moment(oncallstart, 'HH:mm'),
-                        moment(oncallend, 'HH:mm')) ||
-                    (userSchedule.startTime >= userSchedule.endTime);
+                        moment(oncallend, 'HH:mm'))) || (differentDay &&
+                        (compareDate(oncallstart, oncallend) || (oncallstart === oncallend)));
 
                 const isUpcoming = moment(startTime, 'HH:mm')
                     .diff(moment(now, 'HH:mm'),
                         'minutes');
 
                 const isOnDutyAllTheTime =
-                    userSchedule.startTime >= userSchedule.endTime;
+                    userSchedule.startTime === userSchedule.endTime;
 
                 const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
