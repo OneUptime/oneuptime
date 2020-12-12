@@ -773,4 +773,31 @@ router.post(
     }
 );
 
+router.post(
+    '/:projectId/disableMonitor/:monitorId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { monitorId } = req.params;
+            const monitor = await MonitorService.findOneBy({ _id: monitorId });
+            const disabled = monitor.disabled ? false : true;
+            const newMonitor = await MonitorService.updateOneBy(
+                {
+                    _id: monitorId,
+                },
+                { disabled: disabled }
+            );
+            await ProbeService.createMonitorDisabledStatus({
+                monitorId,
+                manuallyCreated: true,
+                status: disabled ? 'disabled' : 'enable',
+            });
+            return sendItemResponse(req, res, newMonitor);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;

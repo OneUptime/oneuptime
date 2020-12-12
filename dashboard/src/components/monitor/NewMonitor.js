@@ -1226,7 +1226,7 @@ class NewMonitor extends Component {
                                                             Call Schedule
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <span class="flex" >
+                                                            <span className="flex" >
                                                             <Field
                                                                 className="db-select-nw"
                                                                 component={

@@ -4,6 +4,7 @@
     "private": true,
     "dependencies": {
         "airtable": "^0.10.0",
+        "async-mutex": "^0.2.6",
         "axios": "^0.21.0",
         "bcrypt": "^5.0.0",
         "body-parser": "^1.19.0",

@@ -18,6 +18,7 @@ const monitorStatusSchema = new Schema({
         type: Date,
         default: null,
     },
+    lastStatus: String,
     createdAt: {
         type: Date,
         default: Date.now,

@@ -472,8 +472,12 @@ router.post(
                 if (!data.id) {
                     data.createdById = req.user.id;
                     incidentMessage = await IncidentMessageService.create(data);
-                    if(data.type === 'investigation') {
-                        AlertService.sendInvestigationNoteToSubscribers(incident, data, "created")
+                    if (data.type === 'investigation') {
+                        AlertService.sendInvestigationNoteToSubscribers(
+                            incident,
+                            data,
+                            'created'
+                        );
                     }
                 } else {
                     const updatedMessage = {
@@ -484,11 +488,17 @@ router.post(
                         { _id: data.id },
                         updatedMessage
                     );
-                    const investigation = await IncidentMessageService.findOneBy({
-                        _id: data.id,
-                    });
+                    const investigation = await IncidentMessageService.findOneBy(
+                        {
+                            _id: data.id,
+                        }
+                    );
                     if (investigation.type === 'investigation') {
-                        AlertService.sendInvestigationNoteToSubscribers(incident, data, "updated")
+                        AlertService.sendInvestigationNoteToSubscribers(
+                            incident,
+                            data,
+                            'updated'
+                        );
                     }
                 }
                 const status = `${incidentMessage.type} notes ${
