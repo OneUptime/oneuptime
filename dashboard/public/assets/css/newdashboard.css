@@ -11336,13 +11336,22 @@ table {
     margin-bottom: 10px;
     width: 100%;
 }
-.TopNavCardText{
+
+.threeCardClass{
+    display: block;
+}
+
+.twoCardClass{
+    display: block;
+}
+
+.oneCardClass{
     display: block;
 }
 
 @media (max-width: 1335px) 
 {
-    .TopNavCardText
+    .threeCardClass
     {
         text-overflow: ellipsis;
         overflow: hidden; 
@@ -11352,7 +11361,45 @@ table {
 }
 @media (max-width: 1030px) 
 {
-    .TopNavCardText
+    .threeCardClass
+    {
+        display:none;
+    }
+}
+
+@media (max-width: 1136px) 
+{
+    .twoCardClass
+    {
+        text-overflow: ellipsis;
+        overflow: hidden; 
+        width: 100px; 
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 870px) 
+{
+    .twoCardClass
+    {
+        display:none;
+    }
+}
+
+@media (max-width: 860px) 
+{
+    .oneCardClass
+    {
+        text-overflow: ellipsis;
+        overflow: hidden; 
+        width: 100px; 
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 760px) 
+{
+    .oneCardClass
     {
         display:none;
     }

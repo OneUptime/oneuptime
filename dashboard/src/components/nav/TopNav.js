@@ -22,7 +22,6 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 import _ from 'lodash';
 import moment from 'moment-timezone';
-
 class TopContent extends Component {
     componentDidMount() {
         const {
@@ -91,7 +90,7 @@ class TopContent extends Component {
         history.push(`/dashboard/project/${projectId}`);
     };
 
-    renderActiveIncidents = incidentCounter => (
+    renderActiveIncidents = (incidentCounter, topNavCardClass) => (
         <>
             {typeof incidentCounter === 'number' && (
                 <Fade>
@@ -121,7 +120,7 @@ class TopContent extends Component {
                                 marginRight: '3px',
                             }}
                         />
-                        <span className={`TopNavCardText`}>
+                        <span className={topNavCardClass}>
                             <ShouldRender
                                 if={incidentCounter && incidentCounter > 0}
                             >
@@ -140,7 +139,7 @@ class TopContent extends Component {
         </>
     );
 
-    renderOngoingScheduledEvents = () => {
+    renderOngoingScheduledEvents = topNavCardClass => {
         const { subProjectOngoingScheduledEvents } = this.props;
         let count = 0;
         subProjectOngoingScheduledEvents.forEach(eventData => {
@@ -161,14 +160,18 @@ class TopContent extends Component {
                         marginRight: '3px',
                     }}
                 />
-                <span className={`TopNavCardText`}>{`${count} Scheduled Event${
+                <span className={topNavCardClass}>{`${count} Scheduled Event${
                     count === 1 ? '' : 's'
                 } Currently Active`}</span>
             </div>
         ) : null;
     };
 
-    renderOnCallSchedule = (activeSchedules, currentProjectId) => {
+    renderOnCallSchedule = (
+        activeSchedules,
+        currentProjectId,
+        topNavCardClass
+    ) => {
         return (
             <div
                 className="Box-root box__cyan5 Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer Margin-right--20"
@@ -192,7 +195,7 @@ class TopContent extends Component {
                         marginRight: '3px',
                     }}
                 />
-                <span className={`TopNavCardText`}>
+                <span className={topNavCardClass}>
                     {`You're currently on-call duty.`}
                 </span>
             </div>
@@ -346,11 +349,13 @@ class TopContent extends Component {
             });
         }
 
-        let ongoingEventList;
-        const x = document.getElementById('myId')
+        let ongoingEventList, topNavCardClass;
+        const topNavCardCount = document.getElementById('myId')
             ? document.getElementById('myId').childElementCount
             : 0;
-        console.log(`Child element count: ${x}`);
+        if (topNavCardCount === 4) topNavCardClass = 'oneCardClass';
+        if (topNavCardCount == 5) topNavCardClass = 'twoCardClass';
+        if (topNavCardCount == 6) topNavCardClass = 'threeCardClass';
         return (
             <div
                 tabIndex="0"
@@ -379,37 +384,35 @@ class TopContent extends Component {
                         className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart"
                         id="myId"
                     >
-                        <span>
-                            <ShouldRender
-                                if={!this.props.escalation.requesting}
-                            >
-                                {userSchedules ? (
-                                    <>
-                                        {ongoingEventList &&
-                                            ongoingEventList.length > 0 &&
-                                            ongoingEventList}
-                                        <ShouldRender
-                                            if={
-                                                activeSchedules &&
-                                                activeSchedules.length > 0
-                                            }
-                                        >
-                                            {this.renderOnCallSchedule(
-                                                activeSchedules,
-                                                this.props.currentProjectId
-                                            )}
-                                        </ShouldRender>
-                                    </>
-                                ) : (
-                                    ''
-                                )}
-                            </ShouldRender>
-                        </span>
+                        {userSchedules ? (
+                            <>
+                                {ongoingEventList &&
+                                    ongoingEventList.length > 0 &&
+                                    ongoingEventList}
+                                <ShouldRender
+                                    if={
+                                        activeSchedules &&
+                                        activeSchedules.length > 0
+                                    }
+                                >
+                                    {this.renderOnCallSchedule(
+                                        activeSchedules,
+                                        this.props.currentProjectId,
+                                        topNavCardClass
+                                    )}
+                                </ShouldRender>
+                            </>
+                        ) : (
+                            ''
+                        )}
 
                         {monitorCount > 0
-                            ? this.renderActiveIncidents(incidentCounter)
+                            ? this.renderActiveIncidents(
+                                  incidentCounter,
+                                  topNavCardClass
+                              )
                             : null}
-                        {this.renderOngoingScheduledEvents()}
+                        {this.renderOngoingScheduledEvents(topNavCardClass)}
 
                         <div className="Box-root Margin-right--16">
                             <div
@@ -580,7 +583,6 @@ TopContent.propTypes = {
     monitors: PropTypes.shape({ count: PropTypes.number }),
     subProjectOngoingScheduledEvents: PropTypes.array,
     openModal: PropTypes.func.isRequired,
-    escalation: PropTypes.object,
     escalations: PropTypes.array,
     user: PropTypes.object.isRequired,
     currentProjectId: PropTypes.string.isRequired,
