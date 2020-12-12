@@ -16,7 +16,6 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
-import Fade from 'react-reveal/Fade';
 import OnCallScheduleModal from '../OnCallScheduleModal';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
@@ -94,7 +93,6 @@ class TopContent extends Component {
     renderActiveIncidents = incidentCounter => (
         <>
             {typeof incidentCounter === 'number' && (
-                <Fade>
                     <div
                         className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
                             incidentCounter && incidentCounter > 0
@@ -135,7 +133,6 @@ class TopContent extends Component {
                             </ShouldRender>
                         </span>
                     </div>
-                </Fade>
             )}
         </>
     );
