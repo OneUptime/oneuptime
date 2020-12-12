@@ -101,7 +101,7 @@ class TopContent extends Component {
                                 : incidentCounter === 0
                                 ? 'green'
                                 : null
-                        } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer`}
+                        } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
                         style={{ paddingBottom: '6px', paddingTop: '6px' }}
                         onClick={this.handleActiveIncidentClick}
                         id="activeIncidents"
@@ -147,7 +147,7 @@ class TopContent extends Component {
         });
         return count > 0 ? (
             <div
-                className="Box-root box__yellow--dark Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer Margin-left--20"
+                className="Box-root box__yellow--dark Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer Margin-left--20"
                 style={{ paddingBottom: '6px', paddingTop: '6px' }}
                 onClick={this.handleActiveIncidentClick}
                 id="ongoingEvents"
@@ -174,7 +174,7 @@ class TopContent extends Component {
     ) => {
         return (
             <div
-                className="Box-root box__cyan5 Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer Margin-right--20"
+                className="Box-root box__cyan5 Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer Margin-right--20"
                 style={{ paddingBottom: '6px', paddingTop: '6px' }}
                 id="onCallSchedule"
                 onClick={() =>
@@ -196,7 +196,7 @@ class TopContent extends Component {
                     }}
                 />
                 <span className={topNavCardClass}>
-                    {`You're currently on-call duty.`}
+                    {`You're currently on-call duty`}
                 </span>
             </div>
         );
