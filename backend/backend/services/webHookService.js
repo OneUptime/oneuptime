@@ -125,6 +125,7 @@ module.exports = {
                             color: green,
                             title: `Incident Resolved`,
                             title_link: uri,
+                            incidentId: incident._id,
                             text: `Incident on *${component.name} / ${
                                 monitor.name
                             }* is resolved by ${
@@ -144,6 +145,7 @@ module.exports = {
                             color: yellow,
                             title: `Incident Acknowledged`,
                             title_link: uri,
+                            incidentId: incident._id,
                             text: `Incident on *${component.name} / ${
                                 monitor.name
                             }* is acknowledged by ${
@@ -169,6 +171,11 @@ module.exports = {
                             title: `New ${incident.incidentType} incident for ${monitor.name}`,
                             title_link: uri,
                             fields: [
+                                {
+                                    title: 'Incident ID:',
+                                    value: incident._id,
+                                    short: true,
+                                },
                                 {
                                     title: 'Project Name:',
                                     value: project.name,
@@ -209,7 +216,7 @@ module.exports = {
                                       ]
                                     : []),
                                 {
-                                    title: 'Created By:',
+                                    title: 'Cause:',
                                     value: incident.createdById
                                         ? incident.createdById.name
                                         : 'Fyipe',
@@ -235,9 +242,10 @@ module.exports = {
                 monitorName: monitor.name,
                 monitorId: monitor._id,
                 projectId: project._id,
+                incidentId: incident._id,
                 projectName: project.name,
                 createdAt: incident.createdAt,
-                createdBy: incident.createdById
+                cause: incident.createdById
                     ? incident.createdById.name
                     : 'Fyipe',
                 incidentStatus: incident.incidentType,
