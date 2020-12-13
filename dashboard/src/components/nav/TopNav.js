@@ -8,6 +8,7 @@ import { openNotificationMenu } from '../../actions/notification';
 import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
 import ClickOutside from 'react-click-outside';
 import { userSettings } from '../../actions/profile';
+import { userScheduleRequest, fetchUserSchedule } from '../../actions/schedule';
 import { getVersion } from '../../actions/version';
 import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
@@ -16,7 +17,6 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
-import Fade from 'react-reveal/Fade';
 import OnCallScheduleModal from '../OnCallScheduleModal';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
@@ -33,8 +33,16 @@ class TopContent extends Component {
         } = this.props;
         userSettings();
         getVersion();
+
+        this.props.userScheduleRequest();
         if (currentProject && currentProject._id) {
             fetchSubProjectOngoingScheduledEvents(currentProject._id);
+        }
+        if (this.props.currentProjectId && this.props.user.id) {
+            this.props.fetchUserSchedule(
+                this.props.currentProjectId,
+                this.props.user.id
+            );
         }
     }
 
@@ -42,6 +50,19 @@ class TopContent extends Component {
         if (prevProps.currentProject !== this.props.currentProject) {
             this.props.fetchSubProjectOngoingScheduledEvents(
                 this.props.currentProject._id
+            );
+        }
+
+        if (
+            (!prevProps.user.id &&
+                this.props.currentProjectId &&
+                this.props.user.id) ||
+            (prevProps.currentProjectId !== this.props.currentProjectId &&
+                this.props.user.id)
+        ) {
+            this.props.fetchUserSchedule(
+                this.props.currentProjectId,
+                this.props.user.id
             );
         }
     }
@@ -94,46 +115,46 @@ class TopContent extends Component {
     renderActiveIncidents = incidentCounter => (
         <>
             {typeof incidentCounter === 'number' && (
-                <Fade>
-                    <div
-                        className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${incidentCounter && incidentCounter > 0
+                <div
+                    className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
+                        incidentCounter && incidentCounter > 0
                             ? 'red'
                             : incidentCounter === 0
-                                ? 'green'
-                                : null
-                            } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer`}
-                        style={{ paddingBottom: '6px', paddingTop: '6px' }}
-                        onClick={this.handleActiveIncidentClick}
-                        id="activeIncidents"
-                    >
-                        <span
-                            className={`db-SideNav-icon db-SideNav-icon--${incidentCounter && incidentCounter > 0
+                            ? 'green'
+                            : null
+                    } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer`}
+                    style={{ paddingBottom: '6px', paddingTop: '6px' }}
+                    onClick={this.handleActiveIncidentClick}
+                    id="activeIncidents"
+                >
+                    <span
+                        className={`db-SideNav-icon db-SideNav-icon--${
+                            incidentCounter && incidentCounter > 0
                                 ? 'info'
                                 : incidentCounter === 0
-                                    ? 'tick'
-                                    : null
-                                } db-SideNav-icon--selected`}
-                            style={{
-                                filter: 'brightness(0) invert(1)',
-                                marginTop: '1px',
-                                marginRight: '5px',
-                            }}
-                        />
-                        <span id="activeIncidentsText">
-                            <ShouldRender
-                                if={incidentCounter && incidentCounter > 0}
-                            >
-                                {`${incidentCounter +
-                                    (incidentCounter === 1
-                                        ? ' Incident Currently Active'
-                                        : ' Incidents Currently Active')}`}
-                            </ShouldRender>
-                            <ShouldRender if={incidentCounter === 0}>
-                                No incidents currently active.
-                            </ShouldRender>
-                        </span>
-                    </div>
-                </Fade>
+                                ? 'tick'
+                                : null
+                        } db-SideNav-icon--selected`}
+                        style={{
+                            filter: 'brightness(0) invert(1)',
+                            marginTop: '1px',
+                            marginRight: '5px',
+                        }}
+                    />
+                    <span id="activeIncidentsText">
+                        <ShouldRender
+                            if={incidentCounter && incidentCounter > 0}
+                        >
+                            {`${incidentCounter +
+                                (incidentCounter === 1
+                                    ? ' Incident Currently Active'
+                                    : ' Incidents Currently Active')}`}
+                        </ShouldRender>
+                        <ShouldRender if={incidentCounter === 0}>
+                            No incidents currently active.
+                        </ShouldRender>
+                    </span>
+                </div>
             )}
         </>
     );
@@ -229,9 +250,6 @@ class TopContent extends Component {
                 incident => !incident.resolved
             ).length;
         }
-        const monitorCount = this.props.monitors
-            ? this.props.monitors.count
-            : 0;
 
         const { escalations } = this.props;
 
@@ -348,35 +366,28 @@ class TopContent extends Component {
 
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                         <span>
-                            <ShouldRender
-                                if={!this.props.escalation.requesting}
-                            >
-                                {userSchedules ? (
-                                    <>
-                                        {ongoingEventList &&
-                                            ongoingEventList.length > 0 &&
-                                            ongoingEventList}
-                                        <ShouldRender
-                                            if={
-                                                activeSchedules &&
-                                                activeSchedules.length > 0
-                                            }
-                                        >
-                                            {this.renderOnCallSchedule(
-                                                activeSchedules,
-                                                this.props.currentProjectId
-                                            )}
-                                        </ShouldRender>
-                                    </>
-                                ) : (
-                                        ''
-                                    )}
-                            </ShouldRender>
+                            {userSchedules ? (
+                                <>
+                                    {ongoingEventList &&
+                                        ongoingEventList.length > 0 &&
+                                        ongoingEventList}
+                                    <ShouldRender
+                                        if={
+                                            activeSchedules &&
+                                            activeSchedules.length > 0
+                                        }
+                                    >
+                                        {this.renderOnCallSchedule(
+                                            activeSchedules,
+                                            this.props.currentProjectId
+                                        )}
+                                    </ShouldRender>
+                                </>
+                            ) : (
+                                ''
+                            )}
                         </span>
-
-                        {monitorCount > 0
-                            ? this.renderActiveIncidents(incidentCounter)
-                            : null}
+                        {this.renderActiveIncidents(incidentCounter)}
                         {this.renderOngoingScheduledEvents()}
 
                         <div className="Box-root Margin-right--16">
@@ -519,6 +530,8 @@ const mapDispatchToProps = dispatch =>
             openSideNav,
             fetchSubProjectOngoingScheduledEvents,
             openModal,
+            fetchUserSchedule,
+            userScheduleRequest,
         },
         dispatch
     );
@@ -530,6 +543,8 @@ TopContent.propTypes = {
     openFeedbackModal: PropTypes.func.isRequired,
     closeFeedbackModal: PropTypes.func.isRequired,
     showProfileMenu: PropTypes.func.isRequired,
+    fetchUserSchedule: PropTypes.func,
+    userScheduleRequest: PropTypes.func,
     openNotificationMenu: PropTypes.func.isRequired,
     feedback: PropTypes.object.isRequired,
     profilePic: PropTypes.oneOfType([
@@ -548,7 +563,6 @@ TopContent.propTypes = {
     monitors: PropTypes.shape({ count: PropTypes.number }),
     subProjectOngoingScheduledEvents: PropTypes.array,
     openModal: PropTypes.func.isRequired,
-    escalation: PropTypes.object,
     escalations: PropTypes.array,
     user: PropTypes.object.isRequired,
     currentProjectId: PropTypes.string.isRequired,
