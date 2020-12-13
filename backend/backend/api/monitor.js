@@ -212,6 +212,20 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
 
+        if (data.type === 'server-monitor') {
+            if (
+                data.agentlessConfig &&
+                data.agentlessConfig.authentication === 'identityFile' &&
+                !data.agentlessConfig.identityFile
+            ) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Monitor should have an `Identity File` property of type string.',
+                });
+            }
+        }
+
         if (data.type === 'script') {
             if (!data.data.script) {
                 return sendErrorResponse(req, res, {
