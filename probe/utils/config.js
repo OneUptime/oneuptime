@@ -3,7 +3,7 @@ const COMMAND = {
         load: "top -b -n 2 | egrep --color 'load average|%Cpu'",
         cpu: "egrep --color 'processor|cores' /proc/cpuinfo",
         mem: "egrep --color 'Mem|Swap' /proc/meminfo",
-        disk: "df -h | egrep --color '/dev/xvda1|/dev/sda7'",
+        disk: "df -h | egrep --color '/dev/xvda1|/dev/sda7|/dev/nvme0n1p1'",
         temp: "sensors | egrep --color 'CPU'",
     },
     darwin: {
