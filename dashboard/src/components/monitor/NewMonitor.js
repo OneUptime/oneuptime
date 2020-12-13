@@ -13,6 +13,10 @@ import {
     editMonitorSwitch,
     setMonitorCriteria,
     addSeat,
+    logFile,
+    resetFile,
+    setFileInputKey,
+    uploadIdentityFile,
 } from '../../actions/monitor';
 import { RenderField } from '../basic/RenderField';
 import { makeCriteria, API_URL } from '../../config';
@@ -74,6 +78,7 @@ class NewMonitor extends Component {
             this.props.fetchSchedules(this.props.currentProject._id);
         }
         this.props.fetchMonitorCriteria();
+        this.props.setFileInputKey(new Date());
     }
 
     componentDidUpdate() {
@@ -126,7 +131,7 @@ class NewMonitor extends Component {
                 username: values[`username_${this.props.index}`],
                 authentication: values[`authentication_${this.props.index}`],
                 password: values[`password_${this.props.index}`],
-                identityFile: values[`identityFile_${this.props.index}`],
+                identityFile: this.props.identityFile,
             };
         }
 
@@ -368,6 +373,34 @@ class NewMonitor extends Component {
         this.setState({ authentication: value });
     };
 
+    changeFile = e => {
+        e.preventDefault();
+
+        const { logFile, uploadIdentityFile, projectId } = this.props;
+
+        const reader = new FileReader();
+        const file = e.target.files[0];
+
+        reader.onloadend = () => {
+            const fileResult = reader.result;
+            logFile(fileResult);
+            uploadIdentityFile(projectId, file);
+        };
+        try {
+            reader.readAsDataURL(file);
+            console.log('*** Identity File ***', file);
+        } catch (error) {
+            return;
+        }
+    };
+
+    removeFile = () => {
+        const { setFileInputKey, resetFile } = this.props;
+
+        setFileInputKey(new Date());
+        resetFile();
+    };
+
     scriptTextChange = newValue => {
         this.setState({ script: newValue });
     };
@@ -461,6 +494,8 @@ class NewMonitor extends Component {
             monitor,
             project,
             currentPlanId,
+            identityFile,
+            fileInputKey,
         } = this.props;
         const { type, mode, authentication, httpRequestLink } = this.state;
         const unlimitedMonitors = ['Scale', 'Enterprise'];
@@ -1268,7 +1303,7 @@ class NewMonitor extends Component {
                                                                             >
                                                                                 <ShouldRender
                                                                                     if={
-                                                                                        true
+                                                                                        !identityFile
                                                                                     }
                                                                                 >
                                                                                     <span className="bs-Button--icon bs-Button--new"></span>
@@ -1280,7 +1315,7 @@ class NewMonitor extends Component {
                                                                                 </ShouldRender>
                                                                                 <ShouldRender
                                                                                     if={
-                                                                                        false
+                                                                                        identityFile
                                                                                     }
                                                                                 >
                                                                                     <span className="bs-Button--icon bs-Button--edit"></span>
@@ -1299,24 +1334,20 @@ class NewMonitor extends Component {
                                                                                         name={`identityFile_${this.props.index}`}
                                                                                         id="identityFile"
                                                                                         accept=".pem, .ppk"
-                                                                                        // onChange={
-                                                                                        //     this
-                                                                                        //         .changefile
-                                                                                        // }
-                                                                                        // disabled={
-                                                                                        //     profileSettings &&
-                                                                                        //     profileSettings.requesting
-                                                                                        // }
-                                                                                        // fileInputKey={
-                                                                                        //     profileSettingState.fileInputKey
-                                                                                        // }
+                                                                                        onChange={
+                                                                                            this
+                                                                                                .changeFile
+                                                                                        }
+                                                                                        fileInputKey={
+                                                                                            fileInputKey
+                                                                                        }
                                                                                     />
                                                                                 </div>
                                                                             </label>
                                                                         </div>
                                                                         <ShouldRender
                                                                             if={
-                                                                                false
+                                                                                identityFile
                                                                             }
                                                                         >
                                                                             <div
@@ -1329,14 +1360,10 @@ class NewMonitor extends Component {
                                                                                 <button
                                                                                     className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
                                                                                     type="button"
-                                                                                    // onClick={
-                                                                                    //     this
-                                                                                    //         .removeProfilePic
-                                                                                    // }
-                                                                                    // disabled={
-                                                                                    //     profileSettings &&
-                                                                                    //     profileSettings.requesting
-                                                                                    // }
+                                                                                    onClick={
+                                                                                        this
+                                                                                            .removeFile
+                                                                                    }
                                                                                     style={{
                                                                                         margin:
                                                                                             '10px 10px 0 0',
@@ -2069,6 +2096,10 @@ const mapDispatchToProps = dispatch =>
             openModal,
             closeModal,
             editMonitor,
+            logFile,
+            resetFile,
+            setFileInputKey,
+            uploadIdentityFile,
             fetchMonitorCriteria,
             setMonitorCriteria,
             addSeat,
@@ -2130,6 +2161,7 @@ const mapStateToProps = (state, ownProps) => {
             mode,
             authentication,
             category,
+            identityFile: state.monitor.file,
             schedule,
             monitorSla,
             incidentCommunicationSla,
@@ -2163,6 +2195,7 @@ const mapStateToProps = (state, ownProps) => {
             mode,
             authentication,
             category,
+            identityFile: state.monitor.file,
             schedule,
             monitorSla,
             incidentCommunicationSla,
@@ -2224,6 +2257,12 @@ NewMonitor.propTypes = {
     projectId: PropTypes.string,
     subProjects: PropTypes.array,
     toggleEdit: PropTypes.func,
+    logFile: PropTypes.func,
+    resetFile: PropTypes.func,
+    identityFile: PropTypes.string,
+    setFileInputKey: PropTypes.func,
+    fileInputKey: PropTypes.string,
+    uploadIdentityFile: PropTypes.func,
     fetchCommunicationSlas: PropTypes.func,
     incidentSlas: PropTypes.array,
     fetchSlaError: PropTypes.oneOfType([

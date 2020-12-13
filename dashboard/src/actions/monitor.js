@@ -72,6 +72,7 @@ export function createMonitor(projectId, values) {
         promise.then(
             function(monitor) {
                 dispatch(createMonitorSuccess(monitor.data));
+                dispatch(resetFile());
                 return monitor.data;
             },
             function(error) {
@@ -91,6 +92,58 @@ export function createMonitor(projectId, values) {
         );
 
         return promise;
+    };
+}
+
+export function uploadIdentityFile(projectId, file) {
+    return function(dispatch) {
+        const data = new FormData();
+        if (file) {
+            data.append('identityFile', file);
+
+            const promise = postApi(`monitor/${projectId}/identityFile`, data);
+            promise.then(
+                function(response) {
+                    const data = response.data;
+                    dispatch(logFile(data.identityFile));
+                    return data;
+                },
+                function(error) {
+                    if (error && error.response && error.response.data)
+                        error = error.response.data;
+                    if (error && error.data) {
+                        error = error.data;
+                    }
+                    if (error && error.message) {
+                        error = error.message;
+                    } else {
+                        error = 'Network Error';
+                    }
+                    dispatch(resetFile());
+                }
+            );
+
+            return promise;
+        }
+    };
+}
+
+export function logFile(file) {
+    return function(dispatch) {
+        dispatch({ type: 'LOG_IDENTITY_FILE', payload: file });
+    };
+}
+
+export function resetFile() {
+    return function(dispatch) {
+        dispatch({ type: 'RESET_IDENTITY_FILE' });
+    };
+}
+
+export function setFileInputKey(value) {
+    return {
+        type: 'SET_IDENTITY_FILE_INPUT_KEY',
+        payload: value,
     };
 }
 

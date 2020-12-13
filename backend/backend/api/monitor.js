@@ -24,6 +24,8 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
+const multer = require('multer');
+const storage = require('../middlewares/upload');
 const https = require('https');
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false,
@@ -254,6 +256,35 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         await RealTimeService.sendMonitorCreated(monitor);
 
         return sendItemResponse(req, res, monitor);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/:projectId/identityFile', async function(req, res) {
+    try {
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'identityFile',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            let identityFile;
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            if (
+                req.files &&
+                req.files.identityFile &&
+                req.files.identityFile[0].filename
+            ) {
+                identityFile = req.files.identityFile[0].filename;
+            }
+            return sendItemResponse(req, res, { identityFile });
+        });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

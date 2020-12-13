@@ -117,6 +117,8 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    file: null,
+    fileInputKey: null,
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
@@ -151,6 +153,21 @@ export default function monitor(state = INITIAL_STATE, action) {
                     ...state.monitorsList,
                     editMode: action.payload,
                 },
+            });
+
+        case 'LOG_IDENTITY_FILE':
+            return Object.assign({}, state, {
+                file: action.payload,
+            });
+
+        case 'RESET_IDENTITY_FILE':
+            return Object.assign({}, state, {
+                file: null,
+            });
+
+        case 'SET_IDENTITY_FILE_INPUT_KEY':
+            return Object.assign({}, state, {
+                fileInputKey: action.payload,
             });
 
         case CREATE_MONITOR_SUCCESS:

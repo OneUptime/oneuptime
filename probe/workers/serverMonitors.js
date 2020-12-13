@@ -2,7 +2,8 @@ const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fs = require('fs');
 const { NodeSSH } = require('node-ssh');
-const { COMMAND } = require('../utils/config');
+const fetch = require('node-fetch');
+const { COMMAND, serverUrl } = require('../utils/config');
 
 module.exports = {
     run: async monitor => {
@@ -32,7 +33,26 @@ module.exports = {
                 if (authentication === 'password') {
                     config.password = password;
                 } else {
-                    config.privateKey = fs.readFileSync(identityFile, 'utf8');
+                    await fetch(`${serverUrl}/file/${identityFile}`).then(
+                        res =>
+                            new Promise((resolve, reject) => {
+                                const dest = fs.createWriteStream(
+                                    `./${identityFile}`
+                                );
+                                res.body.pipe(dest);
+                                res.body.on('end', () => {
+                                    setTimeout(() => {
+                                        config.privateKey = fs.readFileSync(
+                                            `./${identityFile}`,
+                                            'utf8'
+                                        );
+                                        resolve();
+                                    }, 1000);
+                                });
+                                dest.on('error', reject);
+                            })
+                    );
+                    fs.unlinkSync(`./${identityFile}`);
                 }
 
                 ssh.connect(config)
