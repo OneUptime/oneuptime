@@ -435,6 +435,10 @@ module.exports = {
                 teamMember.endTime
             );
 
+            const user = await UserService.findOneBy({
+                _id: teamMember.userId,
+            });
+
             if (!isOnDuty) {
                 if (escalation.call && shouldSendCallReminder) {
                     await _this.create({
