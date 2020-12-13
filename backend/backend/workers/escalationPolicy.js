@@ -80,9 +80,17 @@ module.exports = {
                         continue;
                     }
                 }
-                const schedule = await ScheduleService.findOneBy({
+                let schedule = await ScheduleService.findOneBy({
                     _id: notAcknowledgedCallScheduleStatus.schedule,
                 });
+                if (!schedule) {
+                    schedule = await ScheduleService.findOneBy({
+                        isDefault: true,
+                        projectId:
+                            notAcknowledgedCallScheduleStatus.projectId._id ||
+                            notAcknowledgedCallScheduleStatus.projectId,
+                    });
+                }
                 //and the rest happens here.
 
                 AlertService.sendAlertsToTeamMembersInSchedule({
