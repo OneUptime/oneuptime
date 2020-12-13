@@ -28,7 +28,10 @@ module.exports = {
                         return DeviceMonitors.ping(monitor);
                     } else if (monitor.type === 'script') {
                         return ScriptMonitors.run(monitor);
-                    } else if (monitor.type === 'server-monitor') {
+                    } else if (
+                        monitor.type === 'server-monitor' &&
+                        monitor.agentlessConfig
+                    ) {
                         return ServerMonitors.run(monitor);
                     }
 

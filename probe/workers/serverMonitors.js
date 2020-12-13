@@ -1,107 +1,77 @@
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fs = require('fs');
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
 const { NodeSSH } = require('node-ssh');
 const { COMMAND } = require('../utils/config');
 
 module.exports = {
     run: async monitor => {
         try {
-            if (monitor && monitor.type) {
-                if (monitor.agentlessConfig) {
-                    const {
-                        host,
-                        port,
-                        username,
-                        authentication,
-                        password,
-                        identityFile,
-                    } = monitor.agentlessConfig;
-                    const ssh = new NodeSSH();
+            if (
+                monitor &&
+                monitor.type &&
+                monitor.agentlessConfig &&
+                typeof monitor.agentlessConfig === 'object'
+            ) {
+                const {
+                    host,
+                    port,
+                    username,
+                    authentication,
+                    password,
+                    identityFile,
+                } = monitor.agentlessConfig;
+                const ssh = new NodeSSH();
 
-                    const config = {
-                        host,
-                        port,
-                        username,
-                    };
+                const config = {
+                    host,
+                    port,
+                    username,
+                };
 
-                    if (authentication === 'password') {
-                        config.password = password;
-                    } else {
-                        config.privateKey = fs.readFileSync(
-                            identityFile,
-                            'utf8'
-                        );
-                    }
-
-                    ssh.connect(config)
-                        .then(async function() {
-                            let os;
-                            try {
-                                const {
-                                    stdout: osLine,
-                                    stderr,
-                                } = await ssh.execCommand('uname -a');
-
-                                if (stderr) throw stderr;
-
-                                os = osLine.split(' ')[0];
-                            } catch (e) {
-                                const {
-                                    stdout: osLine,
-                                } = await ssh.execCommand('wmic os get name');
-
-                                os = osLine.split(' ')[1];
-                            }
-
-                            const serverData = await execCommands(ssh, os);
-
-                            ssh.dispose();
-
-                            await ApiService.ping(monitor._id, {
-                                monitor,
-                                serverData,
-                                type: monitor.type,
-                            });
-                        })
-                        .catch(error => {
-                            ErrorService.log(
-                                'serverMonitors.run.ssh.connect',
-                                error
-                            );
-                            throw error;
-                        });
+                if (authentication === 'password') {
+                    config.password = password;
                 } else {
-                    // local testing
-                    let os;
-                    try {
-                        const { stdout: osLine, stderr } = await exec(
-                            'uname -a'
-                        );
-
-                        if (stderr) throw stderr;
-
-                        os = osLine.split(' ')[0];
-                    } catch (e) {
-                        const { stdout: osLine } = await exec(
-                            'wmic os get name'
-                        );
-
-                        os = osLine
-                            .split('\n')
-                            .map(line => line.split(' '))[1][1];
-                    }
-
-                    const serverData = await execCommands(exec, os);
-
-                    await ApiService.ping(monitor._id, {
-                        monitor,
-                        serverData,
-                        type: monitor.type,
-                    });
+                    config.privateKey = fs.readFileSync(identityFile, 'utf8');
                 }
+
+                ssh.connect(config)
+                    .then(async function() {
+                        let os;
+                        try {
+                            const {
+                                stdout: osLine,
+                                stderr,
+                            } = await ssh.execCommand('uname -a');
+
+                            if (stderr) throw stderr;
+
+                            os = osLine.split(' ')[0];
+                        } catch (e) {
+                            const { stdout: osLine } = await ssh.execCommand(
+                                'wmic os get name'
+                            );
+
+                            os = osLine.split(' ')[1];
+                        }
+
+                        const serverData = await execCommands(ssh, os);
+
+                        ssh.dispose();
+
+                        await ApiService.ping(monitor._id, {
+                            monitor,
+                            serverData,
+                            type: monitor.type,
+                        });
+                    })
+                    .catch(error => {
+                        ErrorService.log(
+                            'serverMonitors.run.ssh.connect',
+                            error
+                        );
+                        throw error;
+                    });
             }
         } catch (error) {
             ErrorService.log('serverMonitors.run', error);
@@ -391,7 +361,7 @@ const execCommands = async (exec, os) => {
             maxTemp,
         };
     } catch (error) {
-        ErrorService.log('serverMonitors.execCommand', error);
+        ErrorService.log('serverMonitors.execCommands', error);
         throw error;
     }
 };
