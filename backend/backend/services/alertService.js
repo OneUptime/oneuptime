@@ -429,11 +429,18 @@ module.exports = {
         await onCallScheduleStatus.save();
 
         for (const teamMember of activeTeam.teamMembers) {
-            const isOnDuty = await _this.isOnDuty(
-                teamMember.timezone,
+            const isOnDuty = await _this.checkIsOnDuty(
                 teamMember.startTime,
                 teamMember.endTime
             );
+
+            const user = await UserService.findOneBy({
+                _id: teamMember.userId,
+            });
+
+            if (!user) {
+                continue;
+            }
 
             if (!isOnDuty) {
                 if (escalation.call && shouldSendCallReminder) {
@@ -477,56 +484,50 @@ module.exports = {
                 }
 
                 continue;
+            } else {
+                /**
+                 *  sendSMSAlert & sendCallAlert should not run in parallel
+                 *  otherwise we will have a wrong project balance in the end.
+                 *
+                 */
+    
+                if (escalation.sms && shouldSendSMSReminder) {
+                    await _this.sendSMSAlert({
+                        incident,
+                        user,
+                        project,
+                        monitor,
+                        schedule,
+                        escalation,
+                        onCallScheduleStatus,
+                    });
+                }
+    
+                if (escalation.email && shouldSendEmailReminder) {
+                    _this.sendEmailAlert({
+                        incident,
+                        user,
+                        project,
+                        monitor,
+                        schedule,
+                        escalation,
+                        onCallScheduleStatus,
+                    });
+                }
+    
+                if (escalation.call && shouldSendCallReminder) {
+                    await _this.sendCallAlert({
+                        incident,
+                        user,
+                        project,
+                        monitor,
+                        schedule,
+                        escalation,
+                        onCallScheduleStatus,
+                    });
+                }
             }
 
-            const user = await UserService.findOneBy({
-                _id: teamMember.userId,
-            });
-
-            if (!user) {
-                continue;
-            }
-            /**
-             *  sendSMSAlert & sendCallAlert should not run in parallel
-             *  otherwise we will have a wrong project balance in the end.
-             *
-             */
-
-            if (escalation.sms && shouldSendSMSReminder) {
-                await _this.sendSMSAlert({
-                    incident,
-                    user,
-                    project,
-                    monitor,
-                    schedule,
-                    escalation,
-                    onCallScheduleStatus,
-                });
-            }
-
-            if (escalation.email && shouldSendEmailReminder) {
-                _this.sendEmailAlert({
-                    incident,
-                    user,
-                    project,
-                    monitor,
-                    schedule,
-                    escalation,
-                    onCallScheduleStatus,
-                });
-            }
-
-            if (escalation.call && shouldSendCallReminder) {
-                await _this.sendCallAlert({
-                    incident,
-                    user,
-                    project,
-                    monitor,
-                    schedule,
-                    escalation,
-                    onCallScheduleStatus,
-                });
-            }
         }
     },
 
@@ -2337,6 +2338,12 @@ module.exports = {
             escalationStartTime,
             escalationEndTime
         );
+    },
+
+    checkIsOnDuty(startTime, endTime) {
+        if(!startTime || !endTime) return false;
+        const compareDate = DateTime.compareDate(startTime, endTime);
+        return compareDate;
     },
 
     getSubProjectAlerts: async function(subProjectIds) {

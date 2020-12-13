@@ -5,7 +5,7 @@ const differenceInMonths = require('date-fns/differenceInMonths');
 
 const _this = {
     // This function will strip
-    changeDateTimezone: function(date, timezone) {
+    changeDateTimezone: function (date, timezone) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -14,13 +14,49 @@ const _this = {
         return moment
             .tz(
                 `${date.getFullYear()}-${date.getMonth() +
-                    1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`,
+                1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`,
                 timezone
             )
             .toDate();
     },
 
-    convertToTimezone: function(date, timezone) {
+    compareDate: function (startTime, endTime) {
+        const now = moment().format('HH:mm');
+        const oncallstart = moment(startTime).format('HH:mm');
+        const oncallend = moment(endTime).format('HH:mm');
+        const sameDay = oncallstart < oncallend;
+        const differentDay = oncallstart >= oncallend;
+
+        startTime = moment(
+            startTime
+        ).format('HH:mm');
+
+        endTime = moment(
+            endTime
+        ).format('HH:mm');
+
+        const compareDate = (oncallstart, oncallend) => {
+            const start = new Date(new Date()
+                .setHours(oncallstart.split(":")[0],
+                    oncallstart.split(":")[1])).getTime();
+            const end = new Date(new Date(new Date().getTime() + 86400000)
+                .setHours(oncallend.split(":")[0],
+                    oncallend.split(":")[1])).getTime();
+            const current = new Date().getTime();
+
+            if (current >= start && current <= end) return true;
+            return false;
+        }
+
+        const isUserActive = (sameDay && moment(now, 'HH:mm')
+            .isBetween(moment(oncallstart, 'HH:mm'),
+                moment(oncallend, 'HH:mm'))) || (differentDay &&
+                    (compareDate(oncallstart, oncallend) || (oncallstart === oncallend)));
+
+        return isUserActive;
+    },
+
+    convertToTimezone: function (date, timezone) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -30,7 +66,7 @@ const _this = {
             .toDate();
     },
 
-    convertToCurrentTimezone: function(date) {
+    convertToCurrentTimezone: function (date) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -40,7 +76,7 @@ const _this = {
             .toDate();
     },
 
-    format: function(date, formatString) {
+    format: function (date, formatString) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -48,11 +84,11 @@ const _this = {
         return moment(date).format(formatString);
     },
 
-    getCurrentTimezoneAbbr: function() {
+    getCurrentTimezoneAbbr: function () {
         return moment.tz(moment.tz.guess()).zoneAbbr();
     },
 
-    getCurrentTimezone: function() {
+    getCurrentTimezone: function () {
         return moment.tz.guess();
     },
 
@@ -170,7 +206,7 @@ const _this = {
         return moment
             .tz(
                 `${today.getFullYear()}-${today.getMonth() +
-                    1}-${today.getDate()} ${date.getHours()}:${date.getMinutes()}`,
+                1}-${today.getDate()} ${date.getHours()}:${date.getMinutes()}`,
                 _this.getCurrentTimezone()
             )
             .toDate();
