@@ -614,7 +614,7 @@ module.exports = {
 
             let probes;
             const probeLogs = [];
-            if (monitor.type === 'server-monitor') {
+            if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
                 probes = [undefined];
             } else {
                 probes = await ProbeService.findBy({});
@@ -671,7 +671,7 @@ module.exports = {
             const end = moment(endDate).toDate();
             const monitor = await this.findOneBy({ _id: monitorId });
             let probes;
-            if (monitor.type === 'server-monitor') {
+            if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
                 probes = [undefined];
             } else {
                 probes = await ProbeService.findBy({});
@@ -714,7 +714,8 @@ module.exports = {
             let probes;
             const probeStatuses = [];
             if (
-                monitor.type === 'server-monitor' ||
+                (monitor.type === 'server-monitor' &&
+                    !monitor.agentlessConfig) ||
                 monitor.type === 'manual'
             ) {
                 probes = [undefined];

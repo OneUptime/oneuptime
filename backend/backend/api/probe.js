@@ -215,7 +215,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
         }
         if (type === 'server-monitor') {
             data = serverData;
-            data.monitorId = req.params.monitorId || monitor._id;
 
             const {
                 stat: validUp,
@@ -254,8 +253,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             data.responseTime = res || 0;
             data.responseStatus = resp && resp.status ? resp.status : null;
             data.status = status;
-            data.probeId = req.probe && req.probe.id ? req.probe.id : null;
-            data.monitorId = req.params.monitorId;
             data.sslCertificate =
                 resp && resp.sslCertificate ? resp.sslCertificate : null;
             data.lighthouseScanStatus =
@@ -276,6 +273,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             data.reason = reason;
             data.response = rawResp;
         }
+
+        data.monitorId = req.params.monitorId || monitor._id;
+        data.probeId = req.probe && req.probe.id ? req.probe.id : null;
 
         if (data.lighthouseScanStatus) {
             if (data.lighthouseScanStatus === 'scanning') {
