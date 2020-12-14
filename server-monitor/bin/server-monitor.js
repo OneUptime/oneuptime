@@ -37,7 +37,7 @@ program
     .option('-d, --daemon [daemon]', 'Run shell as a daemon')
     .parse(process.argv);
 
-/** The questions to get project id, api key and monitor id. */
+/** The questions to get project id, api url, api key and monitor id. */
 const questions = [
     {
         type: 'input',
@@ -62,6 +62,11 @@ const questions = [
         type: 'list',
         name: 'monitorId',
         message: 'What is your Monitor ID?',
+    },
+    {
+        type: 'confirm',
+        name: 'daemon',
+        message: 'Want to run as a daemon?',
     },
 ];
 
@@ -101,6 +106,8 @@ const getParamValue = (params, name) => {
         if (program[name] === true || program[name] === undefined) {
             if (name === 'monitorId') {
                 resolve(null);
+            } else if (name === 'daemon') {
+                resolve(program[name] === true ? true : false);
             } else {
                 prompt(params.filter(param => param.name === name)).then(
                     values => {
@@ -114,56 +121,33 @@ const getParamValue = (params, name) => {
     });
 };
 
-if (
-    process.argv &&
-    ['-p', '-u', '-a', '-m', '-d'].every(option =>
-        process.argv.includes(option)
-    )
-) {
-    process.argv.splice(process.argv.indexOf('-d'), 1);
+/** Init server monitor cli. */
+checkParams(questions).then(values => {
+    const [projectId, apiUrl, apiKey, monitorId, daemon] = values;
 
-    const child = new Monitor(`${__dirname}/server-monitor.js`, {
-        uid: 'fsm',
-        silent: true,
-        args: process.argv,
-    });
+    if (projectId && apiUrl && apiKey && monitorId && daemon) {
+        process.argv.splice(process.argv.indexOf('-d'), 1);
 
-    child.on('watch:restart', function(info) {
-        logger.warn(
-            'Fyipe Server Monitor restarting because ' + info.file + ' changed'
-        );
-    });
+        const child = new Monitor(`${__dirname}/server-monitor.js`, {
+            uid: 'fsm',
+            silent: true,
+            args: process.argv,
+        });
 
-    child.on('restart', function() {
-        logger.warn(
-            'Fyipe Server Monitor restarting for ' + child.times + ' time'
-        );
-    });
+        child.on('restart', function() {
+            logger.warn('Fyipe Server Monitor restarted');
+        });
 
-    child.on('exit:code', function(code) {
-        logger.error(
-            'Fyipe Server Monitor detected script exited with code ' + code
-        );
-    });
+        child.on('exit', function() {
+            logger.error('Fyipe Server Monitor exited');
+        });
 
-    child.on('exit', function() {
-        logger.error('Fyipe Server Monitor has exited after 3 restarts');
-    });
+        child.start();
 
-    child.start();
-
-    process.nextTick(() => {
-        process.exit();
-    });
-} else if (process.argv && process.argv.includes('-d')) {
-    logger.error(
-        'Please provide your Project ID, API URL, API Key and Monitor ID to run Fyipe Server Monitor as a daemon'
-    );
-} else {
-    /** Init server monitor cli. */
-    checkParams(questions).then(values => {
-        const [projectId, apiUrl, apiKey, monitorId] = values;
-
+        process.nextTick(() => {
+            process.exit();
+        });
+    } else {
         serverMonitor({
             projectId,
             apiUrl,
@@ -191,8 +175,8 @@ if (
                     });
                 }),
         }).start();
-    });
-}
+    }
+});
 
 module.exports = {
     checkParams,

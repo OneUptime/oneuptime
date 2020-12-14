@@ -7,6 +7,8 @@ const UptimeLegend = ({
     downtimeColor,
     uptimeColor,
     degradedColor,
+    disabledColor,
+    disabled,
 }) => (
     <div className="uptime-legend box-inner clearfix" style={background}>
         <span className="legend-item">
@@ -27,6 +29,17 @@ const UptimeLegend = ({
             ></span>
             <label style={secondaryTextColor}>Downtime</label>
         </span>
+        {disabled ? (
+            <span className="legend-item">
+                <span
+                    className="legend-color graph-disabled"
+                    style={disabledColor}
+                ></span>
+                <label style={secondaryTextColor}>Disabled</label>
+            </span>
+        ) : (
+            ''
+        )}
     </div>
 );
 
@@ -38,6 +51,8 @@ UptimeLegend.propTypes = {
     downtimeColor: PropTypes.object,
     uptimeColor: PropTypes.object,
     degradedColor: PropTypes.object,
+    disabledColor: PropTypes.object,
+    disabled: PropTypes.bool,
 };
 
 export default UptimeLegend;

@@ -10,7 +10,12 @@ const scheduleSchema = new Schema({
     }, //which project this schedule belongs to.
     createdById: { type: String, ref: 'User' },
     monitorIds: [
-        { type: Schema.Types.ObjectId, ref: 'Monitor', default: [], alias: 'monitors' },
+        {
+            type: Schema.Types.ObjectId,
+            ref: 'Monitor',
+            default: [],
+            alias: 'monitors',
+        },
     ],
     escalationIds: [
         { type: String, ref: 'Escalation', default: [], alias: 'escalations' },
@@ -23,5 +28,6 @@ const scheduleSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User' },
+    isDefault: { type: Boolean, default: false },
 });
 module.exports = mongoose.model('Schedule', scheduleSchema);

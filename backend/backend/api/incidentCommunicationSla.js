@@ -142,7 +142,26 @@ router.delete(
             );
             return sendItemResponse(req, res, deletedIncidentSla);
         } catch (error) {
-            return sendErrorResponse(error);
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get(
+    '/:projectId/defaultCommunicationSla',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId } = req.params;
+            const defaultSla = await IncidentCommunicationSlaService.findOneBy({
+                projectId,
+                isDefault: true,
+            });
+
+            return sendItemResponse(req, res, defaultSla);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
     }
 );

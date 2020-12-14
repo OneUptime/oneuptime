@@ -8,9 +8,9 @@ import Fade from 'react-reveal/Fade';
 import { RenderField } from '../basic/RenderField';
 import { PricingPlan, Validate, env } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
-import {openModal} from '../../actions/modal'
-import DataPathHoc from '../DataPathHoC'
-import ExtraCharge from '../ExtraCharge'
+import { openModal } from '../../actions/modal';
+import DataPathHoc from '../DataPathHoC';
+import ExtraCharge from '../ExtraCharge';
 import {
     CardNumberElement,
     CardExpiryElement,
@@ -181,13 +181,25 @@ class CardForm extends Component {
                                 <h2>{header}</h2>
                                 <p>
                                     Your card will be charged $1.00 to check its
-                                    billability. {' '}
-                                     <span style={{color:'green', cursor:'pointer', textDecoration:"underline"}} 
-                                     onClick={()=> this.props.openModal({
-                                         id: 1,
-                                         content: DataPathHoc(ExtraCharge)
-                                     })}>Learn More</span>  
-                                     <br></br> You will be charged $
+                                    billability.{' '}
+                                    <span
+                                        style={{
+                                            color: 'green',
+                                            cursor: 'pointer',
+                                            textDecoration: 'underline',
+                                        }}
+                                        onClick={() =>
+                                            this.props.openModal({
+                                                id: 1,
+                                                content: DataPathHoc(
+                                                    ExtraCharge
+                                                ),
+                                            })
+                                        }
+                                    >
+                                        Learn Why?
+                                    </span>
+                                    <br></br> You will be charged $
                                     {this.plan.amount}/
                                     {this.plan.type === 'month' ? 'mo' : 'yr'}{' '}
                                     after your 14 day free trial.
@@ -523,7 +535,6 @@ class CardForm extends Component {
         );
     }
 }
-
 
 CardForm.displayName = 'CardForm';
 

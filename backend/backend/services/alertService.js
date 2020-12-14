@@ -190,9 +190,18 @@ module.exports = {
                     ? incident.monitorId._id
                     : incident.monitorId;
 
-                const schedules = await ScheduleService.findBy({
+                let schedules = await ScheduleService.findBy({
                     monitorIds: monitorId,
                 });
+
+                if (schedules.length === 0) {
+                    const projectId =
+                        incident.projectId._id || incident.projectId;
+                    schedules = await ScheduleService.findBy({
+                        isDefault: true,
+                        projectId,
+                    });
+                }
 
                 for (const schedule of schedules) {
                     _this.sendAlertsToTeamMembersInSchedule({
@@ -435,6 +444,10 @@ module.exports = {
                 teamMember.endTime
             );
 
+            const user = await UserService.findOneBy({
+                _id: teamMember.userId,
+            });
+
             if (!isOnDuty) {
                 if (escalation.call && shouldSendCallReminder) {
                     await _this.create({
@@ -478,10 +491,6 @@ module.exports = {
 
                 continue;
             }
-
-            const user = await UserService.findOneBy({
-                _id: teamMember.userId,
-            });
 
             if (!user) {
                 continue;
@@ -657,7 +666,10 @@ module.exports = {
         }
     },
 
-    sendSlaEmailToTeamMembers: async function(projectId, breached = false) {
+    sendSlaEmailToTeamMembers: async function(
+        { projectId, monitor, incidentCommunicationSla, incident, alertTime },
+        breached = false
+    ) {
         try {
             const teamMembers = await TeamService.getTeamMembersBy({
                 _id: projectId,
@@ -686,12 +698,33 @@ module.exports = {
                     return;
                 }
 
+                const incidentSla = incidentCommunicationSla.name;
+                const projectName = monitor.projectId.name;
+                const monitorName = monitor.name;
+                const incidentId = `#${incident.idNumber}`;
+                const reason = incident.reason;
+                const componentId = incident.monitorId.componentId._id;
+                const componentName = incident.monitorId.componentId.name;
+                const incidentUrl = `${global.dashboardHost}/project/${projectId}/${componentId}/incidents/${incident._id}`;
+                let incidentSlaTimeline =
+                    incidentCommunicationSla.duration * 60;
+                incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
+                const incidentSlaRemaining = secondsToHms(alertTime);
+
                 if (breached) {
                     for (const member of teamMembers) {
                         await MailService.sendSlaBreachNotification({
                             userEmail: member.email,
                             name: member.name,
                             projectId,
+                            incidentSla,
+                            monitorName,
+                            incidentUrl,
+                            projectName,
+                            componentName,
+                            incidentId,
+                            reason,
+                            incidentSlaTimeline,
                         });
                     }
                 } else {
@@ -700,6 +733,15 @@ module.exports = {
                             userEmail: member.email,
                             name: member.name,
                             projectId,
+                            incidentSla,
+                            monitorName,
+                            incidentUrl,
+                            projectName,
+                            componentName,
+                            incidentId,
+                            reason,
+                            incidentSlaTimeline,
+                            incidentSlaRemaining,
                         });
                     }
                 }
@@ -1099,6 +1141,7 @@ module.exports = {
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId._id,
             });
+            // eslint-disable-next-line no-unused-vars
             const component = await ComponentService.findOneBy({
                 _id:
                     monitor.componentId && monitor.componentId._id
@@ -1192,9 +1235,17 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
-                const schedules = await ScheduleService.findBy({
+                let schedules = await ScheduleService.findBy({
                     monitorIds: monitorId,
                 });
+                if (schedules.length === 0) {
+                    const projectId =
+                        incident.projectId._id || incident.projectId;
+                    schedules = await ScheduleService.findBy({
+                        isDefault: true,
+                        projectId,
+                    });
+                }
                 const monitor = await MonitorService.findOneBy({
                     _id: monitorId,
                 });
@@ -1400,9 +1451,17 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
-                const schedules = await ScheduleService.findBy({
+                let schedules = await ScheduleService.findBy({
                     monitorIds: monitorId,
                 });
+                if (schedules.length === 0) {
+                    const projectId =
+                        incident.projectId._id || incident.projectId;
+                    schedules = await ScheduleService.findBy({
+                        isDefault: true,
+                        projectId,
+                    });
+                }
                 const monitor = await MonitorService.findOneBy({
                     _id: monitorId,
                 });
@@ -2496,3 +2555,4 @@ const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
 const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
+const secondsToHms = require('../utils/secondsToHms');

@@ -33,6 +33,8 @@ import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import IncidentStatusPages from '../components/incident/incidentStatusPages';
+import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
+import secondsToHms from '../utils/secondsToHms';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -242,11 +244,10 @@ class Incident extends React.Component {
     }
 
     ready = () => {
+        const { projectId, incidentId } = this.props.match.params;
         this.fetchAllIncidentData();
-        this.props.fetchIncidentStatusPages(
-            this.props.match.params.projectId,
-            this.props.match.params.incidentId
-        );
+        this.props.fetchIncidentStatusPages(projectId, incidentId);
+        this.props.fetchDefaultCommunicationSla(projectId);
     };
 
     render() {
@@ -275,6 +276,11 @@ class Incident extends React.Component {
                 ? this.props.monitor.type
                 : '';
 
+        const incidentCommunicationSla =
+            this.props.monitor &&
+            (this.props.monitor.incidentCommunicationSla ||
+                this.props.defaultIncidentSla);
+
         let scheduleAlert;
         if (scheduleWarning.includes(monitorId) === false) {
             scheduleAlert = (
@@ -294,8 +300,9 @@ class Incident extends React.Component {
                                         src={`${'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCAxOTEuODEyIDE5MS44MTIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDUxMiA1MTIiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxnPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgoJPHBhdGggc3R5bGU9IiIgZD0iTTk1LjkwNiwxMjEuMDAzYzYuOTAzLDAsMTIuNS01LjU5NywxMi41LTEyLjVWNTEuNTExYzAtNi45MDQtNS41OTctMTIuNS0xMi41LTEyLjUgICBzLTEyLjUsNS41OTYtMTIuNSwxMi41djU2Ljk5M0M4My40MDYsMTE1LjQwNyw4OS4wMDMsMTIxLjAwMyw5NS45MDYsMTIxLjAwM3oiIGZpbGw9IiNmZmZmZmYiIGRhdGEtb3JpZ2luYWw9IiMxZDFkMWIiLz4KCTxwYXRoIHN0eWxlPSIiIGQ9Ik05NS45MDksMTI3LjgwN2MtMy4yOSwwLTYuNTIxLDEuMzMtOC44NDEsMy42NmMtMi4zMjksMi4zMi0zLjY1OSw1LjU0LTMuNjU5LDguODMgICBzMS4zMyw2LjUyLDMuNjU5LDguODRjMi4zMiwyLjMzLDUuNTUxLDMuNjYsOC44NDEsMy42NnM2LjUxLTEuMzMsOC44NC0zLjY2YzIuMzE5LTIuMzIsMy42Ni01LjU1LDMuNjYtOC44NHMtMS4zNDEtNi41MS0zLjY2LTguODMgICBDMTAyLjQxOSwxMjkuMTM3LDk5LjE5OSwxMjcuODA3LDk1LjkwOSwxMjcuODA3eiIgZmlsbD0iI2ZmZmZmZiIgZGF0YS1vcmlnaW5hbD0iIzFkMWQxYiIvPgoJPHBhdGggc3R5bGU9IiIgZD0iTTk1LjkwNiwwQzQzLjAyNCwwLDAsNDMuMDIzLDAsOTUuOTA2czQzLjAyMyw5NS45MDYsOTUuOTA2LDk1LjkwNnM5NS45MDUtNDMuMDIzLDk1LjkwNS05NS45MDYgICBTMTQ4Ljc4OSwwLDk1LjkwNiwweiBNOTUuOTA2LDE3Ni44MTJDNTEuMjk0LDE3Ni44MTIsMTUsMTQwLjUxOCwxNSw5NS45MDZTNTEuMjk0LDE1LDk1LjkwNiwxNSAgIGM0NC42MTEsMCw4MC45MDUsMzYuMjk0LDgwLjkwNSw4MC45MDZTMTQwLjUxOCwxNzYuODEyLDk1LjkwNiwxNzYuODEyeiIgZmlsbD0iI2ZmZmZmZiIgZGF0YS1vcmlnaW5hbD0iIzFkMWQxYiIvPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjwvZz48L3N2Zz4K'}`}
                                     />
                                     <span>
-                                        No Team Member will be alerted when
-                                        incident is created.
+                                        This Monitor does not have an on-call
+                                        schedule. No Team Member will be alerted
+                                        when incident is created.
                                     </span>
                                 </span>
                                 <span>
@@ -354,20 +361,20 @@ class Incident extends React.Component {
                             </TabList>
                         </div>
                         <div>{scheduleAlert}</div>
-                        {this.props.incident &&
+                        {incidentCommunicationSla &&
+                            this.props.incident &&
                             this.props.incident.countDown &&
                             this.props.incident.countDown !== '0:0' && (
                                 <div
                                     className="Box-root Margin-vertical--12"
                                     style={{ marginTop: 0, cursor: 'pointer' }}
-                                    onClick={() => this.tabSelected(4)}
                                     id="slaIndicatorAlert"
                                 >
                                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
-                                        <div className="Box-root Box-background--green Card-shadow--medium Border-radius--4">
+                                        <div className="Box-root box__yellow--dark Card-shadow--medium Border-radius--4">
                                             <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
                                                 <span
-                                                    className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
                                                     style={{
                                                         filter:
                                                             'brightness(0) invert(1)',
@@ -377,13 +384,32 @@ class Incident extends React.Component {
                                                 ></span>
                                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                                     <span>
-                                                        Alert{' '}
-                                                        {
+                                                        According to{' '}
+                                                        {incidentCommunicationSla &&
+                                                            incidentCommunicationSla.name}{' '}
+                                                        SLA, you need to update
+                                                        the incident note for
+                                                        this incident in{' '}
+                                                        {secondsToHms(
                                                             this.props.incident
                                                                 .countDown
-                                                        }{' '}
-                                                        minutes before SLA
-                                                        breaches
+                                                        )}
+                                                        {'. '} Click{' '}
+                                                        <span
+                                                            onClick={() =>
+                                                                this.tabSelected(
+                                                                    4
+                                                                )
+                                                            }
+                                                            style={{
+                                                                textDecoration:
+                                                                    'underline',
+                                                            }}
+                                                        >
+                                                            here
+                                                        </span>{' '}
+                                                        to update the incident
+                                                        note
                                                     </span>
                                                 </span>
                                             </div>
@@ -391,7 +417,8 @@ class Incident extends React.Component {
                                     </div>
                                 </div>
                             )}
-                        {this.props.incident &&
+                        {incidentCommunicationSla &&
+                            this.props.incident &&
                             this.props.incident.breachedCommunicationSla && (
                                 <div
                                     className="Box-root Margin-vertical--12"
@@ -615,6 +642,10 @@ const mapStateToProps = (state, props) => {
             : false,
         component,
         componentId,
+        requestingDefaultIncidentSla:
+            state.incidentSla.defaultIncidentCommunicationSla.requesting,
+        defaultIncidentSla:
+            state.incidentSla.defaultIncidentCommunicationSla.sla,
     };
 };
 
@@ -634,6 +665,7 @@ const mapDispatchToProps = dispatch => {
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
             fetchIncidentStatusPages,
+            fetchDefaultCommunicationSla,
         },
         dispatch
     );
@@ -668,6 +700,11 @@ Incident.propTypes = {
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     fetchIncidentStatusPages: PropTypes.func.isRequired,
+    fetchDefaultCommunicationSla: PropTypes.func,
+    defaultIncidentSla: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
 };

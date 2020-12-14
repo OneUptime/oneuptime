@@ -7,6 +7,12 @@ const initialState = {
         error: null,
         incidentSla: [],
     },
+    defaultIncidentCommunicationSla: {
+        requesting: false,
+        success: false,
+        error: null,
+        sla: null,
+    },
     incidentCommunicationSlas: {
         requesting: false,
         success: false,
@@ -123,6 +129,39 @@ export default function incidentCommunicationSla(state = initialState, action) {
                 ...state,
                 incidentCommunicationSlas: {
                     ...state.incidentCommunicationSlas,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.FETCH_DEFAULT_COMMUNICATION_SLA_REQUEST:
+            return {
+                ...state,
+                defaultIncidentCommunicationSla: {
+                    ...state.defaultIncidentCommunicationSla,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.FETCH_DEFAULT_COMMUNICATION_SLA_SUCCESS:
+            return {
+                ...state,
+                defaultIncidentCommunicationSla: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    sla: action.payload,
+                },
+            };
+
+        case types.FETCH_DEFAULT_COMMUNICATION_SLA_FAILURE:
+            return {
+                ...state,
+                defaultIncidentCommunicationSla: {
+                    ...state.defaultIncidentCommunicationSla,
                     requesting: false,
                     success: false,
                     error: action.payload,

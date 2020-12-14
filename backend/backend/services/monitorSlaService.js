@@ -1,4 +1,5 @@
 const MonitorSlaModel = require('../models/monitorSla');
+const MonitorService = require('./monitorService');
 const ErrorService = require('./errorService');
 
 module.exports = {
@@ -29,6 +30,19 @@ module.exports = {
             }
 
             const createdMonitorSla = await MonitorSlaModel.create(data);
+
+            if (data.monitors && data.monitors.length > 0) {
+                let monitorIds = [...data.monitors];
+                monitorIds = [...new Set(monitorIds)];
+                for (const monitorId of monitorIds) {
+                    await MonitorService.updateOneBy(
+                        { _id: monitorId },
+                        {
+                            monitorSla: createdMonitorSla._id,
+                        }
+                    );
+                }
+            }
 
             return createdMonitorSla;
         } catch (error) {
@@ -101,6 +115,52 @@ module.exports = {
                     );
                     error.code = 400;
                     throw error;
+                }
+
+                const monitors = await MonitorService.findBy({
+                    monitorSla: query._id,
+                });
+                const initialMonitorIds = monitors.map(monitor => monitor._id);
+
+                const removedMonitors = [];
+                if (data.monitors && data.monitors.length > 0) {
+                    let monitorIds = [...data.monitors];
+                    monitorIds = [...new Set(monitorIds)];
+                    monitorIds = monitorIds.map(id => String(id));
+                    initialMonitorIds.forEach(monitorId => {
+                        if (!monitorIds.includes(String(monitorId))) {
+                            removedMonitors.push(monitorId);
+                        }
+                    });
+                    for (const monitorId of monitorIds) {
+                        await MonitorService.updateOneBy(
+                            { _id: monitorId },
+                            {
+                                monitorSla: query._id,
+                            }
+                        );
+                    }
+                } else {
+                    // unset monitorSla for removed monitors
+                    // at this point all the monitors were removed
+                    for (const monitorId of initialMonitorIds) {
+                        await MonitorService.updateOneBy(
+                            { _id: monitorId },
+                            null,
+                            { monitorSla: query._id }
+                        );
+                    }
+                }
+
+                // unset monitorSla for removed monitors
+                if (removedMonitors && removedMonitors.length > 0) {
+                    for (const monitorId of removedMonitors) {
+                        await MonitorService.updateOneBy(
+                            { _id: monitorId },
+                            null,
+                            { monitorSla: query._id }
+                        );
+                    }
                 }
             }
 

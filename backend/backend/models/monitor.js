@@ -26,6 +26,7 @@ const monitorSchema = new Schema({
             'incomingHttpRequest',
         ],
     }, //type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
+    agentlessConfig: Object,
     resourceCategory: {
         type: String,
         ref: 'ResourceCategory',
@@ -51,6 +52,7 @@ const monitorSchema = new Schema({
     formData: [Object],
     text: String,
     headers: [Object],
+    disabled: { type: Boolean, default: false },
     deleted: { type: Boolean, default: false },
 
     deletedAt: {
