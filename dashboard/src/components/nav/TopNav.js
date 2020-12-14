@@ -8,6 +8,7 @@ import { openNotificationMenu } from '../../actions/notification';
 import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
 import ClickOutside from 'react-click-outside';
 import { userSettings } from '../../actions/profile';
+import { userScheduleRequest, fetchUserSchedule } from '../../actions/schedule';
 import { getVersion } from '../../actions/version';
 import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
@@ -16,7 +17,6 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
-import Fade from 'react-reveal/Fade';
 import OnCallScheduleModal from '../OnCallScheduleModal';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
@@ -32,8 +32,15 @@ class TopContent extends Component {
         } = this.props;
         userSettings();
         getVersion();
+        this.props.userScheduleRequest();
         if (currentProject && currentProject._id) {
             fetchSubProjectOngoingScheduledEvents(currentProject._id);
+        }
+        if (this.props.currentProjectId && this.props.user.id) {
+            this.props.fetchUserSchedule(
+                this.props.currentProjectId,
+                this.props.user.id
+            );
         }
     }
 
@@ -41,6 +48,18 @@ class TopContent extends Component {
         if (prevProps.currentProject !== this.props.currentProject) {
             this.props.fetchSubProjectOngoingScheduledEvents(
                 this.props.currentProject._id
+            );
+        }
+        if (
+            (!prevProps.user.id &&
+                this.props.currentProjectId &&
+                this.props.user.id) ||
+            (prevProps.currentProjectId !== this.props.currentProjectId &&
+                this.props.user.id)
+        ) {
+            this.props.fetchUserSchedule(
+                this.props.currentProjectId,
+                this.props.user.id
             );
         }
     }
@@ -93,48 +112,46 @@ class TopContent extends Component {
     renderActiveIncidents = (incidentCounter, topNavCardClass) => (
         <>
             {typeof incidentCounter === 'number' && (
-                <Fade>
-                    <div
-                        className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
+                <div
+                    className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
+                        incidentCounter && incidentCounter > 0
+                            ? 'red'
+                            : incidentCounter === 0
+                            ? 'green'
+                            : null
+                    } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
+                    style={{ paddingBottom: '6px', paddingTop: '6px' }}
+                    onClick={this.handleActiveIncidentClick}
+                    id="activeIncidents"
+                >
+                    <span
+                        className={`db-SideNav-icon db-SideNav-icon--${
                             incidentCounter && incidentCounter > 0
-                                ? 'red'
+                                ? 'info'
                                 : incidentCounter === 0
-                                ? 'green'
+                                ? 'tick'
                                 : null
-                        } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
-                        style={{ paddingBottom: '6px', paddingTop: '6px' }}
-                        onClick={this.handleActiveIncidentClick}
-                        id="activeIncidents"
-                    >
-                        <span
-                            className={`db-SideNav-icon db-SideNav-icon--${
-                                incidentCounter && incidentCounter > 0
-                                    ? 'info'
-                                    : incidentCounter === 0
-                                    ? 'tick'
-                                    : null
-                            } db-SideNav-icon--selected`}
-                            style={{
-                                filter: 'brightness(0) invert(1)',
-                                marginTop: '1px',
-                                marginRight: '3px',
-                            }}
-                        />
-                        <span className={topNavCardClass}>
-                            <ShouldRender
-                                if={incidentCounter && incidentCounter > 0}
-                            >
-                                {`${incidentCounter +
-                                    (incidentCounter === 1
-                                        ? ' Incident Currently Active'
-                                        : ' Incidents Currently Active')}`}
-                            </ShouldRender>
-                            <ShouldRender if={incidentCounter === 0}>
-                                No incidents currently active.
-                            </ShouldRender>
-                        </span>
-                    </div>
-                </Fade>
+                        } db-SideNav-icon--selected`}
+                        style={{
+                            filter: 'brightness(0) invert(1)',
+                            marginTop: '1px',
+                            marginRight: '3px',
+                        }}
+                    />
+                    <span className={topNavCardClass}>
+                        <ShouldRender
+                            if={incidentCounter && incidentCounter > 0}
+                        >
+                            {`${incidentCounter +
+                                (incidentCounter === 1
+                                    ? ' Incident Currently Active'
+                                    : ' Incidents Currently Active')}`}
+                        </ShouldRender>
+                        <ShouldRender if={incidentCounter === 0}>
+                            No incidents currently active.
+                        </ShouldRender>
+                    </span>
+                </div>
             )}
         </>
     );
@@ -235,10 +252,6 @@ class TopContent extends Component {
                 incident => !incident.resolved
             ).length;
         }
-        const monitorCount = this.props.monitors
-            ? this.props.monitors.count
-            : 0;
-
         const { escalations } = this.props;
 
         const userSchedules = _.flattenDeep(
@@ -406,12 +419,10 @@ class TopContent extends Component {
                             ''
                         )}
 
-                        {monitorCount > 0
-                            ? this.renderActiveIncidents(
-                                  incidentCounter,
-                                  topNavCardClass
-                              )
-                            : null}
+                        {this.renderActiveIncidents(
+                            incidentCounter,
+                            topNavCardClass
+                        )}
                         {this.renderOngoingScheduledEvents(topNavCardClass)}
 
                         <div className="Box-root Margin-right--16">
@@ -550,6 +561,8 @@ const mapDispatchToProps = dispatch =>
             closeFeedbackModal,
             userSettings,
             openNotificationMenu,
+            fetchUserSchedule,
+            userScheduleRequest,
             getVersion,
             openSideNav,
             fetchSubProjectOngoingScheduledEvents,
@@ -584,6 +597,8 @@ TopContent.propTypes = {
     subProjectOngoingScheduledEvents: PropTypes.array,
     openModal: PropTypes.func.isRequired,
     escalations: PropTypes.array,
+    fetchUserSchedule: PropTypes.func,
+    userScheduleRequest: PropTypes.func,
     user: PropTypes.object.isRequired,
     currentProjectId: PropTypes.string.isRequired,
 };
