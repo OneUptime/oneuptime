@@ -198,6 +198,9 @@ class MonitorSla extends Component {
                                                 projectId,
                                                 monitorSlaId: monitorSla._id,
                                             });
+                                            this.setState({
+                                                flag: true,
+                                            });
                                         }}
                                         disabled={requesting}
                                     >

@@ -205,6 +205,9 @@ class IncidentCommunicationSla extends Component {
                                                 projectId,
                                                 incidentSlaId: incidentSla._id,
                                             });
+                                            this.setState({
+                                                flag: true,
+                                            });
                                         }}
                                         disabled={requesting}
                                     >
