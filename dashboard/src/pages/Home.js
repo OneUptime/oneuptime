@@ -591,7 +591,6 @@ class Home extends Component {
                                                     <TabPanel>
                                                         <Fade>
                                                             <div>
-                                                                <div>. </div>
                                                                 {this.renderComponentIssues()}
                                                             </div>
                                                         </Fade>
