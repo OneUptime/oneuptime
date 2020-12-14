@@ -349,6 +349,26 @@ class Home extends Component {
                                                             <>
                                                                 <ShouldRender
                                                                     if={
+                                                                        activeSchedules &&
+                                                                        activeSchedules.length >
+                                                                            0
+                                                                    }
+                                                                >
+                                                                    <OnCallSchedule
+                                                                        status="active"
+                                                                        schedules={
+                                                                            activeSchedules
+                                                                        }
+                                                                        currentProjectId={
+                                                                            this
+                                                                                .props
+                                                                                .currentProjectId
+                                                                        }
+                                                                    />
+                                                                </ShouldRender>
+
+                                                                <ShouldRender
+                                                                    if={
                                                                         upcomingSchedules &&
                                                                         upcomingSchedules.length >
                                                                             0

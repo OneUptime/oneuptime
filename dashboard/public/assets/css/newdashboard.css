@@ -11337,3 +11337,70 @@ table {
     width: 100%;
 }
 
+.threeCardClass{
+    display: block;
+}
+
+.twoCardClass{
+    display: block;
+}
+
+.oneCardClass{
+    display: block;
+}
+
+@media (max-width: 1335px) 
+{
+    .threeCardClass
+    {
+        text-overflow: ellipsis;
+        overflow: hidden; 
+        width: 100px; 
+        white-space: nowrap;
+    }
+}
+@media (max-width: 1030px) 
+{
+    .threeCardClass
+    {
+        display:none;
+    }
+}
+
+@media (max-width: 1136px) 
+{
+    .twoCardClass
+    {
+        text-overflow: ellipsis;
+        overflow: hidden; 
+        width: 100px; 
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 870px) 
+{
+    .twoCardClass
+    {
+        display:none;
+    }
+}
+
+@media (max-width: 860px) 
+{
+    .oneCardClass
+    {
+        text-overflow: ellipsis;
+        overflow: hidden; 
+        width: 100px; 
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 760px) 
+{
+    .oneCardClass
+    {
+        display:none;
+    }
+}
