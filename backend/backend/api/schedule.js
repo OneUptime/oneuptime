@@ -98,10 +98,10 @@ router.put(
     isUserAdmin,
     async function(req, res) {
         try {
-            const scheduleId = req.params.scheduleId;
+            const { projectId, scheduleId } = req.params;
             const data = req.body;
             const schedule = await ScheduleService.updateOneBy(
-                { _id: scheduleId },
+                { _id: scheduleId, projectId },
                 data
             );
             return sendItemResponse(req, res, schedule);

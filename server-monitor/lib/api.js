@@ -20,7 +20,7 @@ const {
     onlineTestData,
     degradedTestData,
     offlineTestData,
-} = require('../lib/config');
+} = require('./config');
 
 /**
  * Get system information at interval and upload to server.
@@ -183,13 +183,21 @@ const ping = (
  */
 module.exports = (config, apiUrl, apiKey, monitorId) => {
     let pingServer,
-        projectId = config;
+        projectId = config,
+        interval,
+        timeout,
+        simulate,
+        simulateData;
 
     if (typeof config === 'object') {
         projectId = config.projectId;
         apiUrl = config.apiUrl;
         apiKey = config.apiKey;
         monitorId = config.monitorId;
+        interval = config.interval;
+        timeout = config.timeout;
+        simulate = config.simulate;
+        simulateData = config.simulateData;
     }
 
     return {
@@ -207,7 +215,7 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                 return new Promise((resolve, reject) => {
                     const data = response.data;
 
-                    if (data !== null) {
+                    if (data && data !== null) {
                         if (id && typeof id === 'string') {
                             resolve(data._id);
                         } else {
@@ -239,31 +247,33 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                 });
             })
                 .then(monitorId => {
-                    if (monitorId) {
-                        logger.info('Starting Server Monitor...');
-                        pingServer = ping(
-                            projectId,
-                            monitorId,
-                            apiUrl,
-                            apiKey,
-                            config.interval,
-                            config.simulate,
-                            config.simulateData
-                        );
-                        pingServer.start();
+                    return new Promise((resolve, reject) => {
+                        if (monitorId) {
+                            logger.info('Starting Server Monitor...');
+                            pingServer = ping(
+                                projectId,
+                                monitorId,
+                                apiUrl,
+                                apiKey,
+                                interval,
+                                simulate,
+                                simulateData
+                            );
+                            pingServer.start();
 
-                        if (config.timeout) {
-                            setTimeout(() => {
-                                logger.info('Stopping Server Monitor...');
-                                pingServer.stop();
-                            }, config.timeout);
+                            if (timeout) {
+                                setTimeout(() => {
+                                    logger.info('Stopping Server Monitor...');
+                                    pingServer.stop();
+                                }, timeout);
+                            }
+
+                            resolve(pingServer);
+                        } else {
+                            logger.error('Server Monitor ID is required');
+                            reject(1);
                         }
-
-                        return pingServer;
-                    } else {
-                        logger.error('Server Monitor ID is required');
-                        throw new Error(1);
-                    }
+                    });
                 })
                 .catch(error => {
                     if (typeof error !== 'number') logger.error(error);

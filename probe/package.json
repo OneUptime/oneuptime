@@ -31,6 +31,7 @@
         "moment": "^2.24.0",
         "node-cron": "^2.0.3",
         "node-fetch": "^2.6.1",
+        "node-ssh": "^11.1.1",
         "vm2": "^3.9.2",
         "winston": "^2.4.0",
         "winston-slack-transport": "^2.0.0"

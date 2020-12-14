@@ -33,6 +33,8 @@ import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import IncidentStatusPages from '../components/incident/incidentStatusPages';
+import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
+import secondsToHms from '../utils/secondsToHms';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -242,11 +244,10 @@ class Incident extends React.Component {
     }
 
     ready = () => {
+        const { projectId, incidentId } = this.props.match.params;
         this.fetchAllIncidentData();
-        this.props.fetchIncidentStatusPages(
-            this.props.match.params.projectId,
-            this.props.match.params.incidentId
-        );
+        this.props.fetchIncidentStatusPages(projectId, incidentId);
+        this.props.fetchDefaultCommunicationSla(projectId);
     };
 
     render() {
@@ -274,6 +275,11 @@ class Incident extends React.Component {
             this.props.monitor && this.props.monitor.type
                 ? this.props.monitor.type
                 : '';
+
+        const incidentCommunicationSla =
+            this.props.monitor &&
+            (this.props.monitor.incidentCommunicationSla ||
+                this.props.defaultIncidentSla);
 
         let scheduleAlert;
         if (scheduleWarning.includes(monitorId) === false) {
@@ -354,20 +360,20 @@ class Incident extends React.Component {
                             </TabList>
                         </div>
                         <div>{scheduleAlert}</div>
-                        {this.props.incident &&
+                        {incidentCommunicationSla &&
+                            this.props.incident &&
                             this.props.incident.countDown &&
                             this.props.incident.countDown !== '0:0' && (
                                 <div
                                     className="Box-root Margin-vertical--12"
                                     style={{ marginTop: 0, cursor: 'pointer' }}
-                                    onClick={() => this.tabSelected(4)}
                                     id="slaIndicatorAlert"
                                 >
                                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
-                                        <div className="Box-root Box-background--green Card-shadow--medium Border-radius--4">
+                                        <div className="Box-root box__yellow--dark Card-shadow--medium Border-radius--4">
                                             <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
                                                 <span
-                                                    className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
                                                     style={{
                                                         filter:
                                                             'brightness(0) invert(1)',
@@ -377,13 +383,32 @@ class Incident extends React.Component {
                                                 ></span>
                                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                                     <span>
-                                                        Alert{' '}
-                                                        {
+                                                        According to{' '}
+                                                        {incidentCommunicationSla &&
+                                                            incidentCommunicationSla.name}{' '}
+                                                        SLA, you need to update
+                                                        the incident note for
+                                                        this incident in{' '}
+                                                        {secondsToHms(
                                                             this.props.incident
                                                                 .countDown
-                                                        }{' '}
-                                                        minutes before SLA
-                                                        breaches
+                                                        )}
+                                                        {'. '} Click{' '}
+                                                        <span
+                                                            onClick={() =>
+                                                                this.tabSelected(
+                                                                    4
+                                                                )
+                                                            }
+                                                            style={{
+                                                                textDecoration:
+                                                                    'underline',
+                                                            }}
+                                                        >
+                                                            here
+                                                        </span>{' '}
+                                                        to update the incident
+                                                        note
                                                     </span>
                                                 </span>
                                             </div>
@@ -391,7 +416,8 @@ class Incident extends React.Component {
                                     </div>
                                 </div>
                             )}
-                        {this.props.incident &&
+                        {incidentCommunicationSla &&
+                            this.props.incident &&
                             this.props.incident.breachedCommunicationSla && (
                                 <div
                                     className="Box-root Margin-vertical--12"
@@ -615,6 +641,10 @@ const mapStateToProps = (state, props) => {
             : false,
         component,
         componentId,
+        requestingDefaultIncidentSla:
+            state.incidentSla.defaultIncidentCommunicationSla.requesting,
+        defaultIncidentSla:
+            state.incidentSla.defaultIncidentCommunicationSla.sla,
     };
 };
 
@@ -634,6 +664,7 @@ const mapDispatchToProps = dispatch => {
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
             fetchIncidentStatusPages,
+            fetchDefaultCommunicationSla,
         },
         dispatch
     );
@@ -668,6 +699,11 @@ Incident.propTypes = {
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     fetchIncidentStatusPages: PropTypes.func.isRequired,
+    fetchDefaultCommunicationSla: PropTypes.func,
+    defaultIncidentSla: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
 };

@@ -103,8 +103,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     response
 ) {
     try {
-        const { monitor, res, resp, rawResp, type, retryCount } = req.body;
-        let status, log, reason;
+        const {
+            monitor,
+            res,
+            resp,
+            rawResp,
+            serverData,
+            type,
+            retryCount,
+        } = req.body;
+        let status, log, reason, data;
 
         if (type === 'api' || type === 'url') {
             const {
@@ -205,31 +213,69 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 status = 'offline';
             }
         }
+        if (type === 'server-monitor') {
+            data = serverData;
 
-        const data = req.body;
-        data.responseTime = res || 0;
-        data.responseStatus = resp && resp.status ? resp.status : null;
-        data.status = status;
+            const {
+                stat: validUp,
+                reasons: upFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
+                ? ProbeService.conditions(data, null, monitor.criteria.up)
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDegraded,
+                reasons: degradedFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.degraded
+                ? ProbeService.conditions(data, null, monitor.criteria.degraded)
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDown,
+                reasons: downFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
+                ? ProbeService.conditions(data, null, monitor.criteria.down)
+                : { stat: false, reasons: [] });
+
+            if (validDown) {
+                data.status = 'offline';
+                data.reason = upFailedReasons;
+            } else if (validDegraded) {
+                data.status = 'degraded';
+                data.reason = upFailedReasons;
+            } else if (validUp) {
+                data.status = 'online';
+                data.reason = [...degradedFailedReasons, ...downFailedReasons];
+            } else {
+                data.status = 'offline';
+                data.reason = upFailedReasons;
+            }
+        } else {
+            data = req.body;
+            data.responseTime = res || 0;
+            data.responseStatus = resp && resp.status ? resp.status : null;
+            data.status = status;
+            data.sslCertificate =
+                resp && resp.sslCertificate ? resp.sslCertificate : null;
+            data.lighthouseScanStatus =
+                resp && resp.lighthouseScanStatus
+                    ? resp.lighthouseScanStatus
+                    : null;
+            data.performance =
+                resp && resp.performance ? resp.performance : null;
+            data.accessibility =
+                resp && resp.accessibility ? resp.accessibility : null;
+            data.bestPractices =
+                resp && resp.bestPractices ? resp.bestPractices : null;
+            data.seo = resp && resp.seo ? resp.seo : null;
+            data.pwa = resp && resp.pwa ? resp.pwa : null;
+            data.lighthouseData =
+                resp && resp.lighthouseData ? resp.lighthouseData : null;
+            data.retryCount = retryCount || 0;
+            data.reason = reason;
+            data.response = rawResp;
+        }
+
+        data.monitorId = req.params.monitorId || monitor._id;
         data.probeId = req.probe && req.probe.id ? req.probe.id : null;
-        data.monitorId = req.params.monitorId;
-        data.sslCertificate =
-            resp && resp.sslCertificate ? resp.sslCertificate : null;
-        data.lighthouseScanStatus =
-            resp && resp.lighthouseScanStatus
-                ? resp.lighthouseScanStatus
-                : null;
-        data.performance = resp && resp.performance ? resp.performance : null;
-        data.accessibility =
-            resp && resp.accessibility ? resp.accessibility : null;
-        data.bestPractices =
-            resp && resp.bestPractices ? resp.bestPractices : null;
-        data.seo = resp && resp.seo ? resp.seo : null;
-        data.pwa = resp && resp.pwa ? resp.pwa : null;
-        data.lighthouseData =
-            resp && resp.lighthouseData ? resp.lighthouseData : null;
-        data.retryCount = retryCount || 0;
-        data.reason = reason;
-        data.response = rawResp;
 
         if (data.lighthouseScanStatus) {
             if (data.lighthouseScanStatus === 'scanning') {

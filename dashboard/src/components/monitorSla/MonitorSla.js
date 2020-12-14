@@ -58,6 +58,224 @@ class MonitorSla extends Component {
         updateMonitorSla(projectId, monitorSlaId, data, true);
     };
 
+    handleMonitorList = monitors => {
+        if (monitors.length === 0) {
+            return 'No monitor in this event';
+        }
+        if (monitors.length === 1) {
+            return monitors[0].name;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].name} and ${monitors[1].name}`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].name}, ${monitors[1].name} and ${monitors[2].name}`;
+        }
+
+        return `${monitors[0].name}, ${monitors[1].name} and ${monitors.length -
+            2} others`;
+    };
+
+    handleMonitorSlas = () => {
+        const {
+            requesting,
+            projectId,
+            monitorSlas,
+            openModal,
+            activeSla,
+            monitors,
+        } = this.props;
+
+        return (
+            monitorSlas &&
+            monitorSlas.length > 0 &&
+            monitorSlas.map((monitorSla, index) => {
+                const slaMonitors = monitors.filter(
+                    monitor =>
+                        monitor.monitorSla &&
+                        String(monitor.monitorSla._id) ===
+                            String(monitorSla._id)
+                );
+                return (
+                    <div
+                        key={monitorSla._id}
+                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                        style={{
+                            backgroundColor: 'white',
+                            cursor: 'pointer',
+                        }}
+                        id={`monitorSla_${monitorSla.name}`}
+                    >
+                        {monitorSla.isDefault ? (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{
+                                    display: 'flex',
+                                    width: '20vw',
+                                }}
+                            >
+                                <div className="bs-ObjectList-cell-row">
+                                    {monitorSla.name}
+                                </div>
+                                <div
+                                    style={{
+                                        marginLeft: 5,
+                                    }}
+                                    className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                >
+                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                        <span>Default</span>
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{
+                                    display: 'flex',
+                                    width: '20vw',
+                                }}
+                            >
+                                <div className="bs-ObjectList-cell-row">
+                                    {monitorSla.name}
+                                </div>
+                            </div>
+                        )}
+                        <div
+                            className="bs-ObjectList-cell bs-u-v-middle"
+                            style={{ width: '20vw' }}
+                        >
+                            <div className="bs-ObjectList-cell-row">
+                                {monitorSla.frequency}
+                            </div>
+                        </div>
+                        <div
+                            className="bs-ObjectList-cell bs-u-v-middle"
+                            style={{ width: '20vw' }}
+                        >
+                            <div className="bs-ObjectList-cell-row">
+                                {monitorSla.monitorUptime}
+                            </div>
+                        </div>
+                        <div
+                            className="bs-ObjectList-cell bs-u-v-middle"
+                            style={{ width: '20vw' }}
+                        >
+                            {monitorSla.isDefault ? (
+                                <div className="bs-ObjectList-cell-row">
+                                    All monitors without SLA
+                                </div>
+                            ) : (
+                                <div className="bs-ObjectList-cell-row">
+                                    {this.handleMonitorList(slaMonitors)}
+                                </div>
+                            )}
+                        </div>
+                        <div
+                            className="bs-ObjectList-cell bs-u-v-middle"
+                            style={{ width: '20vw' }}
+                        >
+                            <div
+                                className="bs-ObjectList-cell-row"
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'flex-end',
+                                    marginRight: 15,
+                                }}
+                            >
+                                <ShouldRender if={!monitorSla.isDefault}>
+                                    <button
+                                        id={`defaultMonitorSlaBtn_${index}`}
+                                        title="edit"
+                                        className="bs-Button bs-DeprecatedButton"
+                                        style={{
+                                            marginLeft: 20,
+                                            minWidth: 100,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            this.setAsDefault({
+                                                projectId,
+                                                monitorSlaId: monitorSla._id,
+                                            });
+                                        }}
+                                        disabled={requesting}
+                                    >
+                                        <ShouldRender
+                                            if={
+                                                !requesting ||
+                                                String(activeSla) !==
+                                                    String(monitorSla._id)
+                                            }
+                                        >
+                                            <span>Set as Default</span>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                requesting &&
+                                                String(activeSla) ===
+                                                    String(monitorSla._id)
+                                            }
+                                        >
+                                            <ListLoader
+                                                style={{
+                                                    marginTop: 0,
+                                                }}
+                                            />
+                                        </ShouldRender>
+                                    </button>
+                                </ShouldRender>
+                                <button
+                                    id={`editMonitorSlaBtn_${index}`}
+                                    title="edit"
+                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                    style={{
+                                        marginLeft: 20,
+                                    }}
+                                    type="button"
+                                    onClick={() => {
+                                        openModal({
+                                            id: monitorSla._id,
+                                            content: EditMonitorSlaModal,
+                                            sla: monitorSla,
+                                            projectId,
+                                        });
+                                    }}
+                                >
+                                    <span>Edit</span>
+                                </button>
+                                <button
+                                    id={`deleteMonitorSlaBtn_${index}`}
+                                    title="delete"
+                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                    style={{
+                                        marginLeft: 20,
+                                    }}
+                                    type="button"
+                                    onClick={() => {
+                                        openModal({
+                                            id: monitorSla._id,
+                                            content: DataPathHoC(
+                                                DeleteMonitorSlaModal,
+                                                {
+                                                    projectId,
+                                                    monitorSlaId:
+                                                        monitorSla._id,
+                                                }
+                                            ),
+                                        });
+                                    }}
+                                >
+                                    <span>Delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })
+        );
+    };
+
     render() {
         const {
             limit,
@@ -68,8 +286,6 @@ class MonitorSla extends Component {
             fetchSlaError,
             currentProject,
             monitorSlas,
-            openModal,
-            activeSla,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
 
@@ -140,7 +356,10 @@ class MonitorSla extends Component {
                                         Frequency (days)
                                     </div>
                                     <div className="bs-ObjectList-cell">
-                                        Monitor Uptime
+                                        Monitor Uptime (%)
+                                    </div>
+                                    <div className="bs-ObjectList-cell">
+                                        Monitor(s)
                                     </div>
                                     <div
                                         className="bs-ObjectList-cell"
@@ -152,195 +371,7 @@ class MonitorSla extends Component {
                                         Action
                                     </div>
                                 </header>
-                                {monitorSlas.length > 0 &&
-                                    monitorSlas.map((monitorSla, index) => (
-                                        <div
-                                            key={monitorSla._id}
-                                            className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                                            style={{
-                                                backgroundColor: 'white',
-                                                cursor: 'pointer',
-                                            }}
-                                            id={`monitorSla_${monitorSla.name}`}
-                                        >
-                                            {monitorSla.isDefault ? (
-                                                <div
-                                                    className="bs-ObjectList-cell bs-u-v-middle"
-                                                    style={{
-                                                        display: 'flex',
-                                                        width: '20vw',
-                                                    }}
-                                                >
-                                                    <div className="bs-ObjectList-cell-row">
-                                                        {monitorSla.name}
-                                                    </div>
-                                                    <div
-                                                        style={{
-                                                            marginLeft: 5,
-                                                        }}
-                                                        className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                                    >
-                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                            <span>Default</span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div
-                                                    className="bs-ObjectList-cell bs-u-v-middle"
-                                                    style={{
-                                                        display: 'flex',
-                                                        width: '20vw',
-                                                    }}
-                                                >
-                                                    <div className="bs-ObjectList-cell-row">
-                                                        {monitorSla.name}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <div
-                                                className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '20vw' }}
-                                            >
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {monitorSla.frequency}
-                                                </div>
-                                            </div>
-                                            <div
-                                                className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '20vw' }}
-                                            >
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {monitorSla.monitorUptime}
-                                                </div>
-                                            </div>
-                                            <div
-                                                className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '30vw' }}
-                                            >
-                                                <div
-                                                    className="bs-ObjectList-cell-row"
-                                                    style={{
-                                                        display: 'flex',
-                                                        justifyContent:
-                                                            'flex-end',
-                                                        marginRight: 15,
-                                                    }}
-                                                >
-                                                    <ShouldRender
-                                                        if={
-                                                            !monitorSla.isDefault
-                                                        }
-                                                    >
-                                                        <button
-                                                            id={`defaultMonitorSlaBtn_${index}`}
-                                                            title="edit"
-                                                            className="bs-Button bs-DeprecatedButton"
-                                                            style={{
-                                                                marginLeft: 20,
-                                                                minWidth: 100,
-                                                            }}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                this.setAsDefault(
-                                                                    {
-                                                                        projectId,
-                                                                        monitorSlaId:
-                                                                            monitorSla._id,
-                                                                    }
-                                                                );
-                                                                this.setState({
-                                                                    flag: true,
-                                                                });
-                                                            }}
-                                                            disabled={
-                                                                requesting
-                                                            }
-                                                        >
-                                                            <ShouldRender
-                                                                if={
-                                                                    !requesting ||
-                                                                    String(
-                                                                        activeSla
-                                                                    ) !==
-                                                                        String(
-                                                                            monitorSla._id
-                                                                        )
-                                                                }
-                                                            >
-                                                                <span>
-                                                                    Set as
-                                                                    Default
-                                                                </span>
-                                                            </ShouldRender>
-                                                            <ShouldRender
-                                                                if={
-                                                                    requesting &&
-                                                                    String(
-                                                                        activeSla
-                                                                    ) ===
-                                                                        String(
-                                                                            monitorSla._id
-                                                                        )
-                                                                }
-                                                            >
-                                                                <ListLoader
-                                                                    style={{
-                                                                        marginTop: 0,
-                                                                    }}
-                                                                />
-                                                            </ShouldRender>
-                                                        </button>
-                                                    </ShouldRender>
-                                                    <button
-                                                        id={`editMonitorSlaBtn_${index}`}
-                                                        title="edit"
-                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
-                                                        style={{
-                                                            marginLeft: 20,
-                                                        }}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            openModal({
-                                                                id:
-                                                                    monitorSla._id,
-                                                                content: EditMonitorSlaModal,
-                                                                sla: monitorSla,
-                                                                projectId,
-                                                            });
-                                                        }}
-                                                    >
-                                                        <span>Edit</span>
-                                                    </button>
-                                                    <button
-                                                        id={`deleteMonitorSlaBtn_${index}`}
-                                                        title="delete"
-                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                                        style={{
-                                                            marginLeft: 20,
-                                                        }}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            openModal({
-                                                                id:
-                                                                    monitorSla._id,
-                                                                content: DataPathHoC(
-                                                                    DeleteMonitorSlaModal,
-                                                                    {
-                                                                        projectId,
-                                                                        monitorSlaId:
-                                                                            monitorSla._id,
-                                                                    }
-                                                                ),
-                                                            });
-                                                        }}
-                                                    >
-                                                        <span>Delete</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                {this.handleMonitorSlas()}
                                 <ShouldRender
                                     if={
                                         !(
@@ -482,6 +513,7 @@ MonitorSla.propTypes = {
     updateMonitorSla: PropTypes.func,
     setActiveMonitorSla: PropTypes.func,
     activeSla: PropTypes.string,
+    monitors: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -495,7 +527,11 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, ownProps) => {
+    const monitorData = state.monitor.monitorsList.monitors.find(
+        data => String(data._id) === String(ownProps.projectId)
+    );
+    const monitors = monitorData ? monitorData.monitors : [];
     return {
         requesting: state.monitorSla.monitorSlas.requesting,
         fetchSlaError: state.monitorSla.monitorSlas.error,
@@ -505,6 +541,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         monitorSlas: state.monitorSla.monitorSlas.slas,
         activeSla: state.monitorSla.activeSla,
+        monitors,
     };
 };
 

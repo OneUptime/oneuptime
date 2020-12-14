@@ -7,7 +7,7 @@ import MonitorInputs from './MonitorInputs';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addMonitors } from '../../actions/schedule';
-import { reduxForm } from 'redux-form';
+import { Field, reduxForm } from 'redux-form';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
@@ -19,11 +19,18 @@ function submitMonitorForm(values, dispatch, props) {
     const monitors = [];
     /* eslint-disable no-unused-vars */
     for (const id in values) {
-        if (Object.prototype.hasOwnProperty.call(values, id)) {
+        if (
+            Object.prototype.hasOwnProperty.call(values, id) &&
+            id !== 'isDefault'
+        ) {
             values[id] && monitors.push(id);
         }
     }
-    props.addMonitors(subProjectId, scheduleId, { monitorIds: monitors });
+    props.addMonitors(subProjectId, scheduleId, {
+        monitorIds: monitors,
+        isDefault: values.isDefault,
+    });
+
     if (SHOULD_LOG_ANALYTICS) {
         logEvent(
             'EVENT: DASHBOARD > PROJECT > SCHEDULE > MONITOR ADDED TO SCHEDULE',
@@ -169,6 +176,83 @@ export function MonitorBox(props) {
                                                 </div>
                                             </ShouldRender>
 
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    <span></span>
+                                                </label>
+                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                    <div
+                                                        className="Box-root"
+                                                        style={{
+                                                            height: '5px',
+                                                        }}
+                                                    ></div>
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <div
+                                                                data-test="RetrySettings-failedPaymentsRow"
+                                                                className="Box-root"
+                                                            >
+                                                                <label
+                                                                    className="Checkbox"
+                                                                    htmlFor="isDefault"
+                                                                    id="isDefaultLabel"
+                                                                >
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name="isDefault"
+                                                                        data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                        className="Checkbox-source"
+                                                                        id="isDefault"
+                                                                        disabled={
+                                                                            props.isRequesting
+                                                                        }
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="Checkbox-label Box-root Margin-left--8">
+                                                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                            <span title="Set default on-call schedule">
+                                                                                Set
+                                                                                as
+                                                                                default
+                                                                                on-call
+                                                                                schedule
+                                                                            </span>
+                                                                        </span>
+                                                                        <p className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                Use
+                                                                                this
+                                                                                for
+                                                                                monitors
+                                                                                without
+                                                                                on-call
+                                                                                schedule
+                                                                                within
+                                                                                a
+                                                                                project
+                                                                            </span>
+                                                                        </p>
+                                                                    </div>
+                                                                </label>
+                                                                <div className="Box-root Padding-left--24">
+                                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                        <div className="Box-root">
+                                                                            <div className="Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <ShouldRender
                                                 if={
                                                     props.monitors.length ===
@@ -190,32 +274,26 @@ export function MonitorBox(props) {
                             </div>
                         </div>
 
-                        <ShouldRender if={props.monitors.length > 0}>
-                            <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                                <span className="db-SettingsForm-footerMessage"></span>
-                                <div>
-                                    <RenderIfSubProjectAdmin>
-                                        <button
-                                            id="btnSaveMonitors"
-                                            className="bs-Button bs-Button--blue"
-                                            disabled={props.isRequesting}
-                                            type="submit"
-                                        >
-                                            <ShouldRender
-                                                if={!props.isRequesting}
-                                            >
-                                                <span>Save</span>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={props.isRequesting}
-                                            >
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
-                                    </RenderIfSubProjectAdmin>
-                                </div>
+                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                            <span className="db-SettingsForm-footerMessage"></span>
+                            <div>
+                                <RenderIfSubProjectAdmin>
+                                    <button
+                                        id="btnSaveMonitors"
+                                        className="bs-Button bs-Button--blue"
+                                        disabled={props.isRequesting}
+                                        type="submit"
+                                    >
+                                        <ShouldRender if={!props.isRequesting}>
+                                            <span>Save</span>
+                                        </ShouldRender>
+                                        <ShouldRender if={props.isRequesting}>
+                                            <FormLoader />
+                                        </ShouldRender>
+                                    </button>
+                                </RenderIfSubProjectAdmin>
                             </div>
-                        </ShouldRender>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -259,6 +337,10 @@ const mapStateToProps = (state, props) => {
             initialValues[_id] = scheduleMonitorIds.includes(_id);
         });
     }
+    if (schedule) {
+        initialValues.isDefault = schedule.isDefault;
+    }
+
     const subProjects = state.subProject.subProjects.subProjects;
 
     return {

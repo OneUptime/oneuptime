@@ -38,6 +38,12 @@ You can also use it like this:
 $ fyipe-server-monitor -p 5d64d59cae46131619708309 -u https://fyipe.com/api -a b02798c0-c898-11e9-9f14-4963dc67e2ab -m 5d7775e9f14a531364ba6917
 ```
 
+Or run as a daemon:
+
+```bash
+$ fyipe-server-monitor -d -p 5d64d59cae46131619708309 -u https://fyipe.com/api -a b02798c0-c898-11e9-9f14-4963dc67e2ab -m 5d7775e9f14a531364ba6917
+```
+
 <a name="module_api"></a>
 
 ## Basic Usage

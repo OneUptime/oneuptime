@@ -397,7 +397,8 @@ export class MonitorDetail extends Component {
                                     monitor &&
                                     monitor.type &&
                                     monitor.type === 'server-monitor' &&
-                                    (!logs || (logs && logs.length === 0))
+                                    (!logs || (logs && logs.length === 0)) &&
+                                    !monitor.agentlessConfig
                                 }
                             >
                                 <div className="Card-root">
@@ -550,7 +551,10 @@ export class MonitorDetail extends Component {
                         if={
                             monitor.type !== 'manual' &&
                             monitor.type !== 'device' &&
-                            monitor.type !== 'server-monitor' &&
+                            !(
+                                !monitor.agentlessConfig &&
+                                monitor.type === 'server-monitor'
+                            ) &&
                             monitor.type !== 'incomingHttpRequest'
                         }
                     >

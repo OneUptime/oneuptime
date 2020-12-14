@@ -336,7 +336,11 @@ export class MonitorViewHeader extends Component {
                             if={
                                 monitor.type !== 'manual' &&
                                 monitor.type !== 'device' &&
-                                monitor.type !== 'server-monitor'
+                                !(
+                                    !monitor.agentlessConfig &&
+                                    monitor.type === 'server-monitor'
+                                ) &&
+                                monitor.type !== 'incomingHttpRequest'
                             }
                         >
                             <div className="btn-group">

@@ -172,7 +172,7 @@ router.delete(
             });
             return sendItemResponse(req, res, deletedMonitorSla);
         } catch (error) {
-            return sendErrorResponse(error);
+            return sendErrorResponse(req, res, error);
         }
     }
 );
@@ -191,7 +191,7 @@ router.get(
 
             return sendItemResponse(req, res, defaultMonitorSla);
         } catch (error) {
-            return sendErrorResponse(error);
+            return sendErrorResponse(req, res, error);
         }
     }
 );
