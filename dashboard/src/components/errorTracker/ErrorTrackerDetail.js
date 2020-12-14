@@ -220,6 +220,7 @@ class ErrorTrackerDetail extends Component {
             componentId,
             startDate,
             endDate,
+            showComponentWithIssue,
         } = this.props;
         fetchErrorTrackerIssues(
             currentProject._id,
@@ -229,7 +230,7 @@ class ErrorTrackerDetail extends Component {
             10,
             startDate,
             endDate,
-            this.state.filters
+            showComponentWithIssue ? { resolved: false } : this.state.filters
         );
         if (!this.props.currentProject) {
             const projectId = history.location.pathname
