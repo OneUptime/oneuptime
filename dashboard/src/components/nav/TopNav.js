@@ -354,8 +354,8 @@ class TopContent extends Component {
             ? document.getElementById('myId').childElementCount
             : 0;
         if (topNavCardCount === 4) topNavCardClass = 'oneCardClass';
-        if (topNavCardCount == 5) topNavCardClass = 'twoCardClass';
-        if (topNavCardCount == 6) topNavCardClass = 'threeCardClass';
+        if (topNavCardCount === 5) topNavCardClass = 'twoCardClass';
+        if (topNavCardCount === 6) topNavCardClass = 'threeCardClass';
         return (
             <div
                 tabIndex="0"
