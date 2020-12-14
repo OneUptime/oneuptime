@@ -27,14 +27,6 @@ const _this = {
         const sameDay = oncallstart < oncallend;
         const differentDay = oncallstart >= oncallend;
 
-        startTime = moment(
-            startTime
-        ).format('HH:mm');
-
-        endTime = moment(
-            endTime
-        ).format('HH:mm');
-
         const compareDate = (oncallstart, oncallend) => {
             const start = new Date(new Date()
                 .setHours(oncallstart.split(":")[0],
@@ -42,7 +34,11 @@ const _this = {
             const end = new Date(new Date(new Date().getTime() + 86400000)
                 .setHours(oncallend.split(":")[0],
                     oncallend.split(":")[1])).getTime();
-            const current = new Date().getTime();
+            const current = moment(startTime).format('A') === 'PM' &&
+                moment(endTime).format('A') === 'PM' &&
+                    (end - start) / 1000 > 43200 ?
+                        new Date().getTime() + 86400000 :
+                            new Date().getTime();
 
             if (current >= start && current <= end) return true;
             return false;
