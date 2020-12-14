@@ -9,6 +9,7 @@
 -   [Introduction](/docs/introduction.md)
 -   [Concept](/docs/concept.md)
 -   [Architecture](/docs/architecture.md)
+-   [How Fyipe Works](/docs/how-fyipe-works-overview)
 -   [Subproject Description](/docs/project-description.md)
 -   [Running Fyipe](/docs/run.md)
 -   [Running tests](/docs/running-tests.md)
