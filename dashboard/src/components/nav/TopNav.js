@@ -8,6 +8,7 @@ import { openNotificationMenu } from '../../actions/notification';
 import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
 import ClickOutside from 'react-click-outside';
 import { userSettings } from '../../actions/profile';
+import { userScheduleRequest, fetchUserSchedule } from '../../actions/schedule';
 import { getVersion } from '../../actions/version';
 import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
@@ -31,8 +32,15 @@ class TopContent extends Component {
         } = this.props;
         userSettings();
         getVersion();
+        this.props.userScheduleRequest();
         if (currentProject && currentProject._id) {
             fetchSubProjectOngoingScheduledEvents(currentProject._id);
+        }
+        if (this.props.currentProjectId && this.props.user.id) {
+            this.props.fetchUserSchedule(
+                this.props.currentProjectId,
+                this.props.user.id
+            );
         }
     }
 
@@ -40,6 +48,18 @@ class TopContent extends Component {
         if (prevProps.currentProject !== this.props.currentProject) {
             this.props.fetchSubProjectOngoingScheduledEvents(
                 this.props.currentProject._id
+            );
+        }
+        if (
+            (!prevProps.user.id &&
+                this.props.currentProjectId &&
+                this.props.user.id) ||
+            (prevProps.currentProjectId !== this.props.currentProjectId &&
+                this.props.user.id)
+        ) {
+            this.props.fetchUserSchedule(
+                this.props.currentProjectId,
+                this.props.user.id
             );
         }
     }
@@ -232,10 +252,6 @@ class TopContent extends Component {
                 incident => !incident.resolved
             ).length;
         }
-        const monitorCount = this.props.monitors
-            ? this.props.monitors.count
-            : 0;
-
         const { escalations } = this.props;
 
         const userSchedules = _.flattenDeep(
@@ -403,12 +419,10 @@ class TopContent extends Component {
                             ''
                         )}
 
-                        {monitorCount > 0
-                            ? this.renderActiveIncidents(
-                                  incidentCounter,
-                                  topNavCardClass
-                              )
-                            : null}
+                        {this.renderActiveIncidents(
+                            incidentCounter,
+                            topNavCardClass
+                        )}
                         {this.renderOngoingScheduledEvents(topNavCardClass)}
 
                         <div className="Box-root Margin-right--16">
@@ -547,6 +561,8 @@ const mapDispatchToProps = dispatch =>
             closeFeedbackModal,
             userSettings,
             openNotificationMenu,
+            fetchUserSchedule,
+            userScheduleRequest,
             getVersion,
             openSideNav,
             fetchSubProjectOngoingScheduledEvents,
@@ -581,6 +597,8 @@ TopContent.propTypes = {
     subProjectOngoingScheduledEvents: PropTypes.array,
     openModal: PropTypes.func.isRequired,
     escalations: PropTypes.array,
+    fetchUserSchedule: PropTypes.func,
+    userScheduleRequest: PropTypes.func,
     user: PropTypes.object.isRequired,
     currentProjectId: PropTypes.string.isRequired,
 };
