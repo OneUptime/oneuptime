@@ -242,9 +242,15 @@ class ErrorTrackerDetail extends Component {
             currentProject,
             openModal,
             teamMembers,
+            showComponentWithIssue,
         } = this.props;
         const { deleteModalId, trackerKeyModalId } = this.state;
-        if (errorTracker) {
+        const shouldRender = showComponentWithIssue
+            ? errorTrackerIssue
+                ? errorTrackerIssue.errorTrackerIssues.length > 0
+                : false
+            : true;
+        if (errorTracker && shouldRender) {
             return (
                 <div className="bs-BIM">
                     <div className="Box-root Margin-bottom--12">
@@ -346,6 +352,7 @@ ErrorTrackerDetail.propTypes = {
     updateErrorEventMember: PropTypes.func,
     subProjectTeamLoading: PropTypes.func,
     teamMembers: PropTypes.array,
+    showComponentWithIssue: PropTypes.bool,
 };
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(

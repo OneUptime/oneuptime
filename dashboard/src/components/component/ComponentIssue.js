@@ -31,6 +31,7 @@ class ComponentIssue extends Component {
                         <ErrorTrackerList
                             componentId={component._id}
                             errorTrackers={errorTrackers}
+                            showComponentWithIssue={true}
                         />
                     </div>
                 </div>
