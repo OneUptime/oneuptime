@@ -238,12 +238,6 @@ export function editMonitorRequest() {
     };
 }
 
-export function lighthouseScanReq(payload) {
-    return {
-        type: types.LIGHTHOUS_SCANNING_REQUEST,
-        payload: payload,
-    };
-}
 export function editMonitorFailure(error) {
     return {
         type: types.EDIT_MONITOR_FAILURE,
