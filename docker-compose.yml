@@ -143,19 +143,6 @@ services:
             - IS_SAAS_SERVICE=true
 
     ##IMPORTANT:
-    ## This container is used to expose backend api to the internet
-    ## which is essential to debug "Webhooks" from services like Stripe, Twilio, etc.
-    ngrok:
-        ports:
-            - '4040:4040'
-        image: wernight/ngrok:latest
-        command: ngrok http backend:3002
-        depends_on:
-            - backend
-        environment:
-            - IS_SAAS_SERVICE=true
-
-    ##IMPORTANT:
     ## This container is an SMTP server used to send emails.
     # haraka:
     #     ports:

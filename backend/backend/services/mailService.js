@@ -1593,6 +1593,91 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
+
+    sendInvestigationNoteToSubscribers: async function(
+        incidentTime,
+        monitorName,
+        email,
+        userId,
+        userName,
+        incident,
+        projectName,
+        emailTemplate,
+        componentName,
+        incidentNote,
+        statusPageUrl,
+        statusNoteStatus
+    ) {
+        let mailOptions = {};
+        try {
+            let { template, subject } = await _this.getTemplates(
+                emailTemplate,
+                'Investigation note is created'
+            );
+            const data = {
+                incidentTime,
+                monitorName,
+                userName,
+                userId,
+                projectName,
+                projectId: incident.projectId,
+                incidentType: incident.incidentType,
+                componentName,
+                incidentNote,
+                statusPageUrl,
+                statusNoteStatus,
+            };
+            template = template(data);
+            subject = subject(data);
+            const smtpSettings = await _this.getProjectSmtpSettings(
+                incident.projectId
+            );
+            const privateMailer = await _this.createMailer(smtpSettings);
+            mailOptions = {
+                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                to: email,
+                subject: subject,
+                template: 'template',
+                context: {
+                    body: template,
+                },
+            };
+            const info = await privateMailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+            });
+            return info;
+        } catch (error) {
+            ErrorService.log(
+                'mailService.sendInvestigationNoteToSubscribers',
+                error
+            );
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+            });
+            throw error;
+        }
+    },
+
+    /**
+     * @param {js date object} incidentTime JS date of the incident used as timestamp.
+     * @param {string} monitorName Name of monitor with incident.
+     * @param {string} email Email of user being alerted.
+     * @param {string} userId Id of the user.
+     * @param {string} projectId Id of the project whose monitor has incident.
+     * @param {string} componentName Name of the component whose monitor has incident.
+     * @param {string} statusPageUrl status page url
+     */
     sendIncidentResolvedMailToSubscriber: async function(
         incidentTime,
         monitorName,
@@ -2032,18 +2117,40 @@ const _this = {
             : false;
     },
 
-    sendSlaNotification: async function({ userEmail, name, projectId }) {
+    sendSlaNotification: async function({
+        userEmail,
+        name,
+        projectId,
+        incidentSla,
+        monitorName,
+        incidentUrl,
+        projectName,
+        componentName,
+        incidentId,
+        reason,
+        incidentSlaTimeline,
+        incidentSlaRemaining,
+    }) {
         const smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
         try {
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: userEmail,
-                subject: 'About to Breach Incident SLA',
+                subject: `About to Breach Incident SLA`,
                 template: 'sla_notification',
                 context: {
                     name: name ? name.split(' ')[0].toString() : '',
                     currentYear: new Date().getFullYear(),
+                    incidentSla,
+                    monitorName,
+                    incidentUrl,
+                    projectName,
+                    componentName,
+                    incidentId,
+                    reason,
+                    incidentSlaTimeline,
+                    incidentSlaRemaining,
                 },
             };
 
@@ -2083,18 +2190,38 @@ const _this = {
             throw error;
         }
     },
-    sendSlaBreachNotification: async function({ userEmail, name, projectId }) {
+    sendSlaBreachNotification: async function({
+        userEmail,
+        name,
+        projectId,
+        incidentSla,
+        monitorName,
+        incidentUrl,
+        projectName,
+        componentName,
+        incidentId,
+        reason,
+        incidentSlaTimeline,
+    }) {
         const smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
         try {
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: userEmail,
-                subject: 'Breach of Incident SLA',
-                template: 'breack_sla_notification',
+                subject: `Breached Incident SLA`,
+                template: 'breach_sla_notification',
                 context: {
                     name: name ? name.split(' ')[0].toString() : '',
                     currentYear: new Date().getFullYear(),
+                    incidentSla,
+                    monitorName,
+                    incidentUrl,
+                    projectName,
+                    componentName,
+                    incidentId,
+                    reason,
+                    incidentSlaTimeline,
                 },
             };
 

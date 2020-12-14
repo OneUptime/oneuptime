@@ -1,10 +1,10 @@
 module.exports = {
     create: async function(data) {
         try {
-            const previousMonitorStatus = await this.findOneBy({
-                monitorId: data.monitorId,
-                probeId: data.probeId,
-            });
+            const query = {};
+            if (data.monitorId) query.monitorId = data.monitorId;
+            if (data.probeId) query.probeId = data.probeId;
+            const previousMonitorStatus = await this.findOneBy(query);
             if (
                 !previousMonitorStatus ||
                 (previousMonitorStatus &&
@@ -14,6 +14,13 @@ module.exports = {
                 // check if previous status is different from the current status
                 // if different, end the previous status and create a new monitor status
                 if (previousMonitorStatus) {
+                    if (
+                        data.status === 'enable' &&
+                        previousMonitorStatus.status === 'disabled' &&
+                        previousMonitorStatus.lastStatus
+                    ) {
+                        data.status = previousMonitorStatus.lastStatus;
+                    }
                     await this.updateOneBy(
                         {
                             _id: previousMonitorStatus._id,
@@ -25,7 +32,9 @@ module.exports = {
                 }
 
                 const monitorStatus = new MonitorStatusModel();
-
+                if (data.lastStatus) {
+                    monitorStatus.lastStatus = data.lastStatus;
+                }
                 monitorStatus.monitorId = data.monitorId;
                 monitorStatus.probeId = data.probeId || null;
                 monitorStatus.incidentId = data.incidentId || null;

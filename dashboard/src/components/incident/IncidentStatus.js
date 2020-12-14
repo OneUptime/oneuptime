@@ -210,6 +210,54 @@ export class IncidentStatus extends Component {
             return result.replace('did', 'Did').split('\n');
         }
 
+        const formatAckDate = (otherDate, createdDate) => {
+            const sec = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
+                'seconds'
+            );
+            const minutes = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
+                'minutes'
+            );
+            const hours = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
+                'hours'
+            );
+            const days = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
+                'days'
+            );
+            const weeks = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
+                'weeks'
+            );
+            const months = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
+                'months'
+            );
+            const years = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
+                'years'
+            );
+            let valueTxt;
+            if (sec < 60) {
+                valueTxt = sec > 1 ? `${sec} seconds` : `a second`;
+            } else if (sec < 3600) {
+                valueTxt = minutes > 1 ? `${minutes} minutes` : `a minute`;
+            } else if (sec < 86400) {
+                valueTxt = hours > 1 ? `${hours} hours` : `an hour`;
+            } else if (sec < 7 * 86400) {
+                valueTxt = days > 1 ? `${days} days` : `a day`;
+            } else if (sec < 4 * 7 * 86400) {
+                valueTxt = weeks > 1 ? `${weeks} weeks` : `a week`;
+            } else if (sec < 4 * 7 * 12 * 86400) {
+                valueTxt = months > 1 ? `${months} months` : `a month`;
+            } else {
+                valueTxt = years > 1 ? `${years} years` : `a year`;
+            }
+            return valueTxt;
+        };
+
         return (
             <div
                 id={`incident_${this.props.count}`}
@@ -595,7 +643,7 @@ export class IncidentStatus extends Component {
                                                                             .createdAt
                                                                     ).format(
                                                                         'h:mm:ss a'
-                                                                    )}{' '}
+                                                                    )}<br />
                                                                     (
                                                                     {moment(
                                                                         this
@@ -852,23 +900,16 @@ export class IncidentStatus extends Component {
                                                                             <span>
                                                                                 It
                                                                                 took{' '}
-                                                                                {
-                                                                                    moment(
-                                                                                        this
-                                                                                            .props
-                                                                                            .incident
-                                                                                            .createdAt
-                                                                                    )
-                                                                                        .fromNow(
-                                                                                            this
-                                                                                                .props
-                                                                                                .incident
-                                                                                                .ackowledgedAt
-                                                                                        )
-                                                                                        .split(
-                                                                                            'ago'
-                                                                                        )[0]
-                                                                                }{' '}
+                                                                                {formatAckDate(
+                                                                                    this
+                                                                                        .props
+                                                                                        .incident
+                                                                                        .acknowledgedAt,
+                                                                                    this
+                                                                                        .props
+                                                                                        .incident
+                                                                                        .createdAt
+                                                                                )}{' '}
                                                                                 to
                                                                                 acknowledge
                                                                                 this
@@ -991,23 +1032,16 @@ export class IncidentStatus extends Component {
                                                                         <span>
                                                                             It
                                                                             took{' '}
-                                                                            {
-                                                                                moment(
-                                                                                    this
-                                                                                        .props
-                                                                                        .incident
-                                                                                        .createdAt
-                                                                                )
-                                                                                    .fromNow(
-                                                                                        this
-                                                                                            .props
-                                                                                            .incident
-                                                                                            .resolvedAt
-                                                                                    )
-                                                                                    .split(
-                                                                                        'ago'
-                                                                                    )[0]
-                                                                            }{' '}
+                                                                            {formatAckDate(
+                                                                                this
+                                                                                    .props
+                                                                                    .incident
+                                                                                    .resolvedAt,
+                                                                                this
+                                                                                    .props
+                                                                                    .incident
+                                                                                    .createdAt
+                                                                            )}{' '}
                                                                             to
                                                                             resolve
                                                                             this

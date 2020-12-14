@@ -56,6 +56,9 @@ import {
     CLOSE_BREACHED_MONITOR_SLA_FAILURE,
     CLOSE_BREACHED_MONITOR_SLA_REQUEST,
     CLOSE_BREACHED_MONITOR_SLA_SUCCESS,
+    DISABLE_MONITOR_SUCCESS,
+    DISABLE_MONITOR_FAILURE,
+    DISABLE_MONITOR_REQUEST,
 } from '../constants/monitor';
 import moment from 'moment';
 
@@ -102,6 +105,7 @@ const INITIAL_STATE = {
     fetchMonitorCriteriaRequest: false,
     fetchMonitorsSubscriberRequest: false,
     deleteMonitor: false,
+    disableMonitor: false,
     monitorSlaBreaches: {
         requesting: false,
         error: null,
@@ -113,6 +117,8 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    file: null,
+    fileInputKey: null,
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
@@ -147,6 +153,21 @@ export default function monitor(state = INITIAL_STATE, action) {
                     ...state.monitorsList,
                     editMode: action.payload,
                 },
+            });
+
+        case 'LOG_IDENTITY_FILE':
+            return Object.assign({}, state, {
+                file: action.payload,
+            });
+
+        case 'RESET_IDENTITY_FILE':
+            return Object.assign({}, state, {
+                file: null,
+            });
+
+        case 'SET_IDENTITY_FILE_INPUT_KEY':
+            return Object.assign({}, state, {
+                fileInputKey: action.payload,
             });
 
         case CREATE_MONITOR_SUCCESS:
@@ -1175,6 +1196,59 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: false,
                 },
                 deleteMonitor: action.payload,
+            });
+
+        case DISABLE_MONITOR_SUCCESS: {
+            return Object.assign({}, state, {
+                monitorsList: {
+                    ...state.monitorsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    monitors: state.monitorsList.monitors.map(
+                        subProjectMonitor => {
+                            subProjectMonitor.monitors = subProjectMonitor.monitors.map(
+                                monitor => {
+                                    if (
+                                        String(monitor._id) ===
+                                        String(action.payload.monitorId)
+                                    ) {
+                                        monitor.disabled =
+                                            action.payload.disable;
+                                        return monitor;
+                                    } else {
+                                        return monitor;
+                                    }
+                                }
+                            );
+                            return subProjectMonitor;
+                        }
+                    ),
+                },
+                disableMonitor: false,
+            });
+        }
+
+        case DISABLE_MONITOR_FAILURE:
+            return Object.assign({}, state, {
+                monitorsList: {
+                    ...state.monitorsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                disableMonitor: false,
+            });
+
+        case DISABLE_MONITOR_REQUEST:
+            return Object.assign({}, state, {
+                monitorsList: {
+                    ...state.monitorsList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                },
+                disableMonitor: action.payload,
             });
 
         case DELETE_PROJECT_MONITORS:
