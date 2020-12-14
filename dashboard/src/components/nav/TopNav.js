@@ -16,7 +16,6 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
-import Fade from 'react-reveal/Fade';
 import OnCallScheduleModal from '../OnCallScheduleModal';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
@@ -93,48 +92,46 @@ class TopContent extends Component {
     renderActiveIncidents = (incidentCounter, topNavCardClass) => (
         <>
             {typeof incidentCounter === 'number' && (
-                <Fade>
-                    <div
-                        className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
+                <div
+                    className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
+                        incidentCounter && incidentCounter > 0
+                            ? 'red'
+                            : incidentCounter === 0
+                            ? 'green'
+                            : null
+                    } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
+                    style={{ paddingBottom: '6px', paddingTop: '6px' }}
+                    onClick={this.handleActiveIncidentClick}
+                    id="activeIncidents"
+                >
+                    <span
+                        className={`db-SideNav-icon db-SideNav-icon--${
                             incidentCounter && incidentCounter > 0
-                                ? 'red'
+                                ? 'info'
                                 : incidentCounter === 0
-                                ? 'green'
+                                ? 'tick'
                                 : null
-                        } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
-                        style={{ paddingBottom: '6px', paddingTop: '6px' }}
-                        onClick={this.handleActiveIncidentClick}
-                        id="activeIncidents"
-                    >
-                        <span
-                            className={`db-SideNav-icon db-SideNav-icon--${
-                                incidentCounter && incidentCounter > 0
-                                    ? 'info'
-                                    : incidentCounter === 0
-                                    ? 'tick'
-                                    : null
-                            } db-SideNav-icon--selected`}
-                            style={{
-                                filter: 'brightness(0) invert(1)',
-                                marginTop: '1px',
-                                marginRight: '3px',
-                            }}
-                        />
-                        <span className={topNavCardClass}>
-                            <ShouldRender
-                                if={incidentCounter && incidentCounter > 0}
-                            >
-                                {`${incidentCounter +
-                                    (incidentCounter === 1
-                                        ? ' Incident Currently Active'
-                                        : ' Incidents Currently Active')}`}
-                            </ShouldRender>
-                            <ShouldRender if={incidentCounter === 0}>
-                                No incidents currently active.
-                            </ShouldRender>
-                        </span>
-                    </div>
-                </Fade>
+                        } db-SideNav-icon--selected`}
+                        style={{
+                            filter: 'brightness(0) invert(1)',
+                            marginTop: '1px',
+                            marginRight: '3px',
+                        }}
+                    />
+                    <span className={topNavCardClass}>
+                        <ShouldRender
+                            if={incidentCounter && incidentCounter > 0}
+                        >
+                            {`${incidentCounter +
+                                (incidentCounter === 1
+                                    ? ' Incident Currently Active'
+                                    : ' Incidents Currently Active')}`}
+                        </ShouldRender>
+                        <ShouldRender if={incidentCounter === 0}>
+                            No incidents currently active.
+                        </ShouldRender>
+                    </span>
+                </div>
             )}
         </>
     );
