@@ -36,6 +36,15 @@
             "!src/config.js",
             "!src/routes.js",
             "!src/setupTests.js"
+        ],
+        "testPathIgnorePatterns": [
+            "<rootDir>/node_modules/",
+            "<rootDir>/build",
+            "<rootDir>/lib/"
+        ],
+        "modulePathIgnorePatterns": [
+            "<rootDir>/dist/",
+            "<rootDir>/build/"
         ]
     }
 }

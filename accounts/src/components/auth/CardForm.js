@@ -197,7 +197,7 @@ class CardForm extends Component {
                                             })
                                         }
                                     >
-                                        Learn More
+                                        Learn Why?
                                     </span>
                                     <br></br> You will be charged $
                                     {this.plan.amount}/
