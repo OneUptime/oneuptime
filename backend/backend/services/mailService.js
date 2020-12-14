@@ -2117,18 +2117,40 @@ const _this = {
             : false;
     },
 
-    sendSlaNotification: async function({ userEmail, name, projectId }) {
+    sendSlaNotification: async function({
+        userEmail,
+        name,
+        projectId,
+        incidentSla,
+        monitorName,
+        incidentUrl,
+        projectName,
+        componentName,
+        incidentId,
+        reason,
+        incidentSlaTimeline,
+        incidentSlaRemaining,
+    }) {
         const smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
         try {
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: userEmail,
-                subject: 'About to Breach Incident SLA',
+                subject: `About to Breach Incident SLA`,
                 template: 'sla_notification',
                 context: {
                     name: name ? name.split(' ')[0].toString() : '',
                     currentYear: new Date().getFullYear(),
+                    incidentSla,
+                    monitorName,
+                    incidentUrl,
+                    projectName,
+                    componentName,
+                    incidentId,
+                    reason,
+                    incidentSlaTimeline,
+                    incidentSlaRemaining,
                 },
             };
 
@@ -2168,18 +2190,38 @@ const _this = {
             throw error;
         }
     },
-    sendSlaBreachNotification: async function({ userEmail, name, projectId }) {
+    sendSlaBreachNotification: async function({
+        userEmail,
+        name,
+        projectId,
+        incidentSla,
+        monitorName,
+        incidentUrl,
+        projectName,
+        componentName,
+        incidentId,
+        reason,
+        incidentSlaTimeline,
+    }) {
         const smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
         try {
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: userEmail,
-                subject: 'Breach of Incident SLA',
+                subject: `Breached Incident SLA`,
                 template: 'breach_sla_notification',
                 context: {
                     name: name ? name.split(' ')[0].toString() : '',
                     currentYear: new Date().getFullYear(),
+                    incidentSla,
+                    monitorName,
+                    incidentUrl,
+                    projectName,
+                    componentName,
+                    incidentId,
+                    reason,
+                    incidentSlaTimeline,
                 },
             };
 
