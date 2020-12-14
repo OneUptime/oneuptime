@@ -30,27 +30,30 @@ export class AlertAdvanceOption extends Component {
             openModal,
             formValues,
             alertOptionsUpdate,
+            balance,
         } = this.props;
         value._id = projectId;
         const userId = User.getUserId();
         if (isOwnerOrAdmin(userId, currentProject)) {
-            openModal({
-                id: this.state.MessageBoxId,
-                content: AlertBilling,
-                title: 'Message',
-                onConfirm: () => {
-                    return alertOptionsUpdate(projectId, value).then(() => {
-                        const { paymentIntent } = this.props;
-                        if (paymentIntent) {
-                            //init payment
-                            this.handlePaymentIntent(paymentIntent);
-                        }
-                    });
-                },
-                message: `Your card will be charged by $${Number(
-                    formValues.rechargeToBalance
-                )}`,
-            });
+            if (balance < parseInt(formValues.minimumBalance)) {
+                openModal({
+                    id: this.state.MessageBoxId,
+                    content: AlertBilling,
+                    title: 'Message',
+                    onConfirm: () => {
+                        return alertOptionsUpdate(projectId, value).then(() => {
+                            const { paymentIntent } = this.props;
+                            if (paymentIntent) {
+                                //init payment
+                                this.handlePaymentIntent(paymentIntent);
+                            }
+                        });
+                    },
+                    message: `Your card will be charged by $${Number(
+                        formValues.rechargeToBalance
+                    )}`,
+                });
+            }
         } else {
             openModal({
                 id: projectId,
