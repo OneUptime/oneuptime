@@ -2,6 +2,7 @@ try {
     require('./monitorSla.test');
     require('./adminCredentials.test');
     require('./incidentCommunicationSla.test');
+    require('./adminCredentials.test');
     require('./alert.test');
     require('./applicationLog.test');
     require('./applicationSecurity.test');

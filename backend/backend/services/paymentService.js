@@ -1,4 +1,136 @@
 module.exports = {
+    /**
+     *checks whether a project's balance is enough
+     *
+     * @param {*} projectId ID of project
+     * @param {*} alertPhoneNumber alertNumber
+     * @param {*} userId ID of user
+     * @param {*} alertType type of alert
+     * @return {boolean} whether the project has enough balance
+     */
+    hasEnoughBalance: async (
+        projectId,
+        alertPhoneNumber,
+        userId,
+        alertType
+    ) => {
+        try {
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            const balance = project.balance;
+            const countryType = getCountryType(alertPhoneNumber);
+            const alertChargeAmount = getAlertChargeAmount(
+                alertType,
+                countryType
+            );
+
+            const customThresholdAmount = project.alertOptions
+                ? project.alertOptions.minimumBalance
+                : null;
+
+            const isBalanceMoreThanMinimum =
+                balance > alertChargeAmount.minimumBalance;
+            if (customThresholdAmount) {
+                const isBalanceMoreThanCustomThresholdAmount =
+                    balance > customThresholdAmount;
+                return (
+                    isBalanceMoreThanMinimum &&
+                    isBalanceMoreThanCustomThresholdAmount
+                );
+            }
+            return isBalanceMoreThanMinimum;
+        } catch (error) {
+            ErrorService.log('PaymentService.hasEnoughBalance', error);
+            return false;
+        }
+    },
+
+    /**
+     * rechargest the project with the amount set in the project's alert options
+     * @param {*} userId current user id
+     * @param {*} project project to add blance to
+     * @returns {boolean} whether the balance is recharged to the project
+     */
+    fillProjectBalance: async (userId, project) => {
+        try {
+            let balanceRecharged;
+
+            const rechargeAmount = project.alertOptions
+                ? project.alertOptions.rechargeToBalance
+                : null;
+            if (rechargeAmount) {
+                balanceRecharged = await StripeService.addBalance(
+                    userId,
+                    rechargeAmount,
+                    project._id.toString()
+                );
+
+                return balanceRecharged;
+            }
+
+            return false;
+        } catch (error) {
+            ErrorService.log('PaymentService.fillProjectBalance', error);
+            return false;
+        }
+    },
+    /**
+     * synchronously recharges a project balance if low
+     * @param {*} projectId ID of the project to check and recharge balance
+     * @param {*} userId ID of user
+     * @param {*} alertPhoneNumber alertNumber
+     * @param {*} alertType type of alert
+     * @returns {{success : boolean, message : string}} whether the balance is recharged successfully
+     */
+    checkAndRechargeProjectBalance: async function(
+        project,
+        userId,
+        alertPhoneNumber,
+        alertType
+    ) {
+        let release;
+        try {
+            const status = {};
+            const mutex = getProjectMutex(project._id.toString());
+            release = await mutex.acquire();
+            // check balance
+            const isBalanceEnough = await this.hasEnoughBalance(
+                project._id,
+                alertPhoneNumber,
+                userId,
+                alertType
+            );
+
+            if (!isBalanceEnough) {
+                const lowBalanceRecharged = await this.fillProjectBalance(
+                    userId,
+                    project
+                );
+                if (lowBalanceRecharged) {
+                    status.success = true;
+                    status.message = 'Balance recharged successfully';
+                } else {
+                    status.success = false;
+                    status.message = 'Low Balance';
+                }
+            } else {
+                status.success = true;
+                status.message = 'Balance is enough';
+            }
+
+            return status;
+        } catch (error) {
+            ErrorService.log(
+                'PaymentService.checkAndRechargeProjectBalance',
+                error
+            );
+            throw error;
+        } finally {
+            if (release) {
+                release();
+            }
+        }
+    },
+
     //Description: Retrieve payment intent.
     //Params:
     //Param 1: paymentIntent: Payment Intent
@@ -277,3 +409,5 @@ const ProjectService = require('./projectService');
 const ProjectModel = require('../models/project');
 const StripeService = require('./stripeService');
 const NotificationService = require('./notificationService');
+const { getAlertChargeAmount, getCountryType } = require('../config/alertType');
+const getProjectMutex = require('../constants/projectMutexProvider');

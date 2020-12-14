@@ -8,6 +8,9 @@ import Fade from 'react-reveal/Fade';
 import { RenderField } from '../basic/RenderField';
 import { PricingPlan, Validate, env } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
+import { openModal } from '../../actions/modal';
+import DataPathHoc from '../DataPathHoC';
+import ExtraCharge from '../ExtraCharge';
 import {
     CardNumberElement,
     CardExpiryElement,
@@ -33,7 +36,6 @@ import {
     logEvent,
 } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-
 const createOptions = () => {
     return {
         style: {
@@ -179,7 +181,25 @@ class CardForm extends Component {
                                 <h2>{header}</h2>
                                 <p>
                                     Your card will be charged $1.00 to check its
-                                    billability. You will be charged $
+                                    billability.{' '}
+                                    <span
+                                        style={{
+                                            color: 'green',
+                                            cursor: 'pointer',
+                                            textDecoration: 'underline',
+                                        }}
+                                        onClick={() =>
+                                            this.props.openModal({
+                                                id: 1,
+                                                content: DataPathHoc(
+                                                    ExtraCharge
+                                                ),
+                                            })
+                                        }
+                                    >
+                                        Learn Why?
+                                    </span>
+                                    <br></br> You will be charged $
                                     {this.plan.amount}/
                                     {this.plan.type === 'month' ? 'mo' : 'yr'}{' '}
                                     after your 14 day free trial.
@@ -558,6 +578,7 @@ const mapDispatchToProps = dispatch => {
             addCardSuccess,
             addCardFailed,
             addCardRequest,
+            openModal,
             signUpRequest,
             signupUser,
             signupError,
@@ -577,6 +598,7 @@ function mapStateToProps(state) {
 }
 
 CardForm.propTypes = {
+    openModal: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     submitForm: PropTypes.func.isRequired,
     register: PropTypes.object.isRequired,

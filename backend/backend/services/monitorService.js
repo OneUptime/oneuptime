@@ -101,6 +101,9 @@ module.exports = {
                     } else if (data.type === 'script') {
                         monitor.data = {};
                         monitor.data.script = data.data.script;
+                    } else if (data.type === 'incomingHttpRequest') {
+                        monitor.data = {};
+                        monitor.data.link = data.data.link;
                     }
                     if (resourceCategory) {
                         monitor.resourceCategory = data.resourceCategory;
@@ -108,11 +111,15 @@ module.exports = {
                     monitor.visibleOnStatusPage = data.visibleOnStatusPage;
                     monitor.componentId = data.componentId;
                     monitor.projectId = data.projectId;
+                    if (data.agentlessConfig) {
+                        monitor.agentlessConfig = data.agentlessConfig;
+                    }
                     if (
                         data.type === 'url' ||
                         data.type === 'api' ||
                         data.type === 'server-monitor' ||
-                        data.type === 'script'
+                        data.type === 'script' ||
+                        data.type === 'incomingHttpRequest'
                     ) {
                         monitor.criteria = _.isEmpty(data.criteria)
                             ? MonitorCriteriaService.create(data.type)
@@ -168,15 +175,18 @@ module.exports = {
 
             await this.updateMonitorSlaStat(query);
 
-            let monitor = await MonitorModel.findOneAndUpdate(
-                query,
-                { $set: data },
-                {
-                    new: true,
-                }
-            );
+            if (data) {
+                await MonitorModel.findOneAndUpdate(
+                    query,
+                    { $set: data },
+                    {
+                        new: true,
+                    }
+                );
+            }
+
             if (unsetData) {
-                monitor = await MonitorModel.findOneAndUpdate(
+                await MonitorModel.findOneAndUpdate(
                     query,
                     { $unset: unsetData },
                     {
@@ -184,7 +194,7 @@ module.exports = {
                     }
                 );
             }
-            monitor = await this.findOneBy(query);
+            const monitor = await this.findOneBy(query);
 
             await RealTimeService.monitorEdit(monitor);
 
@@ -427,6 +437,7 @@ module.exports = {
                 $and: [
                     {
                         deleted: false,
+                        disabled: false,
                         scriptRunStatus: { $nin: ['inProgress'] },
                     },
                     {
@@ -606,7 +617,7 @@ module.exports = {
 
             let probes;
             const probeLogs = [];
-            if (monitor.type === 'server-monitor') {
+            if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
                 probes = [undefined];
             } else {
                 probes = await ProbeService.findBy({});
@@ -663,7 +674,7 @@ module.exports = {
             const end = moment(endDate).toDate();
             const monitor = await this.findOneBy({ _id: monitorId });
             let probes;
-            if (monitor.type === 'server-monitor') {
+            if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
                 probes = [undefined];
             } else {
                 probes = await ProbeService.findBy({});
@@ -706,7 +717,8 @@ module.exports = {
             let probes;
             const probeStatuses = [];
             if (
-                monitor.type === 'server-monitor' ||
+                (monitor.type === 'server-monitor' &&
+                    !monitor.agentlessConfig) ||
                 monitor.type === 'manual'
             ) {
                 probes = [undefined];
@@ -1273,12 +1285,12 @@ module.exports = {
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     },
 
-    closeBreachedMonitorSla: async function(projectId, slaId, userId) {
+    closeBreachedMonitorSla: async function(projectId, monitorId, userId) {
         try {
             const monitor = await MonitorModel.findOneAndUpdate(
                 {
+                    _id: monitorId,
                     projectId,
-                    monitorSla: slaId,
                     breachedMonitorSla: true,
                     deleted: false,
                 },
@@ -1287,6 +1299,7 @@ module.exports = {
                 },
                 { new: true }
             );
+
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.closeBreachedMonitorSla', error);

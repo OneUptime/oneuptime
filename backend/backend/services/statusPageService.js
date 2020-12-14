@@ -338,10 +338,12 @@ module.exports = {
                 ErrorService.log('statusPageService.updateOneBy', error);
                 throw error;
             }
+
             if (!query) {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
+
             const updatedStatusPage = await StatusPageModel.findOneAndUpdate(
                 query,
                 {

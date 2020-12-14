@@ -114,11 +114,13 @@ class Incidents extends Component {
                         bars: 'vertical',
                         chartArea: { left: '5%', width: '100%' },
                         hAxis: {
+                            title: 'Date',
                             textStyle: {
-                                color: '#757575',
+                                color: '#797979',
                             },
                         },
                         vAxis: {
+                            title: 'Number of Incidents',
                             minValue: 0,
                             gridlines: {
                                 minSpacing: 20,
@@ -128,7 +130,7 @@ class Incidents extends Component {
                                 count: 0,
                             },
                             textStyle: {
-                                color: '#757575',
+                                color: '#797979',
                             },
                         },
                         colors: ['#000000'],

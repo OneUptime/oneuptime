@@ -179,6 +179,27 @@ module.exports = {
         }
     },
 
+    createMonitorDisabledStatus: async function(data) {
+        try {
+            let monitorStatus = await MonitorStatusService.findOneBy({
+                monitorId: data.monitorId,
+            });
+            const lastStatus =
+                monitorStatus && monitorStatus.status
+                    ? monitorStatus.status
+                    : null;
+
+            if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
+                data.lastStatus = lastStatus ? lastStatus : null;
+                monitorStatus = await MonitorStatusService.create(data);
+            }
+            return monitorStatus;
+        } catch (error) {
+            ErrorService.log('ProbeService.createMonitorDisabledStatus', error);
+            throw error;
+        }
+    },
+
     saveMonitorLog: async function(data) {
         try {
             const _this = this;
@@ -1008,6 +1029,73 @@ module.exports = {
             throw error;
         }
     },
+
+    processHttpRequest: async function(data) {
+        try {
+            const _this = this;
+            const { monitor, body } = data;
+            let status, reason;
+            const {
+                stat: validUp,
+                reasons: upFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
+                ? _this.conditions(null, { body }, monitor.criteria.up, null)
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDegraded,
+                reasons: degradedFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.degraded
+                ? _this.conditions(
+                      null,
+                      { body },
+                      monitor.criteria.degraded,
+                      null
+                  )
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDown,
+                reasons: downFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
+                ? _this.conditions(null, { body }, monitor.criteria.down, null)
+                : { stat: false, reasons: [] });
+
+            if (validDown) {
+                status = 'offline';
+                reason = upFailedReasons;
+            } else if (validDegraded) {
+                status = 'degraded';
+                reason = upFailedReasons;
+            } else if (validUp) {
+                status = 'online';
+                reason = [...degradedFailedReasons, ...downFailedReasons];
+            } else {
+                status = 'offline';
+                reason = upFailedReasons;
+            }
+            const logData = body;
+            logData.responseTime = 0;
+            logData.responseStatus = null;
+            logData.status = status;
+            logData.probeId = null;
+            logData.monitorId = monitor && monitor.id ? monitor.id : null;
+            logData.sslCertificate = null;
+            logData.lighthouseScanStatus = null;
+            logData.performance = null;
+            logData.accessibility = null;
+            logData.bestPractices = null;
+            logData.seo = null;
+            logData.pwa = null;
+            logData.lighthouseData = null;
+            logData.retryCount = 3;
+            logData.reason = reason;
+            logData.response = null;
+            const log = await _this.saveMonitorLog(logData);
+            return log;
+        } catch (error) {
+            ErrorService.log('monitorService.processHttpRequest', error);
+            throw error;
+        }
+    },
 };
 
 const _ = require('lodash');
@@ -1340,12 +1428,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1362,12 +1452,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1386,12 +1478,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1404,12 +1498,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1426,12 +1522,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1448,12 +1546,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1470,12 +1570,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'memoryUsage') {
@@ -1494,11 +1596,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1515,11 +1619,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1538,11 +1644,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1555,11 +1663,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1576,11 +1686,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1597,11 +1709,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1618,11 +1732,13 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'storageUsage') {
@@ -1640,11 +1756,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1660,11 +1782,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1682,11 +1810,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1698,11 +1832,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1718,11 +1858,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1738,11 +1884,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1758,11 +1910,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'temperature') {
@@ -1777,11 +1935,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1798,11 +1956,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1821,11 +1979,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1838,11 +1996,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1859,11 +2017,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1880,11 +2038,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1901,11 +2059,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {
@@ -2412,12 +2570,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2433,12 +2593,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2456,12 +2618,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2473,12 +2637,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2494,12 +2660,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2515,12 +2683,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2536,12 +2706,14 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
-                            2
-                        )} %`
-                    );
+                    if (payload && payload.cpuLoad !== null) {
+                        reasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'memoryUsage') {
@@ -2558,11 +2730,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2577,11 +2751,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2598,11 +2774,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2613,11 +2791,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2632,11 +2812,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2651,11 +2833,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2670,11 +2854,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes || 0
-                        )}`
-                    );
+                    if (payload && payload.memoryUsed !== null) {
+                        reasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'storageUsage') {
@@ -2686,11 +2872,17 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free > con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2700,11 +2892,17 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free < con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2720,21 +2918,33 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (con[i] && con[i].field1 && free === con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2744,11 +2954,17 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free !== con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2758,11 +2974,17 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free >= con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2772,11 +2994,17 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free <= con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes || 0
-                        )}`
-                    );
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        reasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'temperature') {
@@ -2790,11 +3018,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2810,11 +3038,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2832,11 +3060,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2848,11 +3076,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2868,11 +3096,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2888,11 +3116,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2908,11 +3136,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.temperature} ${
-                            payload && payload.mainTemp ? payload.mainTemp : 0
-                        } °C`
-                    );
+                    if (payload && payload.mainTemp !== null) {
+                        reasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {

@@ -20,15 +20,17 @@ const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
+const multer = require('multer');
+const storage = require('../middlewares/upload');
 const https = require('https');
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false,
 });
+
 // Route
 // Description: Adding / Updating a new monitor to the project.
 // Params:
@@ -100,7 +102,8 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             data.type !== 'manual' &&
             data.type !== 'api' &&
             data.type !== 'server-monitor' &&
-            data.type !== 'script'
+            data.type !== 'script' &&
+            data.type !== 'incomingHttpRequest'
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -209,6 +212,20 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
 
+        if (data.type === 'server-monitor') {
+            if (
+                data.agentlessConfig &&
+                data.agentlessConfig.authentication === 'identityFile' &&
+                !data.agentlessConfig.identityFile
+            ) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Monitor should have an `Identity File` property of type string.',
+                });
+            }
+        }
+
         if (data.type === 'script') {
             if (!data.data.script) {
                 return sendErrorResponse(req, res, {
@@ -253,6 +270,35 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         await RealTimeService.sendMonitorCreated(monitor);
 
         return sendItemResponse(req, res, monitor);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/:projectId/identityFile', async function(req, res) {
+    try {
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'identityFile',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            let identityFile;
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            if (
+                req.files &&
+                req.files.identityFile &&
+                req.files.identityFile[0].filename
+            ) {
+                identityFile = req.files.identityFile[0].filename;
+            }
+            return sendItemResponse(req, res, { identityFile });
+        });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -752,20 +798,47 @@ router.get(
 );
 
 router.post(
-    '/:projectId/closeSla/:slaId',
+    '/:projectId/closeSla/:monitorId',
     getUser,
     isAuthorized,
     async function(req, res) {
         try {
-            const { projectId, slaId } = req.params;
+            const { projectId, monitorId } = req.params;
             const userId = req.user ? req.user.id : null;
             const monitor = await MonitorService.closeBreachedMonitorSla(
                 projectId,
-                slaId,
+                monitorId,
                 userId
             );
 
             return sendItemResponse(req, res, monitor);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.post(
+    '/:projectId/disableMonitor/:monitorId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { monitorId } = req.params;
+            const monitor = await MonitorService.findOneBy({ _id: monitorId });
+            const disabled = monitor.disabled ? false : true;
+            const newMonitor = await MonitorService.updateOneBy(
+                {
+                    _id: monitorId,
+                },
+                { disabled: disabled }
+            );
+            await ProbeService.createMonitorDisabledStatus({
+                monitorId,
+                manuallyCreated: true,
+                status: disabled ? 'disabled' : 'enable',
+            });
+            return sendItemResponse(req, res, newMonitor);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

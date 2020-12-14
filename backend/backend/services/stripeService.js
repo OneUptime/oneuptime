@@ -292,7 +292,7 @@ const Services = {
                 metadata
             );
             // IMPORTANT: Payment Intent is sent for confirmation instally, not using the Stripe Webhook anymore.
-            paymentIntent = this.confirmPayment(paymentIntent);
+            paymentIntent = await this.confirmPayment(paymentIntent);
             return paymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.addBalance', error);

@@ -2,12 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, FieldArray } from 'redux-form';
 import { updateCommunicationSla } from '../../actions/incidentCommunicationSla';
 import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
+import { RenderSelect } from '../basic/RenderSelect';
 
 function validate(values) {
     const errors = {};
@@ -32,6 +33,10 @@ function validate(values) {
 }
 
 class EditIncidentCommunicationSlaModal extends React.Component {
+    state = {
+        monitorError: null,
+    };
+
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -52,6 +57,26 @@ class EditIncidentCommunicationSlaModal extends React.Component {
         const projectId = currentProject._id;
         const incidentSlaId = initialValues._id;
         const postObj = {};
+
+        if (values.monitors && values.monitors.length > 0) {
+            const monitors = values.monitors.filter(
+                monitorId => typeof monitorId === 'string'
+            );
+            postObj.monitors = monitors;
+        }
+
+        const isDuplicate = postObj.monitors
+            ? postObj.monitors.length === new Set(postObj.monitors).size
+                ? false
+                : true
+            : false;
+
+        if (isDuplicate) {
+            this.setState({
+                monitorError: 'Duplicate monitor selection found',
+            });
+            return;
+        }
 
         postObj.name = values.name;
         postObj.duration = values.duration;
@@ -80,6 +105,115 @@ class EditIncidentCommunicationSlaModal extends React.Component {
         }
     };
 
+    renderMonitors = ({ fields }) => {
+        const { monitorError } = this.state;
+        return (
+            <>
+                <div
+                    style={{
+                        width: '100%',
+                        position: 'relative',
+                    }}
+                >
+                    <button
+                        id="addMoreMonitor"
+                        className="Button bs-ButtonLegacy ActionIconParent"
+                        style={{
+                            position: 'absolute',
+                            zIndex: 1,
+                            right: 0,
+                        }}
+                        type="button"
+                        onClick={() => {
+                            fields.push();
+                        }}
+                    >
+                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                            <span>Add Monitor</span>
+                        </span>
+                    </button>
+                    {fields.map((field, index) => {
+                        return (
+                            <div
+                                style={{
+                                    width: '65%',
+                                    marginBottom: 10,
+                                }}
+                                key={index}
+                            >
+                                <Field
+                                    className="db-select-nw Table-cell--width--maximized"
+                                    component={RenderSelect}
+                                    name={field}
+                                    id={`monitorfield_${index}`}
+                                    placeholder="Monitor"
+                                    style={{
+                                        height: '28px',
+                                        width: '100%',
+                                    }}
+                                    options={[
+                                        {
+                                            value: '',
+                                            label: 'Select a Monitor',
+                                        },
+                                        ...(this.props.monitors &&
+                                        this.props.monitors.length > 0
+                                            ? this.props.monitors.map(
+                                                  monitor => ({
+                                                      value: monitor._id,
+                                                      label: `${monitor.componentId.name} / ${monitor.name}`,
+                                                  })
+                                              )
+                                            : []),
+                                    ]}
+                                />
+                                <button
+                                    id="removeMonitor"
+                                    className="Button bs-ButtonLegacy ActionIconParent"
+                                    style={{
+                                        marginTop: 10,
+                                    }}
+                                    type="button"
+                                    onClick={() => {
+                                        fields.remove(index);
+                                    }}
+                                >
+                                    <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                        <span>Remove Monitor</span>
+                                    </span>
+                                </button>
+                            </div>
+                        );
+                    })}
+                    {monitorError && (
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                            style={{
+                                marginTop: '5px',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <div
+                                className="Box-root Margin-right--8"
+                                style={{ marginTop: '2px' }}
+                            >
+                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                            </div>
+                            <div className="Box-root">
+                                <span
+                                    id="monitorError"
+                                    style={{ color: 'red' }}
+                                >
+                                    {monitorError}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </>
+        );
+    };
+
     render() {
         const {
             requesting,
@@ -87,6 +221,7 @@ class EditIncidentCommunicationSlaModal extends React.Component {
             closeModal,
             handleSubmit,
             editIncidentSlaModalId,
+            formValues,
         } = this.props;
 
         return (
@@ -155,6 +290,40 @@ class EditIncidentCommunicationSlaModal extends React.Component {
                                             </div>
                                         </div>
                                     </fieldset>
+                                    {formValues && !formValues.isDefault && (
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitors"
+                                                    >
+                                                        <span>Monitors</span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
+                                                        >
+                                                            <FieldArray
+                                                                name="monitors"
+                                                                id="monitors"
+                                                                component={
+                                                                    this
+                                                                        .renderMonitors
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    )}
                                     <fieldset className="Margin-bottom--16">
                                         <div className="bs-Fieldset-rows">
                                             <div
@@ -365,6 +534,8 @@ EditIncidentCommunicationSlaModal.propTypes = {
     currentProject: PropTypes.object,
     initialValues: PropTypes.object,
     editIncidentSlaModalId: PropTypes.string,
+    formValues: PropTypes.object,
+    monitors: PropTypes.array,
 };
 
 const EditIncidentSlaForm = reduxForm({
@@ -385,6 +556,7 @@ const mapDispatchToProps = dispatch =>
 
 const mapStateToProps = state => {
     const incidentSlaToBeUpdated = state.modal.modals[0].sla;
+    const projectId = state.modal.modals[0].projectId;
 
     const initialValues = {};
     if (incidentSlaToBeUpdated) {
@@ -393,6 +565,21 @@ const mapStateToProps = state => {
         initialValues.duration = incidentSlaToBeUpdated.duration;
         initialValues.alertTime = incidentSlaToBeUpdated.alertTime;
         initialValues._id = incidentSlaToBeUpdated._id;
+    }
+
+    const monitorData = state.monitor.monitorsList.monitors.find(
+        data => String(data._id) === String(projectId)
+    );
+    const monitors = monitorData ? monitorData.monitors : [];
+    if (!initialValues.isDefault) {
+        initialValues.monitors = monitors
+            .filter(
+                monitor =>
+                    monitor.incidentCommunicationSla &&
+                    String(monitor.incidentCommunicationSla._id) ===
+                        String(initialValues._id)
+            )
+            .map(monitor => monitor._id);
     }
 
     return {
@@ -404,6 +591,7 @@ const mapStateToProps = state => {
         requesting: state.incidentSla.incidentCommunicationSlas.requesting,
         slaError: state.incidentSla.incidentCommunicationSlas.error,
         currentProject: state.project.currentProject,
+        monitors,
     };
 };
 

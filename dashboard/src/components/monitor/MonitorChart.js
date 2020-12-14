@@ -283,9 +283,43 @@ export function MonitorChart({
     const isCurrentlyNotMonitoring =
         (lastAlive && moment(now).diff(moment(lastAlive), 'seconds') >= 300) ||
         !lastAlive;
-
+    const isDisabled = monitor && monitor.disabled;
     let monitorInfo;
-    if (type === 'server-monitor') {
+    if (isDisabled) {
+        monitorInfo = (
+            <div className="db-Trend">
+                <div className="block-chart-side line-chart">
+                    <div className="db-TrendRow">
+                        <div className="db-Trend-colInformation probe-offline">
+                            <div
+                                className="db-Trend-rowTitle"
+                                title="Currently not monitoring"
+                            >
+                                <div className="db-Trend-title">
+                                    <strong>
+                                        <span className="chart-font">
+                                            Currently Disabled
+                                        </span>
+                                    </strong>
+                                </div>
+                            </div>
+                            <div className="db-Trend-rowTitle">
+                                <div className="db-Trend-title description">
+                                    <small>
+                                        <span className="chart-font">
+                                            We&apos;re currently not monitoring
+                                            this monitor.please reenable it to
+                                            resume monitoring.
+                                        </span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    } else if (type === 'server-monitor') {
         monitorInfo = (
             <Fragment>
                 <div className="db-Trend">
@@ -1124,7 +1158,7 @@ export function MonitorChart({
                 </ShouldRender>
             </>
         );
-    } else if (type === 'manual') {
+    } else if (type === 'manual' || type === 'incomingHttpRequest') {
         monitorInfo = (
             <div className="db-Trend">
                 <div className="block-chart-side line-chart">

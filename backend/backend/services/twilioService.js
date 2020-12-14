@@ -218,6 +218,93 @@ const _this = {
         }
     },
 
+    sendInvestigationNoteToSubscribers: async function(
+        incidentTime,
+        monitorName,
+        number,
+        smsTemplate,
+        incident,
+        projectName,
+        projectId,
+        componentName,
+        statusUrl
+    ) {
+        try {
+            let { template } = await _this.getTemplate(
+                smsTemplate,
+                'Investigation note is created'
+            );
+            const data = {
+                projectName,
+                monitorName: monitorName,
+                incidentTime: incidentTime,
+                incidentType: incident.incidentType,
+                componentName,
+                statusPageUrl: statusUrl,
+            };
+            template = template(data);
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+
+            if (customTwilioSettings) {
+                const options = {
+                    body: template,
+                    from: customTwilioSettings.phoneNumber,
+                    to: number,
+                };
+
+                const twilioClient = _this.getClient(
+                    customTwilioSettings.accountSid,
+                    customTwilioSettings.authToken
+                );
+
+                const message = await twilioClient.messages.create(options);
+
+                return message;
+            } else {
+                const creds = await _this.getSettings();
+                if (!creds['sms-enabled']) {
+                    const error = new Error('SMS Not Enabled');
+                    error.code = 400;
+                    return error;
+                }
+                const options = {
+                    body: template,
+                    from: creds.phone,
+                    to: number,
+                };
+                const twilioClient = _this.getClient(
+                    creds['account-sid'],
+                    creds['authentication-token']
+                );
+                let alertLimit = true;
+
+                alertLimit = await AlertService.checkPhoneAlertsLimit(
+                    projectId
+                );
+
+                if (alertLimit) {
+                    const message = await twilioClient.messages.create(options);
+                    return message;
+                } else {
+                    const error = new Error(
+                        'Alerts limit reached for the day.'
+                    );
+                    error.code = 400;
+                    return error;
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'twillioService.sendInvestigationNoteToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+
     sendIncidentAcknowldegedMessageToSubscriber: async function(
         incidentTime,
         monitorName,

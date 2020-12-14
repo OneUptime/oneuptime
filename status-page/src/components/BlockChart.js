@@ -61,9 +61,36 @@ class BlockChart extends Component {
 
         const { colors } = this.props.statusData;
         if (this.props.time && this.props.time.status) {
-            if (this.props.time.status === 'offline') {
-                let downTimeInMinutes;
-                let downtime;
+            if (this.props.time.status === 'disabled') {
+                let disabledTimeInMinutes, disabledtime;
+                if (this.props.time.disabledTime < 60) {
+                    disabledTimeInMinutes = this.props.time.disabledTime;
+                    disabledtime = `${disabledTimeInMinutes} second${
+                        disabledTimeInMinutes === 1 ? '' : 's'
+                    }`;
+                } else {
+                    disabledTimeInMinutes = Math.floor(
+                        this.props.time.disabledTime / 60
+                    );
+                    disabledtime = `${disabledTimeInMinutes} minute${
+                        disabledTimeInMinutes === 1 ? '' : 's'
+                    }`;
+                }
+
+                if (disabledTimeInMinutes > 60) {
+                    disabledtime = `${Math.floor(
+                        disabledTimeInMinutes / 60
+                    )} hrs ${disabledTimeInMinutes % 60} minutes`;
+                }
+
+                bar = 'bar down';
+                title = moment(this.props.time.date).format('LL');
+                title1 = `Disabled for ${disabledtime}`;
+                need = true;
+                if (colors)
+                    backgroundColor = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`;
+            } else if (this.props.time.status === 'offline') {
+                let downTimeInMinutes, downtime;
                 if (this.props.time.downTime < 60) {
                     downTimeInMinutes = this.props.time.downTime;
                     downtime = `${downTimeInMinutes} second${

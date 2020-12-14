@@ -53,4 +53,9 @@ const offlineTestData = {
     maxTemp: 0,
 };
 
-module.exports = { API_URL, onlineTestData, degradedTestData, offlineTestData };
+module.exports = {
+    API_URL,
+    onlineTestData,
+    degradedTestData,
+    offlineTestData,
+};

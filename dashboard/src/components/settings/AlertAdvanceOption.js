@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, Field, change } from 'redux-form';
-import { FormLoader } from '../basic/Loader';
 import { ValidateField, User } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import { alertOptionsUpdate } from '../../actions/project';
@@ -16,6 +15,7 @@ import { env } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
+import AlertBilling from '../modals/AlertBilling';
 import Tooltip from '../basic/Tooltip';
 
 export class AlertAdvanceOption extends Component {
@@ -27,23 +27,36 @@ export class AlertAdvanceOption extends Component {
         const {
             currentProject,
             projectId,
-            alertOptionsUpdate,
             openModal,
+            formValues,
+            alertOptionsUpdate,
         } = this.props;
         value._id = projectId;
         const userId = User.getUserId();
-        isOwnerOrAdmin(userId, currentProject)
-            ? alertOptionsUpdate(projectId, value).then(() => {
-                  const { paymentIntent } = this.props;
-                  if (paymentIntent) {
-                      //init payment
-                      this.handlePaymentIntent(paymentIntent);
-                  }
-              })
-            : openModal({
-                  id: projectId,
-                  content: Unauthorised,
-              });
+        if (isOwnerOrAdmin(userId, currentProject)) {
+            openModal({
+                id: this.state.MessageBoxId,
+                content: AlertBilling,
+                title: 'Message',
+                onConfirm: () => {
+                    return alertOptionsUpdate(projectId, value).then(() => {
+                        const { paymentIntent } = this.props;
+                        if (paymentIntent) {
+                            //init payment
+                            this.handlePaymentIntent(paymentIntent);
+                        }
+                    });
+                },
+                message: `Your card will be charged by $${Number(
+                    formValues.rechargeToBalance
+                )}`,
+            });
+        } else {
+            openModal({
+                id: projectId,
+                content: Unauthorised,
+            });
+        }
     };
 
     handlePaymentIntent = paymentIntentClientSecret => {
@@ -59,8 +72,9 @@ export class AlertAdvanceOption extends Component {
                     id: MessageBoxId,
                     content: MessageBox,
                     title: 'Message',
-                    message: `Transaction successful, your balance is now ${balance +
-                        creditedBalance}$`,
+                    message: `Transaction successful, your balance is now ${(
+                        balance + creditedBalance
+                    ).toFixed(2)}$`,
                 });
             } else {
                 openModal({
@@ -840,18 +854,7 @@ export class AlertAdvanceOption extends Component {
                                                 }
                                                 type="submit"
                                             >
-                                                <ShouldRender
-                                                    if={
-                                                        !this.props.isRequesting
-                                                    }
-                                                >
-                                                    <span>Save</span>
-                                                </ShouldRender>
-                                                <ShouldRender
-                                                    if={this.props.isRequesting}
-                                                >
-                                                    <FormLoader />
-                                                </ShouldRender>
+                                                <span>Save</span>
                                             </button>
                                         </div>
                                     </div>

@@ -103,6 +103,15 @@ class ScheduledEvent extends Component {
         );
     }
 
+    renderError = () => {
+        const { error } = this.props.status;
+        if (error === 'Input data schema mismatch.') {
+            return 'Page Not Found';
+        } else if (error === 'Project Not present') {
+            return 'Invalid Project.';
+        } else return error;
+    };
+
     render() {
         const {
             fetchingNotes,
@@ -113,6 +122,7 @@ class ScheduledEvent extends Component {
             history,
             monitorState,
         } = this.props;
+        const error = this.renderError();
 
         return (
             <div
@@ -443,6 +453,11 @@ class ScheduledEvent extends Component {
                             </a>
                         </p>
                     </div>
+                    <ShouldRender if={error}>
+                        <div id="app-loading">
+                            <div>{error}</div>
+                        </div>
+                    </ShouldRender>
                 </div>
             </div>
         );
@@ -467,6 +482,7 @@ ScheduledEvent.propTypes = {
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     history: PropTypes.object,
     monitorState: PropTypes.array,
+    status: PropTypes.object,
 };
 
 const mapStateToProps = state => {
@@ -480,6 +496,7 @@ const mapStateToProps = state => {
         count: state.status.eventNoteList.count,
         skip: state.status.eventNoteList.skip,
         monitorState: state.status.statusPage.monitorsData,
+        status: state.status,
     };
 };
 
