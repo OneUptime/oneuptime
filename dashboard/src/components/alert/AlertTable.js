@@ -321,7 +321,6 @@ function TD7({ text }) {
         >
             <a
                 className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
             >
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
