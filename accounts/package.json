@@ -40,7 +40,7 @@
         "valid-url": "^1.0.9"
     },
     "scripts": {
-        "dev": "set PORT=3003 && react-scripts start",
+        "dev": "PORT=3003 react-scripts start",
         "build": "react-scripts build && npm run build-sw",
         "build-sw": "node ./src/sw-build.js",
         "test": "jest --forceExit --runInBand ./src/test/*.test.js",
