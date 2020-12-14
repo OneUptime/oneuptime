@@ -211,32 +211,32 @@ export class IncidentStatus extends Component {
         }
 
         const formatAckDate = (otherDate, createdDate) => {
-            const sec = moment(otherDate, 'DD-MM-YYYY HH:mm').diff(
-                moment(createdDate, 'DD-MM-YYYY HH:mm'),
+            const sec = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
                 'seconds'
             );
-            const minutes = moment(otherDate, 'DD-MM-YYYY HH:mm').diff(
-                moment(createdDate, 'DD-MM-YYYY HH:mm'),
+            const minutes = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
                 'minutes'
             );
-            const hours = moment(otherDate, 'DD-MM-YYYY HH:mm').diff(
-                moment(createdDate, 'DD-MM-YYYY HH:mm'),
+            const hours = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
                 'hours'
             );
-            const days = moment(otherDate, 'DD-MM-YYYY HH:mm').diff(
-                moment(createdDate, 'DD-MM-YYYY HH:mm'),
+            const days = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
                 'days'
             );
-            const weeks = moment(otherDate, 'DD-MM-YYYY HH:mm').diff(
-                moment(createdDate, 'DD-MM-YYYY HH:mm'),
+            const weeks = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
                 'weeks'
             );
-            const months = moment(otherDate, 'DD-MM-YYYY HH:mm').diff(
-                moment(createdDate, 'DD-MM-YYYY HH:mm'),
+            const months = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
                 'months'
             );
-            const years = moment(otherDate, 'DD-MM-YYYY HH:mm').diff(
-                moment(createdDate, 'DD-MM-YYYY HH:mm'),
+            const years = moment(moment(otherDate).toArray()).diff(
+                moment(moment(createdDate).toArray()), 
                 'years'
             );
             let valueTxt;
