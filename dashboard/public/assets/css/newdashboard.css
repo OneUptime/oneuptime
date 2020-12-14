@@ -11304,12 +11304,12 @@ table {
     border-top: none;
 }
 .animate-in{
-    transition: width 500ms linear;
+    transition: width 200ms linear;
     width:0px; 
 }
 .animate-out {
     width:240px;
-    transition: width 350ms linear;
+    transition: width 200ms linear;
 }
 .Timeline-Table {
     overflow: hidden;

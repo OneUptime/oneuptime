@@ -7,6 +7,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { loadPage } from '../../actions/page';
 import { navKeyBind, cleanBind } from '../../utils/keybinding';
 import { animateSidebar } from '../../actions/animateSidebar';
+import { history } from '../../store';
 export class SidebarNavItem extends Component {
     constructor(props) {
         super(props);
@@ -223,18 +224,19 @@ export class SidebarNavItem extends Component {
         return (
             <div style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
-                    <Link
+                    <span
                         id={this.camalize(route.title)}
-                        to={path}
                         onClick={() => {
                             if (route.title === 'Back to Dashboard') {
                                 this.props.animateSidebar(true);
                                 setTimeout(() => {
                                     loadPage(route.title);
                                     this.props.animateSidebar(false);
-                                }, 500);
+                                    history.push(path);
+                                }, 200);
                             } else {
                                 loadPage(route.title);
+                                history.push(path);
                             }
                         }}
                         {...(route.disabled
@@ -285,7 +287,7 @@ export class SidebarNavItem extends Component {
                                 </div>
                             </div>
                         </div>
-                    </Link>
+                    </span>
                 </ShouldRender>
                 <div>
                     <span>

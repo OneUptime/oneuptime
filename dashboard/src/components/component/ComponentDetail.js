@@ -216,7 +216,7 @@ export class ComponentDetail extends Component {
                                                 '/monitoring'
                                         );
                                         this.props.animateSidebar(false);
-                                    }, 500);
+                                    }, 200);
                                     this.props.animateSidebar(true);
                                 }}
                             >

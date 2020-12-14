@@ -1467,7 +1467,7 @@ export class IncidentStatus extends Component {
                                                 `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
                                             );
                                             this.props.animateSidebar(false);
-                                        }, 500);
+                                        }, 200);
                                         this.props.markAsRead(
                                             projectId,
                                             this.props.incident.notificationId

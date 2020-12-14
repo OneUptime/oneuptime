@@ -196,7 +196,7 @@ export class IncidentList extends Component {
                                                     this.props.animateSidebar(
                                                         false
                                                     );
-                                                }, 500);
+                                                }, 200);
                                                 this.props.markAsRead(
                                                     this.props.currentProject
                                                         ._id,
