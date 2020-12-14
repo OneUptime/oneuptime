@@ -95,25 +95,23 @@ class TopContent extends Component {
             {typeof incidentCounter === 'number' && (
                 <Fade>
                     <div
-                        className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
-                            incidentCounter && incidentCounter > 0
-                                ? 'red'
-                                : incidentCounter === 0
+                        className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${incidentCounter && incidentCounter > 0
+                            ? 'red'
+                            : incidentCounter === 0
                                 ? 'green'
                                 : null
-                        } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
+                            } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
                         style={{ paddingBottom: '6px', paddingTop: '6px' }}
                         onClick={this.handleActiveIncidentClick}
                         id="activeIncidents"
                     >
                         <span
-                            className={`db-SideNav-icon db-SideNav-icon--${
-                                incidentCounter && incidentCounter > 0
-                                    ? 'info'
-                                    : incidentCounter === 0
+                            className={`db-SideNav-icon db-SideNav-icon--${incidentCounter && incidentCounter > 0
+                                ? 'info'
+                                : incidentCounter === 0
                                     ? 'tick'
                                     : null
-                            } db-SideNav-icon--selected`}
+                                } db-SideNav-icon--selected`}
                             style={{
                                 filter: 'brightness(0) invert(1)',
                                 marginTop: '1px',
@@ -160,9 +158,8 @@ class TopContent extends Component {
                         marginRight: '3px',
                     }}
                 />
-                <span className={topNavCardClass}>{`${count} Scheduled Event${
-                    count === 1 ? '' : 's'
-                } Currently Active`}</span>
+                <span className={topNavCardClass}>{`${count} Scheduled Event${count === 1 ? '' : 's'
+                    } Currently Active`}</span>
             </div>
         ) : null;
     };
@@ -292,7 +289,11 @@ class TopContent extends Component {
                     const end = new Date(new Date(new Date().getTime() + 86400000)
                         .setHours(oncallend.split(":")[0],
                             oncallend.split(":")[1])).getTime();
-                    const current = new Date().getTime();
+                    const current = moment(userSchedule.startTime).format('A') === 'PM' &&
+                        moment(userSchedule.endTime).format('A') === 'PM' &&
+                            (end - start) / 1000 > 43200 ?
+                                new Date().getTime() + 86400000 :
+                                    new Date().getTime();
 
                     if (current >= start && current <= end) return true;
                     return false;
@@ -380,14 +381,14 @@ class TopContent extends Component {
                                 </ShouldRender>
                             </>
                         ) : (
-                            ''
-                        )}
+                                ''
+                            )}
 
                         {monitorCount > 0
                             ? this.renderActiveIncidents(
-                                  incidentCounter,
-                                  topNavCardClass
-                              )
+                                incidentCounter,
+                                topNavCardClass
+                            )
                             : null}
                         {this.renderOngoingScheduledEvents(topNavCardClass)}
 
