@@ -31,6 +31,7 @@ class ErrorTrackerDetail extends Component {
         this.state = {
             deleteModalId: uuid.v4(),
             trackerKeyModalId: uuid.v4(),
+            filters: null,
         };
     }
     viewMore = () => {
@@ -149,6 +150,9 @@ class ErrorTrackerDetail extends Component {
     };
     handleFilterUpdate = val => {
         const filters = ErrorEventUtil.generateFilterOption(val);
+        this.setState(() => ({
+            filters: filters,
+        }));
         const {
             fetchErrorTrackerIssues,
             currentProject,
@@ -183,7 +187,8 @@ class ErrorTrackerDetail extends Component {
                 0,
                 10,
                 startDate,
-                endDate
+                endDate,
+                this.state.filters
             );
         }
     };
@@ -203,7 +208,8 @@ class ErrorTrackerDetail extends Component {
             skip,
             limit,
             startDate,
-            endDate
+            endDate,
+            this.state.filters
         );
     };
     componentDidMount() {
@@ -222,7 +228,8 @@ class ErrorTrackerDetail extends Component {
             0,
             10,
             startDate,
-            endDate
+            endDate,
+            this.state.filters
         );
         if (!this.props.currentProject) {
             const projectId = history.location.pathname
