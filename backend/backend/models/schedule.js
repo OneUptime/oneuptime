@@ -28,5 +28,6 @@ const scheduleSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User' },
+    isDefault: { type: Boolean, default: false },
 });
 module.exports = mongoose.model('Schedule', scheduleSchema);

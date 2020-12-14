@@ -190,9 +190,18 @@ module.exports = {
                     ? incident.monitorId._id
                     : incident.monitorId;
 
-                const schedules = await ScheduleService.findBy({
+                let schedules = await ScheduleService.findBy({
                     monitorIds: monitorId,
                 });
+
+                if (schedules.length === 0) {
+                    const projectId =
+                        incident.projectId._id || incident.projectId;
+                    schedules = await ScheduleService.findBy({
+                        isDefault: true,
+                        projectId,
+                    });
+                }
 
                 for (const schedule of schedules) {
                     _this.sendAlertsToTeamMembersInSchedule({
@@ -435,6 +444,10 @@ module.exports = {
                 teamMember.endTime
             );
 
+            const user = await UserService.findOneBy({
+                _id: teamMember.userId,
+            });
+
             if (!isOnDuty) {
                 if (escalation.call && shouldSendCallReminder) {
                     await _this.create({
@@ -478,10 +491,6 @@ module.exports = {
 
                 continue;
             }
-
-            const user = await UserService.findOneBy({
-                _id: teamMember.userId,
-            });
 
             if (!user) {
                 continue;
@@ -1192,9 +1201,17 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
-                const schedules = await ScheduleService.findBy({
+                let schedules = await ScheduleService.findBy({
                     monitorIds: monitorId,
                 });
+                if (schedules.length === 0) {
+                    const projectId =
+                        incident.projectId._id || incident.projectId;
+                    schedules = await ScheduleService.findBy({
+                        isDefault: true,
+                        projectId,
+                    });
+                }
                 const monitor = await MonitorService.findOneBy({
                     _id: monitorId,
                 });
@@ -1400,9 +1417,17 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
-                const schedules = await ScheduleService.findBy({
+                let schedules = await ScheduleService.findBy({
                     monitorIds: monitorId,
                 });
+                if (schedules.length === 0) {
+                    const projectId =
+                        incident.projectId._id || incident.projectId;
+                    schedules = await ScheduleService.findBy({
+                        isDefault: true,
+                        projectId,
+                    });
+                }
                 const monitor = await MonitorService.findOneBy({
                     _id: monitorId,
                 });

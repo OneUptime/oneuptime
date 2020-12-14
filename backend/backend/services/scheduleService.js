@@ -3,7 +3,7 @@ module.exports = {
         try {
             if (!skip) skip = 0;
 
-            if (!limit) limit = 10;
+            if (!limit) limit = 0;
 
             if (typeof skip === 'string') skip = parseInt(skip);
 
@@ -179,6 +179,22 @@ module.exports = {
                 monitorIds = schedule.monitorIds;
             }
             data.monitorIds = monitorIds;
+
+            if (data.isDefault) {
+                // set isDefault to false for a particular schedule in a project
+                // this should only affect any schedule not equal to the currently edited schedule
+                await ScheduleModel.findOneAndUpdate(
+                    {
+                        _id: { $ne: schedule._id },
+                        isDefault: true,
+                        deleted: false,
+                        projectId: query.projectId,
+                    },
+                    { $set: { default: false } },
+                    { new: true }
+                );
+            }
+
             schedule = await ScheduleModel.findOneAndUpdate(
                 query,
                 {
