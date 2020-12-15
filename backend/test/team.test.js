@@ -401,7 +401,6 @@ describe('Team API with Sub-Projects', async function() {
 
     it('should add members on a project if the number does not exceeds 100 (role -> `Member`)', async function() {
         const authorization = `Basic ${token}`;
-        console.log(userData.moreBulkUsers.emails.length)
         const res = await request
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
