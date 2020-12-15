@@ -251,13 +251,13 @@ class ErrorTrackerDetailView extends Component {
                                         >
                                             <span>Ignore</span>
                                         </button>
-                                        <button
+                                        {/* <button
                                             className="bs-Button"
                                             type="button"
                                             disabled={true}
                                         >
                                             <span>Merge</span>
-                                        </button>
+                                        </button> */}
                                     </div>
                                 </td>
                                 <td

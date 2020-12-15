@@ -8,6 +8,7 @@ import DeleteErrorTracker from '../modals/DeleteErrorTracker';
 import { connect } from 'react-redux';
 import ViewErrorTrackerKey from '../modals/ViewErrorTrackerKey';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
+import Badge from '../common/Badge';
 
 class ErrorTrackerHeader extends Component {
     constructor(props) {
@@ -46,13 +47,28 @@ class ErrorTrackerHeader extends Component {
         return (
             <div>
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                    <div>
+                        <ShouldRender
+                            if={errorTracker && errorTracker.resourceCategory}
+                        >
+                            <div className="Box-root">
+                                <Badge
+                                    color={'slate5'}
+                                    id={`${errorTracker.name}-badge`}
+                                >
+                                    {errorTracker &&
+                                    errorTracker.resourceCategory
+                                        ? errorTracker.resourceCategory.name
+                                        : ''}
+                                </Badge>
+                            </div>
+                        </ShouldRender>
+                    </div>
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                 <span
-                                    style={{
-                                        textTransform: 'capitalize',
-                                    }}
+                                    id={`error-tracker-title-${errorTracker.name}`}
                                 >
                                     {`${errorTracker.name} (${
                                         errorTrackerIssue
