@@ -643,7 +643,7 @@ export class IncidentStatus extends Component {
                                                                             .createdAt
                                                                     ).format(
                                                                         'h:mm:ss a'
-                                                                    )}{' '}
+                                                                    )}<br />
                                                                     (
                                                                     {moment(
                                                                         this
