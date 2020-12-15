@@ -422,6 +422,6 @@ describe('Team API with Sub-Projects', async function() {
                 role: 'Viewer',
             });
         expect(res).to.have.status(200);
-        expect(res.body[0].team.length).to.be.equal(221);
+        expect(res.body[0].team.length).to.be.equal(220);
     });
 });
