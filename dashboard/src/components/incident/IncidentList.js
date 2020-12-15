@@ -849,12 +849,8 @@ export class IncidentList extends Component {
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
                                     {incidents
-                                        ? this.props.
-                                            incidents
-                                            .count +
-                                        (this.props
-                                            .incidents
-                                            .count > 1
+                                        ? this.props.incidents.count +
+                                        (this.props.incidents.count > 1
                                             ? ' Incidents'
                                             : ' Incident')
                                         : null}
