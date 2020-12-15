@@ -207,6 +207,14 @@ export class SidebarNavItem extends Component {
                 ? true
                 : false
         );
+        const isScheduleLinkActive = route.subRoutes.some(link =>
+            link.title === 'Schedule' &&
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/sub-project\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
+            )
+                ? true
+                : false
+        );
 
         const routeStyle = {
             position: 'relative',
@@ -253,7 +261,7 @@ export class SidebarNavItem extends Component {
                                                     route.icon
                                                 } ${
                                                     isLinkActive ||
-                                                    isSubLinkActive
+                                                    isSubLinkActive || isScheduleLinkActive
                                                         ? 'db-SideNav-icon--selected'
                                                         : null
                                                 }`}
@@ -263,7 +271,7 @@ export class SidebarNavItem extends Component {
                                     <span
                                         className={
                                             'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
-                                            (isLinkActive || isSubLinkActive
+                                            (isLinkActive || isSubLinkActive || isScheduleLinkActive
                                                 ? ' Text-color--fyipeblue Text-fontWeight--bold'
                                                 : ' Text-color--dark')
                                         }

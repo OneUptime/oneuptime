@@ -108,9 +108,7 @@ module.exports = {
             if (!query.deleted) delete query.deleted;
             // get all unique hashes by error tracker Id
             const errorTrackerIssues = await IssueService.findBy(
-                {
-                    errorTrackerId: query.errorTrackerId,
-                },
+                query,
                 limit,
                 skip
             );
@@ -123,19 +121,24 @@ module.exports = {
                 const issue = errorTrackerIssues[index];
 
                 if (issue) {
-                    // update query with the current issue ID
-                    query.issueId = issue._id;
+                    // set query with the current error tracker and issue ID
+                    const innerQuery = {
+                        errorTrackerId: query.errorTrackerId,
+                        issueId: issue._id,
+                    };
                     // run a query to get the first and last error event that has current error tracker id and fingerprint hash
                     const earliestErrorEvent = await ErrorEventModel.findOne(
-                        query
+                        innerQuery
                     ).sort({ createdAt: 1 });
                     const latestErrorEvent = await ErrorEventModel.findOne(
-                        query
+                        innerQuery
                     ).sort({ createdAt: -1 });
                     // if we have an earliest and latest error event
                     if (earliestErrorEvent && latestErrorEvent) {
-                        // get total number of events for that hash
-                        const totalNumberOfEvents = await this.countBy(query);
+                        // get total number of events for that issue
+                        const totalNumberOfEvents = await this.countBy(
+                            innerQuery
+                        );
 
                         // we get the memebrs attached to this issue
                         const members = await IssueMemberService.findBy({
@@ -150,6 +153,7 @@ module.exports = {
                             type: issue.type,
                             fingerprintHash: issue.fingerprintHash,
                             ignored: issue.ignored,
+                            resolved: issue.resolved,
                             earliestOccurennce: earliestErrorEvent.createdAt,
                             earliestId: earliestErrorEvent._id,
                             latestOccurennce: latestErrorEvent.createdAt,

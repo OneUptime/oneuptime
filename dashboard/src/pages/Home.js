@@ -31,8 +31,26 @@ import {
 } from '../actions/monitor';
 import { fetchDefaultMonitorSla } from '../actions/monitorSla';
 import BreachedMonitorSla from '../components/monitorSla/BreachedMonitorSla';
+import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 
 class Home extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            tabIndex: 0,
+        };
+    }
+    componentWillMount() {
+        resetIdCounter();
+    }
+    tabSelected = index => {
+        const tabSlider = document.getElementById('tab-slider');
+        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        this.setState({
+            tabIndex: index,
+        });
+    };
     componentDidMount() {
         this.props.loadPage('Home');
         if (IS_SAAS_SERVICE) {
@@ -80,21 +98,18 @@ class Home extends Component {
     }
     renderComponentIssues = () => {
         const { components, currentProjectId } = this.props;
-
-        let componentIssueslist;
-        if (components) {
-            componentIssueslist = components.map((component, i) => {
-                return (
-                    <div key={i}>
-                        <ComponentIssue
-                            component={component}
-                            currentProjectId={currentProjectId}
-                        />
-                    </div>
-                );
-            });
-        }
-        return componentIssueslist;
+        return components
+            ? components.map((component, i) => {
+                  return (
+                      <div key={i}>
+                          <ComponentIssue
+                              component={component}
+                              currentProjectId={currentProjectId}
+                          />
+                      </div>
+                  );
+              })
+            : null;
     };
 
     closeAllIncidents = async () => {
@@ -336,173 +351,251 @@ class Home extends Component {
                                     <div className="dashboard-home-view react-view">
                                         <div>
                                             <div>
-                                                <span>
-                                                    {this.renderComponentIssues()}
-                                                    <ShouldRender
-                                                        if={
-                                                            !this.props
-                                                                .escalation
-                                                                .requesting
-                                                        }
-                                                    >
-                                                        {userSchedules ? (
-                                                            <>
+                                                <Tabs
+                                                    selectedTabClassName={
+                                                        'custom-tab-selected'
+                                                    }
+                                                    onSelect={tabIndex =>
+                                                        this.tabSelected(
+                                                            tabIndex
+                                                        )
+                                                    }
+                                                    selectedIndex={
+                                                        this.state.tabIndex
+                                                    }
+                                                >
+                                                    <div className="Flex-flex Flex-direction--columnReverse">
+                                                        <TabList
+                                                            id="customTabList"
+                                                            className={
+                                                                'custom-tab-list'
+                                                            }
+                                                        >
+                                                            <Tab
+                                                                className={
+                                                                    'custom-tab custom-tab-2'
+                                                                }
+                                                            >
+                                                                Incidents
+                                                            </Tab>
+                                                            <Tab
+                                                                className={
+                                                                    'custom-tab custom-tab-2'
+                                                                }
+                                                            >
+                                                                Error Events
+                                                            </Tab>
+                                                            <div
+                                                                id="tab-slider"
+                                                                className="custom-tab-2"
+                                                            ></div>
+                                                        </TabList>
+                                                    </div>
+
+                                                    <TabPanel>
+                                                        <Fade>
+                                                            <span>
                                                                 <ShouldRender
                                                                     if={
-                                                                        upcomingSchedules &&
-                                                                        upcomingSchedules.length >
-                                                                            0
+                                                                        !this
+                                                                            .props
+                                                                            .escalation
+                                                                            .requesting
                                                                     }
                                                                 >
-                                                                    <OnCallSchedule
-                                                                        status="upcoming"
-                                                                        schedules={
-                                                                            upcomingSchedules
-                                                                        }
-                                                                        currentProjectId={
-                                                                            this
-                                                                                .props
-                                                                                .currentProjectId
-                                                                        }
-                                                                    />
-                                                                </ShouldRender>
+                                                                    {userSchedules ? (
+                                                                        <>
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    activeSchedules &&
+                                                                                    activeSchedules.length >
+                                                                                        0
+                                                                                }
+                                                                            >
+                                                                                <OnCallSchedule
+                                                                                    status="active"
+                                                                                    schedules={
+                                                                                        activeSchedules
+                                                                                    }
+                                                                                    currentProjectId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .currentProjectId
+                                                                                    }
+                                                                                />
+                                                                            </ShouldRender>
 
-                                                                <ShouldRender
-                                                                    if={
-                                                                        inactiveSchedules &&
-                                                                        inactiveSchedules.length >
-                                                                            0
-                                                                    }
-                                                                >
-                                                                    <OnCallSchedule
-                                                                        status="inactive"
-                                                                        schedules={
-                                                                            inactiveSchedules
-                                                                        }
-                                                                        currentProjectId={
-                                                                            this
-                                                                                .props
-                                                                                .currentProjectId
-                                                                        }
-                                                                    />
-                                                                </ShouldRender>
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    upcomingSchedules &&
+                                                                                    upcomingSchedules.length >
+                                                                                        0
+                                                                                }
+                                                                            >
+                                                                                <OnCallSchedule
+                                                                                    status="upcoming"
+                                                                                    schedules={
+                                                                                        upcomingSchedules
+                                                                                    }
+                                                                                    currentProjectId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .currentProjectId
+                                                                                    }
+                                                                                />
+                                                                            </ShouldRender>
 
-                                                                {ongoingEventList &&
-                                                                    ongoingEventList.length >
-                                                                        0 &&
-                                                                    ongoingEventList}
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    inactiveSchedules &&
+                                                                                    inactiveSchedules.length >
+                                                                                        0
+                                                                                }
+                                                                            >
+                                                                                <OnCallSchedule
+                                                                                    status="inactive"
+                                                                                    schedules={
+                                                                                        inactiveSchedules
+                                                                                    }
+                                                                                    currentProjectId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .currentProjectId
+                                                                                    }
+                                                                                />
+                                                                            </ShouldRender>
 
-                                                                {breachedMonitorSlaList &&
-                                                                    breachedMonitorSlaList.length >
-                                                                        0 &&
-                                                                    breachedMonitorSlaList}
+                                                                            {ongoingEventList &&
+                                                                                ongoingEventList.length >
+                                                                                    0 &&
+                                                                                ongoingEventList}
 
-                                                                <div className="Box-root Margin-bottom--12">
-                                                                    {/* Here, component, monitor and team member notifier */}
-                                                                    <CustomTutorial
-                                                                        components={
-                                                                            this
-                                                                                .props
-                                                                                .components
-                                                                        }
-                                                                        monitors={
-                                                                            this
-                                                                                .props
-                                                                                .monitors
-                                                                        }
-                                                                        tutorialStat={
-                                                                            this
-                                                                                .props
-                                                                                .tutorialStat
-                                                                        }
-                                                                        currentProjectId={
-                                                                            this
-                                                                                .props
-                                                                                .currentProjectId
-                                                                        }
-                                                                        projectTeamMembers={
-                                                                            this
-                                                                                .props
-                                                                                .projectTeamMembers
-                                                                        }
-                                                                    />
+                                                                            {breachedMonitorSlaList &&
+                                                                                breachedMonitorSlaList.length >
+                                                                                    0 &&
+                                                                                breachedMonitorSlaList}
 
-                                                                    {/* Here, check if atleast 1 component and monitor exists before deciding on incidents */}
-                                                                    {this.props
-                                                                        .components &&
-                                                                    this.props
-                                                                        .components
-                                                                        .length >
-                                                                        0 &&
-                                                                    this.props
-                                                                        .monitors &&
-                                                                    this.props
-                                                                        .monitors
-                                                                        .length >
-                                                                        0 ? (
-                                                                        incidentslist &&
-                                                                        incidentslist.length >
-                                                                            0 ? (
-                                                                            incidentslist
-                                                                        ) : (
-                                                                            <div>
-                                                                                <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
-                                                                                    <div className="db-Trends-header Padding-vertical--48">
-                                                                                        <div className="db-Trends-controls">
-                                                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                                <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                                        <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
-                                                                                                            <span
-                                                                                                                className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
-                                                                                                                style={{
-                                                                                                                    filter:
-                                                                                                                        'brightness(0) invert(1)',
-                                                                                                                    marginTop:
-                                                                                                                        '1px',
-                                                                                                                    marginRight:
-                                                                                                                        '5px',
-                                                                                                                }}
-                                                                                                            />
-                                                                                                            <span
-                                                                                                                id="component-content-header"
-                                                                                                                className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
-                                                                                                            >
-                                                                                                                You
-                                                                                                                currently
-                                                                                                                don&apos;t
-                                                                                                                have
-                                                                                                                any
-                                                                                                                active
-                                                                                                                incidents.
-                                                                                                            </span>
-                                                                                                        </span>
+                                                                            <div className="Box-root Margin-bottom--12">
+                                                                                {/* Here, component, monitor and team member notifier */}
+                                                                                <CustomTutorial
+                                                                                    components={
+                                                                                        this
+                                                                                            .props
+                                                                                            .components
+                                                                                    }
+                                                                                    monitors={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitors
+                                                                                    }
+                                                                                    tutorialStat={
+                                                                                        this
+                                                                                            .props
+                                                                                            .tutorialStat
+                                                                                    }
+                                                                                    currentProjectId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .currentProjectId
+                                                                                    }
+                                                                                    projectTeamMembers={
+                                                                                        this
+                                                                                            .props
+                                                                                            .projectTeamMembers
+                                                                                    }
+                                                                                />
+
+                                                                                {/* Here, check if atleast 1 component and monitor exists before deciding on incidents */}
+                                                                                {this
+                                                                                    .props
+                                                                                    .components &&
+                                                                                this
+                                                                                    .props
+                                                                                    .components
+                                                                                    .length >
+                                                                                    0 &&
+                                                                                this
+                                                                                    .props
+                                                                                    .monitors &&
+                                                                                this
+                                                                                    .props
+                                                                                    .monitors
+                                                                                    .length >
+                                                                                    0 ? (
+                                                                                    incidentslist &&
+                                                                                    incidentslist.length >
+                                                                                        0 ? (
+                                                                                        incidentslist
+                                                                                    ) : (
+                                                                                        <div>
+                                                                                            <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
+                                                                                                <div className="db-Trends-header Padding-vertical--48">
+                                                                                                    <div className="db-Trends-controls">
+                                                                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                                                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                                                    <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
+                                                                                                                        <span
+                                                                                                                            className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                                                                                            style={{
+                                                                                                                                filter:
+                                                                                                                                    'brightness(0) invert(1)',
+                                                                                                                                marginTop:
+                                                                                                                                    '1px',
+                                                                                                                                marginRight:
+                                                                                                                                    '5px',
+                                                                                                                            }}
+                                                                                                                        />
+                                                                                                                        <span
+                                                                                                                            id="component-content-header"
+                                                                                                                            className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
+                                                                                                                        >
+                                                                                                                            You
+                                                                                                                            currently
+                                                                                                                            don&apos;t
+                                                                                                                            have
+                                                                                                                            any
+                                                                                                                            active
+                                                                                                                            incidents.
+                                                                                                                        </span>
+                                                                                                                    </span>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        </div>
                                                                                                     </div>
                                                                                                 </div>
                                                                                             </div>
                                                                                         </div>
-                                                                                    </div>
-                                                                                </div>
+                                                                                    )
+                                                                                ) : null}
                                                                             </div>
-                                                                        )
-                                                                    ) : null}
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            ''
-                                                        )}
-                                                    </ShouldRender>
+                                                                        </>
+                                                                    ) : (
+                                                                        ''
+                                                                    )}
+                                                                </ShouldRender>
 
-                                                    <ShouldRender
-                                                        if={
-                                                            this.props
-                                                                .escalation
-                                                                .requesting
-                                                        }
-                                                    >
-                                                        <LoadingState />
-                                                    </ShouldRender>
-                                                </span>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        this
+                                                                            .props
+                                                                            .escalation
+                                                                            .requesting
+                                                                    }
+                                                                >
+                                                                    <LoadingState />
+                                                                </ShouldRender>
+                                                            </span>
+                                                        </Fade>
+                                                    </TabPanel>
+                                                    <TabPanel>
+                                                        <Fade>
+                                                            <div>
+                                                                {this.renderComponentIssues()}
+                                                            </div>
+                                                        </Fade>
+                                                    </TabPanel>
+                                                </Tabs>
                                             </div>
                                         </div>
                                     </div>

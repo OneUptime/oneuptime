@@ -146,7 +146,7 @@ class ViewErrorTrackerKey extends Component {
                                                             id={`show_error_tracker_key_${this.props.data.errorTracker.name}`}
                                                         >
                                                             Click here to reveal
-                                                            Log API key
+                                                            Tracker API key
                                                         </span>
                                                     </ShouldRender>
                                                     <ShouldRender if={!hidden}>

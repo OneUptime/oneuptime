@@ -155,13 +155,13 @@ class ErrorEventHeader extends Component {
                                         }
                                     />
 
-                                    <button
+                                    {/* <button
                                         className="bs-Button"
                                         type="button"
                                         disabled={true}
                                     >
                                         <span>Merge</span>
-                                    </button>
+                                    </button> */}
                                 </div>
                                 <ShouldRender if={errorTrackerIssue.ignored}>
                                     <AlertPanel
