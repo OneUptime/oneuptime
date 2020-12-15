@@ -38,6 +38,7 @@ import slackWebhooks from './slackWebhooks';
 import incidentPriorities from './incidentPriorities';
 import incidentBasicSettings from './incidentBasicSettings';
 import errorTracker from './errorTracker';
+import animateSidebar from './animateSidebar';
 import incidentCommunicationSla from './incidentCommunicationSla';
 import monitorSla from './monitorSla';
 const appReducer = combineReducers({
@@ -80,6 +81,7 @@ const appReducer = combineReducers({
     incidentPriorities,
     incidentBasicSettings,
     errorTracker,
+    animateSidebar,
     incidentSla: incidentCommunicationSla,
     monitorSla,
 });

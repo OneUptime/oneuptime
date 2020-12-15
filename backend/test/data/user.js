@@ -121,10 +121,10 @@ module.exports = {
     },
 
     otherBulkUsers: {
-        emails: StringUtil.generateBulkEmails(99),
+        emails: StringUtil.generateBulkEmails(100),
     },
 
     moreBulkUsers: {
-        emails: StringUtil.generateBulkEmails(98),
+        emails: StringUtil.generateBulkEmails(99),
     },
 };

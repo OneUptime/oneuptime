@@ -7,6 +7,8 @@ import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
 import { markAsRead } from '../../actions/notification';
+import { animateSidebar } from '../../actions/animateSidebar';
+
 export class IncidentList extends Component {
     render() {
         if (
@@ -191,12 +193,16 @@ export class IncidentList extends Component {
                                                             '/incidents/' +
                                                             incident._id
                                                     );
-                                                }, 100);
+                                                    this.props.animateSidebar(
+                                                        false
+                                                    );
+                                                }, 200);
                                                 this.props.markAsRead(
                                                     this.props.currentProject
                                                         ._id,
                                                     incident.notificationId
                                                 );
+                                                this.props.animateSidebar(true);
                                             }}
                                         >
                                             <td
@@ -918,7 +924,7 @@ export class IncidentList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ markAsRead }, dispatch);
+    return bindActionCreators({ markAsRead, animateSidebar }, dispatch);
 };
 
 function mapStateToProps(state) {
@@ -944,6 +950,7 @@ IncidentList.propTypes = {
     requesting: PropTypes.bool,
     isFiltered: PropTypes.bool,
     markAsRead: PropTypes.func,
+    animateSidebar: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentList);

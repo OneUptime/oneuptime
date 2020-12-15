@@ -6,7 +6,8 @@ import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import { loadPage } from '../../actions/page';
 import { navKeyBind, cleanBind } from '../../utils/keybinding';
-
+import { animateSidebar } from '../../actions/animateSidebar';
+import { history } from '../../store';
 export class SidebarNavItem extends Component {
     constructor(props) {
         super(props);
@@ -206,6 +207,14 @@ export class SidebarNavItem extends Component {
                 ? true
                 : false
         );
+        const isScheduleLinkActive = route.subRoutes.some(link =>
+            link.title === 'Schedule' &&
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/sub-project\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
+            )
+                ? true
+                : false
+        );
 
         const routeStyle = {
             position: 'relative',
@@ -223,10 +232,21 @@ export class SidebarNavItem extends Component {
         return (
             <div style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
-                    <Link
+                    <span
                         id={this.camalize(route.title)}
-                        to={path}
-                        onClick={() => loadPage(route.title)}
+                        onClick={() => {
+                            if (route.title === 'Back to Dashboard') {
+                                this.props.animateSidebar(true);
+                                setTimeout(() => {
+                                    loadPage(route.title);
+                                    this.props.animateSidebar(false);
+                                    history.push(path);
+                                }, 200);
+                            } else {
+                                loadPage(route.title);
+                                history.push(path);
+                            }
+                        }}
                         {...(route.disabled
                             ? { style: { pointerEvents: 'none' } }
                             : {})}
@@ -241,7 +261,7 @@ export class SidebarNavItem extends Component {
                                                     route.icon
                                                 } ${
                                                     isLinkActive ||
-                                                    isSubLinkActive
+                                                    isSubLinkActive || isScheduleLinkActive
                                                         ? 'db-SideNav-icon--selected'
                                                         : null
                                                 }`}
@@ -251,7 +271,7 @@ export class SidebarNavItem extends Component {
                                     <span
                                         className={
                                             'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
-                                            (isLinkActive || isSubLinkActive
+                                            (isLinkActive || isSubLinkActive || isScheduleLinkActive
                                                 ? ' Text-color--fyipeblue Text-fontWeight--bold'
                                                 : ' Text-color--dark')
                                         }
@@ -275,7 +295,7 @@ export class SidebarNavItem extends Component {
                                 </div>
                             </div>
                         </div>
-                    </Link>
+                    </span>
                 </ShouldRender>
                 <div>
                     <span>
@@ -435,7 +455,7 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ loadPage }, dispatch);
+    bindActionCreators({ loadPage, animateSidebar }, dispatch);
 
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,
@@ -448,6 +468,7 @@ SidebarNavItem.propTypes = {
     currentProject: PropTypes.object,
     component: PropTypes.object, // eslint-disable-line
     loadPage: PropTypes.func.isRequired,
+    animateSidebar: PropTypes.func,
 };
 
 export default withRouter(

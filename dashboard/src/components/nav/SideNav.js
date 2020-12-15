@@ -208,7 +208,13 @@ class SideNav extends Component {
                             </div>
                         </div>
 
-                        <div className="db-SideNav-navSections Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStaIt">
+                        <div
+                            className={`db-SideNav-navSections Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStaIt ${
+                                this.props.animateSidebar
+                                    ? ' animate-in'
+                                    : ' animate-out'
+                            }`}
+                        >
                             {groupsToRender.map((group, index, array) => {
                                 const marginClass =
                                     index === array.length - 1
@@ -317,6 +323,7 @@ const mapStateToProps = function(state, props) {
         sidenavopen: state.page.sidenavopen,
         profilePic,
         userName,
+        animateSidebar: state.animateSidebar.animateSidebar,
     };
 };
 
@@ -349,6 +356,7 @@ SideNav.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     userName: PropTypes.string,
+    animateSidebar: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SideNav);

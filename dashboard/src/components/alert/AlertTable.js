@@ -319,7 +319,7 @@ function TD7({ text }) {
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
         >
-            <a
+            <span
                 className="db-ListViewItem-link"
                 href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
             >
@@ -355,7 +355,7 @@ function TD7({ text }) {
                         </div>
                     </span>
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
