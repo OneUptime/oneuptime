@@ -195,13 +195,9 @@ class SideNav extends Component {
             <ClickOutside onClickOutside={this.props.closeSideNav}>
                 <div
                     onKeyDown={this.handleKeyBoard}
-                    className={`db-World-sideNavContainer${(this.props
-                        .sidenavopen
-                        ? ' open'
-                        : '') +
-                        (this.props.animateSidebar
-                            ? ' animate-in'
-                            : ' animate-out')}`}
+                    className={`db-World-sideNavContainer${
+                        this.props.sidenavopen ? ' open' : ''
+                    }`}
                 >
                     <div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
                         <div className="Box-root Margin-bottom--20">
@@ -212,7 +208,13 @@ class SideNav extends Component {
                             </div>
                         </div>
 
-                        <div className="db-SideNav-navSections Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStaIt">
+                        <div
+                            className={`db-SideNav-navSections Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStaIt ${
+                                this.props.animateSidebar
+                                    ? ' animate-in'
+                                    : ' animate-out'
+                            }`}
+                        >
                             {groupsToRender.map((group, index, array) => {
                                 const marginClass =
                                     index === array.length - 1
