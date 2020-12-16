@@ -479,6 +479,22 @@ class NewMonitor extends Component {
         return count;
     };
 
+    renderMonitorConfiguration = ()=>{
+        return(
+            <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                <div className="Box-root">
+                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                        <span>Monitor Configuration</span>
+                    </span>
+                    <p>
+                        <span>
+                            Setup your new monitor's configuration.
+                        </span>
+                    </p>
+                </div>
+            </div>
+        );
+    }
     render() {
         const requesting =
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||
@@ -1070,18 +1086,7 @@ class NewMonitor extends Component {
                                                         !this.props.edit
                                                     }
                                                 >
-                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                                                    <div className="Box-root">
-                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                            <span>Monitor Configuration</span>
-                                                        </span>
-                                                        <p>
-                                                            <span>
-                                                                Description.
-                                                            </span>
-                                                        </p>
-                                                    </div>
-                                                </div>                                                    
+                                                {this.renderMonitorConfiguration()}                                                    
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Mode
@@ -1411,7 +1416,8 @@ class NewMonitor extends Component {
 
                                                 <ShouldRender
                                                     if={type === 'api'}
-                                                >
+                                                >   
+                                                    {this.renderMonitorConfiguration()}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             HTTP Method
@@ -1470,13 +1476,42 @@ class NewMonitor extends Component {
                                                             />
                                                         </div>
                                                     </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            URL
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="url"
+                                                                name={`url_${this.props.index}`}
+                                                                id="url"
+                                                                placeholder={`https://mywebsite.com${
+                                                                    type ===
+                                                                    'api'
+                                                                        ? '/api'
+                                                                        : ''
+                                                                }`}
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                validate={[
+                                                                    ValidateField.required,
+                                                                    ValidateField.url,
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-                                                        type === 'url' ||
-                                                        type === 'api'
+                                                        type === 'url'
                                                     }
-                                                >
+                                                >   
+                                                    {this.renderMonitorConfiguration()}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             URL
@@ -1512,7 +1547,8 @@ class NewMonitor extends Component {
                                                         type ===
                                                         'incomingHttpRequest'
                                                     }
-                                                >
+                                                >   
+                                                    {this.renderMonitorConfiguration()}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Incoming URL
@@ -1539,6 +1575,7 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={type === 'manual'}
                                                 >
+                                                    {this.renderMonitorConfiguration()}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Description
@@ -1562,33 +1599,37 @@ class NewMonitor extends Component {
                                                     </div>
                                                 </ShouldRender>
                                                 {type === 'device' && (
-                                                    <div className="bs-Fieldset-row">
+                                                    <div>                                                        
+                                                        {this.renderMonitorConfiguration()}   
+                                                        <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Device ID
                                                         </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                component={
-                                                                    RenderField
-                                                                }
-                                                                type="deviceId"
-                                                                name={`deviceId_${this.props.index}`}
-                                                                id="deviceId"
-                                                                placeholder="of234dfgqwe"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                validate={
-                                                                    ValidateField.required
-                                                                }
-                                                            />
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    type="deviceId"
+                                                                    name={`deviceId_${this.props.index}`}
+                                                                    id="deviceId"
+                                                                    placeholder="of234dfgqwe"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    validate={
+                                                                        ValidateField.required
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    </div>                                                    
                                                 )}
                                                 <ShouldRender
                                                     if={type === 'script'}
-                                                >
+                                                >   
+                                                    {this.renderMonitorConfiguration()}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Script
