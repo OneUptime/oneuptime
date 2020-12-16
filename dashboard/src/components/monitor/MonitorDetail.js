@@ -541,7 +541,7 @@ export class MonitorDetail extends Component {
                                     );
                                 }}
                             >
-                                <span>More</span>
+                                <span>View Monitor</span>
                             </button>
                         </div>
                     </div>

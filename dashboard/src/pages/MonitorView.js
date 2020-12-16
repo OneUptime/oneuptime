@@ -101,7 +101,6 @@ class MonitorView extends React.Component {
             tabIndex: index,
         });
     };
-
     ready = () => {
         const { monitor } = this.props;
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
@@ -271,10 +270,11 @@ class MonitorView extends React.Component {
                                                 }}
                                             >
                                                 <span>
-                                                    This monitor is currently
-                                                    disabled and not
-                                                    monitoring.Re Enable it to
-                                                    start monitoring again.
+                                                    This monitor is not being
+                                                    monitored because its
+                                                    currently disabled. Please
+                                                    enable this monitor to start
+                                                    monitoring.
                                                 </span>
                                             </div>
                                             <div>
@@ -658,20 +658,6 @@ class MonitorView extends React.Component {
                                                                                 subProjectId
                                                                             }
                                                                         >
-                                                                            <div className="Box-root Margin-bottom--12">
-                                                                                <MonitorViewDeleteBox
-                                                                                    componentId={
-                                                                                        this
-                                                                                            .props
-                                                                                            .componentId
-                                                                                    }
-                                                                                    monitor={
-                                                                                        this
-                                                                                            .props
-                                                                                            .monitor
-                                                                                    }
-                                                                                />
-                                                                            </div>
                                                                             <ShouldRender
                                                                                 if={
                                                                                     this
@@ -700,9 +686,27 @@ class MonitorView extends React.Component {
                                                                                                 .props
                                                                                                 .monitor
                                                                                         }
+                                                                                        tabSelected={
+                                                                                            this
+                                                                                                .tabSelected
+                                                                                        }
                                                                                     />
                                                                                 </div>
                                                                             </ShouldRender>
+                                                                            <div className="Box-root Margin-bottom--12">
+                                                                                <MonitorViewDeleteBox
+                                                                                    componentId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .componentId
+                                                                                    }
+                                                                                    monitor={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                    }
+                                                                                />
+                                                                            </div>
                                                                         </RenderIfSubProjectAdmin>
                                                                     </Fade>
                                                                 </TabPanel>
