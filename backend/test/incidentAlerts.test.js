@@ -898,7 +898,7 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(billingEndpointResponse).to.have.status(200);
 
             // remove prior charge alerts (if created)
-            await AlertChargeService.deleteBy({});
+            await AlertChargeService.hardDeleteBy({});
 
             const newIncident = await createIncident({
                 request,

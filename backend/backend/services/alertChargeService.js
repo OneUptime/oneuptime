@@ -82,7 +82,7 @@ module.exports = {
      * deletes documents in alert charges based on the query condition
      * @param {Object} query
      */
-    deleteBy: async query => {
+    hardDeleteBy: async query => {
         try {
             await AlertChargeModel.deleteMany(query);
         } catch (error) {
