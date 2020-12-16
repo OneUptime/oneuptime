@@ -2064,11 +2064,18 @@ module.exports = {
                 const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
                     incident.projectId
                 );
+
+                const investigationNoteNotificationSMSDisabled =
+                    note &&
+                    statusNoteStatus &&
+                    project.disableInvestigationNoteNotificationSMS;
                 if (
-                    !hasCustomTwilioSettings &&
-                    ((IS_SAAS_SERVICE &&
-                        (!project.alertEnable || !areAlertsEnabledGlobally)) ||
-                        (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
+                    (!hasCustomTwilioSettings &&
+                        ((IS_SAAS_SERVICE &&
+                            (!project.alertEnable ||
+                                !areAlertsEnabledGlobally)) ||
+                            (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))) ||
+                    investigationNoteNotificationSMSDisabled
                 ) {
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
@@ -2083,6 +2090,8 @@ module.exports = {
                             ? 'Alert Disabled on Admin Dashboard'
                             : IS_SAAS_SERVICE && !project.alertEnable
                             ? 'Alert Disabled for this project'
+                            : investigationNoteNotificationSMSDisabled
+                            ? 'Investigation Note SMS Notification Disabled'
                             : 'Error',
                         eventType:
                             templateType === 'Subscriber Incident Acknowldeged'

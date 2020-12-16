@@ -1075,6 +1075,9 @@ router.put(
             if (!data.sendResolvedIncidentNotificationSms) {
                 data.sendResolvedIncidentNotificationSms = false;
             }
+            data.disableInvestigationNoteNotificationSMS = data.disableInvestigationNoteNotificationSMS
+                ? true
+                : false;
 
             const result = await ProjectService.updateOneBy(
                 { _id: projectId },

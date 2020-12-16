@@ -288,6 +288,83 @@ class AdvancedIncidentNotification extends Component {
                                                 </div>
                                             </div>
 
+                                            {type === 'sms' && (
+                                                <div
+                                                    style={{
+                                                        // marginLeft: '30%',
+                                                        margin:
+                                                            '10px 0 5px 30%',
+                                                    }}
+                                                >
+                                                    <hr
+                                                        style={{
+                                                            height: '1px',
+                                                            border: 'none',
+                                                            backgroundColor:
+                                                                '#ccc',
+                                                            width: '33%',
+                                                            marginLeft: '10px',
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {type === 'sms' && (
+                                                <div className="bs-Fieldset-row">
+                                                    <label
+                                                        className="bs-Fieldset-label"
+                                                        style={{
+                                                            flex: '30% 0 0',
+                                                        }}
+                                                    >
+                                                        <span></span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                        <div
+                                                            className="Box-root"
+                                                            style={{
+                                                                height: '5px',
+                                                            }}
+                                                        ></div>
+                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                            <label className="Checkbox">
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name={
+                                                                        'disableInvestigationNoteNotificationSMS'
+                                                                    }
+                                                                    className="Checkbox-source"
+                                                                    id="disableInvestigationNoteNotificationSMS"
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                        color:
+                                                                            'red',
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        Disable
+                                                                        Investigation
+                                                                        Note SMS
+                                                                        for
+                                                                        Subscribers
+                                                                    </span>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {showMoreOptions &&
                                                 type === 'email' && (
                                                     <>
@@ -452,6 +529,10 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject &&
                 state.project.currentProject
                     .sendResolvedIncidentNotificationSms,
+            disableInvestigationNoteNotificationSMS:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .disableInvestigationNoteNotificationSMS,
         };
     } else {
         initialValues = {

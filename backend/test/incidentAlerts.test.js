@@ -1320,6 +1320,115 @@ describe('SMS/Calls Incident Alerts', function() {
          * Global twilio settings: set
          * Custom twilio settings: not set
          * Global twilio settings SMS enable : true
+         * Global twilio settings Call enable : false
+         * SMS/Call alerts enabled for the project (billing): true
+         */
+        it('should not send statusPageNote(investigation note) SMS notification when disabled', async function() {
+            // update global setting to enable SMS
+            const globalSettings = await GlobalConfigModel.findOne({
+                name: 'twilio',
+            });
+            const { value } = globalSettings;
+            value['sms-enabled'] = true;
+            value['call-enabled'] = false;
+
+            await GlobalConfigModel.findOneAndUpdate(
+                { name: 'twilio' },
+                { value }
+            );
+
+            // enable billing for the project
+            const billingEndpointResponse = await request
+                .put(`/project/${projectId}/alertOptions`)
+                .set('Authorization', authorization)
+                .send({
+                    alertEnable: true,
+                    billingNonUSCountries: true,
+                    billingRiskCountries: true,
+                    billingUS: true,
+                    minimumBalance: '100',
+                    rechargeToBalance: '200',
+                    _id: projectId,
+                });
+            expect(billingEndpointResponse).to.have.status(200);
+
+            // disable status page note (investigation note) on the project
+            const {
+                disableInvestigationNoteNotificationSMS,
+            } = await ProjectService.updateOneBy(
+                { _id: projectId },
+                {
+                    disableInvestigationNoteNotificationSMS: true,
+                }
+            );
+
+            expect(disableInvestigationNoteNotificationSMS).to.be.true;
+
+            // create an incident
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
+                    monitorId,
+                    projectId,
+                    title: 'test monitor  is offline.',
+                    incidentType: 'offline',
+                    description: 'Incident description',
+                },
+            });
+            expect(newIncident).to.have.status(200);
+
+            const incidentId = newIncident.body._id;
+
+            // create a status page note (investiagation note)
+            const statusPageNotePayload = {
+                content: 'this is a test page note',
+                incident_state: 'update',
+                type: 'investigation',
+            };
+
+            const newStatusPageNote = await request
+                .post(`/incident/${projectId}/incident/${incidentId}/message`)
+                .set('Authorization', authorization)
+                .send(statusPageNotePayload);
+
+            expect(newStatusPageNote).to.have.status(200);
+
+            // resolve the incident
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
+
+            expect(incidentResolved).to.have.status(200);
+
+            await sleep(10 * 1000);
+
+            const subscriberAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
+
+            expect(subscriberAlerts.body.data).to.be.an('array');
+
+            const statusPageNoteNotificationAlert = subscriberAlerts.body.data.find(
+                subscriberAlert =>
+                    subscriberAlert.errorMessage ===
+                    'Investigation Note SMS Notification Disabled'
+            );
+            expect(statusPageNoteNotificationAlert).to.be.an('object');
+        });
+
+        /**
+         * Global twilio settings: set
+         * Custom twilio settings: not set
+         * Global twilio settings SMS enable : true
          * Global twilio settings Call enable : true
          * SMS/Call alerts enabled for the project (billing): true
          */
