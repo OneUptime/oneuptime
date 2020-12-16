@@ -212,31 +212,31 @@ export class IncidentStatus extends Component {
 
         const formatAckDate = (otherDate, createdDate) => {
             const sec = moment(moment(otherDate).toArray()).diff(
-                moment(moment(createdDate).toArray()), 
+                moment(moment(createdDate).toArray()),
                 'seconds'
             );
             const minutes = moment(moment(otherDate).toArray()).diff(
-                moment(moment(createdDate).toArray()), 
+                moment(moment(createdDate).toArray()),
                 'minutes'
             );
             const hours = moment(moment(otherDate).toArray()).diff(
-                moment(moment(createdDate).toArray()), 
+                moment(moment(createdDate).toArray()),
                 'hours'
             );
             const days = moment(moment(otherDate).toArray()).diff(
-                moment(moment(createdDate).toArray()), 
+                moment(moment(createdDate).toArray()),
                 'days'
             );
             const weeks = moment(moment(otherDate).toArray()).diff(
-                moment(moment(createdDate).toArray()), 
+                moment(moment(createdDate).toArray()),
                 'weeks'
             );
             const months = moment(moment(otherDate).toArray()).diff(
-                moment(moment(createdDate).toArray()), 
+                moment(moment(createdDate).toArray()),
                 'months'
             );
             const years = moment(moment(otherDate).toArray()).diff(
-                moment(moment(createdDate).toArray()), 
+                moment(moment(createdDate).toArray()),
                 'years'
             );
             let valueTxt;
@@ -643,8 +643,8 @@ export class IncidentStatus extends Component {
                                                                             .createdAt
                                                                     ).format(
                                                                         'h:mm:ss a'
-                                                                    )}<br />
-                                                                    (
+                                                                    )}
+                                                                    <br />(
                                                                     {moment(
                                                                         this
                                                                             .props
