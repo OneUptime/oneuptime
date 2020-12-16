@@ -30,6 +30,7 @@
         "systeminformation": "^4.28.1"
     },
     "optionalDependencies": {
+        "node-mac": "^1.0.1",
         "osx-temperature-sensor": "^1.0.7"
     },
     "keywords": [

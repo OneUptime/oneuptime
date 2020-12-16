@@ -129,9 +129,13 @@ checkParams(questions).then(values => {
         process.argv.splice(process.argv.indexOf('-d'), 1);
 
         const child = new Monitor(`${__dirname}/server-monitor.js`, {
+            max: 3,
             uid: 'fsm',
-            silent: true,
             args: process.argv,
+        });
+
+        child.on('start', function() {
+            logger.info('Fyipe Server Monitor started');
         });
 
         child.on('restart', function() {
@@ -143,10 +147,6 @@ checkParams(questions).then(values => {
         });
 
         child.start();
-
-        process.nextTick(() => {
-            process.exit();
-        });
     } else {
         serverMonitor({
             projectId,
