@@ -11,10 +11,10 @@ async function run() {
     );
     // update each project by adding the field with a default value of false
     projectsWithoutDisableInvestigationNoteNotificationSMSField.forEach(
-        subscriber => {
+        project => {
             update(
                 PROJECT_COLLECTION,
-                { _id: subscriber._id },
+                { _id: project._id },
                 { disableInvestigationNoteNotificationSMS: false }
             );
         }
