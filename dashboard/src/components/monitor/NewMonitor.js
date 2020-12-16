@@ -479,16 +479,16 @@ class NewMonitor extends Component {
         return count;
     };
 
-    renderMonitorConfiguration = ()=>{
+    renderMonitorConfiguration = (name)=>{
         return(
             <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                 <div className="Box-root">
                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                        <span>Monitor Configuration</span>
+                    <span>{name} Monitor Configuration</span>
                     </span>
                     <p>
                         <span>
-                            Setup your new monitor's configuration.
+                            Setup your new monitor's configuration as per your needs.
                         </span>
                     </p>
                 </div>
@@ -1086,7 +1086,7 @@ class NewMonitor extends Component {
                                                         !this.props.edit
                                                     }
                                                 >
-                                                {this.renderMonitorConfiguration()}                                                    
+                                                {this.renderMonitorConfiguration("Server")}                                                    
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Mode
@@ -1417,7 +1417,7 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={type === 'api'}
                                                 >   
-                                                    {this.renderMonitorConfiguration()}
+                                                    {this.renderMonitorConfiguration("API")}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             HTTP Method
@@ -1511,7 +1511,7 @@ class NewMonitor extends Component {
                                                         type === 'url'
                                                     }
                                                 >   
-                                                    {this.renderMonitorConfiguration()}
+                                                    {this.renderMonitorConfiguration("Website")}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             URL
@@ -1548,7 +1548,7 @@ class NewMonitor extends Component {
                                                         'incomingHttpRequest'
                                                     }
                                                 >   
-                                                    {this.renderMonitorConfiguration()}
+                                                    {this.renderMonitorConfiguration("Incoming HTTP Request")}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Incoming URL
@@ -1575,7 +1575,7 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={type === 'manual'}
                                                 >
-                                                    {this.renderMonitorConfiguration()}
+                                                    {this.renderMonitorConfiguration("Manual")}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Description
@@ -1600,7 +1600,7 @@ class NewMonitor extends Component {
                                                 </ShouldRender>
                                                 {type === 'device' && (
                                                     <div>                                                        
-                                                        {this.renderMonitorConfiguration()}   
+                                                        {this.renderMonitorConfiguration("IOT Device")}   
                                                         <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Device ID
@@ -1629,7 +1629,7 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={type === 'script'}
                                                 >   
-                                                    {this.renderMonitorConfiguration()}
+                                                    {this.renderMonitorConfiguration("Script")}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Script
@@ -1786,7 +1786,7 @@ class NewMonitor extends Component {
                                                 <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                                     <div className="Box-root">
                                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                            <span>SLA</span>
+                                                            <span>Service Level Agreement</span>
                                                         </span>
                                                         <p>
                                                             <span>
