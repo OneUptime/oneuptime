@@ -568,6 +568,18 @@ class NewMonitor extends Component {
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
+                                            <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                <div className="Box-root">
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                        <span>Basic Configuration</span>
+                                                    </span>
+                                                    <p>
+                                                        <span>
+                                                            Basic Configuration for your new Monitor.
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                            </div>
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
                                                         Name
@@ -1058,6 +1070,18 @@ class NewMonitor extends Component {
                                                         !this.props.edit
                                                     }
                                                 >
+                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root">
+                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                            <span>Monitor Configuration</span>
+                                                        </span>
+                                                        <p>
+                                                            <span>
+                                                                Description.
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                </div>                                                    
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Mode
@@ -1620,6 +1644,18 @@ class NewMonitor extends Component {
                                                         schedules.length > 0
                                                     }
                                                 >
+                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root">
+                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                            <span>Call Schedules</span>
+                                                        </span>
+                                                        <p>
+                                                            <span>
+                                                            Set the configuration for your Monitor's Call Schedules.
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                </div>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Call Schedule
@@ -1706,6 +1742,18 @@ class NewMonitor extends Component {
                                                             .length > 0
                                                     }
                                                 >
+                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root">
+                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                            <span>SLA</span>
+                                                        </span>
+                                                        <p>
+                                                            <span>
+                                                                Select the SLAs for your new Monitor.
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                </div>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Monitor SLA
@@ -1941,6 +1989,18 @@ class NewMonitor extends Component {
                                                         !this.state.advance
                                                     }
                                                 >
+                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root">
+                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                            <span>Advanced</span>
+                                                        </span>
+                                                        <p>
+                                                            <span>
+                                                                Advanced Configuration settings for your new Monitor.
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                </div>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
