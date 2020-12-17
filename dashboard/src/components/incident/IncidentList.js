@@ -851,7 +851,7 @@ export class IncidentList extends Component {
                                     {incidents
                                         ? this.props.incidents.count +
                                         (this.props.incidents.count > 1
-                                            ? ' Incidents'
+                                            ? ' total Incidents'
                                             : ' Incident')
                                         : null}
                                 </span>
