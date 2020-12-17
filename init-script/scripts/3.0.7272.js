@@ -2,20 +2,20 @@ const { find, update } = require('../util/db');
 
 const PROJECT_COLLECTION = 'projects';
 async function run() {
-    // get projects without disableInvestigationNoteNotificationSMS feild
-    const projectsWithoutDisableInvestigationNoteNotificationSMSField = await find(
+    // get projects without enableInvestigationNoteNotificationSMS feild
+    const projectsWithoutEnableInvestigationNoteNotificationSMSField = await find(
         PROJECT_COLLECTION,
         {
-            disableInvestigationNoteNotificationSMS: { $exists: false },
+            enableInvestigationNoteNotificationSMS: { $exists: false },
         }
     );
-    // update each project by adding the field with a default value of false
-    projectsWithoutDisableInvestigationNoteNotificationSMSField.forEach(
+    // update project by setting enableInvestigationNoteNotificationSMS to default value of true
+    projectsWithoutEnableInvestigationNoteNotificationSMSField.forEach(
         project => {
             update(
                 PROJECT_COLLECTION,
                 { _id: project._id },
-                { disableInvestigationNoteNotificationSMS: false }
+                { enableInvestigationNoteNotificationSMS: true }
             );
         }
     );

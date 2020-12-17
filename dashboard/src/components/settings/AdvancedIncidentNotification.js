@@ -289,27 +289,6 @@ class AdvancedIncidentNotification extends Component {
                                             </div>
 
                                             {type === 'sms' && (
-                                                <div
-                                                    style={{
-                                                        // marginLeft: '30%',
-                                                        margin:
-                                                            '10px 0 5px 30%',
-                                                    }}
-                                                >
-                                                    <hr
-                                                        style={{
-                                                            height: '1px',
-                                                            border: 'none',
-                                                            backgroundColor:
-                                                                '#ccc',
-                                                            width: '33%',
-                                                            marginLeft: '10px',
-                                                        }}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {type === 'sms' && (
                                                 <div className="bs-Fieldset-row">
                                                     <label
                                                         className="bs-Fieldset-label"
@@ -332,10 +311,10 @@ class AdvancedIncidentNotification extends Component {
                                                                     component="input"
                                                                     type="checkbox"
                                                                     name={
-                                                                        'disableInvestigationNoteNotificationSMS'
+                                                                        'enableInvestigationNoteNotificationSMS'
                                                                     }
                                                                     className="Checkbox-source"
-                                                                    id="disableInvestigationNoteNotificationSMS"
+                                                                    id="enableInvestigationNoteNotificationSMS"
                                                                 />
                                                                 <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                                                     <div className="Checkbox-target Box-root">
@@ -347,12 +326,10 @@ class AdvancedIncidentNotification extends Component {
                                                                     style={{
                                                                         paddingLeft:
                                                                             '5px',
-                                                                        color:
-                                                                            'red',
                                                                     }}
                                                                 >
                                                                     <span>
-                                                                        Disable
+                                                                        Enable
                                                                         Investigation
                                                                         Note SMS
                                                                         for
@@ -529,10 +506,10 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject &&
                 state.project.currentProject
                     .sendResolvedIncidentNotificationSms,
-            disableInvestigationNoteNotificationSMS:
+            enableInvestigationNoteNotificationSMS:
                 state.project.currentProject &&
                 state.project.currentProject
-                    .disableInvestigationNoteNotificationSMS,
+                    .enableInvestigationNoteNotificationSMS,
         };
     } else {
         initialValues = {

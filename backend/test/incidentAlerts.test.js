@@ -1354,15 +1354,15 @@ describe('SMS/Calls Incident Alerts', function() {
 
             // disable status page note (investigation note) on the project
             const {
-                disableInvestigationNoteNotificationSMS,
+                enableInvestigationNoteNotificationSMS,
             } = await ProjectService.updateOneBy(
                 { _id: projectId },
                 {
-                    disableInvestigationNoteNotificationSMS: true,
+                    enableInvestigationNoteNotificationSMS: false,
                 }
             );
 
-            expect(disableInvestigationNoteNotificationSMS).to.be.true;
+            expect(enableInvestigationNoteNotificationSMS).to.be.false;
 
             // create an incident
             const newIncident = await createIncident({

@@ -2068,7 +2068,7 @@ module.exports = {
                 const investigationNoteNotificationSMSDisabled =
                     note &&
                     statusNoteStatus &&
-                    project.disableInvestigationNoteNotificationSMS;
+                    !project.enableInvestigationNoteNotificationSMS;
                 if (
                     (!hasCustomTwilioSettings &&
                         ((IS_SAAS_SERVICE &&

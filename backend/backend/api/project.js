@@ -1075,7 +1075,7 @@ router.put(
             if (!data.sendResolvedIncidentNotificationSms) {
                 data.sendResolvedIncidentNotificationSms = false;
             }
-            data.disableInvestigationNoteNotificationSMS = data.disableInvestigationNoteNotificationSMS
+            data.enableInvestigationNoteNotificationSMS = data.enableInvestigationNoteNotificationSMS
                 ? true
                 : false;
 

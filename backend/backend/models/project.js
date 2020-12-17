@@ -84,7 +84,7 @@ const projectSchema = new Schema({
     sendCreatedIncidentNotificationEmail: { type: Boolean, default: true },
     sendAcknowledgedIncidentNotificationEmail: { type: Boolean, default: true },
     sendResolvedIncidentNotificationEmail: { type: Boolean, default: true },
-    disableInvestigationNoteNotificationSMS: { type: Boolean, default: false },
+    enableInvestigationNoteNotificationSMS: { type: Boolean, default: true },
     replyAddress: String,
 });
 
