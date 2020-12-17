@@ -524,6 +524,50 @@ class NewMonitor extends Component {
             planCategory === 'Startup' ? 5 : planCategory === 'Growth' ? 10 : 0;
         const monitorCount = numOfUsers * monitorPerUser;
         const currentMonitorCount = this.getCurrentMonitorCount(monitor);
+        const monitorTypesOptions=[
+            {
+                value:
+                    ‘url’,
+                label:
+                    ‘Website’,
+            },
+            {
+                value:
+                    ‘device’,
+                label:
+                    ‘IoT Device’,
+            },
+            {
+                value:
+                    ‘manual’,
+                label:
+                    ‘Manual’,
+            },
+            {
+                value:
+                    ‘api’,
+                label:
+                    ‘API’,
+            },
+            {
+                value:
+                    ‘script’,
+                label:
+                    ‘Script’,
+            },
+            {
+                value:
+                    ‘server-monitor’,
+                label:
+                    ‘Server’,
+            },
+            {
+                value:
+                    ‘incomingHttpRequest’,
+                label:
+                    ‘Incoming HTTP Request’,
+            },
+        ];
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -695,6 +739,7 @@ class NewMonitor extends Component {
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
+                                                            {monitorTypesOptions.map((el)=>(
                                                                 <div
                                                                     className="bs-Fieldset-field"
                                                                     style={{ width: '100%', display: 'flex',
@@ -716,7 +761,8 @@ class NewMonitor extends Component {
                                                                         //value={value}
                                                                     />
                                                                     {/* <label htmlFor={id}>{details}</label> */}
-                                                                </div>                                                                        
+                                                                </div>
+                                                            )}                                                                        
                                                                 {/* <Field
                                                                     className="db-select-nw"
                                                                     component={
