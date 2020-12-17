@@ -17,6 +17,7 @@ const emailTemplateSchema = new Schema({
             'Subscriber Incident Created',
             'Subscriber Incident Acknowldeged',
             'Subscriber Incident Resolved',
+            'Investigation note is created',
         ],
         required: true,
     },
