@@ -30,6 +30,7 @@
         "systeminformation": "^4.32.0"
     },
     "optionalDependencies": {
+        "node-linux": "^0.1.12",
         "node-mac": "^1.0.1",
         "node-windows": "^1.0.0-beta.5",
         "osx-temperature-sensor": "^1.0.7"
