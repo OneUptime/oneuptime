@@ -527,47 +527,48 @@ class NewMonitor extends Component {
         const monitorTypesOptions=[
             {
                 value:
-                    ‘url’,
+                    'url',
                 label:
-                    ‘Website’,
+                    'Website',
             },
             {
                 value:
-                    ‘device’,
+                    'device',
                 label:
-                    ‘IoT Device’,
+                    'IoT Device',
             },
             {
                 value:
-                    ‘manual’,
+                    'manual',
                 label:
-                    ‘Manual’,
+                    'Manual',
             },
             {
                 value:
-                    ‘api’,
+                    'api',
                 label:
-                    ‘API’,
+                    'API',
             },
             {
                 value:
-                    ‘script’,
+                    'script',
                 label:
-                    ‘Script’,
+                    'Script',
             },
             {
                 value:
-                    ‘server-monitor’,
+                    'server-monitor',
                 label:
-                    ‘Server’,
+                    'Server',
             },
             {
                 value:
-                    ‘incomingHttpRequest’,
+                    'incomingHttpRequest',
                 label:
-                    ‘Incoming HTTP Request’,
+                    'Incoming HTTP Request',
             },
         ];
+
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -741,7 +742,7 @@ class NewMonitor extends Component {
                                                             <span className="flex">
                                                             {monitorTypesOptions.map((el)=>(
                                                                 <div
-                                                                    className="bs-Fieldset-field"
+                                                                    className="radioButtonClass"
                                                                     style={{ width: '100%', display: 'flex',
                                                                     alignItems: 'center',
                                                                     justifyContent: 'center',
@@ -753,7 +754,7 @@ class NewMonitor extends Component {
                                                                         type="radio"
                                                                         id="type"
                                                                         name={`type_${this.props.index}`}
-                                                                        // className="Margin-right--4"
+                                                                        className="Margin-right--4"
                                                                         validate={
                                                                             ValidateField.select
                                                                         }                                
@@ -762,7 +763,7 @@ class NewMonitor extends Component {
                                                                     />
                                                                     {/* <label htmlFor={id}>{details}</label> */}
                                                                 </div>
-                                                            )}                                                                        
+                                                            ))}                                                                        
                                                                 {/* <Field
                                                                     className="db-select-nw"
                                                                     component={
