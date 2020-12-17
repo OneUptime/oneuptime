@@ -16,6 +16,7 @@ const AlertService = require('../services/alertService');
 const router = express.Router();
 
 const { isAuthorized } = require('../middlewares/authorization');
+const errorService = require('../services/errorService');
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 
@@ -501,6 +502,20 @@ router.post(
                         );
                     }
                 }
+                // send project webhook notification
+                AlertService.sendStausPageNoteNotificationToProjectWebhooks(
+                    req.params.projectId,
+                    incident,
+                    {
+                        ...data,
+                        statusNoteStatus: data.id ? 'updated' : 'created',
+                    }
+                ).catch(error => {
+                    errorService.log(
+                        'IncidentAPI.sendInvestigationToProjectWebhooks',
+                        error
+                    );
+                });
                 const status = `${incidentMessage.type} notes ${
                     data.id ? 'updated' : 'added'
                 }`;

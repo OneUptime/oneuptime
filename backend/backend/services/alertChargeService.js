@@ -78,6 +78,18 @@ module.exports = {
             throw error;
         }
     },
+    /**
+     * deletes documents in alert charges based on the query condition
+     * @param {Object} query
+     */
+    hardDeleteBy: async query => {
+        try {
+            await AlertChargeModel.deleteMany(query);
+        } catch (error) {
+            ErrorService.log('alertChargeService.delete', error);
+            throw error;
+        }
+    },
 };
 
 const AlertChargeModel = require('../models/alertCharge');

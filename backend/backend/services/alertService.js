@@ -1131,13 +1131,64 @@ module.exports = {
         }
     },
 
+    sendStausPageNoteNotificationToProjectWebhooks: async function(
+        projectId,
+        incident,
+        statusPageNoteData
+    ) {
+        try {
+            const monitor = await MonitorService.findOneBy({
+                _id: incident.monitorId,
+            });
+            const component = await componentService.findOneBy({
+                _id: monitor.componentId,
+            });
+
+            let incidentStatus;
+            if (incident.resolved) {
+                incidentStatus = INCIDENT_RESOLVED;
+            } else if (incident.acknowledged) {
+                incidentStatus = INCIDENT_ACKNOWLEDGED;
+            } else {
+                incidentStatus = INCIDENT_CREATED;
+            }
+            const downTimeString = calculateHumanReadableDownTime(
+                incident.createdAt
+            );
+
+            WebHookService.sendIntegrationNotification(
+                projectId,
+                incident,
+                monitor,
+                incidentStatus,
+                component,
+                downTimeString,
+                {
+                    note: statusPageNoteData.content,
+                    incidentState: statusPageNoteData.incident_state,
+                    statusNoteStatus: statusPageNoteData.statusNoteStatus,
+                }
+            ).catch(error => {
+                ErrorService.log(
+                    'AlertService.sendInvestigationNoteToProjectWebhooks',
+                    error
+                );
+            });
+        } catch (error) {
+            ErrorService.log(
+                'AlertService.sendStatusPageNoteNotificationToProjectWebhooks',
+                error
+            );
+            throw error;
+        }
+    },
+
     sendInvestigationNoteToSubscribers: async function(
         incident,
         data,
         statusNoteStatus
     ) {
         try {
-            const note = data.content;
             const _this = this;
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId._id,
@@ -1164,8 +1215,11 @@ module.exports = {
                         incident,
                         'Investigation note is created',
                         null,
-                        note,
-                        statusNoteStatus
+                        {
+                            note: data.content,
+                            incidentState: data.incident_state,
+                            statusNoteStatus,
+                        }
                     );
                 }
             }
@@ -1748,12 +1802,15 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        note,
-        statusNoteStatus
+        { note, incidentState, statusNoteStatus } = {}
     ) {
         try {
             const _this = this;
             const date = new Date();
+            const isStatusPageNoteAlert =
+                note && incidentState && statusNoteStatus;
+            const statusPageNoteAlertEventType = `status page note ${statusNoteStatus}`;
+
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId,
             });
@@ -1805,7 +1862,8 @@ module.exports = {
                         incident,
                         incident.monitorId,
                         component,
-                        downTimeString
+                        downTimeString,
+                        { note, incidentState, statusNoteStatus }
                     );
                     alertStatus = webhookNotificationSent ? 'Sent' : 'Not Sent';
                 } catch (error) {
@@ -1818,13 +1876,14 @@ module.exports = {
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Webhook,
                         alertStatus: alertStatus,
-                        eventType:
-                            templateType === 'Subscriber Incident Acknowldeged'
-                                ? 'acknowledged'
-                                : templateType ===
-                                  'Subscriber Incident Resolved'
-                                ? 'resolved'
-                                : 'identified',
+                        eventType: isStatusPageNoteAlert
+                            ? statusPageNoteAlertEventType
+                            : templateType ===
+                              'Subscriber Incident Acknowldeged'
+                            ? 'acknowledged'
+                            : templateType === 'Subscriber Incident Resolved'
+                            ? 'resolved'
+                            : 'identified',
                     }).catch(error => {
                         ErrorService.log(
                             'AlertService.sendSubscriberAlert',
@@ -1860,13 +1919,14 @@ module.exports = {
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Email,
-                        eventType:
-                            templateType === 'Subscriber Incident Acknowldeged'
-                                ? 'acknowledged'
-                                : templateType ===
-                                  'Subscriber Incident Resolved'
-                                ? 'resolved'
-                                : 'identified',
+                        eventType: isStatusPageNoteAlert
+                            ? statusPageNoteAlertEventType
+                            : templateType ===
+                              'Subscriber Incident Acknowldeged'
+                            ? 'acknowledged'
+                            : templateType === 'Subscriber Incident Resolved'
+                            ? 'resolved'
+                            : 'identified',
                         alertStatus: null,
                         error: true,
                         errorMessage:
@@ -1888,12 +1948,13 @@ module.exports = {
                     subscriberId: subscriber._id,
                     alertVia: AlertType.Email,
                     alertStatus: 'Pending',
-                    eventType:
-                        templateType === 'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                    eventType: isStatusPageNoteAlert
+                        ? statusPageNoteAlertEventType
+                        : templateType === 'Subscriber Incident Acknowldeged'
+                        ? 'acknowledged'
+                        : templateType === 'Subscriber Incident Resolved'
+                        ? 'resolved'
+                        : 'identified',
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
@@ -2085,13 +2146,14 @@ module.exports = {
                             : IS_SAAS_SERVICE && !project.alertEnable
                             ? 'Alert Disabled for this project'
                             : 'Error',
-                        eventType:
-                            templateType === 'Subscriber Incident Acknowldeged'
-                                ? 'acknowledged'
-                                : templateType ===
-                                  'Subscriber Incident Resolved'
-                                ? 'resolved'
-                                : 'identified',
+                        eventType: isStatusPageNoteAlert
+                            ? statusPageNoteAlertEventType
+                            : templateType ===
+                              'Subscriber Incident Acknowldeged'
+                            ? 'acknowledged'
+                            : templateType === 'Subscriber Incident Resolved'
+                            ? 'resolved'
+                            : 'identified',
                     });
                 }
                 const countryCode = await _this.mapCountryShortNameToCountryCode(
@@ -2125,14 +2187,15 @@ module.exports = {
                                     : countryType === 'non-us'
                                     ? 'SMS for numbers outside US not enabled for this project'
                                     : 'SMS to High Risk country not enabled for this project',
-                            eventType:
-                                templateType ===
-                                'Subscriber Incident Acknowldeged'
-                                    ? 'acknowledged'
-                                    : templateType ===
-                                      'Subscriber Incident Resolved'
-                                    ? 'resolved'
-                                    : 'identified',
+                            eventType: isStatusPageNoteAlert
+                                ? statusPageNoteAlertEventType
+                                : templateType ===
+                                  'Subscriber Incident Acknowldeged'
+                                ? 'acknowledged'
+                                : templateType ===
+                                  'Subscriber Incident Resolved'
+                                ? 'resolved'
+                                : 'identified',
                         });
                     }
 
@@ -2152,14 +2215,15 @@ module.exports = {
                             alertStatus: null,
                             error: true,
                             errorMessage: status.message,
-                            eventType:
-                                templateType ===
-                                'Subscriber Incident Acknowldeged'
-                                    ? 'acknowledged'
-                                    : templateType ===
-                                      'Subscriber Incident Resolved'
-                                    ? 'resolved'
-                                    : 'identified',
+                            eventType: isStatusPageNoteAlert
+                                ? statusPageNoteAlertEventType
+                                : templateType ===
+                                  'Subscriber Incident Acknowldeged'
+                                ? 'acknowledged'
+                                : templateType ===
+                                  'Subscriber Incident Resolved'
+                                ? 'resolved'
+                                : 'identified',
                         });
                     }
                 }
@@ -2175,12 +2239,13 @@ module.exports = {
                     subscriberId: subscriber._id,
                     alertVia: AlertType.SMS,
                     alertStatus: 'Pending',
-                    eventType:
-                        templateType === 'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                    eventType: isStatusPageNoteAlert
+                        ? statusPageNoteAlertEventType
+                        : templateType === 'Subscriber Incident Acknowldeged'
+                        ? 'acknowledged'
+                        : templateType === 'Subscriber Incident Resolved'
+                        ? 'resolved'
+                        : 'identified',
                 });
                 const alertId = subscriberAlert._id;
 
@@ -2564,3 +2629,10 @@ const WebHookService = require('../services/webHookService');
 const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
 const secondsToHms = require('../utils/secondsToHms');
+const {
+    INCIDENT_RESOLVED,
+    INCIDENT_CREATED,
+    INCIDENT_ACKNOWLEDGED,
+} = require('../constants/incidentEvents');
+const componentService = require('./componentService');
+const { calculateHumanReadableDownTime } = require('../utils/incident');

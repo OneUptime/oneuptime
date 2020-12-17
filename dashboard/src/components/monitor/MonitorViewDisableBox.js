@@ -9,7 +9,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
 import DisableMonitor from '../modals/DisableMonitor';
 import { disableMonitor } from '../../actions/monitor';
-import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
@@ -20,16 +19,14 @@ export class MonitorViewDisableBox extends Component {
         this.state = { disableModalId: uuid.v4() };
     }
 
-    disableMonitor = () => {
+    disableMonitor = async () => {
         const projectId =
             this.props.monitor.projectId._id || this.props.monitor.projectId;
-        const promise = this.props.disableMonitor(
+        const promise = await this.props.disableMonitor(
             this.props.monitor._id,
             projectId
         );
-        history.push(
-            `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring`
-        );
+        this.props.tabSelected(0);
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DISABLED',
@@ -140,12 +137,12 @@ const mapStateToProps = state => {
 
 MonitorViewDisableBox.propTypes = {
     currentProject: PropTypes.object.isRequired,
-    componentId: PropTypes.string.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
     monitor: PropTypes.object.isRequired,
     disableMonitor: PropTypes.func.isRequired,
+    tabSelected: PropTypes.func.isRequired,
 };
 
 export default withRouter(
