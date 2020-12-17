@@ -695,8 +695,28 @@ class NewMonitor extends Component {
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
-                                                                <div>
-                                                                </div>
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{ width: '100%', display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    color: '#4c4c4c', }}
+                                                                >
+                                                                    <Field
+                                                                        required={true}
+                                                                        component="input"
+                                                                        type="radio"
+                                                                        id="type"
+                                                                        name={`type_${this.props.index}`}
+                                                                        // className="Margin-right--4"
+                                                                        validate={
+                                                                            ValidateField.select
+                                                                        }                                
+                                                                        // id={id}
+                                                                        //value={value}
+                                                                    />
+                                                                    {/* <label htmlFor={id}>{details}</label> */}
+                                                                </div>                                                                        
                                                                 {/* <Field
                                                                     className="db-select-nw"
                                                                     component={
