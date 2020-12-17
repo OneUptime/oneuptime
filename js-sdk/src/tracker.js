@@ -17,7 +17,7 @@ class FyipeTracker {
         maxTimeline: 5,
     };
     #MAX_ITEMS_ALLOWED_IN_STACK = 100;
-    #configKeys = ['baseUrl'];
+    #configKeys = ['baseUrl', 'maxTimeline'];
     #event;
     #errorTrackerId;
     #errorTrackerKey;
