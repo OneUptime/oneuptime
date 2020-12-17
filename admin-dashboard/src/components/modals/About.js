@@ -22,7 +22,7 @@ class About extends Component {
     };
 
     render() {
-        // const { versions } = this.props;
+        const { versions } = this.props;
         const currentYear = new Date().getFullYear();
 
         return (
@@ -80,8 +80,7 @@ class About extends Component {
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
                                                     <strong>
-                                                        {/* {versions.server} */}
-                                                        3.0.0
+                                                        {versions.server}
                                                     </strong>
                                                 </span>
                                             </td>
@@ -100,8 +99,7 @@ class About extends Component {
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
                                                     <strong>
-                                                        {/* {versions.client} */}
-                                                        3.0.0
+                                                        {versions.dashboard}
                                                     </strong>
                                                 </span>
                                             </td>
@@ -120,8 +118,7 @@ class About extends Component {
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
                                                     <strong>
-                                                        {/* {versions.client} */}
-                                                        3.0.0
+                                                        {versions.docs}
                                                     </strong>
                                                 </span>
                                             </td>
@@ -140,8 +137,7 @@ class About extends Component {
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
                                                     <strong>
-                                                        {/* {versions.client} */}
-                                                        3.0.0
+                                                        {versions.helm}
                                                     </strong>
                                                 </span>
                                             </td>
@@ -258,13 +254,13 @@ About.displayName = 'AboutModal';
 
 const mapStateToProps = state => {
     return {
-        // versions: state.version.versions,
+        versions: state.version.versions,
     };
 };
 
 About.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
-    // versions: PropTypes.object,
+    versions: PropTypes.object,
 };
 
 export default connect(mapStateToProps)(About);
