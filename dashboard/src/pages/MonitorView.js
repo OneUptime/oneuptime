@@ -150,10 +150,14 @@ class MonitorView extends React.Component {
             monitorId,
             projectId,
             history,
+            defaultSchedule,
         } = this.props;
         const redirectTo = `/dashboard/project/${projectId}/on-call`;
         let scheduleAlert;
-        if (scheduleWarning.includes(monitorId) === false) {
+        if (
+            scheduleWarning.includes(monitorId) === false &&
+            defaultSchedule !== true
+        ) {
             scheduleAlert = (
                 <div id="alertWarning" className="Box-root Margin-vertical--12">
                     <div className="db-Trends bs-ContentSection Card-root">
@@ -741,6 +745,13 @@ const mapStateToProps = (state, props) => {
         });
     });
 
+    let defaultSchedule;
+    state.schedule.subProjectSchedules.forEach(item => {
+        item.schedules.forEach(item => {
+            defaultSchedule = item.isDefault;
+        });
+    });
+
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
@@ -846,6 +857,7 @@ const mapStateToProps = (state, props) => {
         }
     }
     return {
+        defaultSchedule,
         scheduleWarning,
         projectId,
         monitorId,
@@ -910,6 +922,7 @@ MonitorView.propTypes = {
     monitorSlas: PropTypes.array,
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
+    defaultSchedule: PropTypes.bool,
 };
 
 MonitorView.displayName = 'MonitorView';

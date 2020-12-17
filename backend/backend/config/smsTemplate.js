@@ -23,7 +23,7 @@ module.exports = [
         ],
         smsType: 'Subscriber Incident Acknowldeged',
         body:
-            '{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+            '{{projectName}} - {{incidentType}} incident on {{componentName}}/{{monitorName}} is acknowledged at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
     {
         allowedVariables: [
@@ -36,7 +36,7 @@ module.exports = [
         ],
         smsType: 'Subscriber Incident Resolved',
         body:
-            '{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+            '{{projectName}} - {{incidentType}} incident on {{componentName}}/{{monitorName}} is resolved at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
     {
         allowedVariables: [
