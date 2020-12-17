@@ -2127,8 +2127,7 @@ module.exports = {
                 );
 
                 const investigationNoteNotificationSMSDisabled =
-                    note &&
-                    statusNoteStatus &&
+                    isStatusPageNoteAlert &&
                     !project.enableInvestigationNoteNotificationSMS;
                 if (
                     (!hasCustomTwilioSettings &&
