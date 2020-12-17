@@ -695,7 +695,9 @@ class NewMonitor extends Component {
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
-                                                                <Field
+                                                                <div>
+                                                                </div>
+                                                                {/* <Field
                                                                     className="db-select-nw"
                                                                     component={
                                                                         RenderSelect
@@ -768,7 +770,7 @@ class NewMonitor extends Component {
                                                                                 'Incoming HTTP Request',
                                                                         },
                                                                     ]}
-                                                                />
+                                                                /> */}
                                                                 <Tooltip title="Monitor Types">
                                                                     <div>
                                                                         <p>
