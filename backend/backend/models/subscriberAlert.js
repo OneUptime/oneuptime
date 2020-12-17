@@ -13,7 +13,13 @@ const subscriberAlertSchema = new Schema({
     alertStatus: String,
     eventType: {
         type: String,
-        enum: ['identified', 'acknowledged', 'resolved'],
+        enum: [
+            'identified',
+            'acknowledged',
+            'resolved',
+            'status page note created',
+            'status page note updated',
+        ],
         required: true,
     },
     createdAt: { type: Date, default: Date.now },
