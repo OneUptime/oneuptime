@@ -96,9 +96,8 @@ class FyipeListiner {
                             event,
                             this.#utilObj.getErrorType().INFO
                         );
-                    } else {
-                        console.log('not logging');
                     }
+                    // not logging cus of timeout
 
                     clearTimeout(_this.#keypressTimeout);
 
