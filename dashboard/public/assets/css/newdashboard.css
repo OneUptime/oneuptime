@@ -10252,6 +10252,17 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   max-width: 100%;
 }
 
+.monitor-type-item {
+    border: 1px solid #f7f7f7;
+    border-radius: 4px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    max-width: 100%;
+}
+
 .price-list-item input[name='planId'] {
   position: absolute;
   top: 5px;

@@ -740,30 +740,49 @@ class NewMonitor extends Component {
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
-                                                            {monitorTypesOptions.map((el)=>(
-                                                                <div
-                                                                    className="radioButtonClass"
-                                                                    style={{ width: '100%', display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    color: '#4c4c4c', }}
-                                                                >
-                                                                    <Field
-                                                                        required={true}
-                                                                        component="input"
-                                                                        type="radio"
-                                                                        id="type"
-                                                                        name={`type_${this.props.index}`}
-                                                                        className="Margin-right--4"
-                                                                        validate={
-                                                                            ValidateField.select
-                                                                        }                                
-                                                                        // id={id}
-                                                                        //value={value}
-                                                                    />
-                                                                    {/* <label htmlFor={id}>{details}</label> */}
-                                                                </div>
-                                                            ))}                                                                        
+                                                            <div className="price-list-3c Margin-all--16">
+                                                                {monitorTypesOptions.map((el)=>(
+                                                                    <label
+                                                                    // key={plan.planId}
+                                                                    // htmlFor={`${plan.category}_${plan.type}`}
+                                                                    style={{
+                                                                        cursor: 'pointer',
+                                                                        display:'block',
+                                                                        border:'1px solid rgba(0,0,0,0.2)',
+                                                                        textAlign:'center',
+                                                                        listStyle:'none,'}
+                                                                    }>
+                                                                        <div className={`bs-Fieldset-fields Flex-justifyContent--center monitor-type-item Box-background--white`}
+                                                                        style={{
+                                                                            flex: 1,
+                                                                            padding: 0,                                                                        
+                                                                        }}>
+                                                                            <div
+                                                                                className="radioButtonClass"
+                                                                                style={{ width: '100%', display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                color: '#4c4c4c', }}
+                                                                            >
+                                                                                <Field
+                                                                                    required={true}
+                                                                                    component="input"
+                                                                                    type="radio"
+                                                                                    id="type"
+                                                                                    name={`type_${this.props.index}`}
+                                                                                    className="Margin-right--4"
+                                                                                    validate={
+                                                                                        ValidateField.select
+                                                                                    }                                
+                                                                                    // id={id}
+                                                                                    //value={value}
+                                                                                />
+                                                                                {/* <label htmlFor={id}>{details}</label> */}
+                                                                            </div>
+                                                                        </div>
+                                                                    </label>
+                                                                ))}
+                                                            </div>                                                                        
                                                                 {/* <Field
                                                                     className="db-select-nw"
                                                                     component={
