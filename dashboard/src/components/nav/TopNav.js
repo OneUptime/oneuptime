@@ -273,7 +273,6 @@ class TopContent extends Component {
 
         const activeSchedules = [];
         const upcomingSchedules = [];
-        const inactiveSchedules = [];
 
         if (userSchedules && userSchedules.length > 0) {
             userSchedules.forEach(userSchedule => {
@@ -282,8 +281,6 @@ class TopContent extends Component {
                 const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
-                const sameDay = oncallstart < oncallend;
-                const differentDay = oncallstart >= oncallend;
 
                 const startTime = moment(
                     (userSchedule &&
@@ -297,31 +294,33 @@ class TopContent extends Component {
                     dayEnd
                 ).format('HH:mm');
 
-                const compareDate = (oncallstart, oncallend) => {
-                    const start = new Date(new Date()
-                        .setHours(oncallstart.split(":")[0],
-                            oncallstart.split(":")[1])).getTime();
-                    const end = new Date(new Date(new Date().getTime() + 86400000)
-                        .setHours(oncallend.split(":")[0],
-                            oncallend.split(":")[1])).getTime();
-                    const current = moment(userSchedule.startTime).format('A') === 'PM' &&
-                        moment(userSchedule.endTime).format('A') === 'PM' &&
-                            (end - start) / 1000 > 43200 ?
-                                new Date().getTime() + 86400000 :
-                                    new Date().getTime();
+                const compareTime = (startTime, endTime, currentTime) => {
+                    let isSameDay = true;
 
-                    if (current >= start && current <= end) return true;
-                    return false;
+                    const [startHour, startMin = 0] = startTime.split(":").map(a => parseInt(a));
+                    const [endHour, endMin = 0] = endTime.split(":").map(a => parseInt(a));
+                    const [currentHour, currentMin = 0] = currentTime.split(":").map(a => parseInt(a));
+
+
+                    if (currentHour === startHour) return currentMin >= startMin;
+
+                    if (currentHour === endHour) return currentMin <= endMin;
+
+                    if ((startHour >= 12 && endHour < 12) || startHour > endHour) {
+                        isSameDay = false;
+                    }
+
+                    // if time occurs the same day
+                    if (isSameDay) {
+                        return currentHour >= startHour && currentHour <= endHour;
+
+                    }
+
+                    return currentHour <= endHour || currentHour >= startHour;
+
                 }
 
-                const isUserActive = (sameDay && moment(now, 'HH:mm')
-                    .isBetween(moment(oncallstart, 'HH:mm'),
-                        moment(oncallend, 'HH:mm'))) || (differentDay &&
-                            (compareDate(oncallstart, oncallend) || (oncallstart === oncallend)));
-
-                const isUpcoming = moment(startTime, 'HH:mm')
-                    .diff(moment(now, 'HH:mm'),
-                        'minutes');
+                const isUserActive = compareTime(oncallstart, oncallend, now);
 
                 const isOnDutyAllTheTime =
                     userSchedule.startTime === userSchedule.endTime;
@@ -330,14 +329,10 @@ class TopContent extends Component {
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
 
-                if (isUserActive) {
+                if(isUserActive) {
                     activeSchedules.push(tempObj);
                 } else {
-                    if (isUpcoming > -86400 && isUpcoming < 86400) {
-                        upcomingSchedules.push(tempObj);
-                    } else {
-                        inactiveSchedules.push(tempObj);
-                    }
+                    upcomingSchedules.push(tempObj);
                 }
             });
         }

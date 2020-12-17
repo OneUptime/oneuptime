@@ -2401,7 +2401,8 @@ module.exports = {
 
     checkIsOnDuty(startTime, endTime) {
         if(!startTime || !endTime) return false;
-        const compareDate = DateTime.compareDate(startTime, endTime);
+        const currentTime = moment().format('HH:mm');
+        const compareDate = DateTime.compareDate(startTime, endTime, currentTime);
         return compareDate;
     },
 

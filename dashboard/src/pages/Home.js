@@ -100,15 +100,15 @@ class Home extends Component {
         const { components, currentProjectId } = this.props;
         return components
             ? components.map((component, i) => {
-                  return (
-                      <div key={i}>
-                          <ComponentIssue
-                              component={component}
-                              currentProjectId={currentProjectId}
-                          />
-                      </div>
-                  );
-              })
+                return (
+                    <div key={i}>
+                        <ComponentIssue
+                            component={component}
+                            currentProjectId={currentProjectId}
+                        />
+                    </div>
+                );
+            })
             : null;
     };
 
@@ -164,8 +164,6 @@ class Home extends Component {
                 const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
-                const sameDay = oncallstart < oncallend;
-                const differentDay = oncallstart >= oncallend;
 
                 const startTime = moment(
                     (userSchedule &&
@@ -179,31 +177,34 @@ class Home extends Component {
                     dayEnd
                 ).format('HH:mm');
 
-                const compareDate = (oncallstart, oncallend) => {
-                    const start = new Date(new Date()
-                        .setHours(oncallstart.split(":")[0],
-                            oncallstart.split(":")[1])).getTime();
-                    const end = new Date(new Date(new Date().getTime() + 86400000)
-                        .setHours(oncallend.split(":")[0],
-                            oncallend.split(":")[1])).getTime();
-                    const current = moment(userSchedule.startTime).format('A') === 'PM' &&
-                        moment(userSchedule.endTime).format('A') === 'PM' &&
-                            (end - start) / 1000 > 43200 ?
-                                new Date().getTime() + 86400000 :
-                                    new Date().getTime();
+                const compareTime = (startTime, endTime, currentTime) => {
+                    let isSameDay = true;
 
-                    if (current >= start && current <= end) return true;
-                    return false;
+                    const [startHour, startMin = 0] = startTime.split(":").map(a => parseInt(a));
+                    const [endHour, endMin = 0] = endTime.split(":").map(a => parseInt(a));
+                    const [currentHour, currentMin = 0] = currentTime.split(":").map(a => parseInt(a));
+
+
+                    if (currentHour === startHour) return currentMin >= startMin;
+
+                    if (currentHour === endHour) return currentMin <= endMin;
+
+                    if ((startHour >= 12 && endHour < 12) || startHour > endHour) {
+                        isSameDay = false;
+                    }
+
+                    // if time occurs the same day
+                    if (isSameDay) {
+                        return currentHour >= startHour && currentHour <= endHour;
+
+                    }
+
+                    return currentHour <= endHour || currentHour >= startHour;
+
                 }
 
-                const isUserActive = (sameDay && moment(now, 'HH:mm')
-                    .isBetween(moment(oncallstart, 'HH:mm'),
-                        moment(oncallend, 'HH:mm'))) || (differentDay &&
-                            (compareDate(oncallstart, oncallend) || (oncallstart === oncallend)));
+                const isUserActive = compareTime(oncallstart, oncallend, now);
 
-                const isUpcoming = moment(startTime, 'HH:mm')
-                    .diff(moment(now, 'HH:mm'),
-                        'minutes');
 
                 const isOnDutyAllTheTime =
                     userSchedule.startTime === userSchedule.endTime;
@@ -212,14 +213,10 @@ class Home extends Component {
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
 
-                if (isUserActive) {
+                if(isUserActive) {
                     activeSchedules.push(tempObj);
                 } else {
-                    if (isUpcoming > -86400 && isUpcoming < 86400) {
-                        upcomingSchedules.push(tempObj);
-                    } else {
-                        inactiveSchedules.push(tempObj);
-                    }
+                    upcomingSchedules.push(tempObj);
                 }
             });
         }
@@ -393,7 +390,7 @@ class Home extends Component {
                                                                                 if={
                                                                                     activeSchedules &&
                                                                                     activeSchedules.length >
-                                                                                        0
+                                                                                    0
                                                                                 }
                                                                             >
                                                                                 <OnCallSchedule
@@ -413,7 +410,7 @@ class Home extends Component {
                                                                                 if={
                                                                                     upcomingSchedules &&
                                                                                     upcomingSchedules.length >
-                                                                                        0
+                                                                                    0
                                                                                 }
                                                                             >
                                                                                 <OnCallSchedule
@@ -433,7 +430,7 @@ class Home extends Component {
                                                                                 if={
                                                                                     inactiveSchedules &&
                                                                                     inactiveSchedules.length >
-                                                                                        0
+                                                                                    0
                                                                                 }
                                                                             >
                                                                                 <OnCallSchedule
@@ -451,12 +448,12 @@ class Home extends Component {
 
                                                                             {ongoingEventList &&
                                                                                 ongoingEventList.length >
-                                                                                    0 &&
+                                                                                0 &&
                                                                                 ongoingEventList}
 
                                                                             {breachedMonitorSlaList &&
                                                                                 breachedMonitorSlaList.length >
-                                                                                    0 &&
+                                                                                0 &&
                                                                                 breachedMonitorSlaList}
 
                                                                             <div className="Box-root Margin-bottom--12">
@@ -493,70 +490,70 @@ class Home extends Component {
                                                                                 {this
                                                                                     .props
                                                                                     .components &&
-                                                                                this
-                                                                                    .props
-                                                                                    .components
-                                                                                    .length >
+                                                                                    this
+                                                                                        .props
+                                                                                        .components
+                                                                                        .length >
                                                                                     0 &&
-                                                                                this
-                                                                                    .props
-                                                                                    .monitors &&
-                                                                                this
-                                                                                    .props
-                                                                                    .monitors
-                                                                                    .length >
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitors &&
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitors
+                                                                                        .length >
                                                                                     0 ? (
-                                                                                    incidentslist &&
-                                                                                    incidentslist.length >
-                                                                                        0 ? (
-                                                                                        incidentslist
-                                                                                    ) : (
-                                                                                        <div>
-                                                                                            <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
-                                                                                                <div className="db-Trends-header Padding-vertical--48">
-                                                                                                    <div className="db-Trends-controls">
-                                                                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                                        incidentslist &&
+                                                                                            incidentslist.length >
+                                                                                            0 ? (
+                                                                                                incidentslist
+                                                                                            ) : (
+                                                                                                <div>
+                                                                                                    <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
+                                                                                                        <div className="db-Trends-header Padding-vertical--48">
+                                                                                                            <div className="db-Trends-controls">
                                                                                                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                                                    <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
-                                                                                                                        <span
-                                                                                                                            className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
-                                                                                                                            style={{
-                                                                                                                                filter:
-                                                                                                                                    'brightness(0) invert(1)',
-                                                                                                                                marginTop:
-                                                                                                                                    '1px',
-                                                                                                                                marginRight:
-                                                                                                                                    '5px',
-                                                                                                                            }}
-                                                                                                                        />
-                                                                                                                        <span
-                                                                                                                            id="component-content-header"
-                                                                                                                            className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
-                                                                                                                        >
-                                                                                                                            You
-                                                                                                                            currently
-                                                                                                                            don&apos;t
-                                                                                                                            have
-                                                                                                                            any
-                                                                                                                            active
-                                                                                                                            incidents.
+                                                                                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                                                            <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
+                                                                                                                                <span
+                                                                                                                                    className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                                                                                                    style={{
+                                                                                                                                        filter:
+                                                                                                                                            'brightness(0) invert(1)',
+                                                                                                                                        marginTop:
+                                                                                                                                            '1px',
+                                                                                                                                        marginRight:
+                                                                                                                                            '5px',
+                                                                                                                                    }}
+                                                                                                                                />
+                                                                                                                                <span
+                                                                                                                                    id="component-content-header"
+                                                                                                                                    className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
+                                                                                                                                >
+                                                                                                                                    You
+                                                                                                                                    currently
+                                                                                                                                    don&apos;t
+                                                                                                                                    have
+                                                                                                                                    any
+                                                                                                                                    active
+                                                                                                                                    incidents.
                                                                                                                         </span>
-                                                                                                                    </span>
+                                                                                                                            </span>
+                                                                                                                        </div>
+                                                                                                                    </div>
                                                                                                                 </div>
                                                                                                             </div>
                                                                                                         </div>
                                                                                                     </div>
                                                                                                 </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    )
-                                                                                ) : null}
+                                                                                            )
+                                                                                    ) : null}
                                                                             </div>
                                                                         </>
                                                                     ) : (
-                                                                        ''
-                                                                    )}
+                                                                            ''
+                                                                        )}
                                                                 </ShouldRender>
 
                                                                 <ShouldRender

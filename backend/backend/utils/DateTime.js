@@ -20,36 +20,32 @@ const _this = {
             .toDate();
     },
 
-    compareDate: function (startTime, endTime) {
-        const now = moment().format('HH:mm');
-        const oncallstart = moment(startTime).format('HH:mm');
-        const oncallend = moment(endTime).format('HH:mm');
-        const sameDay = oncallstart < oncallend;
-        const differentDay = oncallstart >= oncallend;
+    compareDate: function (startTime, endTime, currentTime) {
+        startTime = moment(startTime).format('HH:mm');
+        endTime = moment(endTime).format('HH:mm');
+        let isSameDay = true;
 
-        const compareDate = (oncallstart, oncallend) => {
-            const start = new Date(new Date()
-                .setHours(oncallstart.split(":")[0],
-                    oncallstart.split(":")[1])).getTime();
-            const end = new Date(new Date(new Date().getTime() + 86400000)
-                .setHours(oncallend.split(":")[0],
-                    oncallend.split(":")[1])).getTime();
-            const current = moment(startTime).format('A') === 'PM' &&
-                moment(endTime).format('A') === 'PM' &&
-                    (end - start) / 1000 > 43200 ?
-                        new Date().getTime() + 86400000 :
-                            new Date().getTime();
+        const [startHour, startMin = 0] = startTime.split(":").map(a => parseInt(a));
+        const [endHour, endMin = 0] = endTime.split(":").map(a => parseInt(a));
+        const [currentHour, currentMin = 0] = currentTime.split(":").map(a => parseInt(a));
 
-            if (current >= start && current <= end) return true;
-            return false;
+
+        if (currentHour === startHour) return currentMin >= startMin;
+
+        if (currentHour === endHour) return currentMin <= endMin;
+
+        if ((startHour >= 12 && endHour < 12) || startHour > endHour) {
+            isSameDay = false;
         }
 
-        const isUserActive = (sameDay && moment(now, 'HH:mm')
-            .isBetween(moment(oncallstart, 'HH:mm'),
-                moment(oncallend, 'HH:mm'))) || (differentDay &&
-                    (compareDate(oncallstart, oncallend) || (oncallstart === oncallend)));
+        // if time occurs the same day
+        if (isSameDay) {
+            return currentHour >= startHour && currentHour <= endHour;
 
-        return isUserActive;
+        }
+
+        return currentHour <= endHour || currentHour >= startHour;
+
     },
 
     convertToTimezone: function (date, timezone) {
