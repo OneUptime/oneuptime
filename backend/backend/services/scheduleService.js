@@ -190,7 +190,7 @@ module.exports = {
                         deleted: false,
                         projectId: query.projectId,
                     },
-                    { $set: { default: false } },
+                    { $set: { isDefault: false } },
                     { new: true }
                 );
             }
