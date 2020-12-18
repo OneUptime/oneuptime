@@ -207,6 +207,30 @@ router.get('/projects', getUser, async function(req, res) {
     }
 });
 
+//Description: Get project balance of a project
+// Param 1: req.headers-> {token}; req.params-> {projectId};
+//Returns: 200: {projectBalance}; 400: Error.
+router.get('/:projectId/balance', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const projectId = req.params.projectId;
+        const project = await ProjectService.findBy({ _id: projectId });
+
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'ProjectId must be present.',
+            });
+        }
+
+        return sendItemResponse(req, res, project);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 // Description: Resetting the API key of a project.
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {projectId};

@@ -177,6 +177,49 @@ export function getProjects(switchToProjectId) {
     };
 }
 
+export function getProjectBalanceRequest() {
+    return {
+        type: types.GET_PROJECT_BALANCE_REQUEST,
+    };
+}
+export function getprojectError(error) {
+    return {
+        type: types.GET_PROJECT_BALANCE_FAILED,
+        payload: error,
+    };
+}
+export function getProjectBalanceSuccess(project) {
+    return {
+        type: types.GET_PROJECT_BALANCE_SUCCESS,
+        payload: project,
+    };
+}
+
+export function getProjectBalance(projectId) {
+    return function(dispatch) {
+        const promise = getApi(`project/${projectId}/balance`, null);
+        dispatch(getProjectBalanceRequest(promise));
+
+        promise.then(
+            function(project) {
+                dispatch(getProjectBalanceSuccess(project.data[0]));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(getprojectError(errors(error)));
+            }
+        );
+    };
+}
 export function createProjectRequest() {
     return {
         type: types.CREATE_PROJECT_REQUEST,
