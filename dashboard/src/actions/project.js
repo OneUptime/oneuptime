@@ -201,8 +201,8 @@ export function getProjectBalance(projectId) {
         dispatch(getProjectBalanceRequest(promise));
 
         promise.then(
-            function(project) {
-                dispatch(getProjectBalanceSuccess(project.data[0]));
+            function(balance) {
+                dispatch(getProjectBalanceSuccess(balance.data));
             },
             function(error) {
                 if (error && error.response && error.response.data)

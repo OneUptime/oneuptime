@@ -216,16 +216,14 @@ router.get('/:projectId/balance', getUser, isAuthorized, async function(
 ) {
     try {
         const projectId = req.params.projectId;
-        const project = await ProjectService.findBy({ _id: projectId });
-
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'ProjectId must be present.',
             });
         }
-
-        return sendItemResponse(req, res, project);
+        const balance = await ProjectService.getBalance({ _id: projectId });
+        return sendItemResponse(req, res, balance);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
