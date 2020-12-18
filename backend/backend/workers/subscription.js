@@ -11,13 +11,13 @@ const handleFetchingUnpaidSubscriptions = async startAfter => {
     if (startAfter) {
         return await stripe.subscriptions.list({
             status: 'unpaid',
-            limit: 100, // default limit is 10 and limit can range from 1 to 100
+            limit: 100, // default limit is 10 and limit can range between 1 to 100
             starting_after: startAfter,
         });
     } else {
         return await stripe.subscriptions.list({
             status: 'unpaid',
-            limit: 100, // default limit is 10 and limit can range from 1 to 100
+            limit: 100, // default limit is 10 and limit can range between 1 to 100
         });
     }
 };
