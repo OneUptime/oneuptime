@@ -2344,7 +2344,7 @@ const _this = {
                 to: userEmail,
                 replyTo: accountMail.from,
                 cc: accountMail.from,
-                subject: 'Unpaid Project Subscription - Project Deactivation',
+                subject: 'Unpaid Project Subscription - Project Deactivated',
                 template: 'unpaid_sub_delete_project',
                 context: {
                     projectName,
