@@ -5,6 +5,7 @@ import { Field, FieldArray, formValueSelector, arrayPush } from 'redux-form';
 import PropTypes from 'prop-types';
 import { ResponseParent } from './ResponseParent';
 import ShouldRender from '../basic/ShouldRender';
+import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 
 const newSelector = formValueSelector('NewMonitor');
 
@@ -25,6 +26,30 @@ export class ResponseComponent extends Component {
             field2: '',
             field3: false,
         });
+    };
+
+    handleAddCriteria = type => {
+        let head, tagline;
+        switch (type) {
+            case CRITERIA_TYPES.DOWN:
+                head = 'Monitor down criteria';
+                tagline =
+                    'This is where you describe when your monitor is considered down';
+                break;
+            case CRITERIA_TYPES.UP:
+                head = 'Monitor up criteria';
+                tagline =
+                    'This is where you describe when your monitor is considered up';
+                break;
+            case CRITERIA_TYPES.DEGRADED:
+                head = 'Monitor degraded criteria';
+                tagline =
+                    'This is where you describe when your monitor is considered degraded';
+                break;
+        }
+        if (head && tagline) {
+            this.props.addCriteria({ head, tagline, type });
+        }
     };
     render() {
         const { type } = this.props;
@@ -68,7 +93,12 @@ export class ResponseComponent extends Component {
                                     id={`${this.props.fieldname}_addCriteria`}
                                     className="Button bs-ButtonLegacy ActionIconParent"
                                     type="button"
-                                    onClick={this.addValue}
+                                    // onClick={this.addValue}
+                                    onClick={() =>
+                                        this.handleAddCriteria(
+                                            this.props.criterionType
+                                        )
+                                    }
                                 >
                                     <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                                         <span>Add Criteria</span>
@@ -237,6 +267,8 @@ ResponseComponent.propTypes = {
     tagline: PropTypes.string,
     index: PropTypes.number,
     type: PropTypes.string,
+    addCriteria: PropTypes.func,
+    criterionType: PropTypes.string,
 };
 
 const mapDispatchToProps = {

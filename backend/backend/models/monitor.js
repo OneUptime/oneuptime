@@ -46,7 +46,16 @@ const monitorSchema = new Schema({
         type: Date,
         default: Date.now,
     },
-    criteria: Object,
+    criteria: [
+        {
+            event: { type: String, enum: ['down', 'up', 'degraded'] },
+            condition: {},
+            scheduleID: { type: Schema.Types.ObjectId, ref: 'Schedule' },
+            createdAlert: { type: Boolean, default: false },
+            acknowledgedAlert: { type: Boolean, default: false },
+            resolvedAlert: { type: Boolean, default: false },
+        },
+    ],
     method: String,
     bodyType: String,
     formData: [Object],

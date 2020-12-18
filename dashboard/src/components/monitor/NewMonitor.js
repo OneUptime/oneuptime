@@ -1,4 +1,3 @@
-/* eslint-disable*/
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -43,14 +42,15 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
-const selector = formValueSelector('NewMonitor');
-const dJSON = require('dirty-json');
 import { history } from '../../store';
 import uuid from 'uuid';
 import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../../actions/monitorSla';
 import { UploadFile } from '../basic/UploadFile';
+import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 
+const dJSON = require('dirty-json');
+const selector = formValueSelector('NewMonitor');
 class NewMonitor extends Component {
     constructor(props) {
         super(props);
@@ -63,6 +63,26 @@ class NewMonitor extends Component {
             authentication: props.edit
                 ? props.editMonitorProp.authentication
                 : props.authentication,
+            criteria: [
+                {
+                    head: 'Monitor up criteria',
+                    tagline:
+                        'This is where you describe when your monitor is considered up',
+                    type: CRITERIA_TYPES.UP,
+                },
+                {
+                    head: 'Monitor degraded criteria',
+                    tagline:
+                        'This is where you describe when your monitor is considered degraded',
+                    type: CRITERIA_TYPES.DEGRADED,
+                },
+                {
+                    head: 'Monitor down criteria',
+                    tagline:
+                        'This is where you describe when your monitor is considered down',
+                    type: CRITERIA_TYPES.DOWN,
+                },
+            ],
         };
     }
 
@@ -90,6 +110,19 @@ class NewMonitor extends Component {
             this.props.showUpgradeForm();
         }
     }
+
+    /**
+     *
+     * adds a criteria to the state
+     * @param {Object} [data={}] data of the new criteria
+     * @memberof NewMonitor
+     */
+    addCriteria = (data = {}) => {
+        this.setState({
+            ...this.state,
+            criteria: [...this.state.criteria, data],
+        });
+    };
 
     submitForm = values => {
         const thisObj = this;
@@ -388,7 +421,6 @@ class NewMonitor extends Component {
         };
         try {
             reader.readAsDataURL(file);
-            console.log('*** Identity File ***', file);
         } catch (error) {
             return;
         }
@@ -1820,54 +1852,61 @@ class NewMonitor extends Component {
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
-                                                            {
-                                                                this.props.edit ? (<Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="incidentCommunicationSla"
-                                                                    id="incidentCommunicationSla"
-                                                                    placeholder="Incident Communication SLA"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        ...this.props.incidentSlas.map(sla => ({
-                                                                            value: sla._id,
-                                                                            label: sla.name,
-                                                                        }))
-                                                                    ]}
-                                                                />) : (<Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="incidentCommunicationSla"
-                                                                    id="incidentCommunicationSla"
-                                                                    placeholder="Incident Communication SLA"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select Incident Communication SLA',
-                                                                        },
-                                                                        ...this.props.incidentSlas.map(
-                                                                            sla => ({
+                                                                {this.props
+                                                                    .edit ? (
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="incidentCommunicationSla"
+                                                                        id="incidentCommunicationSla"
+                                                                        placeholder="Incident Communication SLA"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        options={[
+                                                                            ...this.props.incidentSlas.map(
+                                                                                sla => ({
+                                                                                    value:
+                                                                                        sla._id,
+                                                                                    label:
+                                                                                        sla.name,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                ) : (
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="incidentCommunicationSla"
+                                                                        id="incidentCommunicationSla"
+                                                                        placeholder="Incident Communication SLA"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        options={[
+                                                                            {
                                                                                 value:
-                                                                                    sla._id,
+                                                                                    '',
                                                                                 label:
-                                                                                    sla.name,
-                                                                            })
-                                                                        ),
-                                                                    ]}
-                                                                />)
-                                                            }
-                                                                
+                                                                                    'Select Incident Communication SLA',
+                                                                            },
+                                                                            ...this.props.incidentSlas.map(
+                                                                                sla => ({
+                                                                                    value:
+                                                                                        sla._id,
+                                                                                    label:
+                                                                                        sla.name,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                )}
+
                                                                 <Tooltip title="Incident Communication SLA">
                                                                     <div>
                                                                         <p>
@@ -1982,27 +2021,44 @@ class NewMonitor extends Component {
                                                             }
                                                         />
                                                     </ShouldRender>
-                                                    <ResponseComponent
-                                                        head="Monitor up criteria"
-                                                        tagline="This is where you describe when your monitor is considered up"
-                                                        fieldname={`up_${this.props.index}`}
-                                                        index={this.props.index}
-                                                        type={this.state.type}
-                                                    />
-                                                    <ResponseComponent
-                                                        head="Monitor degraded criteria"
-                                                        tagline="This is where you describe when your monitor is considered degraded"
-                                                        fieldname={`degraded_${this.props.index}`}
-                                                        index={this.props.index}
-                                                        type={this.state.type}
-                                                    />
-                                                    <ResponseComponent
-                                                        head="Monitor down criteria"
-                                                        tagline="This is where you describe when your monitor is considered down"
-                                                        fieldname={`down_${this.props.index}`}
-                                                        index={this.props.index}
-                                                        type={this.state.type}
-                                                    />
+                                                    {[
+                                                        ...this.state.criteria.map(
+                                                            (
+                                                                criterion,
+                                                                index
+                                                            ) => {
+                                                                return (
+                                                                    <ResponseComponent
+                                                                        key={
+                                                                            index
+                                                                        }
+                                                                        head={
+                                                                            criterion.head
+                                                                        }
+                                                                        tagline={
+                                                                            criterion.tagline
+                                                                        }
+                                                                        fieldname={`${criterion.type}_${this.props.index}`}
+                                                                        index={
+                                                                            criterion.index
+                                                                        }
+                                                                        type={
+                                                                            this
+                                                                                .state
+                                                                                .type
+                                                                        }
+                                                                        addCriteria={
+                                                                            this
+                                                                                .addCriteria
+                                                                        }
+                                                                        criterionType={
+                                                                            criterion.type
+                                                                        }
+                                                                    />
+                                                                );
+                                                            }
+                                                        ),
+                                                    ]}
                                                 </ShouldRender>
                                             </div>
                                         </fieldset>
