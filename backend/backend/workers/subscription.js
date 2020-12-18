@@ -129,8 +129,7 @@ const _this = {
                 data = []; // reset to empty array
             }
         } catch (error) {
-            ErrorService.log('serverMonitorCron.checkAllServerMonitor', error);
-            throw error;
+            ErrorService.log('subscription.handleUnpaidSubscription', error);
         }
     },
 };
