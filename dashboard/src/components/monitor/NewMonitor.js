@@ -750,7 +750,14 @@ class NewMonitor extends Component {
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
                                                             <div className="price-list-3c">
-                                                                {monitorTypesOptions.map((el)=>(                                                                
+                                                                {monitorTypesOptions.map((el)=>(
+                                                                        <label
+                                                                        key={el.value}
+                                                                        htmlFor={el.value}
+                                                                        style={{
+                                                                            cursor: 'pointer',
+                                                                        }}
+                                                                    >
                                                                         <div className={`bs-Fieldset-fields Flex-justifyContent--center monitor-type-item Box-background--white`}
                                                                         style={{
                                                                             flex: 1,
@@ -768,9 +775,9 @@ class NewMonitor extends Component {
                                                                         >
                                                                             <Field
                                                                                 required={true}
-                                                                                component="input"
+                                                                                component='input'
                                                                                 type="radio"
-                                                                                id="type"
+                                                                                id={el.value}
                                                                                 name={`type_${this.props.index}`}
                                                                                 className="Margin-left--4 Margin-top--4"
                                                                                 validate={
@@ -778,9 +785,18 @@ class NewMonitor extends Component {
                                                                                 }
                                                                                 disabled={
                                                                                     requesting
-                                                                                }                                                                                              
-                                                                                // id={id}
-                                                                                //value={value}
+                                                                                }
+                                                                                onChange={(
+                                                                                    e,
+                                                                                    v
+                                                                                ) => {                                                                                    
+                                                                                    this.changeBox(
+                                                                                        e,
+                                                                                        v
+                                                                                    )
+                                                                                }
+                                                                                }
+                                                                                value={el.value}
                                                                             />
                                                                         </div>                                                                          
                                                                             <span
@@ -800,6 +816,7 @@ class NewMonitor extends Component {
                                                                             </span>
                                                                             </span>                                                                            
                                                                         </div>
+                                                                    </label>
                                                                 ))}
                                                             </div>                                                                        
                                                                 {/* <Field
