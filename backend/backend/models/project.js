@@ -85,6 +85,11 @@ const projectSchema = new Schema({
     sendAcknowledgedIncidentNotificationEmail: { type: Boolean, default: true },
     sendResolvedIncidentNotificationEmail: { type: Boolean, default: true },
     enableInvestigationNoteNotificationSMS: { type: Boolean, default: true },
+    enableInvestigationNoteNotificationEmail: { type: Boolean, default: true },
+    enableInvestigationNoteNotificationWebhook: {
+        type: Boolean,
+        default: true,
+    },
     replyAddress: String,
 });
 

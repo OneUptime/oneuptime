@@ -8,9 +8,11 @@ import ShouldRender from '../basic/ShouldRender';
 import {
     setEmailIncidentNotification,
     setSmsIncidentNotification,
+    setWebhookNotificationSettings,
 } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
+import Checkbox from '../../components/Checkbox';
 
 const validate = values => {
     const errors = {};
@@ -37,13 +39,16 @@ class AdvancedIncidentNotification extends Component {
             type,
             setSmsIncidentNotification,
             setEmailIncidentNotification,
+            setWebhookNotificationSettings,
             projectId,
         } = this.props;
 
         if (type === 'email') {
             setEmailIncidentNotification({ projectId, data: values });
-        } else {
+        } else if (type === 'sms') {
             setSmsIncidentNotification({ projectId, data: values });
+        } else if (type === 'webhook') {
+            setWebhookNotificationSettings({ projectId, data: values });
         }
     };
 
@@ -111,184 +116,125 @@ class AdvancedIncidentNotification extends Component {
                                 )}
                             >
                                 <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                                    <div>
-                                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                            <div className="bs-Fieldset-row">
-                                                <label
-                                                    className="bs-Fieldset-label"
-                                                    style={{
-                                                        flex: '30% 0 0',
-                                                    }}
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div
-                                                        className="Box-root"
-                                                        style={{
-                                                            height: '5px',
-                                                        }}
-                                                    ></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name={
-                                                                    type ===
-                                                                    'email'
-                                                                        ? 'sendCreatedIncidentNotificationEmail'
-                                                                        : 'sendCreatedIncidentNotificationSms'
-                                                                }
-                                                                className="Checkbox-source"
-                                                                id="createdIncidentNotification"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    Enable
-                                                                    Create
-                                                                    Incident{' '}
-                                                                    {type ===
-                                                                    'sms'
-                                                                        ? 'SMS'
-                                                                        : 'Email'}{' '}
-                                                                    for
-                                                                    Subscribers
-                                                                </span>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label
-                                                    className="bs-Fieldset-label"
-                                                    style={{
-                                                        flex: '30% 0 0',
-                                                    }}
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div
-                                                        className="Box-root"
-                                                        style={{
-                                                            height: '5px',
-                                                        }}
-                                                    ></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name={
-                                                                    type ===
-                                                                    'email'
-                                                                        ? 'sendAcknowledgedIncidentNotificationEmail'
-                                                                        : 'sendAcknowledgedIncidentNotificationSms'
-                                                                }
-                                                                className="Checkbox-source"
-                                                                id="acknowledgedIncidentNotification"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    Enable
-                                                                    Acknowledge
-                                                                    Incident{' '}
-                                                                    {type ===
-                                                                    'sms'
-                                                                        ? 'SMS'
-                                                                        : 'Email'}{' '}
-                                                                    for
-                                                                    Subscribers
-                                                                </span>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label
-                                                    className="bs-Fieldset-label"
-                                                    style={{
-                                                        flex: '30% 0 0',
-                                                    }}
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div
-                                                        className="Box-root"
-                                                        style={{
-                                                            height: '5px',
-                                                        }}
-                                                    ></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name={
-                                                                    type ===
-                                                                    'email'
-                                                                        ? 'sendResolvedIncidentNotificationEmail'
-                                                                        : 'sendResolvedIncidentNotificationSms'
-                                                                }
-                                                                className="Checkbox-source"
-                                                                id="resolvedIncidentNotification"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    Enable
-                                                                    Resolve
-                                                                    Incident{' '}
-                                                                    {type ===
-                                                                    'sms'
-                                                                        ? 'SMS'
-                                                                        : 'Email'}{' '}
-                                                                    for
-                                                                    Subscribers
-                                                                </span>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    <ShouldRender
+                                        if={type === 'sms' || type === 'email'}
+                                    >
+                                        <div>
+                                            <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                                <Checkbox
+                                                    name={
+                                                        type === 'email'
+                                                            ? 'sendCreatedIncidentNotificationEmail'
+                                                            : 'sendCreatedIncidentNotificationSms'
+                                                    }
+                                                    text={`Enable Create Incident
+                                                        ${
+                                                            type === 'sms'
+                                                                ? 'SMS'
+                                                                : 'Email'
+                                                        }for
+                                                        Subscribers`}
+                                                />
 
-                                            {type === 'sms' && (
+                                                <Checkbox
+                                                    name={
+                                                        type === 'email'
+                                                            ? 'sendAcknowledgedIncidentNotificationEmail'
+                                                            : 'sendAcknowledgedIncidentNotificationSms'
+                                                    }
+                                                    text={`Enable Acknowledge Incident
+                                                        ${
+                                                            type === 'sms'
+                                                                ? 'SMS'
+                                                                : 'Email'
+                                                        }
+                                                        for Subscribers`}
+                                                />
+                                                <Checkbox
+                                                    name={
+                                                        type === 'email'
+                                                            ? 'sendResolvedIncidentNotificationEmail'
+                                                            : 'sendResolvedIncidentNotificationSms'
+                                                    }
+                                                    text={`Enable Resolve Incident 
+                                                        ${
+                                                            type === 'sms'
+                                                                ? 'SMS'
+                                                                : 'Email'
+                                                        } for Subscribers`}
+                                                />
+
+                                                {type === 'sms' && (
+                                                    <Checkbox
+                                                        name="enableInvestigationNoteNotificationSMS"
+                                                        text="Enable Investigation Note SMS for Subscribers"
+                                                    />
+                                                )}
+
+                                                {type === 'email' && (
+                                                    <Checkbox
+                                                        name="enableInvestigationNoteNotificationEmail"
+                                                        text="Enable Investigation Note Email for Subscribers"
+                                                    />
+                                                )}
+
+                                                {showMoreOptions &&
+                                                    type === 'email' && (
+                                                        <>
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label"></label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            fontWeight: 500,
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            More
+                                                                            Advanced
+                                                                            Options
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Reply
+                                                                    Address
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                        component={
+                                                                            RenderField
+                                                                        }
+                                                                        type="text"
+                                                                        name="replyAddress"
+                                                                        id="replyAddress"
+                                                                        placeholder="email@mycompany.com"
+                                                                        disabled={
+                                                                            false
+                                                                        }
+                                                                    />
+                                                                    <p className="bs-Fieldset-explanation">
+                                                                        <span>
+                                                                            Optional
+                                                                            Email
+                                                                            address
+                                                                            where
+                                                                            email
+                                                                            replies
+                                                                            will
+                                                                            be
+                                                                            sent
+                                                                            to.
+                                                                        </span>
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 <div className="bs-Fieldset-row">
                                                     <label
                                                         className="bs-Fieldset-label"
@@ -307,20 +253,6 @@ class AdvancedIncidentNotification extends Component {
                                                         ></div>
                                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
                                                             <label className="Checkbox">
-                                                                <Field
-                                                                    component="input"
-                                                                    type="checkbox"
-                                                                    name={
-                                                                        'enableInvestigationNoteNotificationSMS'
-                                                                    }
-                                                                    className="Checkbox-source"
-                                                                    id="enableInvestigationNoteNotificationSMS"
-                                                                />
-                                                                <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                    <div className="Checkbox-target Box-root">
-                                                                        <div className="Checkbox-color Box-root"></div>
-                                                                    </div>
-                                                                </div>
                                                                 <div
                                                                     className="Box-root"
                                                                     style={{
@@ -328,107 +260,21 @@ class AdvancedIncidentNotification extends Component {
                                                                             '5px',
                                                                     }}
                                                                 >
-                                                                    <span>
-                                                                        Enable
-                                                                        Investigation
-                                                                        Note SMS
-                                                                        for
-                                                                        Subscribers
-                                                                    </span>
+                                                                    <label></label>
                                                                 </div>
                                                             </label>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {showMoreOptions &&
-                                                type === 'email' && (
-                                                    <>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label"></label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <div
-                                                                    className="Box-root"
-                                                                    style={{
-                                                                        fontWeight: 500,
-                                                                    }}
-                                                                >
-                                                                    <span>
-                                                                        More
-                                                                        Advanced
-                                                                        Options
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
-                                                                Reply Address
-                                                            </label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderField
-                                                                    }
-                                                                    type="text"
-                                                                    name="replyAddress"
-                                                                    id="replyAddress"
-                                                                    placeholder="email@mycompany.com"
-                                                                    disabled={
-                                                                        false
-                                                                    }
-                                                                />
-                                                                <p className="bs-Fieldset-explanation">
-                                                                    <span>
-                                                                        Optional
-                                                                        Email
-                                                                        address
-                                                                        where
-                                                                        email
-                                                                        replies
-                                                                        will be
-                                                                        sent to.
-                                                                    </span>
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </>
-                                                )}
-                                            <div className="bs-Fieldset-row">
-                                                <label
-                                                    className="bs-Fieldset-label"
-                                                    style={{
-                                                        flex: '30% 0 0',
-                                                    }}
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div
-                                                        className="Box-root"
-                                                        style={{
-                                                            height: '5px',
-                                                        }}
-                                                    ></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <label className="Checkbox">
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <label></label>
-                                                            </div>
-                                                        </label>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </ShouldRender>
+                                    <ShouldRender if={type === 'webhook'}>
+                                        <Checkbox
+                                            name="enableInvestigationNoteNotificationWebhook"
+                                            text="Enable Investigation Note Webhook for Subscribers"
+                                        />
+                                    </ShouldRender>
                                 </div>
                                 <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                     <span className="db-SettingsForm-footerMessage"></span>
@@ -480,6 +326,7 @@ AdvancedIncidentNotification.propTypes = {
     requestingEmailIncident: PropTypes.bool,
     requestingSmsIncident: PropTypes.bool,
     projectId: PropTypes.string,
+    setWebhookNotificationSettings: PropTypes.func,
 };
 
 const IncidentNotificationForm = reduxForm({
@@ -493,6 +340,7 @@ const mapStateToProps = (state, ownProps) => {
     const { type } = ownProps;
 
     let initialValues = {};
+
     if (type === 'sms') {
         initialValues = {
             sendCreatedIncidentNotificationSms:
@@ -511,7 +359,7 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject
                     .enableInvestigationNoteNotificationSMS,
         };
-    } else {
+    } else if (type === 'email') {
         initialValues = {
             sendCreatedIncidentNotificationEmail:
                 state.project.currentProject &&
@@ -525,9 +373,20 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject &&
                 state.project.currentProject
                     .sendResolvedIncidentNotificationEmail,
+            enableInvestigationNoteNotificationEmail:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .enableInvestigationNoteNotificationEmail,
             replyAddress:
                 state.project.currentProject &&
                 state.project.currentProject.replyAddress,
+        };
+    } else if (type === 'webhook') {
+        initialValues = {
+            enableInvestigationNoteNotificationWebhook:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .enableInvestigationNoteNotificationWebhook,
         };
     }
 
@@ -545,7 +404,11 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { setEmailIncidentNotification, setSmsIncidentNotification },
+        {
+            setEmailIncidentNotification,
+            setSmsIncidentNotification,
+            setWebhookNotificationSettings,
+        },
         dispatch
     );
 

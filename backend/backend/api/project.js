@@ -1046,6 +1046,10 @@ router.put(
                 data.replyAddress = null;
             }
 
+            data.enableInvestigationNoteNotificationEmail = data.enableInvestigationNoteNotificationEmail
+                ? true
+                : false;
+
             const result = await ProjectService.updateOneBy(
                 { _id: projectId },
                 data
@@ -1084,6 +1088,29 @@ router.put(
                 data
             );
             return sendItemResponse(req, res, result);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+router.put(
+    '/:projectId/advancedOptions/webhook',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId } = req.params;
+            const data = req.body;
+
+            data.enableInvestigationNoteNotificationWebhook = data.enableInvestigationNoteNotificationWebhook
+                ? true
+                : false;
+
+            const updatedProject = await ProjectService.updateOneBy(
+                { _id: projectId },
+                data
+            );
+            return sendItemResponse(req, res, updatedProject);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

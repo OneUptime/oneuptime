@@ -2,21 +2,56 @@ const { find, update } = require('../util/db');
 
 const PROJECT_COLLECTION = 'projects';
 async function run() {
-    // get projects without enableInvestigationNoteNotificationSMS feild
-    const projectsWithoutEnableInvestigationNoteNotificationSMSField = await find(
+    // get projects without disableNotification fields for sms, email or webhook
+    const projectsWithoutInvestigationNoteNotificationOptionFields = await find(
         PROJECT_COLLECTION,
         {
-            enableInvestigationNoteNotificationSMS: { $exists: false },
+            $or: [
+                { enableInvestigationNoteNotificationSMS: { $exists: false } },
+                {
+                    enableInvestigationNoteNotificationEmail: {
+                        $exists: false,
+                    },
+                },
+                {
+                    enableInvestigationNoteNotificationWebhook: {
+                        $exists: false,
+                    },
+                },
+            ],
         }
     );
-    // update project by setting enableInvestigationNoteNotificationSMS to default value of true
-    projectsWithoutEnableInvestigationNoteNotificationSMSField.forEach(
+    // update project by setting the investigationNotification options to default value of true
+    projectsWithoutInvestigationNoteNotificationOptionFields.forEach(
         project => {
-            update(
-                PROJECT_COLLECTION,
-                { _id: project._id },
-                { enableInvestigationNoteNotificationSMS: true }
-            );
+            // add a default value only if the field is missing
+            const updateValues = {};
+            if (
+                !Object.prototype.hasOwnProperty.call(
+                    project,
+                    'enableInvestigationNoteNotificationSMS'
+                )
+            ) {
+                updateValues.enableInvestigationNoteNotificationSMS = true;
+            }
+            if (
+                !Object.prototype.hasOwnProperty.call(
+                    project,
+                    'enableInvestigationNoteNotificationEmail'
+                )
+            ) {
+                updateValues.enableInvestigationNoteNotificationEmail = true;
+            }
+            if (
+                !Object.prototype.hasOwnProperty.call(
+                    project,
+                    'enableInvestigationNoteNotificationWebhook'
+                )
+            ) {
+                updateValues.enableInvestigationNoteNotificationWebhook = true;
+            }
+
+            update(PROJECT_COLLECTION, { _id: project._id }, updateValues);
         }
     );
 }

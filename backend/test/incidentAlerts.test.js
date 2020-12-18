@@ -1419,8 +1419,9 @@ describe('SMS/Calls Incident Alerts', function() {
 
             const statusPageNoteNotificationAlert = subscriberAlerts.body.data.find(
                 subscriberAlert =>
+                    subscriberAlert.alertVia === 'sms' &&
                     subscriberAlert.errorMessage ===
-                    'Investigation Note SMS Notification Disabled'
+                        'Investigation Note SMS Notification Disabled'
             );
             expect(statusPageNoteNotificationAlert).to.be.an('object');
         });
@@ -2357,6 +2358,104 @@ describe('Email Incident Alerts', function() {
         expect(error).to.equal(false);
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
     });
+
+    /**
+     * Global SMTP configurations : set.
+     * Email alerts enabled.
+     * Custom SMTP configurations : not set.
+     * investigation note email notification : not set
+     */
+    it('should not send statusPageNote(investigation note) Email notification when disabled', async function() {
+        this.timeout(30 * 1000);
+        // update global smtp settings
+        await GlobalConfigService.create({
+            name: 'smtp',
+            value: {
+                'email-enabled': true,
+                email: 'ibukun.o.dairo@gmail.com',
+                password: 'ZEC1kY9xFN6aVf3j',
+                'from-name': 'Ibukun',
+                from: 'ibukun.o.dairo@gmail.com',
+                'smtp-server': 'smtp-relay.sendinblue.com',
+                'smtp-port': '465',
+                'smtp-secure': true,
+            },
+        });
+
+        // disable status page note (investigation note) Email notification on the project
+        const {
+            enableInvestigationNoteNotificationEmail,
+        } = await ProjectService.updateOneBy(
+            { _id: projectId },
+            {
+                enableInvestigationNoteNotificationEmail: false,
+            }
+        );
+
+        expect(enableInvestigationNoteNotificationEmail).to.be.false;
+
+        // create an incident
+        const newIncident = await createIncident({
+            request,
+            authorization,
+            projectId,
+            monitorId,
+            payload: {
+                monitorId,
+                projectId,
+                title: 'test monitor  is offline.',
+                incidentType: 'offline',
+                description: 'Incident description',
+            },
+        });
+        expect(newIncident).to.have.status(200);
+
+        const incidentId = newIncident.body._id;
+
+        // create a status page note (investigation note)
+        const statusPageNotePayload = {
+            content: 'this is a test investigation note',
+            incident_state: 'update',
+            type: 'investigation',
+        };
+
+        const newStatusPageNote = await request
+            .post(`/incident/${projectId}/incident/${incidentId}/message`)
+            .set('Authorization', authorization)
+            .send(statusPageNotePayload);
+
+        expect(newStatusPageNote).to.have.status(200);
+
+        // resolve the incident
+        const incidentResolved = await markIncidentAsResolved({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+
+        expect(incidentResolved).to.have.status(200);
+
+        await sleep(10 * 1000);
+
+        const subscriberAlerts = await getSubscribersAlerts({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+
+        expect(subscriberAlerts.body.data).to.be.an('array');
+
+        const statusPageNoteNotificationAlert = subscriberAlerts.body.data.find(
+            subscriberAlert =>
+                subscriberAlert.alertVia === 'email' &&
+                subscriberAlert.errorMessage ===
+                    'Investigation Note Email Notification Disabled'
+        );
+        expect(statusPageNoteNotificationAlert).to.be.an('object');
+    });
+
     /**
      * Global SMTP configurations : set.
      * Email alerts disabled.
@@ -2530,5 +2629,211 @@ describe('Email Incident Alerts', function() {
         expect(alertStatus).to.equal('Success');
         expect(error).to.equal(false);
         await EmailSmtpService.hardDeleteBy({ projectId });
+    });
+});
+
+describe('Webhook Incident Alerts', function() {
+    this.timeout(30 * 1000);
+    before(async function() {
+        this.timeout(30000);
+        const createdUser = await createUser(request, userData.user);
+        const project = createdUser.body.project;
+        projectId = project._id;
+        userId = createdUser.body.id;
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
+        });
+        const token = verificationToken.token;
+        await verifyToken({ request, token });
+        const { email, password } = userData.user;
+        const userLogin = await login({ request, email, password });
+        const jwtToken = userLogin.body.tokens.jwtAccessToken;
+        authorization = getAuthorizationHeader({ jwtToken });
+        const component = await createComponent({
+            request,
+            authorization,
+            projectId,
+            payload: {
+                projectId,
+                name: 'test',
+                criteria: {},
+                data: {},
+            },
+        });
+        componentId = component.body._id;
+        const monitor = await createMonitor({
+            request,
+            authorization,
+            projectId,
+            payload: {
+                componentId,
+                projectId,
+                type: 'device',
+                name: 'test monitor ',
+                data: { deviceId: 'abcdef' },
+                deviceId: 'abcdef',
+                criteria: {},
+            },
+        });
+        monitorId = monitor.body._id;
+
+        await addSubscriberToMonitor({
+            request,
+            authorization,
+            projectId,
+            monitorId,
+            payload: {
+                alertVia: 'webhook',
+                contactEmail: 'test@hackerbay.io',
+                contactWebhook: 'http://localhost:3010/api/webhooks/',
+                webhookMethod: 'post',
+            },
+        });
+
+        const schedule = await createSchedule({
+            request,
+            authorization,
+            projectId,
+            name: 'test schedule',
+        });
+        scheduleId = schedule.body._id;
+        await updateSchedule({
+            request,
+            authorization,
+            projectId,
+            scheduleId,
+            payload: {
+                monitorIds: [monitorId],
+            },
+        });
+        await addEscalation({
+            request,
+            authorization,
+            projectId,
+            scheduleId,
+            payload: [
+                {
+                    callReminders: '1',
+                    smsReminders: '1',
+                    emailReminders: '1',
+                    email: true,
+                    sms: false,
+                    call: false,
+                    teams: [
+                        {
+                            teamMembers: [
+                                {
+                                    member: '',
+                                    timezone: '',
+                                    startTime: '',
+                                    endTime: '',
+                                    userId,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
+    });
+
+    after(async function() {
+        this.timeout(30000);
+        await GlobalConfig.removeTestConfig();
+        await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
+        await SubscriberService.hardDeleteBy({ projectId });
+        await SubscriberAlertService.hardDeleteBy({ projectId });
+        await ScheduleService.hardDeleteBy({ projectId });
+        await EscalationService.hardDeleteBy({ projectId });
+        await IncidentService.hardDeleteBy({ projectId });
+        await AlertService.hardDeleteBy({ projectId });
+        await MonitorStatusModel.deleteMany({ monitorId });
+        await IncidentPriorityModel.deleteMany({ projectId });
+        await AlertChargeModel.deleteMany({ projectId });
+        await IncidentMessageModel.deleteMany({ createdById: userId });
+        await IncidentTimelineModel.deleteMany({ createdById: userId });
+        await VerificationToken.deleteMany({ userId });
+        await LoginIPLog.deleteMany({ userId });
+        await ComponentService.hardDeleteBy({ projectId });
+        await MonitorService.hardDeleteBy({ projectId });
+        await ProjectService.hardDeleteBy({ _id: projectId });
+        await UserService.hardDeleteBy({ _id: userId });
+        await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteAll({ tableName: 'User' });
+    });
+
+    it('should not send statusPageNote(investigation note) Webhook notification when disabled', async () => {
+        // disable status page note (investigation note) notification for webhooks
+        const {
+            enableInvestigationNoteNotificationWebhook,
+        } = await ProjectService.updateOneBy(
+            { _id: projectId },
+            {
+                enableInvestigationNoteNotificationWebhook: false,
+            }
+        );
+
+        expect(enableInvestigationNoteNotificationWebhook).to.be.false;
+
+        // create an incident
+        const newIncident = await createIncident({
+            request,
+            authorization,
+            projectId,
+            monitorId,
+            payload: {
+                monitorId,
+                projectId,
+                title: 'test monitor  is offline.',
+                incidentType: 'offline',
+                description: 'Incident description',
+            },
+        });
+        expect(newIncident).to.have.status(200);
+
+        const incidentId = newIncident.body._id;
+
+        // create a status page note (investigation note)
+        const statusPageNotePayload = {
+            content: 'this is a test investigation note',
+            incident_state: 'update',
+            type: 'investigation',
+        };
+
+        const newStatusPageNote = await request
+            .post(`/incident/${projectId}/incident/${incidentId}/message`)
+            .set('Authorization', authorization)
+            .send(statusPageNotePayload);
+
+        expect(newStatusPageNote).to.have.status(200);
+
+        // resolve the incident
+        const incidentResolved = await markIncidentAsResolved({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+
+        expect(incidentResolved).to.have.status(200);
+
+        await sleep(10 * 1000);
+
+        const subscriberAlerts = await getSubscribersAlerts({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+
+        expect(subscriberAlerts.body.data).to.be.an('array');
+
+        const statusPageNoteNotificationAlert = subscriberAlerts.body.data.find(
+            subscriberAlert =>
+                subscriberAlert.alertVia === 'webhook' &&
+                subscriberAlert.errorMessage ===
+                    'Investigation Note Webhook Notification Disabled'
+        );
+        expect(statusPageNoteNotificationAlert).to.be.an('object');
     });
 });
