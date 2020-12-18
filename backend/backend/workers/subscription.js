@@ -72,8 +72,7 @@ const _this = {
                             );
 
                             // send email reminder for unpaid subscription
-                            // handle email sending in the background
-                            AlertService.sendUnpaidSubscriptionEmail(
+                            await AlertService.sendUnpaidSubscriptionEmail(
                                 project,
                                 user
                             );
@@ -98,8 +97,7 @@ const _this = {
                             );
 
                             // handle sending email to customer (stripeCustomerId)
-                            // handle email sending in the background
-                            AlertService.sendProjectDeleteEmailForUnpaidSubscription(
+                            await AlertService.sendProjectDeleteEmailForUnpaidSubscription(
                                 project,
                                 user
                             );
@@ -115,8 +113,7 @@ const _this = {
                             );
 
                             //send email remainder for unpaid subscription
-                            // handle email sending in the background
-                            AlertService.sendUnpaidSubscriptionEmail(
+                            await AlertService.sendUnpaidSubscriptionEmail(
                                 project,
                                 user
                             );
