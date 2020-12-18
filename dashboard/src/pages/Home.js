@@ -164,6 +164,8 @@ class Home extends Component {
                 const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
+                const sameDay = oncallstart < oncallend;
+                const differentDay = oncallstart >= oncallend;
 
                 const startTime = moment(
                     (userSchedule &&
@@ -177,34 +179,41 @@ class Home extends Component {
                     dayEnd
                 ).format('HH:mm');
 
-                const compareTime = (startTime, endTime, currentTime) => {
-                    let isSameDay = true;
+                const compareDate = (oncallstart, oncallend, now) => {
+                    const [startHour, startMin] = oncallstart.split(":");
+                    const [endHour, endMin] = oncallend.split(":");
+                    const [nowHour, nowMin] = now.split(":");
+                    const addDay = 86400000;
 
-                    const [startHour, startMin = 0] = startTime.split(":").map(a => parseInt(a));
-                    const [endHour, endMin = 0] = endTime.split(":").map(a => parseInt(a));
-                    const [currentHour, currentMin = 0] = currentTime.split(":").map(a => parseInt(a));
+                    const start = new Date(new Date()
+                        .setHours(startHour, startMin))
+                        .getTime();
+                    const end = new Date(new Date(new Date()
+                        .getTime() + addDay)
+                        .setHours(endHour, endMin))
+                        .getTime();
+                    let current = new Date(new Date()
+                        .setHours(nowHour, nowMin))
+                        .getTime();
 
+                    current = current < start ? 
+                        new Date(new Date(new Date()
+                        .getTime() + addDay)
+                        .setHours(nowHour, nowMin))
+                        .getTime() : current;
 
-                    if (currentHour === startHour) return currentMin >= startMin;
-
-                    if (currentHour === endHour) return currentMin <= endMin;
-
-                    if ((startHour >= 12 && endHour < 12) || startHour > endHour) {
-                        isSameDay = false;
-                    }
-
-                    // if time occurs the same day
-                    if (isSameDay) {
-                        return currentHour >= startHour && currentHour <= endHour;
-
-                    }
-
-                    return currentHour <= endHour || currentHour >= startHour;
-
+                    if (current >= start && current <= end) return true;
+                    return false;
                 }
 
-                const isUserActive = compareTime(oncallstart, oncallend, now);
+                const isUserActive = (sameDay && moment(now, 'HH:mm')
+                    .isBetween(moment(oncallstart, 'HH:mm'),
+                        moment(oncallend, 'HH:mm'))) || (differentDay &&
+                            (compareDate(oncallstart, oncallend, now) || (oncallstart === oncallend)));
 
+                const isUpcoming = moment(startTime, 'HH:mm')
+                    .diff(moment(now, 'HH:mm'),
+                        'minutes');
 
                 const isOnDutyAllTheTime =
                     userSchedule.startTime === userSchedule.endTime;
@@ -213,10 +222,14 @@ class Home extends Component {
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
 
-                if(isUserActive) {
+                if (isUserActive) {
                     activeSchedules.push(tempObj);
                 } else {
-                    upcomingSchedules.push(tempObj);
+                    if (isUpcoming) {
+                        upcomingSchedules.push(tempObj);
+                    } else {
+                        inactiveSchedules.push(tempObj);
+                    }
                 }
             });
         }

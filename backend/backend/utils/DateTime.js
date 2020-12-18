@@ -21,30 +21,30 @@ const _this = {
     },
 
     compareDate: function (startTime, endTime, currentTime) {
-        startTime = moment(startTime).format('HH:mm');
-        endTime = moment(endTime).format('HH:mm');
-        let isSameDay = true;
+        const [startHour, startMin] = startTime.split(":");
+        const [endHour, endMin] = endTime.split(":");
+        const [nowHour, nowMin] = currentTime.split(":");
+        const addDay = 86400000;
 
-        const [startHour, startMin = 0] = startTime.split(":").map(a => parseInt(a));
-        const [endHour, endMin = 0] = endTime.split(":").map(a => parseInt(a));
-        const [currentHour, currentMin = 0] = currentTime.split(":").map(a => parseInt(a));
+        const start = new Date(new Date()
+            .setHours(startHour, startMin))
+            .getTime();
+        const end = new Date(new Date(new Date()
+            .getTime() + addDay)
+            .setHours(endHour, endMin))
+            .getTime();
+        let current = new Date(new Date()
+            .setHours(nowHour, nowMin))
+            .getTime();
 
+        current = current < start ?
+            new Date(new Date(new Date()
+                .getTime() + addDay)
+                .setHours(nowHour, nowMin))
+                .getTime() : current;
 
-        if (currentHour === startHour) return currentMin >= startMin;
-
-        if (currentHour === endHour) return currentMin <= endMin;
-
-        if ((startHour >= 12 && endHour < 12) || startHour > endHour) {
-            isSameDay = false;
-        }
-
-        // if time occurs the same day
-        if (isSameDay) {
-            return currentHour >= startHour && currentHour <= endHour;
-
-        }
-
-        return currentHour <= endHour || currentHour >= startHour;
+        if (current >= start && current <= end) return true;
+        return false;
 
     },
 
