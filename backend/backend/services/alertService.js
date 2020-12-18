@@ -2613,7 +2613,8 @@ module.exports = {
         try {
             const { name: userName, email: userEmail } = user;
             const { stripePlanId, name: projectName } = project;
-            const projectPlan = getPlanById(stripePlanId);
+            const projectPlan =
+                getPlanById(stripePlanId) || getPlanByExtraUserId(stripePlanId);
 
             await MailService.sendUnpaidSubscriptionReminder({
                 projectName,
@@ -2659,7 +2660,7 @@ const WebHookService = require('../services/webHookService');
 const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
 const secondsToHms = require('../utils/secondsToHms');
-const { getPlanById } = require('../config/plans');
+const { getPlanById, getPlanByExtraUserId } = require('../config/plans');
 const {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,
