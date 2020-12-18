@@ -42,9 +42,8 @@ const _this = {
                 data = [...data, ...subscriptions.data];
                 if (subscriptions && subscriptions.has_more) {
                     const lastIndex = subscriptions.data.length - 1;
-                    await _this.handleUnpaidSubscription(
-                        subscriptions.data[lastIndex]
-                    );
+                    const subscriptionId = subscriptions.data[lastIndex].id;
+                    await _this.handleUnpaidSubscription(subscriptionId);
                 }
 
                 const unpaidSubscriptions = [...data];
