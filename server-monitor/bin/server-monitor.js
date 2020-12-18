@@ -16,7 +16,6 @@ const program = require('commander');
 const Promise = require('promise');
 const { version } = require('../package.json');
 const { prompt } = require('inquirer');
-const { Monitor } = require('forever-monitor');
 const logger = require('../lib/logger');
 const { API_URL } = require('../lib/config');
 const serverMonitor = require('../lib/api');
@@ -105,15 +104,23 @@ const getParamValue = (params, name) => {
     return new Promise(resolve => {
         if (program[name] === true || program[name] === undefined) {
             if (name === 'monitorId') {
-                resolve(null);
+                resolve(process.env[name] || null);
             } else if (name === 'daemon') {
-                resolve(program[name] === true ? true : false);
+                resolve(program[name] === true);
             } else {
-                prompt(params.filter(param => param.name === name)).then(
-                    values => {
-                        resolve(values[name]);
+                if (process.env[name]) {
+                    resolve(process.env[name]);
+                } else {
+                    if (typeof program['daemon'] === 'string') {
+                        resolve(null);
+                    } else {
+                        prompt(
+                            params.filter(param => param.name === name)
+                        ).then(values => {
+                            resolve(values[name]);
+                        });
                     }
-                );
+                }
             }
         } else {
             resolve(program[name]);
@@ -125,28 +132,90 @@ const getParamValue = (params, name) => {
 checkParams(questions).then(values => {
     const [projectId, apiUrl, apiKey, monitorId, daemon] = values;
 
-    if (projectId && apiUrl && apiKey && monitorId && daemon) {
-        process.argv.splice(process.argv.indexOf('-d'), 1);
+    if (daemon) {
+        let Service;
+        switch (require('os').platform()) {
+            case 'linux':
+                Service = require('node-linux').Service;
+                break;
+            case 'darwin':
+                Service = require('node-mac').Service;
+                break;
+            case 'windows':
+                Service = require('node-windows').Service;
+                break;
+        }
 
-        const child = new Monitor(`${__dirname}/server-monitor.js`, {
-            max: 3,
-            uid: 'fsm',
-            args: process.argv,
+        const svc = new Service({
+            name: 'fsmd',
+            description: 'Fyipe Monitoring Shell',
+            script: require('path').join(__dirname, 'server-monitor.js'),
+            env: [
+                {
+                    name: 'projectId',
+                    value: projectId,
+                },
+                {
+                    name: 'apiUrl',
+                    value: apiUrl,
+                },
+                {
+                    name: 'apiKey',
+                    value: apiKey,
+                },
+                {
+                    name: 'monitorId',
+                    value: monitorId,
+                },
+            ],
+            wait: 2,
+            grow: 0.5,
         });
 
-        child.on('start', function() {
-            logger.info('Fyipe Server Monitor started');
+        svc.on('install', function() {
+            logger.info('FSM daemon installed');
+            svc.start();
         });
 
-        child.on('restart', function() {
-            logger.warn('Fyipe Server Monitor restarted');
+        svc.on('alreadyinstalled', function() {
+            logger.warn('FSM daemon already installed');
         });
 
-        child.on('exit', function() {
-            logger.error('Fyipe Server Monitor exited');
+        svc.on('start', function() {
+            logger.info('FSM daemon started');
         });
 
-        child.start();
+        svc.on('stop', function() {
+            logger.info('FSM daemon stopped');
+        });
+
+        svc.on('uninstall', function() {
+            logger.info('FSM uninstalled');
+        });
+
+        if (daemon === 'uninstall') {
+            svc.uninstall();
+        } else if (daemon === 'stop') {
+            svc.stop();
+        } else if (daemon === 'restart') {
+            svc.restart();
+        } else if (daemon === 'start') {
+            svc.start();
+        } else if (
+            projectId &&
+            apiUrl &&
+            apiKey &&
+            monitorId &&
+            typeof daemon === 'boolean'
+        ) {
+            svc.install();
+        } else {
+            logger.error(
+                'Please enter a valid command (start, restart, stop, uninstall)'
+            );
+
+            process.exitCode = 1;
+        }
     } else {
         serverMonitor({
             projectId,
