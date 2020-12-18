@@ -733,14 +733,16 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={!this.props.edit}
                                                 >
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="bs-Fieldset-row" style={{
+                                                                            marginTop:'20px',                                                                       
+                                                                        }}>
                                                         <label className="bs-Fieldset-label">
                                                             Monitor Type
                                                         </label>
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
-                                                            <div className="price-list-3c Margin-all--16">
+                                                            <div className="price-list-3c">
                                                                 {monitorTypesOptions.map((el)=>(
                                                                     <label
                                                                     // key={plan.planId}
@@ -750,13 +752,24 @@ class NewMonitor extends Component {
                                                                         display:'block',
                                                                         border:'1px solid rgba(0,0,0,0.2)',
                                                                         textAlign:'center',
-                                                                        listStyle:'none,'}
+                                                                        listStyle:'none',}                                                                        
                                                                     }>
                                                                         <div className={`bs-Fieldset-fields Flex-justifyContent--center monitor-type-item Box-background--white`}
                                                                         style={{
                                                                             flex: 1,
                                                                             padding: 0,                                                                        
-                                                                        }}>
+                                                                        }}>                                                                           
+                                                                            <span
+                                                                                style={{
+                                                                                    marginBottom: '4px',
+                                                                                }}
+                                                                            >
+                                                                                <img src="data:image/svg+xml;base64,PHN2ZyBpZD0iQ2FwYV8xIiBlbmFibGUtYmFja2dyb3VuZD0ibmV3IDAgMCA1MTIgNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHdpZHRoPSI1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGc+PHBhdGggZD0ibTQ4MiAyNWgtNDUyYy0xNi41NDIgMC0zMCAxMy40NTgtMzAgMzB2Mjk4YzAgMTYuNTQyIDEzLjQ1OCAzMCAzMCAzMGgxNDd2NzRoLTgxYy04LjI4NCAwLTE1IDYuNzE2LTE1IDE1czYuNzE2IDE1IDE1IDE1aDMyMGM4LjI4NCAwIDE1LTYuNzE2IDE1LTE1cy02LjcxNi0xNS0xNS0xNWgtODF2LTc0aDE0N2MxNi41NDIgMCAzMC0xMy40NTggMzAtMzB2LTI5OGMwLTE2LjU0Mi0xMy40NTgtMzAtMzAtMzB6bS0xNzcgNDMyaC05OHYtNzRoOTh6bTE3Ny0xMDRjLTEzLjE1NyAwLTQ0MS40NTYgMC00NTIgMHYtMjk4aDQ1MmMuMDE5IDMwNC40NzIuMSAyOTggMCAyOTh6Ii8+PC9nPjwvc3ZnPg=="
+                                                                            style={{
+                                                                                width:'40%',
+                                                                                height:'100%',
+                                                                            }}/>
+                                                                            </span>
                                                                             <div
                                                                                 className="radioButtonClass"
                                                                                 style={{ width: '100%', display: 'flex',
