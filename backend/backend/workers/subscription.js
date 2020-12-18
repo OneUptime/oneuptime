@@ -1,3 +1,4 @@
+const moment = require('moment');
 const payment = require('../config/payment');
 const stripe = require('stripe')(payment.paymentPrivateKey);
 const ErrorService = require('../services/errorService');
@@ -50,6 +51,9 @@ const _this = {
                 for (const unpaidSubscription of unpaidSubscriptions) {
                     const stripeCustomerId = unpaidSubscription.customer;
                     const stripeSubscriptionId = unpaidSubscription.id;
+                    let subscriptionEndDate = unpaidSubscription.ended_at; // unix timestamp
+                    subscriptionEndDate = moment(subscriptionEndDate * 1000);
+                    const timeDiff = moment().diff(subscriptionEndDate, 'days');
 
                     const user = await UserService.findOneBy({
                         stripeCustomerId,
@@ -59,7 +63,9 @@ const _this = {
                         stripeSubscriptionId,
                     });
 
-                    if (project && user) {
+                    // ignore if there is no project or user
+                    // also ignore if the unpaid subscription is not up to 5 or more days
+                    if (project && user && timeDiff >= 5) {
                         if (
                             !project.unpaidSubscriptionNotifications ||
                             Number(project.unpaidSubscriptionNotifications) ===
