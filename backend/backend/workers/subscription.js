@@ -26,8 +26,11 @@ let data = [];
 const _this = {
     /**
      * use stripe sdk to check for unpaid subscriptions (saas mode)
-     * send email notification once every 24 hours to project owners about the unpaid subscription
-     * deactive the project (soft delete) and cancel the subscription on the 14th day, if the subscription remains unpaid
+     * send email notification once every 24th hour to project owners about the unpaid subscription
+     * deactive the project (soft delete) and cancel the subscription on the 14th day of the notification, if the subscription remains unpaid
+     *
+     * THE SERVICE TO UPDATE A PROJECT WILL RUN IN THE BACKGROUND, SO WE DON'T DELAY THE SYSTEM UNNECESSARILY
+     * THE SERVICE TO ALERT PROJECT OWNERS BY MAIL WILL ALSO RUN IN THE BACKGROUND
      */
     handleUnpaidSubscription: async startAfter => {
         try {
@@ -71,13 +74,13 @@ const _this = {
                                 0
                         ) {
                             // update unpaidSubscriptionNotifications
-                            await ProjectService.updateOneBy(
+                            ProjectService.updateOneBy(
                                 { stripeSubscriptionId },
                                 { unpaidSubscriptionNotifications: '1' }
                             );
 
                             // send email reminder for unpaid subscription
-                            await AlertService.sendUnpaidSubscriptionEmail(
+                            AlertService.sendUnpaidSubscriptionEmail(
                                 project,
                                 user
                             );
@@ -87,12 +90,10 @@ const _this = {
                                 14
                         ) {
                             // cancel subscription
-                            await stripe.subscriptions.del(
-                                stripeSubscriptionId
-                            );
+                            stripe.subscriptions.del(stripeSubscriptionId);
 
                             // delete project
-                            await ProjectService.updateOneBy(
+                            ProjectService.updateOneBy(
                                 { stripeSubscriptionId },
                                 {
                                     deleted: true,
@@ -102,13 +103,13 @@ const _this = {
                             );
 
                             // handle sending email to customer (stripeCustomerId)
-                            await AlertService.sendProjectDeleteEmailForUnpaidSubscription(
+                            AlertService.sendProjectDeleteEmailForUnpaidSubscription(
                                 project,
                                 user
                             );
                         } else {
                             // increment unpaidSubscriptionNotifications
-                            await ProjectService.updateOneBy(
+                            ProjectService.updateOneBy(
                                 { stripeSubscriptionId },
                                 {
                                     unpaidSubscriptionNotifications: `${Number(
@@ -118,7 +119,7 @@ const _this = {
                             );
 
                             //send email remainder for unpaid subscription
-                            await AlertService.sendUnpaidSubscriptionEmail(
+                            AlertService.sendUnpaidSubscriptionEmail(
                                 project,
                                 user
                             );
