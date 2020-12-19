@@ -10235,6 +10235,12 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   grid-gap: 20px;
 }
 
+.monitor-type-grid{
+    display: grid;
+  grid-template-columns: auto auto auto;
+  grid-gap: 20px;
+}
+
 .price-list-4c {
   display: grid;
   grid-template-columns: auto auto auto auto;
@@ -10256,7 +10262,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     border: 1px solid #f7f7f7;
     border-radius: 4px;
     display: flex;
-    align-items: center;
+    /* align-items: center; */
     justify-content: center;
     position: relative;
     max-width: 100%;
@@ -10933,6 +10939,9 @@ table {
     .bs-Fieldset-fields {
         max-width: 70%;
     }
+    .radio-field{
+        max-width:100%;
+    }
 }
 
 @media only screen and (max-width: 760px) {
@@ -10995,6 +11004,9 @@ table {
 @media only screen and (max-width: 660px){
     .price-list-2c {
         grid-template-columns: auto;
+    }
+    .monitor-type-grid{
+        grid-template-columns: auto auto auto;
     }
     /* make pricing list two column system */
     .price-list-3c {
@@ -11231,6 +11243,10 @@ table {
   }
 
 @media only screen and (max-width: 470px) {
+
+    .monitor-type-grid{
+      grid-template-columns: auto auto auto;
+    }
   /* single column system on mobile */
   .price-list-3c,
   .price-list-4c {

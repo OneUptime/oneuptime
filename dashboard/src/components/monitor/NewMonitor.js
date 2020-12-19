@@ -747,9 +747,9 @@ class NewMonitor extends Component {
                                                             Monitor Type
                                                         </label>
 
-                                                        <div className="bs-Fieldset-fields">
+                                                        <div className="radio-field">
                                                             <span className="flex">
-                                                            <div className="price-list-3c">
+                                                            <div className="monitor-type-grid">
                                                                 {monitorTypesOptions.map((el)=>(
                                                                         <label
                                                                         key={el.value}
@@ -758,17 +758,17 @@ class NewMonitor extends Component {
                                                                             cursor: 'pointer',
                                                                         }}
                                                                     >
-                                                                        <div className={`bs-Fieldset-fields Flex-justifyContent--center monitor-type-item Box-background--white`}
+                                                                        <div className={`radio-field Flex-justifyContent--center monitor-type-item Box-background--white`}
                                                                         style={{
                                                                             flex: 1,
                                                                             padding: 0,   
                                                                             flexDirection:'row',
                                                                             cursor: 'pointer',
                                                                             border:'1px solid rgba(0,0,0,0.2)',
-                                                                            textAlign:'center',                                                              
+                                                                            //textAlign:'center',                                                              
                                                                         }}> 
                                                                         <div
-                                                                            className="radioButtonClass"
+                                                                            //className="radioButtonClass"
                                                                             style={{ height: '100%', display: 'flex',
                                                                             justifyContent: 'center',
                                                                             color: '#4c4c4c', }}
@@ -804,6 +804,9 @@ class NewMonitor extends Component {
                                                                                 display:'flex',
                                                                                 flexDirection:'column',
                                                                                 alignItems:'center',
+                                                                                // paddingTop:'13%',
+                                                                                // paddingRight:'13%',
+                                                                                // paddingBottom:'13%',
                                                                             }}
                                                                             >
                                                                                 <img src={el.icon}
@@ -818,81 +821,7 @@ class NewMonitor extends Component {
                                                                         </div>
                                                                     </label>
                                                                 ))}
-                                                            </div>                                                                        
-                                                                {/* <Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name={`type_${this.props.index}`}
-                                                                    id="type"
-                                                                    placeholder="Monitor Type"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    onChange={(
-                                                                        e,
-                                                                        v
-                                                                    ) =>
-                                                                        this.changeBox(
-                                                                            e,
-                                                                            v
-                                                                        )
-                                                                    }
-                                                                    validate={
-                                                                        ValidateField.select
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select monitor type',
-                                                                        },
-                                                                        {
-                                                                            value:
-                                                                                'url',
-                                                                            label:
-                                                                                'Website',
-                                                                        },
-                                                                        {
-                                                                            value:
-                                                                                'device',
-                                                                            label:
-                                                                                'IoT Device',
-                                                                        },
-                                                                        {
-                                                                            value:
-                                                                                'manual',
-                                                                            label:
-                                                                                'Manual',
-                                                                        },
-                                                                        {
-                                                                            value:
-                                                                                'api',
-                                                                            label:
-                                                                                'API',
-                                                                        },
-                                                                        {
-                                                                            value:
-                                                                                'script',
-                                                                            label:
-                                                                                'Script',
-                                                                        },
-                                                                        {
-                                                                            value:
-                                                                                'server-monitor',
-                                                                            label:
-                                                                                'Server',
-                                                                        },
-                                                                        {
-                                                                            value:
-                                                                                'incomingHttpRequest',
-                                                                            label:
-                                                                                'Incoming HTTP Request',
-                                                                        },
-                                                                    ]}
-                                                                /> */}
+                                                            </div>                                                                                                                                        
                                                                 <Tooltip title="Monitor Types">
                                                                     <div>
                                                                         <p>
