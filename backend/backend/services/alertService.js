@@ -2588,6 +2588,45 @@ module.exports = {
             return false;
         }
     },
+
+    sendUnpaidSubscriptionEmail: async function(project, user) {
+        try {
+            const { name: userName, email: userEmail } = user;
+            const { stripePlanId, _id: projectId, name: projectName } = project;
+            const projectUrl = `${global.dashboardHost}/project/${projectId}`;
+            const projectPlan = getPlanById(stripePlanId);
+
+            await MailService.sendUnpaidSubscriptionReminder({
+                projectName,
+                projectPlan,
+                name: userName,
+                userEmail,
+                projectUrl,
+            });
+        } catch (error) {
+            ErrorService.log('AlertService.sendUnpaidSubscriptionEmail', error);
+            throw error;
+        }
+    },
+
+    sendProjectDeleteEmailForUnpaidSubscription: async function(project, user) {
+        try {
+            const { name: userName, email: userEmail } = user;
+            const { stripePlanId, name: projectName } = project;
+            const projectPlan =
+                getPlanById(stripePlanId) || getPlanByExtraUserId(stripePlanId);
+
+            await MailService.sendUnpaidSubscriptionReminder({
+                projectName,
+                projectPlan,
+                name: userName,
+                userEmail,
+            });
+        } catch (error) {
+            ErrorService.log('AlertService.sendUnpaidSubscriptionEmail', error);
+            throw error;
+        }
+    },
 };
 
 const AlertModel = require('../models/alert');
@@ -2621,6 +2660,7 @@ const WebHookService = require('../services/webHookService');
 const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
 const secondsToHms = require('../utils/secondsToHms');
+const { getPlanById, getPlanByExtraUserId } = require('../config/plans');
 const {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,

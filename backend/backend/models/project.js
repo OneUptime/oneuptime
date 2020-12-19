@@ -85,6 +85,7 @@ const projectSchema = new Schema({
     sendAcknowledgedIncidentNotificationEmail: { type: Boolean, default: true },
     sendResolvedIncidentNotificationEmail: { type: Boolean, default: true },
     replyAddress: String,
+    unpaidSubscriptionNotifications: { type: String, default: '0' },
 });
 
 module.exports = mongoose.model('Project', projectSchema);
