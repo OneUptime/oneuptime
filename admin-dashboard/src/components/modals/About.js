@@ -79,9 +79,11 @@ class About extends Component {
                                                     }}
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
-                                                    <strong>
-                                                        {versions.server}
-                                                    </strong>
+                                                    {versions.server ? (
+                                                        <strong id="server-version">
+                                                            {versions.server}
+                                                        </strong>
+                                                    ) : null}
                                                 </span>
                                             </td>
                                         </tr>
@@ -98,9 +100,11 @@ class About extends Component {
                                                     }}
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
-                                                    <strong>
-                                                        {versions.dashboard}
-                                                    </strong>
+                                                    {versions.dashboard ? (
+                                                        <strong id="dashboard-version">
+                                                            {versions.dashboard}
+                                                        </strong>
+                                                    ) : null}
                                                 </span>
                                             </td>
                                         </tr>
@@ -117,9 +121,11 @@ class About extends Component {
                                                     }}
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
-                                                    <strong>
-                                                        {versions.docs}
-                                                    </strong>
+                                                    {versions.docs ? (
+                                                        <strong id="docs-version">
+                                                            {versions.docs}
+                                                        </strong>
+                                                    ) : null}
                                                 </span>
                                             </td>
                                         </tr>
@@ -136,9 +142,11 @@ class About extends Component {
                                                     }}
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
-                                                    <strong>
-                                                        {versions.helm}
-                                                    </strong>
+                                                    {versions.helm ? (
+                                                        <strong id="helm-version">
+                                                            {versions.helm}
+                                                        </strong>
+                                                    ) : null}
                                                 </span>
                                             </td>
                                         </tr>
