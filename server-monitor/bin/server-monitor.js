@@ -141,7 +141,7 @@ checkParams(questions).then(values => {
             case 'darwin':
                 Service = require('node-mac').Service;
                 break;
-            case 'windows':
+            case 'win32':
                 Service = require('node-windows').Service;
                 break;
         }
