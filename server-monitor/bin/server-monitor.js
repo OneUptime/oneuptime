@@ -206,7 +206,7 @@ checkParams(questions).then(values => {
             apiUrl &&
             apiKey &&
             monitorId &&
-            typeof daemon === 'boolean'
+            (typeof daemon === 'boolean' || daemon === 'install')
         ) {
             svc.install();
         } else if (!monitorId) {
