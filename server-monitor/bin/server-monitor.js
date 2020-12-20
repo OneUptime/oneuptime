@@ -17,7 +17,7 @@ const Promise = require('promise');
 const { version } = require('../package.json');
 const { prompt } = require('inquirer');
 const logger = require('../lib/logger');
-const { API_URL } = require('../lib/config');
+const { API_URL, LOG_PATH } = require('../lib/config');
 const serverMonitor = require('../lib/api');
 
 program.version(version, '-v, --version').description('Fyipe Monitoring Shell');
@@ -133,8 +133,10 @@ checkParams(questions).then(values => {
     const [projectId, apiUrl, apiKey, monitorId, daemon] = values;
 
     if (daemon) {
+        const os = require('os').platform();
+
         let Service;
-        switch (require('os').platform()) {
+        switch (os) {
             case 'linux':
                 Service = require('node-linux').Service;
                 break;
@@ -183,6 +185,9 @@ checkParams(questions).then(values => {
 
         svc.on('start', function() {
             logger.info('FSM daemon started');
+            logger.info('A complete log of this daemon can be found in:');
+            logger.info(`${LOG_PATH[os].log}`);
+            logger.info(`${LOG_PATH[os].error}`);
         });
 
         svc.on('stop', function() {
@@ -210,9 +215,7 @@ checkParams(questions).then(values => {
         ) {
             svc.install();
         } else if (!monitorId) {
-            logger.error(
-                'Server Monitor ID is required'
-            );
+            logger.error('Server Monitor ID is required');
 
             process.exitCode = 1;
         } else {
