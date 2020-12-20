@@ -31,7 +31,6 @@ class Schedule extends Component {
                 this.props.teamLoading(subProjectId),
             ]);
             const result = response.slice(0, 1)[0].data.data;
-
             this.setState({ escalationPromise: result });
         } catch (e) {
             this.setState({ error: e });
@@ -47,6 +46,7 @@ class Schedule extends Component {
             location: { pathname },
             schedule,
             ifSchedule,
+            sample
         } = this.props;
         const name = schedule ? schedule.name : null;
         const ifScheduleIsPresent = ifSchedule
@@ -55,7 +55,10 @@ class Schedule extends Component {
         if (error) {
             return <div></div>;
         }
-
+        console.log('Escalation promise is: ',escalationPromise)
+        console.log('Escalation: ',escalations)
+        console.log('If schedule is: ',ifSchedule)
+        console.log('Schedule State: ',sample)
         let mySchedule;
         if (
             ifScheduleIsPresent !== 0 ||
@@ -159,11 +162,14 @@ const mapStateToProps = (state, props) => {
             }
         });
     });
+    let sample = state.schedule;
+    
     const escalations = state.schedule.escalations;
     const { projectId } = props.match.params;
 
     const { subProjectId } = props.match.params;
     return {
+        sample,
         ifSchedule,
         schedule,
         escalations,
