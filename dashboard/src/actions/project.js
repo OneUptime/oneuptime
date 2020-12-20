@@ -961,3 +961,48 @@ export function setSmsIncidentNotification({ projectId, data }) {
         }
     };
 }
+
+/* for webhook notification settings */
+export function setWebhookNotificationSettingsRequest() {
+    return {
+        type: types.SET_WEBHOOK_NOTIFICATION_SETTINGS_REQUEST,
+    };
+}
+
+export function setWebhookNotificationSettingsSuccess(payload) {
+    return {
+        type: types.SET_WEBHOOK_NOTIFICATION_SETTINGS_SUCCESS,
+        payload,
+    };
+}
+
+export function setWebhookNotificationSettingsFailure(error) {
+    return {
+        type: types.SET_WEBHOOK_NOTIFICATION_SETTINGS_FAILURE,
+        payload: error,
+    };
+}
+
+export function setWebhookNotificationSettings({ projectId, data }) {
+    return async function(dispatch) {
+        dispatch(setWebhookNotificationSettingsRequest());
+
+        try {
+            const response = await putApi(
+                `project/${projectId}/advancedOptions/webhook`,
+                data
+            );
+            dispatch(setWebhookNotificationSettingsSuccess(response.data));
+        } catch (error) {
+            const errorMessage =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(setWebhookNotificationSettingsFailure(errorMessage));
+        }
+    };
+}

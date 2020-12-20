@@ -127,23 +127,23 @@ module.exports = {
             let payload;
             let webHookURL;
             let httpMethod;
-            const isStatusNoteNotifcation =
+            const isStatusPageNoteNotification =
                 note && incidentState && statusNoteStatus;
             let notificationTitle = '';
             let notificationText = '';
 
             // set title and text for status note notifications
-            if (isStatusNoteNotifcation) {
+            if (isStatusPageNoteNotification) {
                 notificationText = note;
                 if (statusNoteStatus === 'created') {
-                    notificationTitle = `A new status note with status "${incidentState}" is crated for an incident`;
+                    notificationTitle = `A new status note with status "${incidentState}" is created for incident #${incident.idNumber}`;
                 } else if (statusNoteStatus === 'updated') {
                     notificationTitle = `A status note is updated`;
                 }
             }
 
             if (incident.resolved) {
-                if (!isStatusNoteNotifcation) {
+                if (!isStatusPageNoteNotification) {
                     notificationTitle = 'Incident Resolved';
                     notificationText = `Incident on *${component.name} / ${
                         monitor.name
@@ -164,7 +164,7 @@ module.exports = {
                     ],
                 };
             } else if (incident.acknowledged) {
-                if (!isStatusNoteNotifcation) {
+                if (!isStatusPageNoteNotification) {
                     notificationTitle = 'Incident Acknowledged';
                     notificationText = `Incident on *${component.name} / ${
                         monitor.name
@@ -187,7 +187,7 @@ module.exports = {
                     ],
                 };
             } else {
-                if (!isStatusNoteNotifcation) {
+                if (!isStatusPageNoteNotification) {
                     notificationTitle = 'New Incident Created';
                     notificationText = `New ${incident.incidentType} incident for ${monitor.name}`;
                 }

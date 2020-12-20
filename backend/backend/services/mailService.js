@@ -2261,6 +2261,138 @@ const _this = {
             throw error;
         }
     },
+    sendUnpaidSubscriptionReminder: async function({
+        projectName,
+        projectPlan,
+        name,
+        userEmail,
+        projectUrl,
+    }) {
+        const accountMail = await _this.getSmtpSettings();
+        accountMail.name = 'Fyipe Support';
+        accountMail.from = 'support@fyipe.com';
+        let mailOptions = {};
+        try {
+            mailOptions = {
+                from: `"${accountMail.name}" <${accountMail.from}>`,
+                to: userEmail,
+                replyTo: accountMail.from,
+                cc: accountMail.from,
+                subject: 'Unpaid Project Subscription',
+                template: 'unpaid_sub_notification',
+                context: {
+                    projectName,
+                    name: name.split(' ')[0].toString(),
+                    currentYear: new Date().getFullYear(),
+                    projectPlan: projectPlan.details,
+                    projectUrl,
+                },
+            };
+
+            const mailer = await _this.createMailer({});
+
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                });
+                return;
+            }
+
+            const info = await mailer.sendMail(mailOptions);
+
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+            });
+
+            return info;
+        } catch (error) {
+            ErrorService.log(
+                'mailService.sendUnpaidSubscriptionReminder',
+                error
+            );
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: error.message,
+            });
+            throw error;
+        }
+    },
+    sendUnpaidSubscriptionProjectDelete: async function({
+        projectName,
+        projectPlan,
+        name,
+        userEmail,
+    }) {
+        const accountMail = await _this.getSmtpSettings();
+        accountMail.name = 'Fyipe Support';
+        accountMail.from = 'support@fyipe.com';
+        let mailOptions = {};
+        try {
+            mailOptions = {
+                from: `"${accountMail.name}" <${accountMail.from}>`,
+                to: userEmail,
+                replyTo: accountMail.from,
+                cc: accountMail.from,
+                subject: 'Unpaid Project Subscription - Project Deactivated',
+                template: 'unpaid_sub_delete_project',
+                context: {
+                    projectName,
+                    name: name.split(' ')[0].toString(),
+                    currentYear: new Date().getFullYear(),
+                    projectPlan: projectPlan.details,
+                },
+            };
+
+            const mailer = await _this.createMailer({});
+
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                });
+                return;
+            }
+
+            const info = await mailer.sendMail(mailOptions);
+
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+            });
+
+            return info;
+        } catch (error) {
+            ErrorService.log(
+                'mailService.sendUnpaidSubscriptionProjectDelete',
+                error
+            );
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: error.message,
+            });
+            throw error;
+        }
+    },
 };
 
 module.exports = _this;
