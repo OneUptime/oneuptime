@@ -106,6 +106,7 @@ export class OnCallAlertBox extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > SCHEDULE > ADD ESCALATION', values);
         }
+        setTimeout(window.location.reload(), 1500);
     };
 
     renderAddEscalationPolicyButton = () => (
