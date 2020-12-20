@@ -209,6 +209,12 @@ checkParams(questions).then(values => {
             typeof daemon === 'boolean'
         ) {
             svc.install();
+        } else if (!monitorId) {
+            logger.error(
+                'Server Monitor ID is required'
+            );
+
+            process.exitCode = 1;
         } else {
             logger.error(
                 'Please enter a valid command (start, restart, stop, uninstall)'
