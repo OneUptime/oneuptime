@@ -131,7 +131,7 @@ module.exports = {
 
             securityLog = this.updateOneBy(query, {
                 deleted: true,
-                deletedAt: Date.now(),
+                deleteAt: Date.now(),
             });
 
             return securityLog;
