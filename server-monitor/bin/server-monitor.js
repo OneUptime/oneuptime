@@ -175,27 +175,27 @@ checkParams(questions).then(values => {
         });
 
         svc.on('install', function() {
-            logger.info('FSM daemon installed');
+            logger.info('Fyipe Server Monitor daemon installed');
             svc.start();
         });
 
         svc.on('alreadyinstalled', function() {
-            logger.warn('FSM daemon already installed');
+            logger.warn('Fyipe Server Monitor daemon already installed');
         });
 
         svc.on('start', function() {
-            logger.info('FSM daemon started');
+            logger.info('Fyipe Server Monitor daemon started');
             logger.info('A complete log of this daemon can be found in:');
             logger.info(`${LOG_PATH[os].log}`);
             logger.info(`${LOG_PATH[os].error}`);
         });
 
         svc.on('stop', function() {
-            logger.info('FSM daemon stopped');
+            logger.info('Fyipe Server Monitor daemon stopped');
         });
 
         svc.on('uninstall', function() {
-            logger.info('FSM uninstalled');
+            logger.info('Fyipe Server Monitor uninstalled');
         });
 
         if (daemon === 'uninstall') {
