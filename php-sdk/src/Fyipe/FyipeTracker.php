@@ -5,8 +5,7 @@
  */
 
 namespace Fyipe;
-
-
+use Util\UUID;
 
 class FyipeTracker
 {
@@ -27,6 +26,7 @@ class FyipeTracker
 
     private $configKeys = ['baseUrl', 'maxTimeline'];
     private $MAX_ITEMS_ALLOWED_IN_STACK = 100;
+    private $eventId;
 
     /**
      * FyipeTracker constructor.
@@ -41,6 +41,7 @@ class FyipeTracker
         $this->setApiUrl($apiUrl);
         $this->errorTrackerKey = $errorTrackerKey;
         $this->setUpOptions($options);
+        $this->setEventId();
     }
 
     private function setApiUrl(String $apiUrl): void
@@ -64,5 +65,8 @@ class FyipeTracker
                 }
             }
         }
+    }
+    private function setEventId() {
+        $this->eventId = UUID::v4();
     }
 }
