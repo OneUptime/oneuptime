@@ -16,7 +16,6 @@ export class EscalationSummary extends Component {
         const { onEditClicked, escalations, teamMembers } = this.props;
 
         const { isLoading, error } = this.state;
-
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
