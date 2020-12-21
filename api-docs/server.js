@@ -5,6 +5,15 @@ const path = require('path');
 // set the server port
 app.set('port', process.env.PORT || 1445);
 
+//version
+app.get('/version', (req, res) => {
+    try {
+        res.json({ docs: process.env.npm_package_version });
+    } catch (err) {
+        res.json({ docs: 'could not send' });
+    }
+});
+
 // set the view engine to ejs
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');

@@ -1,11 +1,14 @@
 const express = require('express');
 const path = require('path');
 const app = express();
+const version = require('./src/api/version');
 const child_process = require('child_process');
 
 child_process.execSync('react-env', {
     stdio: [0, 1, 2],
 });
+
+app.get('/version', version);
 
 app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
     const isClustLocal = req.get('host').includes('cluster.local');
