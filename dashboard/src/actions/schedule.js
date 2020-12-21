@@ -586,7 +586,7 @@ export function getEscalation(projectId, scheduleId) {
                 dispatch(escalationError(errors(error)));
             }
         );
-        
+
         return promise;
     };
 }
