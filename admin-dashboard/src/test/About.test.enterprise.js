@@ -103,10 +103,15 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                     '#dashboard-version',
                     elem => elem.textContent
                 );
+                let adminDashboardVersion = await page.$eval(
+                    '#admin-dashboard-version',
+                    elem => elem.textContent
+                );
                 expect(serverVersion).toBeDefined();
                 expect(docsVersion).toBeDefined();
                 expect(helmVersion).toBeDefined();
                 expect(dashboardVersion).toBeDefined();
+                expect(adminDashboardVersion).toBeDefined();
             });
         },
         operationTimeOut
