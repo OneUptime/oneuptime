@@ -88,6 +88,20 @@ A complete log of the daemon can be found in these directories:
 
 NB:- In most cases, `sudo` or admin privileges are required to run the shell as a daemon.
 
+### Services
+
+#### Linux
+
+Services created by the daemon are like other services running on Linux. It can be started/stopped using `service fsmd start` or `service fsmd stop` and logs are available. This file is created in /etc/init.d by default. Additionally, log files are generated in /var/log/ for general output and error logging.
+
+#### Mac
+
+Services created by the daemon are similar to most other services running on OSX. It can be stopped from the Activity Monitor and make logs available in the Console app. A plist file is created in /Library/LaunchDaemons by default. Additionally, two log files are generated in /Library/Logs/ for general output and error logging.
+
+#### Windows
+
+Services created by the daemon are similar to most other services running on Windows. It can be started/stopped from the windows service utility, via NET START or NET STOP commands, or even managed using the sc utility. A directory called daemon is created and populated with fsmd.exe and fsmd.xml. The XML file is a configuration for the executable. Additionally, logs are created in this directory (which are viewable in the Event log).
+
 <a name="module_api"></a>
 
 ## Basic Usage
