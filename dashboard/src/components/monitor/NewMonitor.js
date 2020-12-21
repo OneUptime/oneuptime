@@ -1780,21 +1780,28 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={
                                                         this.props.monitorSlas
+                                                        .length > 0 ||  this.props.incidentSlas
+                                                        .length > 0
+                                                    }>
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                        <div className="Box-root">
+                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                <span>Service Level Agreement</span>
+                                                            </span>
+                                                            <p>
+                                                                <span>
+                                                                    Select the SLAs for your new Monitor.
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
+                                                        this.props.monitorSlas
                                                             .length > 0
                                                     }
                                                 >
-                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                                                    <div className="Box-root">
-                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                            <span>Service Level Agreement</span>
-                                                        </span>
-                                                        <p>
-                                                            <span>
-                                                                Select the SLAs for your new Monitor.
-                                                            </span>
-                                                        </p>
-                                                    </div>
-                                                </div>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Monitor SLA
