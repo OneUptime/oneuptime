@@ -90,6 +90,29 @@ class About extends Component {
                                         <tr>
                                             <td>
                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Admin Dashboard Version
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    style={{
+                                                        paddingLeft: '15px',
+                                                    }}
+                                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                >
+                                                    {versions.adminDashboard ? (
+                                                        <strong id="admin-dashboard-version">
+                                                            {
+                                                                versions.adminDashboard
+                                                            }
+                                                        </strong>
+                                                    ) : null}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                     Dashboard Version
                                                 </span>
                                             </td>

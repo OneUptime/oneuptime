@@ -1,4 +1,4 @@
-import { getApi } from '../api';
+import { getApi, getApiDocs, getApiHelm } from '../api';
 import * as types from '../constants/version';
 
 export function getVersionRequest(promise) {
@@ -31,13 +31,26 @@ export const resetGetVersion = () => {
 export function getVersion() {
     return function(dispatch) {
         let promise = null;
-        promise = getApi('version');
+        let backendPromise = null;
+        let helmChartPromise = null;
+        let docsPromise = null;
+
+        backendPromise = getApi('version');
+        helmChartPromise = getApiHelm('version');
+        docsPromise = getApiDocs('version');
+
+        promise = Promise.all([backendPromise, helmChartPromise, docsPromise]);
 
         dispatch(getVersionRequest(promise));
 
         promise.then(
             function(versions) {
-                dispatch(getVersionSuccess(versions.data));
+                let versionsObject = {};
+                versions.forEach(version => {
+                    versionsObject = { ...versionsObject, ...version.data };
+                });
+
+                dispatch(getVersionSuccess(versionsObject));
             },
             function(error) {
                 if (error && error.response && error.response.data)

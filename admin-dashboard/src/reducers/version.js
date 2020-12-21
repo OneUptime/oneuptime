@@ -14,6 +14,7 @@ const initialState = {
         helm: '',
         dashboard: '',
         docs: '',
+        adminDashboard: '',
     },
 };
 
@@ -30,7 +31,6 @@ export default (state = initialState, action) => {
             });
 
         case GET_VERSION_SUCCESS:
-            console.log(action.payload);
             return Object.assign({}, state, {
                 versions: {
                     requesting: false,
@@ -39,6 +39,7 @@ export default (state = initialState, action) => {
                     server: action.payload.server,
                     helm: action.payload.helm,
                     dashboard: action.payload.dashboard,
+                    adminDashboard: process.env.REACT_APP_VERSION,
                     docs: action.payload.docs,
                 },
             });
@@ -63,6 +64,7 @@ export default (state = initialState, action) => {
                     helm: '',
                     dashboard: '',
                     docs: '',
+                    adminDashboard: '',
                 },
             });
 
