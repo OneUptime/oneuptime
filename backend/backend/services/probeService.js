@@ -1035,18 +1035,20 @@ module.exports = {
             const _this = this;
             const { monitor, body } = data;
             let status, reason;
+            const lastPingTime = monitor.lastPingTime;
+            const payload = moment().diff(moment(lastPingTime), 'minutes');
             const {
                 stat: validUp,
                 reasons: upFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.up
-                ? _this.conditions(null, { body }, monitor.criteria.up, null)
+                ? _this.conditions(payload, { body }, monitor.criteria.up, null)
                 : { stat: false, reasons: [] });
             const {
                 stat: validDegraded,
                 reasons: degradedFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? _this.conditions(
-                      null,
+                      payload,
                       { body },
                       monitor.criteria.degraded,
                       null
@@ -1056,15 +1058,20 @@ module.exports = {
                 stat: validDown,
                 reasons: downFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.down
-                ? _this.conditions(null, { body }, monitor.criteria.down, null)
+                ? _this.conditions(
+                      payload,
+                      { body },
+                      monitor.criteria.down,
+                      null
+                  )
                 : { stat: false, reasons: [] });
 
             if (validDown) {
                 status = 'offline';
-                reason = upFailedReasons;
+                reason = downFailedReasons;
             } else if (validDegraded) {
                 status = 'degraded';
-                reason = upFailedReasons;
+                reason = degradedFailedReasons;
             } else if (validUp) {
                 status = 'online';
                 reason = [...degradedFailedReasons, ...downFailedReasons];
@@ -1090,6 +1097,7 @@ module.exports = {
             logData.reason = reason;
             logData.response = null;
             const log = await _this.saveMonitorLog(logData);
+            await MonitorService.updateMonitorPingTime(monitor._id);
             return log;
         } catch (error) {
             ErrorService.log('monitorService.processHttpRequest', error);
@@ -1235,6 +1243,132 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
+                    );
+                }
+            }
+        } else if (
+            con[i] &&
+            con[i].responseType &&
+            con[i].responseType === 'incomingTime'
+        ) {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload > con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${payload} min`
+                    );
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'lessThan'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload < con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${payload} min`
+                    );
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'inBetween'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        con[i].field2 &&
+                        payload > con[i].field1 &&
+                        payload < con[i].field2
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${payload} min`
+                    );
+                }
+            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload == con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${payload} min`
+                    );
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload != con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${payload} min`
+                    );
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'gtEqualTo'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload >= con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${payload} min`
+                    );
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'ltEqualTo'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload <= con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${payload} min`
                     );
                 }
             }
@@ -2345,6 +2479,135 @@ const checkOr = async (
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.responseTime} ${payload} ms`
+                        );
+                    }
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'incomingTime') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload > con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${payload} min`
+                        );
+                    }
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'lessThan'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload < con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${payload} min`
+                        );
+                    }
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'inBetween'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    con[i].field2 &&
+                    payload > con[i].field1 &&
+                    payload < con[i].field2
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${payload} min`
+                        );
+                    }
+                }
+            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload == con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${payload} min`
+                        );
+                    }
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload != con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${payload} min`
+                        );
+                    }
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'gtEqualTo'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload >= con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${payload} min`
+                        );
+                    }
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'ltEqualTo'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload <= con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${payload} min`
                         );
                     }
                 }
@@ -3511,6 +3774,7 @@ const criteriaStrings = {
     temperature: 'Temperature was',
     responseBody: 'Response Body',
     response: 'Response',
+    incomingTime: 'Incoming request time interval was',
 };
 
 const formatDecimal = (value, decimalPlaces, roundType) => {

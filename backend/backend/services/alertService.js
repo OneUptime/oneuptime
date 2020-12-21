@@ -1848,6 +1848,30 @@ module.exports = {
             let webhookNotificationSent = true;
 
             if (subscriber.alertVia === AlertType.Webhook) {
+                const investigationNoteNotificationWebhookDisabled =
+                    isStatusPageNoteAlert &&
+                    !project.enableInvestigationNoteNotificationWebhook;
+
+                if (investigationNoteNotificationWebhookDisabled) {
+                    return await SubscriberAlertService.create({
+                        projectId: incident.projectId,
+                        incidentId: incident._id,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.Webhook,
+                        eventType: isStatusPageNoteAlert
+                            ? statusPageNoteAlertEventType
+                            : templateType ===
+                              'Subscriber Incident Acknowldeged'
+                            ? 'acknowledged'
+                            : templateType === 'Subscriber Incident Resolved'
+                            ? 'resolved'
+                            : 'identified',
+                        alertStatus: null,
+                        error: true,
+                        errorMessage:
+                            'Investigation Note Webhook Notification Disabled',
+                    });
+                }
                 const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
                     incident.createdAt
                 );
@@ -1909,9 +1933,15 @@ module.exports = {
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
                     incident.projectId
                 );
+
+                const investigationNoteNotificationEmailDisabled =
+                    isStatusPageNoteAlert &&
+                    !project.enableInvestigationNoteNotificationEmail;
+
                 if (
-                    !areEmailAlertsEnabledInGlobalSettings &&
-                    !hasCustomSmtpSettings
+                    (!areEmailAlertsEnabledInGlobalSettings &&
+                        !hasCustomSmtpSettings) ||
+                    investigationNoteNotificationEmailDisabled
                 ) {
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
@@ -1934,6 +1964,8 @@ module.exports = {
                                 : hasGlobalSmtpSettings &&
                                   !areEmailAlertsEnabledInGlobalSettings
                                 ? 'Alert Disabled on Admin Dashboard'
+                                : investigationNoteNotificationEmailDisabled
+                                ? 'Investigation Note Email Notification Disabled'
                                 : 'Error',
                     });
                 }
@@ -2125,11 +2157,17 @@ module.exports = {
                 const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
                     incident.projectId
                 );
+
+                const investigationNoteNotificationSMSDisabled =
+                    isStatusPageNoteAlert &&
+                    !project.enableInvestigationNoteNotificationSMS;
                 if (
-                    !hasCustomTwilioSettings &&
-                    ((IS_SAAS_SERVICE &&
-                        (!project.alertEnable || !areAlertsEnabledGlobally)) ||
-                        (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
+                    (!hasCustomTwilioSettings &&
+                        ((IS_SAAS_SERVICE &&
+                            (!project.alertEnable ||
+                                !areAlertsEnabledGlobally)) ||
+                            (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))) ||
+                    investigationNoteNotificationSMSDisabled
                 ) {
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
@@ -2144,6 +2182,8 @@ module.exports = {
                             ? 'Alert Disabled on Admin Dashboard'
                             : IS_SAAS_SERVICE && !project.alertEnable
                             ? 'Alert Disabled for this project'
+                            : investigationNoteNotificationSMSDisabled
+                            ? 'Investigation Note SMS Notification Disabled'
                             : 'Error',
                         eventType: isStatusPageNoteAlert
                             ? statusPageNoteAlertEventType
@@ -2588,6 +2628,45 @@ module.exports = {
             return false;
         }
     },
+
+    sendUnpaidSubscriptionEmail: async function(project, user) {
+        try {
+            const { name: userName, email: userEmail } = user;
+            const { stripePlanId, _id: projectId, name: projectName } = project;
+            const projectUrl = `${global.dashboardHost}/project/${projectId}`;
+            const projectPlan = getPlanById(stripePlanId);
+
+            await MailService.sendUnpaidSubscriptionReminder({
+                projectName,
+                projectPlan,
+                name: userName,
+                userEmail,
+                projectUrl,
+            });
+        } catch (error) {
+            ErrorService.log('AlertService.sendUnpaidSubscriptionEmail', error);
+            throw error;
+        }
+    },
+
+    sendProjectDeleteEmailForUnpaidSubscription: async function(project, user) {
+        try {
+            const { name: userName, email: userEmail } = user;
+            const { stripePlanId, name: projectName } = project;
+            const projectPlan =
+                getPlanById(stripePlanId) || getPlanByExtraUserId(stripePlanId);
+
+            await MailService.sendUnpaidSubscriptionReminder({
+                projectName,
+                projectPlan,
+                name: userName,
+                userEmail,
+            });
+        } catch (error) {
+            ErrorService.log('AlertService.sendUnpaidSubscriptionEmail', error);
+            throw error;
+        }
+    },
 };
 
 const AlertModel = require('../models/alert');
@@ -2621,6 +2700,7 @@ const WebHookService = require('../services/webHookService');
 const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
 const secondsToHms = require('../utils/secondsToHms');
+const { getPlanById, getPlanByExtraUserId } = require('../config/plans');
 const {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,

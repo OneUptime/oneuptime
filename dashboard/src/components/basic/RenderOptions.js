@@ -273,6 +273,11 @@ export class RenderOption extends Component {
                                     label: 'Temperature',
                                     show: type === 'server-monitor',
                                 },
+                                {
+                                    value: 'incomingTime',
+                                    label: 'Request Incoming Time',
+                                    show: type === 'incomingHttpRequest',
+                                },
                             ]}
                         />
                     </div>
@@ -366,6 +371,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -377,6 +384,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -388,6 +397,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -415,6 +426,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -426,6 +439,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -437,6 +452,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -448,6 +465,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -771,6 +790,20 @@ export class RenderOption extends Component {
                         )}
                         {bodyfield &&
                         filterval !== '' &&
+                        bodyfield.responseType === 'incomingTime' ? (
+                            <span
+                                style={{
+                                    display: 'inline-block',
+                                    marginTop: '37px',
+                                }}
+                            >
+                                min
+                            </span>
+                        ) : (
+                            ''
+                        )}
+                        {bodyfield &&
+                        filterval !== '' &&
                         bodyfield.responseType === 'cpuLoad' ? (
                             <span
                                 style={{
@@ -871,6 +904,21 @@ export class RenderOption extends Component {
                         }}
                     >
                         ms
+                    </span>
+                ) : (
+                    ''
+                )}
+                {bodyfield &&
+                filterval !== '' &&
+                bodyfield.responseType === 'incomingTime' &&
+                filterval === 'inBetween' ? (
+                    <span
+                        style={{
+                            display: 'inline-block',
+                            marginTop: '37px',
+                        }}
+                    >
+                        min
                     </span>
                 ) : (
                     ''

@@ -73,6 +73,11 @@ const initialState = {
         success: false,
         error: null,
     },
+    webhookNotificationSettings: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default function project(state = initialState, action) {
@@ -649,6 +654,36 @@ export default function project(state = initialState, action) {
             return {
                 ...state,
                 smsIncidentNotification: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+        case types.SET_WEBHOOK_NOTIFICATION_SETTINGS_REQUEST:
+            return {
+                ...state,
+                webhookNotificationSettings: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.SET_WEBHOOK_NOTIFICATION_SETTINGS_SUCCESS:
+            return {
+                ...state,
+                webhookNotificationSettings: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                currentProject: action.payload,
+            };
+
+        case types.SET_WEBHOOK_NOTIFICATION_SETTINGS_FAILURE:
+            return {
+                ...state,
+                webhookNotificationSettings: {
                     requesting: false,
                     success: false,
                     error: action.payload,

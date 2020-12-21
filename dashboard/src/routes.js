@@ -3,6 +3,7 @@ import { IS_SAAS_SERVICE } from './config';
 import ErrorTracking from './pages/ErrorTracking';
 import ErrorTrackingView from './pages/ErrorTrackingView';
 import ErrorEventView from './pages/ErrorEventView';
+import WebhookSettings from './pages/WebhookSettings';
 
 const {
     Home,
@@ -503,6 +504,16 @@ export const groups = [
                         component: SmsTemplates,
                         index: 7,
                         shortcut: 's+c',
+                    },
+                    {
+                        title: 'Webhooks',
+                        path: '/dashboard/project/:projectId/settings/webhooks',
+                        icon: 'integration',
+                        visible: true,
+                        subRoutes: [],
+                        component: WebhookSettings,
+                        index: 7,
+                        shortcut: 's+w',
                     },
                     {
                         title: 'Probe',
