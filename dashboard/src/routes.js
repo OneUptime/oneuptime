@@ -344,7 +344,7 @@ export const groups = [
                 index: 3,
             },
             {
-                title: 'On-Call Schedules',
+                title: 'On-Call Duty',
                 path: '/dashboard/project/:projectId/on-call',
                 icon: 'call',
                 visible: true,
@@ -376,7 +376,7 @@ export const groups = [
                 index: 4,
             },
             {
-                title: 'Scheduled Events',
+                title: 'Scheduled Maintenance',
                 path: '/dashboard/project/:projectId/scheduledEvents',
                 icon: 'connect',
                 visible: true,
