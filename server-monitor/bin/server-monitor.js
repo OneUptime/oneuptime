@@ -16,9 +16,8 @@ const program = require('commander');
 const Promise = require('promise');
 const { version } = require('../package.json');
 const { prompt } = require('inquirer');
-const { Monitor } = require('forever-monitor');
 const logger = require('../lib/logger');
-const { API_URL } = require('../lib/config');
+const { API_URL, LOG_PATH } = require('../lib/config');
 const serverMonitor = require('../lib/api');
 
 program.version(version, '-v, --version').description('Fyipe Monitoring Shell');
@@ -105,15 +104,23 @@ const getParamValue = (params, name) => {
     return new Promise(resolve => {
         if (program[name] === true || program[name] === undefined) {
             if (name === 'monitorId') {
-                resolve(null);
+                resolve(process.env[name] || null);
             } else if (name === 'daemon') {
-                resolve(program[name] === true ? true : false);
+                resolve(program[name] === true);
             } else {
-                prompt(params.filter(param => param.name === name)).then(
-                    values => {
-                        resolve(values[name]);
+                if (process.env[name]) {
+                    resolve(process.env[name]);
+                } else {
+                    if (typeof program['daemon'] === 'string') {
+                        resolve(null);
+                    } else {
+                        prompt(
+                            params.filter(param => param.name === name)
+                        ).then(values => {
+                            resolve(values[name]);
+                        });
                     }
-                );
+                }
             }
         } else {
             resolve(program[name]);
@@ -125,28 +132,99 @@ const getParamValue = (params, name) => {
 checkParams(questions).then(values => {
     const [projectId, apiUrl, apiKey, monitorId, daemon] = values;
 
-    if (projectId && apiUrl && apiKey && monitorId && daemon) {
-        process.argv.splice(process.argv.indexOf('-d'), 1);
+    if (daemon) {
+        const os = require('os').platform();
 
-        const child = new Monitor(`${__dirname}/server-monitor.js`, {
-            uid: 'fsm',
-            silent: true,
-            args: process.argv,
+        let Service;
+        switch (os) {
+            case 'linux':
+                Service = require('node-linux').Service;
+                break;
+            case 'darwin':
+                Service = require('node-mac').Service;
+                break;
+            case 'win32':
+                Service = require('node-windows').Service;
+                break;
+        }
+
+        const svc = new Service({
+            name: 'fsmd',
+            description: 'Fyipe Monitoring Shell',
+            script: require('path').join(__dirname, 'server-monitor.js'),
+            env: [
+                {
+                    name: 'projectId',
+                    value: projectId,
+                },
+                {
+                    name: 'apiUrl',
+                    value: apiUrl,
+                },
+                {
+                    name: 'apiKey',
+                    value: apiKey,
+                },
+                {
+                    name: 'monitorId',
+                    value: monitorId,
+                },
+            ],
+            wait: 2,
+            grow: 0.5,
         });
 
-        child.on('restart', function() {
-            logger.warn('Fyipe Server Monitor restarted');
+        svc.on('install', function() {
+            logger.info('Fyipe Server Monitor daemon installed');
+            svc.start();
         });
 
-        child.on('exit', function() {
-            logger.error('Fyipe Server Monitor exited');
+        svc.on('alreadyinstalled', function() {
+            logger.warn('Fyipe Server Monitor daemon already installed');
         });
 
-        child.start();
-
-        process.nextTick(() => {
-            process.exit();
+        svc.on('start', function() {
+            logger.info('Fyipe Server Monitor daemon started');
+            logger.info('A complete log of this daemon can be found in:');
+            logger.info(`${LOG_PATH[os].log}`);
+            logger.info(`${LOG_PATH[os].error}`);
         });
+
+        svc.on('stop', function() {
+            logger.info('Fyipe Server Monitor daemon stopped');
+        });
+
+        svc.on('uninstall', function() {
+            logger.info('Fyipe Server Monitor uninstalled');
+        });
+
+        if (daemon === 'uninstall') {
+            svc.uninstall();
+        } else if (daemon === 'stop') {
+            svc.stop();
+        } else if (daemon === 'restart') {
+            svc.restart();
+        } else if (daemon === 'start') {
+            svc.start();
+        } else if (
+            projectId &&
+            apiUrl &&
+            apiKey &&
+            monitorId &&
+            (typeof daemon === 'boolean' || daemon === 'install')
+        ) {
+            svc.install();
+        } else if (!monitorId) {
+            logger.error('Server Monitor ID is required');
+
+            process.exitCode = 1;
+        } else {
+            logger.error(
+                'Please enter a valid command (start, restart, stop, uninstall)'
+            );
+
+            process.exitCode = 1;
+        }
     } else {
         serverMonitor({
             projectId,
