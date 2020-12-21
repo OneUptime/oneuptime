@@ -6,6 +6,25 @@ const cors = require('cors');
 
 app.use(cors());
 
+process.on('exit', () => {
+    /* eslint-disable no-console */
+    console.log('Server Shutting Shutdown');
+});
+
+process.on('unhandledRejection', err => {
+    /* eslint-disable no-console */
+    console.error('Unhandled rejection in server process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
+process.on('uncaughtException', err => {
+    /* eslint-disable no-console */
+    console.error('Uncaught exception in server process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
 app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
@@ -86,3 +105,8 @@ app.listen(app.get('port'), function() {
     // eslint-disable-next-line no-console
     console.log('API Reference started on PORT:' + app.get('port'));
 });
+
+module.exports = app;
+module.exports.close = function() {
+    server.close();
+};
