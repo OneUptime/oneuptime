@@ -78,8 +78,8 @@ A complete log of the daemon can be found in these directories:
 /var/log/fsmd_error.log
 
 # mac logs
-/var/log/fsmd.log
-/var/log/fsmd_error.log
+/Library/Logs/fsmd.log
+/Library/Logs/fsmd_error.log
 
 # windows logs
 <service_path>/fsmd.out.log
