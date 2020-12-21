@@ -96,21 +96,6 @@ class Home extends Component {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
         }
     }
-    renderComponentIssues = () => {
-        const { components, currentProjectId } = this.props;
-        return components
-            ? components.map((component, i) => {
-                  return (
-                      <div key={i}>
-                          <ComponentIssue
-                              component={component}
-                              currentProjectId={currentProjectId}
-                          />
-                      </div>
-                  );
-              })
-            : null;
-    };
 
     closeAllIncidents = async () => {
         const incidents = this.props.incidents;
@@ -260,6 +245,19 @@ class Home extends Component {
                             }
                         />
                     </RenderIfUserInSubProject>
+                );
+            });
+        }
+        let errorEventList;
+        if (this.props.components) {
+            errorEventList = this.props.components.map((component, i) => {
+                return (
+                    <div key={i}>
+                        <ComponentIssue
+                            component={component}
+                            currentProjectId={this.props.currentProjectId}
+                        />
+                    </div>
                 );
             });
         }
@@ -589,11 +587,54 @@ class Home extends Component {
                                                         </Fade>
                                                     </TabPanel>
                                                     <TabPanel>
-                                                        <Fade>
-                                                            <div>
-                                                                {this.renderComponentIssues()}
-                                                            </div>
-                                                        </Fade>
+                                                        <div>
+                                                            {errorEventList &&
+                                                            errorEventList.length >
+                                                                0 ? (
+                                                                errorEventList
+                                                            ) : (
+                                                                <div>
+                                                                    <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
+                                                                        <div className="db-Trends-header Padding-vertical--48">
+                                                                            <div className="db-Trends-controls">
+                                                                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                            <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
+                                                                                                <span
+                                                                                                    className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                                                                    style={{
+                                                                                                        filter:
+                                                                                                            'brightness(0) invert(1)',
+                                                                                                        marginTop:
+                                                                                                            '1px',
+                                                                                                        marginRight:
+                                                                                                            '5px',
+                                                                                                    }}
+                                                                                                />
+                                                                                                <span
+                                                                                                    id="component-content-header"
+                                                                                                    className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
+                                                                                                >
+                                                                                                    You
+                                                                                                    currently
+                                                                                                    don&apos;t
+                                                                                                    have
+                                                                                                    any
+                                                                                                    unresolved
+                                                                                                    error
+                                                                                                    events.
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </TabPanel>
                                                 </Tabs>
                                             </div>
