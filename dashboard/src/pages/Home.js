@@ -24,7 +24,6 @@ import { getSmtpConfig } from '../actions/smsTemplates';
 import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
 import flattenArray from '../utils/flattenArray';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
-import ComponentIssue from '../components/component/ComponentIssue';
 import {
     fetchBreachedMonitorSla,
     closeBreachedMonitorSla,
@@ -32,6 +31,8 @@ import {
 import { fetchDefaultMonitorSla } from '../actions/monitorSla';
 import BreachedMonitorSla from '../components/monitorSla/BreachedMonitorSla';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
+import { fetchErrorTrackersByProject } from '../actions/errorTracker';
+import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
 
 class Home extends Component {
     constructor(props) {
@@ -58,6 +59,7 @@ class Home extends Component {
         }
         this.props.userScheduleRequest();
         this.props.getSmtpConfig(this.props.currentProjectId);
+        this.props.fetchErrorTrackersByProject(this.props.currentProjectId);
         if (this.props.currentProjectId && this.props.user.id) {
             this.props.fetchUserSchedule(
                 this.props.currentProjectId,
@@ -249,17 +251,60 @@ class Home extends Component {
             });
         }
         let errorEventList;
-        if (this.props.components) {
-            errorEventList = this.props.components.map((component, i) => {
-                return (
-                    <div key={i}>
-                        <ComponentIssue
-                            component={component}
-                            currentProjectId={this.props.currentProjectId}
-                        />
-                    </div>
-                );
-            });
+        if (this.props.errorTrackers) {
+            {
+                this.props.errorTrackers && this.props.errorTrackers.length > 0
+                    ? (errorEventList = (
+                          <div className="Box-root Margin-vertical--12">
+                              <div
+                                  className="db-Trends Card-root"
+                                  style={{ overflow: 'visible' }}
+                              >
+                                  <ErrorTrackerList
+                                      errorTrackers={this.props.errorTrackers}
+                                      showComponentWithIssue={true}
+                                  />
+                              </div>
+                          </div>
+                      ))
+                    : (errorEventList = (
+                          <div>
+                              <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
+                                  <div className="db-Trends-header Padding-vertical--48">
+                                      <div className="db-Trends-controls">
+                                          <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                              <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                  <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                      <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
+                                                          <span
+                                                              className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                              style={{
+                                                                  filter:
+                                                                      'brightness(0) invert(1)',
+                                                                  marginTop:
+                                                                      '1px',
+                                                                  marginRight:
+                                                                      '5px',
+                                                              }}
+                                                          />
+                                                          <span
+                                                              id="component-content-header"
+                                                              className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
+                                                          >
+                                                              You currently
+                                                              don&apos;t have
+                                                              any error events.
+                                                          </span>
+                                                      </span>
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      ));
+            }
         }
 
         let ongoingEventList;
@@ -588,52 +633,7 @@ class Home extends Component {
                                                     </TabPanel>
                                                     <TabPanel>
                                                         <div>
-                                                            {errorEventList &&
-                                                            errorEventList.length >
-                                                                0 ? (
-                                                                errorEventList
-                                                            ) : (
-                                                                <div>
-                                                                    <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
-                                                                        <div className="db-Trends-header Padding-vertical--48">
-                                                                            <div className="db-Trends-controls">
-                                                                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                            <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
-                                                                                                <span
-                                                                                                    className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
-                                                                                                    style={{
-                                                                                                        filter:
-                                                                                                            'brightness(0) invert(1)',
-                                                                                                        marginTop:
-                                                                                                            '1px',
-                                                                                                        marginRight:
-                                                                                                            '5px',
-                                                                                                    }}
-                                                                                                />
-                                                                                                <span
-                                                                                                    id="component-content-header"
-                                                                                                    className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
-                                                                                                >
-                                                                                                    You
-                                                                                                    currently
-                                                                                                    don&apos;t
-                                                                                                    have
-                                                                                                    any
-                                                                                                    unresolved
-                                                                                                    error
-                                                                                                    events.
-                                                                                                </span>
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
+                                                            {errorEventList}
                                                         </div>
                                                     </TabPanel>
                                                 </Tabs>
@@ -687,6 +687,8 @@ Home.propTypes = {
         PropTypes.oneOf([null]),
     ]),
     closingSla: PropTypes.bool,
+    fetchErrorTrackersByProject: PropTypes.func,
+    errorTrackers: PropTypes.array,
 };
 
 const mapStateToProps = (state, props) => {
@@ -740,6 +742,7 @@ const mapStateToProps = (state, props) => {
         monitorSlaBreaches: state.monitor.monitorSlaBreaches.slaBreaches,
         defaultMonitorSla: state.monitorSla.defaultMonitorSla.sla,
         closingSla: state.monitor.closeBreachedMonitorSla.requesting,
+        errorTrackers: state.errorTracker.errorTrackersList.errorTrackers,
     };
 };
 
@@ -756,6 +759,7 @@ const mapDispatchToProps = dispatch => {
             fetchBreachedMonitorSla,
             closeBreachedMonitorSla,
             fetchDefaultMonitorSla,
+            fetchErrorTrackersByProject,
         },
         dispatch
     );
