@@ -44,6 +44,50 @@ Or run as a daemon:
 $ fyipe-server-monitor --daemon --project-id 5d64d59cae46131619708309 --api-url https://fyipe.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
 ```
 
+You can use the following commands with the daemon: `start`, `restart`, `stop`, and `uninstall`.
+
+Run to start the stopped daemon:
+
+```bash
+$ fyipe-server-monitor --daemon start
+```
+
+Run to restart the running daemon:
+
+```bash
+$ fyipe-server-monitor --daemon restart
+```
+
+Run to stop the running daemon:
+
+```bash
+$ fyipe-server-monitor --daemon stop
+```
+
+Run to stop and uninstall the running daemon:
+
+```bash
+$ fyipe-server-monitor --daemon uninstall
+```
+
+A complete log of the daemon can be found in these directories:
+
+```bash
+# linux logs
+/var/log/fsmd.log
+/var/log/fsmd_error.log
+
+# mac logs
+/var/log/fsmd.log
+/var/log/fsmd_error.log
+
+# windows logs
+<service_path>/fsmd.out.log
+<service_path>/fsmd.err.log
+```
+
+NB:- In most cases, `sudo` or admin privileges are required to run the shell as a daemon.
+
 <a name="module_api"></a>
 
 ## Basic Usage
