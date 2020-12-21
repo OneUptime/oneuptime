@@ -117,7 +117,7 @@ const initialState = {
         error: null,
     },
     escalations: [],
-    scheduleEscalations:[],
+    scheduleEscalations: [],
     pages: {
         counter: 1,
     },
@@ -560,7 +560,7 @@ export default function schedule(state = initialState, action) {
                     success: true,
                     error: null,
                 },
-                scheduleEscalations:action.payload.data
+                scheduleEscalations: action.payload.data,
             });
 
         case ESCALATION_REQUEST:

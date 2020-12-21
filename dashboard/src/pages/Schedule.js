@@ -19,13 +19,13 @@ import getParentRoute from '../utils/getParentRoute';
 class Schedule extends Component {
     constructor(props) {
         super(props);
-        this.state = { editSchedule: false, };
+        this.state = { editSchedule: false };
     }
 
     async componentDidMount() {
         const { subProjectId, scheduleId } = this.props;
         try {
-             await Promise.all([
+            await Promise.all([
                 this.props.getEscalation(subProjectId, scheduleId),
                 this.props.subProjectTeamLoading(subProjectId),
                 this.props.teamLoading(subProjectId),
@@ -49,7 +49,6 @@ class Schedule extends Component {
             return <div></div>;
         }
 
-        console.log('My Escalations: ',escalations)
         return (
             <Dashboard>
                 <Fade>
@@ -105,7 +104,6 @@ class Schedule extends Component {
                                                             }}
                                                         />
                                                     )}
-
 
                                                     <RenderIfSubProjectAdmin
                                                         subProjectId={
