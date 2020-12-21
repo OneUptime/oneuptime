@@ -49,6 +49,7 @@ class Schedule extends Component {
         if (error) {
             return <div></div>;
         }
+
         return (
             <Dashboard>
                 <Fade>
