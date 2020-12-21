@@ -104,7 +104,7 @@ Services created by the daemon are similar to most other services running on Win
 
 <a name="module_api"></a>
 
-## Basic Usage
+## Programmatic Usage
 
 ```javascript
 const serverMonitor = require('fyipe-server-monitor');
