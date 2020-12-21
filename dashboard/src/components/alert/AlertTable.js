@@ -215,14 +215,13 @@ function TD3() {
                 width: '48px',
             }}
         >
-            <a
+            <span
                 className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
             >
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     ⁣
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
@@ -277,14 +276,13 @@ function TD5() {
                 width: '48px',
             }}
         >
-            <a
+            <span
                 className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
             >
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     ⁣
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
