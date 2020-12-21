@@ -19,74 +19,37 @@ import getParentRoute from '../utils/getParentRoute';
 class Schedule extends Component {
     constructor(props) {
         super(props);
-        this.state = { editSchedule: false, escalationPromise: null };
+        this.state = { editSchedule: false, };
     }
 
     async componentDidMount() {
         const { subProjectId, scheduleId } = this.props;
         try {
-            const response = await Promise.all([
+             await Promise.all([
                 this.props.getEscalation(subProjectId, scheduleId),
                 this.props.subProjectTeamLoading(subProjectId),
                 this.props.teamLoading(subProjectId),
             ]);
-            const result = response.slice(0, 1)[0].data.data;
-            this.setState({ escalationPromise: result });
         } catch (e) {
             this.setState({ error: e });
         }
     }
 
     render() {
-        const { editSchedule, error, escalationPromise } = this.state;
+        const { editSchedule, error } = this.state;
         const {
             escalations,
             teamMembers,
             subProjectId,
             location: { pathname },
             schedule,
-            ifSchedule,
-            sample
         } = this.props;
         const name = schedule ? schedule.name : null;
-        const ifScheduleIsPresent = ifSchedule
-            ? ifSchedule.escalationIds.length
-            : null;
         if (error) {
             return <div></div>;
         }
-        console.log('Escalation promise is: ',escalationPromise)
-        console.log('Escalation: ',escalations)
-        console.log('If schedule is: ',ifSchedule)
-        console.log('Schedule State: ',sample)
-        let mySchedule;
-        if (
-            ifScheduleIsPresent !== 0 ||
-            editSchedule !== false ||
-            escalations.length > 0
-        ) {
-            mySchedule = (
-                <EscalationSummary
-                    onEditClicked={() => {
-                        this.setState({
-                            editSchedule: true,
-                        });
-                    }}
-                    escalations={escalationPromise}
-                    teamMembers={teamMembers}
-                />
-            );
-        } else {
-            mySchedule = (
-                <OnCallAlertBox
-                    afterSave={() => {
-                        this.setState({
-                            editSchedule: false,
-                        });
-                    }}
-                />
-            );
-        }
+
+        console.log('My Escalations: ',escalations)
         return (
             <Dashboard>
                 <Fade>
@@ -111,7 +74,38 @@ class Schedule extends Component {
                                                     <RenameScheduleBox />
                                                     <MonitorBox />
 
-                                                    {mySchedule}
+                                                    {!editSchedule &&
+                                                        escalations.length >
+                                                            0 && (
+                                                            <EscalationSummary
+                                                                onEditClicked={() => {
+                                                                    this.setState(
+                                                                        {
+                                                                            editSchedule: true,
+                                                                        }
+                                                                    );
+                                                                }}
+                                                                escalations={
+                                                                    escalations
+                                                                }
+                                                                teamMembers={
+                                                                    teamMembers
+                                                                }
+                                                            />
+                                                        )}
+
+                                                    {(editSchedule ||
+                                                        escalations.length ===
+                                                            0) && (
+                                                        <OnCallAlertBox
+                                                            afterSave={() => {
+                                                                this.setState({
+                                                                    editSchedule: false,
+                                                                });
+                                                            }}
+                                                        />
+                                                    )}
+
 
                                                     <RenderIfSubProjectAdmin
                                                         subProjectId={
@@ -154,23 +148,11 @@ const mapStateToProps = (state, props) => {
     schedule = schedule.find(
         schedule => schedule && schedule._id === scheduleId
     );
-    let ifSchedule;
-    state.schedule.subProjectSchedules.forEach(item => {
-        item.schedules.forEach(item => {
-            if (scheduleId === item._id) {
-                ifSchedule = item;
-            }
-        });
-    });
-    let sample = state.schedule;
-    
-    const escalations = state.schedule.escalations;
+    const escalations = state.schedule.scheduleEscalations;
     const { projectId } = props.match.params;
 
     const { subProjectId } = props.match.params;
     return {
-        sample,
-        ifSchedule,
         schedule,
         escalations,
         projectId,
@@ -196,7 +178,6 @@ Schedule.propTypes = {
     schedule: PropTypes.shape({
         name: PropTypes.string,
     }),
-    ifSchedule: PropTypes.object,
 };
 
 export default withRouter(
