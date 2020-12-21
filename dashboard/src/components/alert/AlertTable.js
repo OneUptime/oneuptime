@@ -183,10 +183,7 @@ function TD2({ text }) {
             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
         >
-            <a
-                className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root">
@@ -194,7 +191,7 @@ function TD2({ text }) {
                         </div>
                     </span>
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
@@ -215,9 +212,7 @@ function TD3() {
                 width: '48px',
             }}
         >
-            <span
-                className="db-ListViewItem-link"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     ⁣
                 </div>
@@ -231,10 +226,7 @@ function TD4({ text }) {
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
         >
-            <a
-                className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root Flex-flex">
@@ -255,7 +247,7 @@ function TD4({ text }) {
                         </div>
                     </span>
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
@@ -276,9 +268,7 @@ function TD5() {
                 width: '48px',
             }}
         >
-            <span
-                className="db-ListViewItem-link"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     ⁣
                 </div>
@@ -293,16 +283,13 @@ function TD6({ text }) {
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
         >
-            <a
-                className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <span>{moment(text).format('lll')}</span>
                     </span>
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
@@ -317,10 +304,7 @@ function TD7({ text }) {
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
         >
-            <span
-                className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root Flex-flex">
