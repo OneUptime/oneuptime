@@ -14,6 +14,7 @@ const {
     AuditLogs,
     Settings,
     License,
+    EmailLogs,
 } = pages;
 
 export const groups = [
@@ -80,6 +81,16 @@ export const groups = [
                 subRoutes: [],
                 index: 4,
                 shortcut: 'f+a',
+            },
+            {
+                title: 'Email Logs',
+                path: '/admin/email-logs',
+                icon: 'emailIcon',
+                component: EmailLogs,
+                visible: true,
+                subRoutes: [],
+                index: 5,
+                shortcut: 'f+e',
             },
         ],
     },
