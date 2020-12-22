@@ -61,8 +61,26 @@
 }
 
 @keyframes fadeIn {
-    from { visibility: hidden; opacity: 0; }
-    to { visibility: visible; opacity: 1; }
+    from {
+        visibility: hidden;
+        opacity: 0;
+    }
+    to {
+        visibility: visible;
+        opacity: 1;
+    }
+}
+
+.profile__keycode {
+    text-transform: capitalize;
+    background: #c5c5c59e;
+    border-radius: 5px;
+    width: 19px;
+    height: 18px;
+    line-height: 19px;
+    font-size: 12px;
+    text-align: center;
+    color: #565656;
 }
 
 .keycode__icon {
