@@ -213,8 +213,9 @@ module.exports = {
                     : null;
 
             let log = await MonitorLogService.create(data);
-
-            await MonitorService.updateMonitorPingTime(data.monitorId);
+            if (!data.stopPingTimeUpdate) {
+                await MonitorService.updateMonitorPingTime(data.monitorId);
+            }
 
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
@@ -1030,6 +1031,36 @@ module.exports = {
         }
     },
 
+    incomingCondition: async (payload, condition) => {
+        let response = false;
+        let respAnd = false,
+            respOr = false,
+            countAnd = 0,
+            countOr = 0;
+        if (condition && condition.and && condition.and.length) {
+            respAnd = await incomingCheckAnd(payload, condition.and);
+            countAnd++;
+        }
+        if (condition && condition.or && condition.or.length) {
+            respOr = await incomingCheckOr(payload, condition.or);
+            countOr++;
+        }
+        if (countAnd > 0 && countOr > 0) {
+            if (respAnd && respOr) {
+                response = true;
+            }
+        } else if (countAnd > 0 && countOr <= 0) {
+            if (respAnd) {
+                response = true;
+            }
+        } else if (countOr > 0 && countAnd <= 0) {
+            if (respOr) {
+                response = true;
+            }
+        }
+        return response;
+    },
+
     processHttpRequest: async function(data) {
         try {
             const _this = this;
@@ -1076,7 +1107,7 @@ module.exports = {
                 status = 'online';
                 reason = [...degradedFailedReasons, ...downFailedReasons];
             } else {
-                status = 'offline';
+                status = 'online';
                 reason = upFailedReasons;
             }
             const logData = body;
@@ -1104,11 +1135,358 @@ module.exports = {
             throw error;
         }
     },
+
+    probeHttpRequest: async function(monitor) {
+        try {
+            const _this = this;
+            let status, reason;
+            const lastPingTime = monitor.lastPingTime;
+            const payload = moment().diff(moment(lastPingTime), 'minutes');
+            const validUp = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.up
+                ? _this.incomingCondition(payload, monitor.criteria.up)
+                : false);
+            const validDegraded = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.degraded
+                ? _this.incomingCondition(payload, monitor.criteria.degraded)
+                : false);
+            const validDown = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.down
+                ? _this.incomingCondition(payload, monitor.criteria.down)
+                : false);
+
+            if (validDown) {
+                status = 'offline';
+                reason = [`${criteriaStrings.incomingTime} ${payload} min`];
+            } else if (validDegraded) {
+                status = 'degraded';
+                reason = [`${criteriaStrings.incomingTime} ${payload} min`];
+            } else if (validUp) {
+                status = 'online';
+                reason = [`${criteriaStrings.incomingTime} ${payload} min`];
+            } else {
+                status = 'online';
+                reason = [`${criteriaStrings.incomingTime} ${payload} min`];
+            }
+            const logData = {};
+            logData.responseTime = 0;
+            logData.responseStatus = null;
+            logData.status = status;
+            logData.probeId = null;
+            logData.monitorId = monitor && monitor.id ? monitor.id : null;
+            logData.sslCertificate = null;
+            logData.lighthouseScanStatus = null;
+            logData.performance = null;
+            logData.accessibility = null;
+            logData.bestPractices = null;
+            logData.seo = null;
+            logData.pwa = null;
+            logData.lighthouseData = null;
+            logData.retryCount = 3;
+            logData.reason = reason;
+            logData.response = null;
+            logData.stopPingTimeUpdate = true;
+            const log = await _this.saveMonitorLog(logData);
+            return log;
+        } catch (error) {
+            ErrorService.log('monitorService.probeHttpRequest', error);
+            throw error;
+        }
+    },
 };
 
 const _ = require('lodash');
 
 // eslint-disable-next-line no-unused-vars
+const incomingCheckAnd = async (payload, condition) => {
+    let validity = false;
+    let val = 0;
+    let incomingVal = 0;
+    for (let i = 0; i < condition.length; i++) {
+        if (
+            condition[i] &&
+            condition[i].responseType &&
+            condition[i].responseType === 'incomingTime'
+        ) {
+            if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'greaterThan'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload > condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'lessThan'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload < condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'inBetween'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    condition[i].field2 &&
+                    payload > condition[i].field1 &&
+                    payload < condition[i].field2
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'equalTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload == condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'notEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload != condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'gtEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload >= condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'ltEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload <= condition[i].field1
+                ) {
+                    val++;
+                }
+            }
+            incomingVal++;
+        } else if (
+            condition[i] &&
+            condition[i].collection &&
+            condition[i].collection.length
+        ) {
+            if (
+                condition[i].collection.and &&
+                condition[i].collection.and.length
+            ) {
+                const tempAnd = await incomingCheckAnd(
+                    payload,
+                    condition[i].collection.and
+                );
+                if (tempAnd) {
+                    val++;
+                    incomingVal++;
+                }
+            } else if (
+                condition[i].collection.or &&
+                condition[i].collection.or.length
+            ) {
+                const tempOr = await incomingCheckOr(
+                    payload,
+                    condition[i].collection.or
+                );
+                if (tempOr) {
+                    val++;
+                    incomingVal++;
+                }
+            }
+        }
+    }
+    if (val > 0 && incomingVal > 0 && val === incomingVal) {
+        validity = true;
+    }
+    return validity;
+};
+
+const incomingCheckOr = async (payload, condition) => {
+    let validity = false;
+    let val = 0;
+    let incomingVal = 0;
+    for (let i = 0; i < condition.length; i++) {
+        if (
+            condition[i] &&
+            condition[i].responseType &&
+            condition[i].responseType === 'incomingTime'
+        ) {
+            if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'greaterThan'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload > condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'lessThan'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload < condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'inBetween'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    condition[i].field2 &&
+                    payload > condition[i].field1 &&
+                    payload < condition[i].field2
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'equalTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload == condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'notEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload != condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'gtEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload >= condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'ltEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload <= condition[i].field1
+                ) {
+                    val++;
+                }
+            }
+            incomingVal++;
+        } else if (
+            condition[i] &&
+            condition[i].collection &&
+            condition[i].collection.length
+        ) {
+            if (
+                condition[i].collection.and &&
+                condition[i].collection.and.length
+            ) {
+                const tempAnd = await incomingCheckAnd(
+                    payload,
+                    condition[i].collection.and
+                );
+                if (tempAnd) {
+                    val++;
+                    incomingVal++;
+                }
+            } else if (
+                condition[i].collection.or &&
+                condition[i].collection.or.length
+            ) {
+                const tempor = await incomingCheckAnd(
+                    payload,
+                    condition[i].collection.or
+                );
+                if (tempor) {
+                    val++;
+                    incomingVal++;
+                }
+            }
+        }
+    }
+    if (val > 0 && incomingVal > 0) {
+        validity = true;
+    }
+    return validity;
+};
+
 const checkAnd = async (
     payload,
     con,
