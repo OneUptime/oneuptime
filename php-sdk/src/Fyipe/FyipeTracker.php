@@ -5,6 +5,8 @@
  */
 
 namespace Fyipe;
+
+use stdClass;
 use Util\UUID;
 
 class FyipeTracker
@@ -27,6 +29,7 @@ class FyipeTracker
     private $configKeys = ['baseUrl', 'maxTimeline'];
     private $MAX_ITEMS_ALLOWED_IN_STACK = 100;
     private $eventId;
+    private $tags = [];
 
     /**
      * FyipeTracker constructor.
@@ -68,5 +71,44 @@ class FyipeTracker
     }
     private function setEventId() {
         $this->eventId = UUID::v4();
+    }
+    private function getEventId() {
+        return $this->eventId;
+    }
+    private function setTag($key, $value) {
+        if (!(is_string($key) || is_string($value))) {
+            throw new \Exception("Invalid Tag");
+        }
+        $exist = false;
+        foreach ($this->tags as $tag) {
+            if($tag->key === $key) {
+                // set the round flag
+                $exist = true;
+                // replace value if it exist
+                $tag->value = $value;
+                break;
+            }
+        }
+        if(!$exist) {
+            // push key and value if it doesnt
+            $tag = new stdClass();
+            $tag->key = $key;
+            $tag->value = $value;
+            array_push($this->tags, $tag);
+        }
+
+    }
+    private function setTags($tags) {
+        if (!is_array($tags)) {
+            throw new \Exception("Invalid Tags");
+        }
+        foreach($tags as $element) {
+            if(!is_null($element->key) && !is_null($element->value)) {
+                $this->setTag($element->key, $element->key);
+            }
+        }
+    }
+    private function getTags() {
+        return $this->tags;
     }
 }
