@@ -10559,6 +10559,26 @@ table {
   overflow: auto;
 }
 
+/********************** EmailLogsJsonViewModal ***********************/
+.db-EmailLogsJsonViewModal-JsonViewerWrapper {
+  display: flex;
+}
+
+.db-EmailLogsJsonViewModal-JsonViewerWrapper > div {
+  flex: 1;
+  overflow: hidden;
+}
+
+.db-EmailLogsJsonViewModal-JsonViewerContainer:first-child {
+  margin: 0 10px;
+}
+
+.db-EmailLogsJsonViewModal-JsonViewer {
+  min-height: 300px;
+  max-height: 400px;
+  overflow: auto;
+}
+
 .price-list-3c {
   display: grid;
   grid-template-columns: auto auto auto;
