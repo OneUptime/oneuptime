@@ -350,7 +350,7 @@ module.exports = {
                     }
                     const projectUsers = await TeamService.getTeamMembersBy({
                         parentProjectId: project._id,
-                    }); // eslint-disable-next-line no-console
+                    });
                     const seats = await TeamService.getSeats(projectUsers);
                     // check if project seats are more based on users in project or by count of monitors
                     if (
@@ -474,7 +474,12 @@ module.exports = {
                                 $and: [
                                     {
                                         type: {
-                                            $in: ['url', 'device', 'api'],
+                                            $in: [
+                                                'url',
+                                                'device',
+                                                'api',
+                                                'incomingHttpRequest',
+                                            ],
                                         },
                                     },
                                     {
