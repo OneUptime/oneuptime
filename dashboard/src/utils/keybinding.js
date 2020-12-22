@@ -1,7 +1,7 @@
 import { history } from '../store';
 
 // This is an array of the available first key characters for the shortcut
-const initKeys = ['f', 'c', 'p'];
+const initKeys = ['f', 'c', 'p', 's', 'o'];
 
 /**
  * @description creates keybinding for side nav

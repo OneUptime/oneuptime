@@ -36,7 +36,6 @@ class Integrations extends Component {
                         name="Project Settings"
                     />
                     <BreadCrumbItem route={pathname} name="Integrations" />
-                    {/* <Slack />*/}
                     <WebHookBox />
                     <MSTeamsBox />
                     <SlackBox />
