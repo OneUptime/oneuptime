@@ -12,6 +12,7 @@ import settings from './settings';
 import license from './license';
 import page from './page';
 import sso from './sso';
+import version from './version';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -27,6 +28,7 @@ const appReducer = combineReducers({
     license,
     page,
     sso,
+    version,
 });
 
 export default (state, action) => {

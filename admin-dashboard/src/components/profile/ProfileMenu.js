@@ -5,8 +5,16 @@ import { connect } from 'react-redux';
 import { User } from '../../config';
 import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
+import uuid from 'uuid';
+import About from '../modals/About';
+import { openModal, closeModal } from '../../actions/modal';
 
 export class ProfileMenu extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { aboutId: uuid.v4() };
+    }
+
     logout() {
         const values = { name: User.getName(), email: User.getEmail() };
         const { logoutUser } = this.props;
@@ -15,6 +23,32 @@ export class ProfileMenu extends Component {
             this.context.mixpanel.track('User Logged Out', values);
         }
     }
+
+    showAboutModal = () => {
+        this.props.hideProfileMenu();
+        this.props.openModal({
+            id: this.state.aboutId,
+            onClose: () => '',
+            content: About,
+        });
+    };
+
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleShortcut);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleShortcut);
+    }
+
+    handleShortcut = event => {
+        // Only execute keyboard shortcut when profile menu is open
+        if (this.props.visible) {
+            if (event.key === 'a' || event.key === 'A') {
+                this.showAboutModal();
+            }
+        }
+    };
 
     render() {
         const name = User.getName();
@@ -68,6 +102,44 @@ export class ProfileMenu extends Component {
                                     >
                                         <button
                                             className="ButtonLink db-Menu-item db-Menu-item--link"
+                                            id="about-button"
+                                            type="button"
+                                            onClick={() =>
+                                                this.showAboutModal()
+                                            }
+                                            style={{ width: '100%' }}
+                                        >
+                                            <div
+                                                className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed"
+                                                style={{
+                                                    display: 'flex',
+                                                    width: '100%',
+                                                    justifyContent:
+                                                        'space-between',
+                                                    flexDirection: 'row',
+                                                }}
+                                            >
+                                                <span className="ButtonLink-label Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <span className="Text-color--primary Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <span>About</span>
+                                                    </span>
+                                                </span>
+                                                <span className="profile__keycode">
+                                                    A
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div
+                                        className="Box-root"
+                                        style={{
+                                            padding: '10px',
+                                            fontWeight: '500',
+                                            marginTop: '-12px',
+                                        }}
+                                    >
+                                        <button
+                                            className="ButtonLink db-Menu-item db-Menu-item--link"
                                             id="logout-button"
                                             type="button"
                                             onClick={() => this.logout()}
@@ -100,13 +172,18 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ hideProfileMenu, logoutUser }, dispatch);
+    return bindActionCreators(
+        { openModal, closeModal, hideProfileMenu, logoutUser },
+        dispatch
+    );
 };
 
 ProfileMenu.propTypes = {
     visible: PropTypes.bool,
     logoutUser: PropTypes.func.isRequired,
     position: PropTypes.number,
+    closeModal: PropTypes.func,
+    openModal: PropTypes.func.isRequired,
 };
 
 ProfileMenu.contextTypes = {
