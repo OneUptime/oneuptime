@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import DateTime from '../../utils/DateTime';
+import moment from 'moment-timezone';
 
 const EscalationSummarySingle = ({
     isActiveTeam,
@@ -233,27 +234,11 @@ const EscalationSummarySingle = ({
                                                 {' '}
                                                 <br />
                                                 <br /> Will only be active from{' '}
-                                                {DateTime.format(
-                                                    DateTime.convertToCurrentTimezone(
-                                                        DateTime.changeDateTimezone(
-                                                            member.startTime,
-                                                            member.timezone
-                                                        )
-                                                    ),
-                                                    'hh:mm A'
-                                                )}{' '}
-                                                {DateTime.getCurrentTimezoneAbbr()}{' '}
+                                                {moment(moment(member.startTime).format('HH:mm'), 'HH:mm').format('hh:mm A')}
+                                                {' '}
                                                 and{' '}
-                                                {DateTime.format(
-                                                    DateTime.convertToCurrentTimezone(
-                                                        DateTime.changeDateTimezone(
-                                                            member.endTime,
-                                                            member.timezone
-                                                        )
-                                                    ),
-                                                    'hh:mm A'
-                                                )}{' '}
-                                                {DateTime.getCurrentTimezoneAbbr()}{' '}
+                                                {moment(moment(member.endTime).format('HH:mm'), 'HH:mm').format('hh:mm A')}
+                                                {' '}
                                                 everyday. <br />
                                                 <br />
                                             </span>

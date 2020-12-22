@@ -5,7 +5,7 @@ const differenceInMonths = require('date-fns/differenceInMonths');
 
 const _this = {
     // This function will strip
-    changeDateTimezone: function(date, timezone) {
+    changeDateTimezone: function (date, timezone) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -14,13 +14,47 @@ const _this = {
         return moment
             .tz(
                 `${date.getFullYear()}-${date.getMonth() +
-                    1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`,
+                1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`,
                 timezone
             )
             .toDate();
     },
 
-    convertToTimezone: function(date, timezone) {
+    compareDate: function (startTime, endTime, currentTime) {
+        const isDifferentDay = startTime >= endTime;
+        const [startHour, startMin] = startTime.split(":");
+        const [endHour, endMin] = endTime.split(":");
+        const [nowHour, nowMin] = currentTime.split(":");
+        const addDay = 86400000;
+
+        const start = new Date(new Date()
+            .setHours(startHour, startMin))
+            .getTime();
+        const end = isDifferentDay ?
+            new Date(new Date(new Date()
+                .getTime() + addDay)
+                .setHours(endHour, endMin))
+                .getTime() :
+            new Date(new Date(new Date()
+                .getTime())
+                .setHours(endHour, endMin))
+                .getTime();
+        let current = new Date(new Date()
+            .setHours(nowHour, nowMin))
+            .getTime();
+
+        current = ((current < start) && isDifferentDay) ?
+            new Date(new Date(new Date()
+                .getTime() + addDay)
+                .setHours(nowHour, nowMin))
+                .getTime() : current;
+
+        if (current >= start && current <= end) return true;
+        return false;
+
+    },
+
+    convertToTimezone: function (date, timezone) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -30,7 +64,7 @@ const _this = {
             .toDate();
     },
 
-    convertToCurrentTimezone: function(date) {
+    convertToCurrentTimezone: function (date) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -40,7 +74,7 @@ const _this = {
             .toDate();
     },
 
-    format: function(date, formatString) {
+    format: function (date, formatString) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -48,11 +82,11 @@ const _this = {
         return moment(date).format(formatString);
     },
 
-    getCurrentTimezoneAbbr: function() {
+    getCurrentTimezoneAbbr: function () {
         return moment.tz(moment.tz.guess()).zoneAbbr();
     },
 
-    getCurrentTimezone: function() {
+    getCurrentTimezone: function () {
         return moment.tz.guess();
     },
 
@@ -170,7 +204,7 @@ const _this = {
         return moment
             .tz(
                 `${today.getFullYear()}-${today.getMonth() +
-                    1}-${today.getDate()} ${date.getHours()}:${date.getMinutes()}`,
+                1}-${today.getDate()} ${date.getHours()}:${date.getMinutes()}`,
                 _this.getCurrentTimezone()
             )
             .toDate();
