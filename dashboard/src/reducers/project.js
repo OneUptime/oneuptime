@@ -58,6 +58,11 @@ const initialState = {
         requesting: false,
         error: null,
     },
+    getProjectBalance: {
+        success: false,
+        requesting: false,
+        error: null,
+    },
     showForm: false,
     showUpgradeForm: false,
     canUpgrade: true, // Used to check if the user has plans they can upgrade to.
@@ -69,6 +74,11 @@ const initialState = {
         error: null,
     },
     smsIncidentNotification: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    webhookNotificationSettings: {
         requesting: false,
         success: false,
         error: null,
@@ -269,7 +279,34 @@ export default function project(state = initialState, action) {
                     error: action.payload,
                 },
             });
-
+        case types.GET_PROJECT_BALANCE_REQUEST:
+            return Object.assign({}, state, {
+                getProjectBalance: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                }, 
+            });
+        case types.GET_PROJECT_BALANCE_FAILED:
+            return Object.assign({}, state, {
+                getProjectBalance: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+        case types.GET_PROJECT_BALANCE_SUCCESS:
+            return Object.assign({}, state, {
+                currentProject: {
+                    ...state.currentProject,
+                    balance: action.payload.balance,
+                },
+                getProjectBalance: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
         case types.DELETE_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
@@ -649,6 +686,36 @@ export default function project(state = initialState, action) {
             return {
                 ...state,
                 smsIncidentNotification: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+        case types.SET_WEBHOOK_NOTIFICATION_SETTINGS_REQUEST:
+            return {
+                ...state,
+                webhookNotificationSettings: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.SET_WEBHOOK_NOTIFICATION_SETTINGS_SUCCESS:
+            return {
+                ...state,
+                webhookNotificationSettings: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                currentProject: action.payload,
+            };
+
+        case types.SET_WEBHOOK_NOTIFICATION_SETTINGS_FAILURE:
+            return {
+                ...state,
+                webhookNotificationSettings: {
                     requesting: false,
                     success: false,
                     error: action.payload,

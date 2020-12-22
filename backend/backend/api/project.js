@@ -207,6 +207,28 @@ router.get('/projects', getUser, async function(req, res) {
     }
 });
 
+//Description: Get project balance of a project
+// Param 1: req.headers-> {token}; req.params-> {projectId};
+//Returns: 200: {projectBalance}; 400: Error.
+router.get('/:projectId/balance', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const projectId = req.params.projectId;
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'ProjectId must be present.',
+            });
+        }
+        const balance = await ProjectService.getBalance({ _id: projectId });
+        return sendItemResponse(req, res, balance);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 // Description: Resetting the API key of a project.
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {projectId};
@@ -1046,6 +1068,10 @@ router.put(
                 data.replyAddress = null;
             }
 
+            data.enableInvestigationNoteNotificationEmail = data.enableInvestigationNoteNotificationEmail
+                ? true
+                : false;
+
             const result = await ProjectService.updateOneBy(
                 { _id: projectId },
                 data
@@ -1075,12 +1101,38 @@ router.put(
             if (!data.sendResolvedIncidentNotificationSms) {
                 data.sendResolvedIncidentNotificationSms = false;
             }
+            data.enableInvestigationNoteNotificationSMS = data.enableInvestigationNoteNotificationSMS
+                ? true
+                : false;
 
             const result = await ProjectService.updateOneBy(
                 { _id: projectId },
                 data
             );
             return sendItemResponse(req, res, result);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+router.put(
+    '/:projectId/advancedOptions/webhook',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId } = req.params;
+            const data = req.body;
+
+            data.enableInvestigationNoteNotificationWebhook = data.enableInvestigationNoteNotificationWebhook
+                ? true
+                : false;
+
+            const updatedProject = await ProjectService.updateOneBy(
+                { _id: projectId },
+                data
+            );
+            return sendItemResponse(req, res, updatedProject);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

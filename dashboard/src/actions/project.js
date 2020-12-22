@@ -177,6 +177,49 @@ export function getProjects(switchToProjectId) {
     };
 }
 
+export function getProjectBalanceRequest() {
+    return {
+        type: types.GET_PROJECT_BALANCE_REQUEST,
+    };
+}
+export function getprojectError(error) {
+    return {
+        type: types.GET_PROJECT_BALANCE_FAILED,
+        payload: error,
+    };
+}
+export function getProjectBalanceSuccess(project) {
+    return {
+        type: types.GET_PROJECT_BALANCE_SUCCESS,
+        payload: project,
+    };
+}
+
+export function getProjectBalance(projectId) {
+    return function(dispatch) {
+        const promise = getApi(`project/${projectId}/balance`, null);
+        dispatch(getProjectBalanceRequest(promise));
+
+        promise.then(
+            function(balance) {
+                dispatch(getProjectBalanceSuccess(balance.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(getprojectError(errors(error)));
+            }
+        );
+    };
+}
 export function createProjectRequest() {
     return {
         type: types.CREATE_PROJECT_REQUEST,
@@ -958,6 +1001,51 @@ export function setSmsIncidentNotification({ projectId, data }) {
                     ? error.message
                     : 'Network Error';
             dispatch(setSmsIncidentNotificationFailure(errorMsg));
+        }
+    };
+}
+
+/* for webhook notification settings */
+export function setWebhookNotificationSettingsRequest() {
+    return {
+        type: types.SET_WEBHOOK_NOTIFICATION_SETTINGS_REQUEST,
+    };
+}
+
+export function setWebhookNotificationSettingsSuccess(payload) {
+    return {
+        type: types.SET_WEBHOOK_NOTIFICATION_SETTINGS_SUCCESS,
+        payload,
+    };
+}
+
+export function setWebhookNotificationSettingsFailure(error) {
+    return {
+        type: types.SET_WEBHOOK_NOTIFICATION_SETTINGS_FAILURE,
+        payload: error,
+    };
+}
+
+export function setWebhookNotificationSettings({ projectId, data }) {
+    return async function(dispatch) {
+        dispatch(setWebhookNotificationSettingsRequest());
+
+        try {
+            const response = await putApi(
+                `project/${projectId}/advancedOptions/webhook`,
+                data
+            );
+            dispatch(setWebhookNotificationSettingsSuccess(response.data));
+        } catch (error) {
+            const errorMessage =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(setWebhookNotificationSettingsFailure(errorMessage));
         }
     };
 }
