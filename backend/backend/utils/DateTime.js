@@ -21,6 +21,7 @@ const _this = {
     },
 
     compareDate: function (startTime, endTime, currentTime) {
+        const isDifferentDay = startTime >= endTime;
         const [startHour, startMin] = startTime.split(":");
         const [endHour, endMin] = endTime.split(":");
         const [nowHour, nowMin] = currentTime.split(":");
@@ -29,15 +30,20 @@ const _this = {
         const start = new Date(new Date()
             .setHours(startHour, startMin))
             .getTime();
-        const end = new Date(new Date(new Date()
-            .getTime() + addDay)
-            .setHours(endHour, endMin))
-            .getTime();
+        const end = isDifferentDay ?
+            new Date(new Date(new Date()
+                .getTime() + addDay)
+                .setHours(endHour, endMin))
+                .getTime() :
+            new Date(new Date(new Date()
+                .getTime())
+                .setHours(endHour, endMin))
+                .getTime();
         let current = new Date(new Date()
             .setHours(nowHour, nowMin))
             .getTime();
 
-        current = current < start ?
+        current = ((current < start) && isDifferentDay) ?
             new Date(new Date(new Date()
                 .getTime() + addDay)
                 .setHours(nowHour, nowMin))

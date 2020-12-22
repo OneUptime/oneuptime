@@ -113,25 +113,23 @@ class TopContent extends Component {
         <>
             {typeof incidentCounter === 'number' && (
                 <div
-                    className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
-                        incidentCounter && incidentCounter > 0
+                    className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${incidentCounter && incidentCounter > 0
                             ? 'red'
                             : incidentCounter === 0
-                            ? 'green'
-                            : null
-                    } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
+                                ? 'green'
+                                : null
+                        } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
                     style={{ paddingBottom: '6px', paddingTop: '6px' }}
                     onClick={this.handleActiveIncidentClick}
                     id="activeIncidents"
                 >
                     <span
-                        className={`db-SideNav-icon db-SideNav-icon--${
-                            incidentCounter && incidentCounter > 0
+                        className={`db-SideNav-icon db-SideNav-icon--${incidentCounter && incidentCounter > 0
                                 ? 'info'
                                 : incidentCounter === 0
-                                ? 'tick'
-                                : null
-                        } db-SideNav-icon--selected`}
+                                    ? 'tick'
+                                    : null
+                            } db-SideNav-icon--selected`}
                         style={{
                             filter: 'brightness(0) invert(1)',
                             marginTop: '1px',
@@ -282,8 +280,6 @@ class TopContent extends Component {
                 const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
-                const sameDay = oncallstart < oncallend;
-                const differentDay = oncallstart >= oncallend;
 
                 const startTime = moment(
                     (userSchedule &&
@@ -298,6 +294,7 @@ class TopContent extends Component {
                 ).format('HH:mm');
 
                 const compareDate = (oncallstart, oncallend, now) => {
+                    const isDifferentDay = oncallstart >= oncallend;
                     const [startHour, startMin] = oncallstart.split(":");
                     const [endHour, endMin] = oncallend.split(":");
                     const [nowHour, nowMin] = now.split(":");
@@ -306,32 +303,35 @@ class TopContent extends Component {
                     const start = new Date(new Date()
                         .setHours(startHour, startMin))
                         .getTime();
-                    const end = new Date(new Date(new Date()
-                        .getTime() + addDay)
-                        .setHours(endHour, endMin))
-                        .getTime();
+                    const end = isDifferentDay ?
+                        new Date(new Date(new Date()
+                            .getTime() + addDay)
+                            .setHours(endHour, endMin))
+                            .getTime() :
+                        new Date(new Date(new Date()
+                            .getTime())
+                            .setHours(endHour, endMin))
+                            .getTime();
                     let current = new Date(new Date()
                         .setHours(nowHour, nowMin))
                         .getTime();
 
-                    current = current < start ? 
+                    current = ((current < start) && isDifferentDay) ?
                         new Date(new Date(new Date()
-                        .getTime() + addDay)
-                        .setHours(nowHour, nowMin))
-                        .getTime() : current;
+                            .getTime() + addDay)
+                            .setHours(nowHour, nowMin))
+                            .getTime() : current;
 
                     if (current >= start && current <= end) return true;
                     return false;
                 }
 
-                const isUserActive = (sameDay && moment(now, 'HH:mm')
-                .isBetween(moment(oncallstart, 'HH:mm'),
-                    moment(oncallend, 'HH:mm'))) || (differentDay &&
-                        (compareDate(oncallstart, oncallend, now) || (oncallstart === oncallend)));
+                const isUserActive =
+                    (compareDate(oncallstart, oncallend, now) || (oncallstart === oncallend));
 
-            const isUpcoming = moment(startTime, 'HH:mm')
-                .diff(moment(now, 'HH:mm'),
-                    'minutes');
+                const isUpcoming = moment(startTime, 'HH:mm')
+                    .diff(moment(now, 'HH:mm'),
+                        'minutes');
                 const isOnDutyAllTheTime =
                     userSchedule.startTime === userSchedule.endTime;
 

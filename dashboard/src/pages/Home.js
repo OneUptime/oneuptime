@@ -164,8 +164,6 @@ class Home extends Component {
                 const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
-                const sameDay = oncallstart < oncallend;
-                const differentDay = oncallstart >= oncallend;
 
                 const startTime = moment(
                     (userSchedule &&
@@ -180,6 +178,7 @@ class Home extends Component {
                 ).format('HH:mm');
 
                 const compareDate = (oncallstart, oncallend, now) => {
+                    const isDifferentDay = oncallstart >= oncallend;
                     const [startHour, startMin] = oncallstart.split(":");
                     const [endHour, endMin] = oncallend.split(":");
                     const [nowHour, nowMin] = now.split(":");
@@ -188,28 +187,31 @@ class Home extends Component {
                     const start = new Date(new Date()
                         .setHours(startHour, startMin))
                         .getTime();
-                    const end = new Date(new Date(new Date()
-                        .getTime() + addDay)
-                        .setHours(endHour, endMin))
-                        .getTime();
+                    const end = isDifferentDay ?
+                        new Date(new Date(new Date()
+                            .getTime() + addDay)
+                            .setHours(endHour, endMin))
+                            .getTime() :
+                        new Date(new Date(new Date()
+                            .getTime())
+                            .setHours(endHour, endMin))
+                            .getTime();
                     let current = new Date(new Date()
                         .setHours(nowHour, nowMin))
                         .getTime();
 
-                    current = current < start ? 
+                    current = ((current < start) && isDifferentDay) ?
                         new Date(new Date(new Date()
-                        .getTime() + addDay)
-                        .setHours(nowHour, nowMin))
-                        .getTime() : current;
+                            .getTime() + addDay)
+                            .setHours(nowHour, nowMin))
+                            .getTime() : current;
 
                     if (current >= start && current <= end) return true;
                     return false;
                 }
 
-                const isUserActive = (sameDay && moment(now, 'HH:mm')
-                    .isBetween(moment(oncallstart, 'HH:mm'),
-                        moment(oncallend, 'HH:mm'))) || (differentDay &&
-                            (compareDate(oncallstart, oncallend, now) || (oncallstart === oncallend)));
+                const isUserActive =
+                    (compareDate(oncallstart, oncallend, now) || (oncallstart === oncallend));
 
                 const isUpcoming = moment(startTime, 'HH:mm')
                     .diff(moment(now, 'HH:mm'),

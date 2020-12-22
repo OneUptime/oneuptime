@@ -1862,11 +1862,11 @@ module.exports = {
                         eventType: isStatusPageNoteAlert
                             ? statusPageNoteAlertEventType
                             : templateType ===
-                              'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                                'Subscriber Incident Acknowldeged'
+                                ? 'acknowledged'
+                                : templateType === 'Subscriber Incident Resolved'
+                                    ? 'resolved'
+                                    : 'identified',
                         alertStatus: null,
                         error: true,
                         errorMessage:
@@ -1963,11 +1963,11 @@ module.exports = {
                             !hasGlobalSmtpSettings && !hasCustomSmtpSettings
                                 ? 'SMTP Settings not found on Admin Dashboard'
                                 : hasGlobalSmtpSettings &&
-                                  !areEmailAlertsEnabledInGlobalSettings
-                                ? 'Alert Disabled on Admin Dashboard'
-                                : investigationNoteNotificationEmailDisabled
-                                ? 'Investigation Note Email Notification Disabled'
-                                : 'Error',
+                                    !areEmailAlertsEnabledInGlobalSettings
+                                    ? 'Alert Disabled on Admin Dashboard'
+                                    : investigationNoteNotificationEmailDisabled
+                                        ? 'Investigation Note Email Notification Disabled'
+                                        : 'Error',
                     });
                 }
                 const emailTemplate = await EmailTemplateService.findOneBy({
@@ -2180,12 +2180,12 @@ module.exports = {
                         errorMessage: !hasGlobalTwilioSettings
                             ? 'Twilio Settings not found on Admin Dashboard'
                             : !areAlertsEnabledGlobally
-                            ? 'Alert Disabled on Admin Dashboard'
-                            : IS_SAAS_SERVICE && !project.alertEnable
-                            ? 'Alert Disabled for this project'
-                            : investigationNoteNotificationSMSDisabled
-                            ? 'Investigation Note SMS Notification Disabled'
-                            : 'Error',
+                                ? 'Alert Disabled on Admin Dashboard'
+                                : IS_SAAS_SERVICE && !project.alertEnable
+                                    ? 'Alert Disabled for this project'
+                                    : investigationNoteNotificationSMSDisabled
+                                        ? 'Investigation Note SMS Notification Disabled'
+                                        : 'Error',
                         eventType: isStatusPageNoteAlert
                             ? statusPageNoteAlertEventType
                             : templateType ===
@@ -2509,13 +2509,9 @@ module.exports = {
         const oncallstart = moment(startTime).format('HH:mm');
         const oncallend = moment(endTime).format('HH:mm');
         const currentTime = moment().format('HH:mm');
-        const sameDay = oncallstart < oncallend;
-        const differentDay = oncallstart >= oncallend;
-        const isUserActive = (sameDay && moment(currentTime, 'HH:mm')
-            .isBetween(moment(oncallstart, 'HH:mm'),
-                moment(oncallend, 'HH:mm'))) || (differentDay &&
-                    (DateTime.compareDate(oncallstart, oncallend, currentTime)
-                        || (oncallstart === oncallend)));
+        const isUserActive = DateTime.compareDate(
+            oncallstart, oncallend, currentTime)
+            || (oncallstart === oncallend);
         if (isUserActive) return true;
         return false
     },
@@ -2646,7 +2642,7 @@ module.exports = {
         }
     },
 
-    sendUnpaidSubscriptionEmail: async function(project, user) {
+    sendUnpaidSubscriptionEmail: async function (project, user) {
         try {
             const { name: userName, email: userEmail } = user;
             const { stripePlanId, _id: projectId, name: projectName } = project;
@@ -2666,7 +2662,7 @@ module.exports = {
         }
     },
 
-    sendProjectDeleteEmailForUnpaidSubscription: async function(project, user) {
+    sendProjectDeleteEmailForUnpaidSubscription: async function (project, user) {
         try {
             const { name: userName, email: userEmail } = user;
             const { stripePlanId, name: projectName } = project;
