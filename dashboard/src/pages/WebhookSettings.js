@@ -42,7 +42,9 @@ class WebhookSettings extends Component {
                         name="Webhooks Settings"
                         icon={icon}
                     />
-                    <AdvancedIncidentNotification type="webhook" />
+                    <div id="webhooksSettingsPage">
+                        <AdvancedIncidentNotification type="webhook" />
+                    </div>
                 </Fade>
             </Dashboard>
         );
