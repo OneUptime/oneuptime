@@ -216,12 +216,12 @@ export function MonitorBox(props) {
                                                                     </div>
                                                                     <div className="Checkbox-label Box-root Margin-left--8">
                                                                         <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                            <span title="Set default on-call schedule">
+                                                                            <span title="Set default on-call duty">
                                                                                 Set
                                                                                 as
                                                                                 default
                                                                                 on-call
-                                                                                schedule
+                                                                                duty
                                                                             </span>
                                                                         </span>
                                                                         <p className="bs-Fieldset-explanation">
@@ -232,7 +232,7 @@ export function MonitorBox(props) {
                                                                                 monitors
                                                                                 without
                                                                                 on-call
-                                                                                schedule
+                                                                                duty
                                                                                 within
                                                                                 a
                                                                                 project
