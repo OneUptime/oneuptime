@@ -262,12 +262,14 @@ export class IncidentStatus extends Component {
             <>
                 <ShouldRender
                     if={
-                        !this.props.route ||
-                        (this.props.route &&
-                            !(
-                                this.props.route === homeRoute ||
-                                this.props.route === monitorRoute
-                            ) &&
+                        (!this.props.route ||
+                            (this.props.route &&
+                                !(
+                                    this.props.route ===
+                                    homeRoute ||
+                                    this.props.route ===
+                                    monitorRoute
+                                ))) && (
                             this.props.incident.acknowledged &&
                             this.props.incident.resolved &&
                             !this.props.incidentRequest.requesting)

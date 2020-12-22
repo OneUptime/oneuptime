@@ -103,8 +103,6 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                                         ).format(
                                                                             'hh:mm A'
                                                                         )}
-                                                                        {schedule.timezone &&
-                                                                            ` (${schedule.timezone})`}
                                                                     </b>{' '}
                                                                     and your
                                                                     next duty
@@ -124,8 +122,6 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                                 ).format(
                                                                     'hh:mm A'
                                                                 )}
-                                                                {schedule.timezone &&
-                                                                    ` (${schedule.timezone})`}
                                                             </b>{' '}
                                                             and ends at{' '}
                                                             <b>
@@ -135,8 +131,6 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                                 ).format(
                                                                     'hh:mm A'
                                                                 )}
-                                                                {schedule.timezone &&
-                                                                    ` (${schedule.timezone})`}
                                                                 .
                                                             </b>
                                                         </span>
