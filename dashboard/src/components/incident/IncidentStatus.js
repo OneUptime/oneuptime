@@ -275,7 +275,7 @@ export class IncidentStatus extends Component {
                             !this.props.incidentRequest.requesting)
                     }
                 >
-                    <div className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--green Text-color--white Border-radius--4 Text-fontWeight--bold Padding-horizontal--20 Padding-vertical--12 pointer">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--green Text-color--white Border-radius--4 Text-fontWeight--bold Padding-horizontal--20 Padding-vertical--12 pointer Card-shadow--medium bs-mar-cursor">
                         <span
                             className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
                             style={{

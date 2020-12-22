@@ -208,7 +208,7 @@ describe('Project API', function() {
             });
     });
 
-    it('should return error when project balance is tried to accessed without supplying a projectId', function(done){
+    it('should return error when project balance is tried to accessed without supplying a projectId', function(done) {
         const authorization = `Basic ${token}`;
         request
             .get(`/project/${null}/balance`)
@@ -219,7 +219,7 @@ describe('Project API', function() {
             });
     });
 
-    it('should fetch a project balance when projectId is given', function(done){
+    it('should fetch a project balance when projectId is given', function(done) {
         const authorization = `Basic ${token}`;
         request
             .get(`/project/${projectId}/balance`)

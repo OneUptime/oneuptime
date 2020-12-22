@@ -35,18 +35,76 @@ $ fyipe-server-monitor
 You can also use it like this:
 
 ```bash
-$ fyipe-server-monitor -p 5d64d59cae46131619708309 -u https://fyipe.com/api -a b02798c0-c898-11e9-9f14-4963dc67e2ab -m 5d7775e9f14a531364ba6917
+$ fyipe-server-monitor --project-id 5d64d59cae46131619708309 --api-url https://fyipe.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
 ```
 
 Or run as a daemon:
 
 ```bash
-$ fyipe-server-monitor -d -p 5d64d59cae46131619708309 -u https://fyipe.com/api -a b02798c0-c898-11e9-9f14-4963dc67e2ab -m 5d7775e9f14a531364ba6917
+$ fyipe-server-monitor --daemon --project-id 5d64d59cae46131619708309 --api-url https://fyipe.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
 ```
+
+You can use the following commands with the daemon: `start`, `restart`, `stop`, and `uninstall`.
+
+Run to start the stopped daemon:
+
+```bash
+$ fyipe-server-monitor --daemon start
+```
+
+Run to restart the running daemon:
+
+```bash
+$ fyipe-server-monitor --daemon restart
+```
+
+Run to stop the running daemon:
+
+```bash
+$ fyipe-server-monitor --daemon stop
+```
+
+Run to stop and uninstall the running daemon:
+
+```bash
+$ fyipe-server-monitor --daemon uninstall
+```
+
+A complete log of the daemon can be found in these directories:
+
+```bash
+# linux logs
+/var/log/fsmd.log
+/var/log/fsmd_error.log
+
+# mac logs
+/Library/Logs/fsmd.log
+/Library/Logs/fsmd_error.log
+
+# windows logs
+<service_path>/fsmd.out.log
+<service_path>/fsmd.err.log
+```
+
+NB:- In most cases, `sudo` or admin privileges are required to run the shell as a daemon.
+
+### Services
+
+#### Linux
+
+Services created by the daemon are like other services running on Linux. It can be started/stopped using `service fsmd start` or `service fsmd stop` and logs are available. This file is created in /etc/init.d by default. Additionally, log files are generated in /var/log/ for general output and error logging.
+
+#### Mac
+
+Services created by the daemon are similar to most other services running on OSX. It can be stopped from the Activity Monitor and make logs available in the Console app. A plist file is created in /Library/LaunchDaemons by default. Additionally, two log files are generated in /Library/Logs/ for general output and error logging.
+
+#### Windows
+
+Services created by the daemon are similar to most other services running on Windows. It can be started/stopped from the windows service utility, via NET START or NET STOP commands, or even managed using the sc utility. A directory called daemon is created and populated with fsmd.exe and fsmd.xml. The XML file is a configuration for the executable. Additionally, logs are created in this directory (which are viewable in the Event log).
 
 <a name="module_api"></a>
 
-## Basic Usage
+## Programmatic Usage
 
 ```javascript
 const serverMonitor = require('fyipe-server-monitor');
