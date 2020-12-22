@@ -58,6 +58,7 @@ module.exports = {
                 alertCharges = await AlertChargeModel.find(query)
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
+                    .populate('subscriberAlertId', 'alertVia')
                     .populate('monitorId');
             }
             return alertCharges;

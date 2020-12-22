@@ -54,6 +54,11 @@ const GlobalConfigModel = require('../backend/models/globalConfig');
 const GlobalConfigService = require('../backend/services/globalConfigService');
 const EmailSmtpService = require('../backend/services/emailSmtpService');
 const AlertChargeService = require('../backend/services/alertChargeService');
+const alertType = require('../backend/config/alertType');
+const {
+    getAlertChargeAmount,
+    getCountryType,
+} = require('../backend/config/alertType');
 
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -1585,6 +1590,124 @@ describe('SMS/Calls Incident Alerts', function() {
 
             expect(balance).to.be.lessThan(rechargeToBalance);
             expect(balance).to.be.greaterThan(minimumBalance);
+            // resolve the incident
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId: newIncident.body._id,
+            });
+
+            expect(incidentResolved).to.have.status(200);
+        });
+
+        /**
+         * Global twilio settings: set
+         * Custom twilio settings: not set
+         * Global twilio settings SMS enable : true
+         * Global twilio settings Call enable : true
+         * SMS/Call alerts enabled for the project (billing): true
+         */
+        it('should correctly register closing balance for alert charges', async function() {
+            this.timeout(60 * 1000);
+            // update global setting to enable call and sms
+            const globalSettings = await GlobalConfigModel.findOne({
+                name: 'twilio',
+            });
+            const { value } = globalSettings;
+            value['sms-enabled'] = true;
+            value['call-enabled'] = true;
+
+            await GlobalConfigModel.findOneAndUpdate(
+                { name: 'twilio' },
+                { value }
+            );
+
+            // create multiple subscribers
+            for (let i = 0; i < 9; i++) {
+                const newSubscriber = await addSubscriberToMonitor({
+                    request,
+                    authorization,
+                    monitorId,
+                    projectId,
+                    payload: {
+                        alertVia: 'sms',
+                        contactPhone: `92161522${i}`,
+                        countryCode: 'et',
+                    },
+                });
+                expect(newSubscriber).to.have.status(200);
+            }
+
+            // enable billing for the project
+            const billingEndpointResponse = await request
+                .put(`/project/${projectId}/alertOptions`)
+                .set('Authorization', authorization)
+                .send({
+                    alertEnable: true,
+                    billingNonUSCountries: true,
+                    billingRiskCountries: true,
+                    billingUS: true,
+                    minimumBalance: '100',
+                    rechargeToBalance: '200',
+                    _id: projectId,
+                });
+
+            expect(billingEndpointResponse).to.have.status(200);
+
+            // get original project balance
+            const {
+                balance: originalProjectBalance,
+            } = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+
+            // send notification
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
+                    monitorId,
+                    projectId,
+                    title: 'test monitor  is offline.',
+                    incidentType: 'offline',
+                    description: 'Incident description',
+                },
+            });
+
+            expect(newIncident).to.have.status(200);
+
+            await sleep(25 * 1000);
+
+            // check closing balance in each subscriber alert
+            const alertCharges = await AlertChargeService.findBy({
+                incidentId: newIncident.body._id,
+                projectId: projectId,
+            });
+            expect(alertCharges).to.be.an('array');
+
+            let calculatedBalance = originalProjectBalance;
+
+            const allAlertChargesCorrect = alertCharges.every(alertCharge => {
+                if (alertCharge.subscriberAlertId) {
+                    const alertVia = alertCharge.subscriberAlertId.alertVia;
+                    const countryType = getCountryType('+251921615223');
+                    const alertChargeAmount = getAlertChargeAmount(
+                        alertVia,
+                        countryType
+                    );
+
+                    calculatedBalance -= alertChargeAmount.price;
+
+                    return calculatedBalance === alertCharge.closingBalance;
+                }
+                return false;
+            });
+
+            expect(allAlertChargesCorrect).to.be.true;
+
             // resolve the incident
             const incidentResolved = await markIncidentAsResolved({
                 request,
