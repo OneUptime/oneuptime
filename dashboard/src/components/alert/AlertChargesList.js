@@ -392,7 +392,10 @@ export class AlertChargesList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ fetchAlertCharges, getProjectBalance }, dispatch);
+    return bindActionCreators(
+        { fetchAlertCharges, getProjectBalance },
+        dispatch
+    );
 };
 
 const mapStateToProps = state => {

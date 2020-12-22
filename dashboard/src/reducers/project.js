@@ -285,7 +285,7 @@ export default function project(state = initialState, action) {
                     requesting: true,
                     success: false,
                     error: null,
-                }, 
+                },
             });
         case types.GET_PROJECT_BALANCE_FAILED:
             return Object.assign({}, state, {
