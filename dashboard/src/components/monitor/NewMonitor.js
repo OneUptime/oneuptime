@@ -765,7 +765,7 @@ class NewMonitor extends Component {
                                                                             flexDirection:'row',
                                                                             cursor: 'pointer',
                                                                             border:'1px solid rgba(0,0,0,0.2)',
-                                                                            borderRadius: '10px',
+                                                                            borderRadius: '5px',
                                                                             //textAlign:'center',                                                              
                                                                         }}> 
                                                                         <div
