@@ -30,6 +30,7 @@ class FyipeTracker
     private $MAX_ITEMS_ALLOWED_IN_STACK = 100;
     private $eventId;
     private $tags = [];
+    private $fingerprint;
 
     /**
      * FyipeTracker constructor.
@@ -75,7 +76,7 @@ class FyipeTracker
     private function getEventId() {
         return $this->eventId;
     }
-    private function setTag($key, $value) {
+    public function setTag($key, $value) {
         if (!(is_string($key) || is_string($value))) {
             throw new \Exception("Invalid Tag");
         }
@@ -98,7 +99,7 @@ class FyipeTracker
         }
 
     }
-    private function setTags($tags) {
+    public function setTags($tags) {
         if (!is_array($tags)) {
             throw new \Exception("Invalid Tags");
         }
@@ -111,4 +112,20 @@ class FyipeTracker
     private function getTags() {
         return $this->tags;
     }
+    public function setFingerPrint($key) {
+        if (!(is_array($key) || is_string($key))) {
+            throw new \Exception("Invalid Fingerprint");
+        }
+
+        $this->fingerprint = is_array($key) ? $key : [$key];
+    }
+    private function getFingerprint($errorMessage) {
+        // if no fingerprint exist currently
+        if (sizeof($this->fingerprint) < 1) {
+            // set up finger print based on error since none exist
+            $this->setFingerprint($errorMessage);
+        }
+        return $this->fingerprint;
+    }
+    
 }
