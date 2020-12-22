@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import { ListLoader } from '../basic/Loader';
 import moment from 'moment';
 import { fetchAlertCharges } from '../../actions/alert';
+import { getProjectBalance } from '../../actions/project';
 import { history } from '../../store';
 
 export class AlertChargesList extends Component {
@@ -13,7 +14,7 @@ export class AlertChargesList extends Component {
         this.props = props;
     }
     componentDidMount() {
-        const { fetchAlertCharges } = this.props;
+        const { fetchAlertCharges, getProjectBalance } = this.props;
         let { projectId } = this.props;
         if (!projectId) {
             projectId = history.location.pathname
@@ -23,6 +24,7 @@ export class AlertChargesList extends Component {
         } else {
             fetchAlertCharges(projectId, 0, 5);
         }
+        getProjectBalance(projectId);
     }
 
     prevClicked = () => {
@@ -390,7 +392,7 @@ export class AlertChargesList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ fetchAlertCharges }, dispatch);
+    return bindActionCreators({ fetchAlertCharges, getProjectBalance }, dispatch);
 };
 
 const mapStateToProps = state => {
@@ -432,6 +434,7 @@ AlertChargesList.propTypes = {
     limit: PropTypes.number,
     count: PropTypes.number,
     fetchAlertCharges: PropTypes.func.isRequired,
+    getProjectBalance: PropTypes.func,
 };
 
 AlertChargesList.displayName = 'AlertChargesList';
