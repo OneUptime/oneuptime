@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Field } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
-import TimezoneSelector from '../basic/TimezoneSelector';
 import TeamMemberSelector from '../basic/TeamMemberSelector';
 import TimeSelector from '../basic/TimeSelector';
 import Tooltip from '../basic/Tooltip';
@@ -161,32 +160,6 @@ const RenderMember = ({
                                         <br />
                                         On-Call end time is end of the on-call
                                         duty time.{' '}
-                                    </p>
-                                </div>
-                            </Tooltip>
-                        </span>
-                    </div>
-                </div>
-            )}
-            {showTimes && (
-                <div className="bs-Fieldset-row">
-                    <label className="bs-Fieldset-label">Timezone</label>
-                    <div className="bs-Fieldset-fields">
-                        <span className="flex">
-                            <Field
-                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                type="text"
-                                name={`${inputarray}.timezone`}
-                                component={TimezoneSelector}
-                                style={{ width: '250px' }}
-                                placeholder="Select Timezone"
-                            />
-                            <Tooltip title="On-Call Timezone">
-                                <div>
-                                    <p>
-                                        {' '}
-                                        Timezone of on-call start call time and
-                                        on-call end time.{' '}
                                     </p>
                                 </div>
                             </Tooltip>
