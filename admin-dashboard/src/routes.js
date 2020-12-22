@@ -15,6 +15,7 @@ const {
     Settings,
     License,
     EmailLogs,
+    SmsLogs,
 } = pages;
 
 export const groups = [
@@ -91,6 +92,16 @@ export const groups = [
                 subRoutes: [],
                 index: 5,
                 shortcut: 'f+e',
+            },
+            {
+                title: 'SMS Logs',
+                path: '/admin/sms-logs',
+                icon: 'smsIcon',
+                component: SmsLogs,
+                visible: true,
+                subRoutes: [],
+                index: 6,
+                shortcut: 'f+k',
             },
         ],
     },
@@ -172,6 +183,16 @@ export const groups = [
                         subRoutes: [],
                         index: 6,
                         shortcut: 'f+i',
+                    },
+                    {
+                        title: 'SMS Log',
+                        path: '/admin/settings/sms-logs',
+                        icon: 'smsIcon',
+                        component: Settings,
+                        visible: true,
+                        subRoutes: [],
+                        index: 7,
+                        shortcut: 'f+c',
                     },
                 ],
                 index: 1,

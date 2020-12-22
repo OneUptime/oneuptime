@@ -9,6 +9,7 @@ import project from './project';
 import probe from './probe';
 import auditLogs from './auditLogs';
 import emailLogs from './emailLogs';
+import smsLogs from './smsLogs';
 import settings from './settings';
 import license from './license';
 import page from './page';
@@ -25,6 +26,7 @@ const appReducer = combineReducers({
     probe,
     auditLogs,
     emailLogs,
+    smsLogs,
     settings,
     license,
     page,

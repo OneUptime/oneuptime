@@ -7,6 +7,8 @@ import Twilio from '../components/settings/twilio';
 import Sso from '../components/settings/sso';
 import AuditLog from '../components/settings/auditLog';
 import EmailLog from '../components/settings/emailLog';
+import SmsLog from '../components/settings/smsLog';
+
 // eslint-disable-next-line react/display-name
 const getChild = key => {
     switch (key) {
@@ -20,6 +22,8 @@ const getChild = key => {
             return <AuditLog />;
         case '/admin/settings/email-logs':
             return <EmailLog />;
+        case '/admin/settings/sms-logs':
+            return <SmsLog />;
         default:
             return null;
     }
