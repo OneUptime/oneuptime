@@ -1,47 +1,47 @@
 import {
-    FETCH_AUDITLOGS_REQUEST,
-    FETCH_AUDITLOGS_SUCCESS,
-    FETCH_AUDITLOGS_FAILURE,
-    SEARCH_AUDITLOGS_REQUEST,
-    SEARCH_AUDITLOGS_SUCCESS,
-    SEARCH_AUDITLOGS_FAILURE,
-    DELETE_ALL_AUDITLOGS_REQUEST,
-    DELETE_ALL_AUDITLOGS_SUCCESS,
-    DELETE_ALL_AUDITLOGS_FAILURE,
-    FETCH_AUDITLOG_STATUS_FAILED,
-    FETCH_AUDITLOG_STATUS_REQUEST,
-    FETCH_AUDITLOG_STATUS_SUCCESS,
-    FETCH_AUDITLOG_STATUS_RESET,
-    CHANGE_AUDITLOG_STATUS_FAILED,
-    CHANGE_AUDITLOG_STATUS_REQUEST,
-    CHANGE_AUDITLOG_STATUS_RESET,
-    CHANGE_AUDITLOG_STATUS_SUCCESS,
-} from '../constants/auditLogs';
+    FETCH_EMAILLOGS_REQUEST,
+    FETCH_EMAILLOGS_SUCCESS,
+    FETCH_EMAILLOGS_FAILURE,
+    SEARCH_EMAILLOGS_REQUEST,
+    SEARCH_EMAILLOGS_SUCCESS,
+    SEARCH_EMAILLOGS_FAILURE,
+    DELETE_ALL_EMAILLOGS_REQUEST,
+    DELETE_ALL_EMAILLOGS_SUCCESS,
+    DELETE_ALL_EMAILLOGS_FAILURE,
+    FETCH_EMAILLOG_STATUS_FAILED,
+    FETCH_EMAILLOG_STATUS_REQUEST,
+    FETCH_EMAILLOG_STATUS_SUCCESS,
+    FETCH_EMAILLOG_STATUS_RESET,
+    CHANGE_EMAILLOG_STATUS_FAILED,
+    CHANGE_EMAILLOG_STATUS_REQUEST,
+    CHANGE_EMAILLOG_STATUS_RESET,
+    CHANGE_EMAILLOG_STATUS_SUCCESS,
+} from '../constants/emailLogs';
 
 const INITIAL_STATE = {
-    auditLogs: {
+    emailLogs: {
         error: null,
         requesting: false,
         success: false,
-        auditLogs: [],
+        emailLogs: [],
         count: null,
         limit: null,
         skip: null,
         deleteRequest: false,
         deleted: false,
     },
-    searchAuditLogs: {
+    searchEmailLogs: {
         requesting: false,
         error: null,
         success: false,
     },
-    auditLogStatus: {
+    emailLogStatus: {
         error: null,
         requesting: false,
         success: false,
         data: null,
     },
-    changeAuditLogStatus: {
+    changeEmailLogStatus: {
         error: null,
         requesting: false,
         success: false,
@@ -50,23 +50,23 @@ const INITIAL_STATE = {
 
 export default function project(state = INITIAL_STATE, action) {
     switch (action.type) {
-        // Fetch auditLogs list
-        case FETCH_AUDITLOGS_REQUEST:
+        // Fetch emailLogs list
+        case FETCH_EMAILLOGS_REQUEST:
             return Object.assign({}, state, {
-                auditLogs: {
+                emailLogs: {
                     requesting: true,
                     error: null,
                     success: false,
                 },
             });
 
-        case FETCH_AUDITLOGS_SUCCESS:
+        case FETCH_EMAILLOGS_SUCCESS:
             return Object.assign({}, state, {
-                auditLogs: {
+                emailLogs: {
                     requesting: false,
                     error: null,
                     success: true,
-                    auditLogs: action.payload.data,
+                    emailLogs: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
                     skip: action.payload.skip,
@@ -75,94 +75,94 @@ export default function project(state = INITIAL_STATE, action) {
                 },
             });
 
-        case FETCH_AUDITLOGS_FAILURE:
+        case FETCH_EMAILLOGS_FAILURE:
             return Object.assign({}, state, {
-                auditLogs: {
+                emailLogs: {
                     requesting: false,
                     error: action.payload,
                     success: false,
                 },
             });
 
-        // Search AuditLog list.
-        case SEARCH_AUDITLOGS_REQUEST:
+        // Search EmailLog list.
+        case SEARCH_EMAILLOGS_REQUEST:
             return Object.assign({}, state, {
-                searchAuditLogs: {
+                searchEmailLogs: {
                     requesting: true,
                     error: null,
                     success: false,
                 },
             });
 
-        case SEARCH_AUDITLOGS_SUCCESS:
+        case SEARCH_EMAILLOGS_SUCCESS:
             return Object.assign({}, state, {
-                auditLogs: {
+                emailLogs: {
                     requesting: false,
                     error: null,
                     success: true,
-                    auditLogs: action.payload.data,
+                    emailLogs: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
                     skip: action.payload.skip,
                     deleteRequest: false,
                     deleted: true,
                 },
-                searchAuditLogs: {
+                searchEmailLogs: {
                     requesting: false,
                     error: null,
                     success: true,
                 },
             });
 
-        case SEARCH_AUDITLOGS_FAILURE:
+        case SEARCH_EMAILLOGS_FAILURE:
             return Object.assign({}, state, {
-                searchAuditLogs: {
+                searchEmailLogs: {
                     requesting: false,
                     error: action.payload,
                     success: false,
                 },
             });
 
-        //Delete all Audit logs
-        case DELETE_ALL_AUDITLOGS_REQUEST:
+        //Delete all Email logs
+        case DELETE_ALL_EMAILLOGS_REQUEST:
             return {
                 ...state,
-                auditLogs: {
-                    ...state.auditLogs,
+                emailLogs: {
+                    ...state.emailLogs,
                     error: null,
                     success: false,
                     deleteRequest: true,
                 },
             };
 
-        case DELETE_ALL_AUDITLOGS_SUCCESS:
+        case DELETE_ALL_EMAILLOGS_SUCCESS:
             return Object.assign({}, state, {
-                auditLogs: {
+                emailLogs: {
                     requesting: false,
                     error: null,
                     success: true,
                     deleteRequest: false,
                     deleted: true,
-                    auditLogs: [],
+                    emailLogs: [],
                     count: null,
                     limit: null,
                     skip: null,
                 },
             });
 
-        case DELETE_ALL_AUDITLOGS_FAILURE:
+        case DELETE_ALL_EMAILLOGS_FAILURE:
             return {
                 ...state,
-                auditLogs: {
-                    ...state.auditLogs,
+                emailLogs: {
+                    ...state.emailLogs,
                     error: action.payload,
                     success: false,
                     deleteRequest: false,
                 },
             };
-        case FETCH_AUDITLOG_STATUS_REQUEST:
+        case FETCH_EMAILLOG_STATUS_REQUEST:
             return Object.assign({}, state, {
-                auditLogStatus: {
+                emailLogStatus: {
                     error: null,
                     requesting: true,
                     success: false,
@@ -170,9 +170,9 @@ export default function project(state = INITIAL_STATE, action) {
                 },
             });
 
-        case FETCH_AUDITLOG_STATUS_SUCCESS: {
+        case FETCH_EMAILLOG_STATUS_SUCCESS: {
             return Object.assign({}, state, {
-                auditLogStatus: {
+                emailLogStatus: {
                     error: null,
                     requesting: false,
                     success: true,
@@ -183,37 +183,37 @@ export default function project(state = INITIAL_STATE, action) {
             });
         }
 
-        case FETCH_AUDITLOG_STATUS_FAILED:
+        case FETCH_EMAILLOG_STATUS_FAILED:
             return Object.assign({}, state, {
-                auditLogStatus: {
-                    ...state.auditLogStatus,
+                emailLogStatus: {
+                    ...state.emailLogStatus,
                     error: action.payload,
                     requesting: false,
                     success: false,
                 },
             });
 
-        case FETCH_AUDITLOG_STATUS_RESET:
+        case FETCH_EMAILLOG_STATUS_RESET:
             return Object.assign({}, state, {
-                auditLogStatus: {
+                emailLogStatus: {
                     error: null,
                     requesting: false,
                     success: false,
                     data: null,
                 },
             });
-        case CHANGE_AUDITLOG_STATUS_REQUEST:
+        case CHANGE_EMAILLOG_STATUS_REQUEST:
             return Object.assign({}, state, {
-                changeAuditLogStatus: {
+                changeEmailLogStatus: {
                     error: null,
                     requesting: true,
                     success: false,
                 },
             });
 
-        case CHANGE_AUDITLOG_STATUS_SUCCESS: {
+        case CHANGE_EMAILLOG_STATUS_SUCCESS: {
             return Object.assign({}, state, {
-                auditLogStatus: {
+                emailLogStatus: {
                     error: null,
                     requesting: false,
                     success: true,
@@ -221,7 +221,7 @@ export default function project(state = INITIAL_STATE, action) {
                         ...action.payload,
                     },
                 },
-                changeAuditLogStatus: {
+                changeEmailLogStatus: {
                     error: null,
                     requesting: false,
                     success: true,
@@ -229,18 +229,18 @@ export default function project(state = INITIAL_STATE, action) {
             });
         }
 
-        case CHANGE_AUDITLOG_STATUS_FAILED:
+        case CHANGE_EMAILLOG_STATUS_FAILED:
             return Object.assign({}, state, {
-                changeAuditLogStatus: {
+                changeEmailLogStatus: {
                     error: action.payload,
                     requesting: false,
                     success: false,
                 },
             });
 
-        case CHANGE_AUDITLOG_STATUS_RESET:
+        case CHANGE_EMAILLOG_STATUS_RESET:
             return Object.assign({}, state, {
-                changeAuditLogStatus: {
+                changeEmailLogStatus: {
                     error: null,
                     requesting: false,
                     success: false,

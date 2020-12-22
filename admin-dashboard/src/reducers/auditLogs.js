@@ -147,7 +147,7 @@ export default function project(state = INITIAL_STATE, action) {
                     count: null,
                     limit: null,
                     skip: null,
-                }, 
+                },
             });
 
         case DELETE_ALL_AUDITLOGS_FAILURE:

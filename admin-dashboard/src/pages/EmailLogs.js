@@ -4,16 +4,16 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import EmailLogsList from '../components/emailLogs/EmailLogsList';
-// import {
-//     fetchAuditLogs,
-//     searchAuditLogs,
-//     fetchAuditLogStatus,
-// } from '../actions/auditLogs';
+import {
+    fetchEmailLogs,
+    searchEmailLogs,
+    fetchEmailLogStatus,
+} from '../actions/emailLogs';
 import Dashboard from '../components/Dashboard';
 import { Link } from 'react-router-dom';
 import AlertPanel from '../components/basic/AlertPanel';
 import ShouldRender from '../components/basic/ShouldRender';
-class AuditLogs extends React.Component {
+class EmailLogs extends React.Component {
     constructor(props) {
         super(props);
 
@@ -24,49 +24,49 @@ class AuditLogs extends React.Component {
 
     prevClicked = (skip, limit) => {
         const { searchBox } = this.state;
-        //const { fetchAuditLogs, searchAuditLogs } = this.props;
+        const { fetchEmailLogs, searchEmailLogs } = this.props;
 
         if (searchBox && searchBox !== '') {
-            // searchAuditLogs(
-            //     searchBox,
-            //     (skip || 0) > (limit || 10) ? skip - limit : 0,
-            //     10
-            // );
+            searchEmailLogs(
+                searchBox,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
         } else {
-            //fetchAuditLogs((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
+            fetchEmailLogs((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
         }
     };
 
     nextClicked = (skip, limit) => {
         const { searchBox } = this.state;
-        // const { fetchAuditLogs, searchAuditLogs } = this.props;
+        const { fetchEmailLogs, searchEmailLogs } = this.props;
 
-        // if (searchBox && searchBox !== '') {
-        //     searchAuditLogs(searchBox, skip + limit, 10);
-        // } else {
-        //     fetchAuditLogs(skip + limit, 10);
-        // }
+        if (searchBox && searchBox !== '') {
+            searchEmailLogs(searchBox, skip + limit, 10);
+        } else {
+            fetchEmailLogs(skip + limit, 10);
+        }
     };
 
     ready = () => {
-        // this.props.fetchAuditLogs();
-        // this.props.fetchAuditLogStatus();
+        this.props.fetchEmailLogs();
+        this.props.fetchEmailLogStatus();
     };
 
     onChange = e => {
         const value = e.target.value;
-        //const { searchAuditLogs } = this.props;
+        const { searchEmailLogs } = this.props;
 
         this.setState({ searchBox: value });
-        //searchAuditLogs(value, 0, 10);
+        searchEmailLogs(value, 0, 10);
     };
 
     render() {
-        //const { auditLogStatus } = this.props;
+        const { emailLogStatus } = this.props;
         return (
             <Dashboard ready={this.ready}>
                 <div
-                    id="fyipeAuditLog"
+                    id="fyipeEmailLog"
                     onKeyDown={this.handleKeyBoard}
                     className="Box-root Margin-vertical--12"
                 >
@@ -111,7 +111,7 @@ class AuditLogs extends React.Component {
                                                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                                                     <div>
                                                                         <input
-                                                                            id="searchAuditLog"
+                                                                            id="searchEmailLog"
                                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             placeholder="Search Logs"
                                                                             onChange={
@@ -127,27 +127,27 @@ class AuditLogs extends React.Component {
                                                 </div>
                                                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column">
                                                     <ShouldRender
-                                                    // if={
-                                                    //     auditLogStatus.data &&
-                                                    //     !auditLogStatus.data
-                                                    //         .value
-                                                    // }
+                                                        if={
+                                                            emailLogStatus.data &&
+                                                            !emailLogStatus.data
+                                                                .value
+                                                        }
                                                     >
                                                         <AlertPanel
                                                             className=""
                                                             message={
-                                                                <span id="auditLogDisabled">
+                                                                <span id="emailLogDisabled">
                                                                     You are
                                                                     currently
                                                                     not storing
-                                                                    any audit
+                                                                    any email
                                                                     logs at the
                                                                     moment.
                                                                     Click{' '}
                                                                     <Link
                                                                         className="Border-bottom--white Text-fontWeight--bold Text-color--white"
-                                                                        to="/admin/settings/audit-logs"
-                                                                        id="auditLogSetting"
+                                                                        to="/admin/settings/email-logs"
+                                                                        id="emailLogSetting"
                                                                     >
                                                                         here
                                                                     </Link>{' '}
@@ -160,15 +160,15 @@ class AuditLogs extends React.Component {
                                                 </div>
                                             </div>
                                             <EmailLogsList
-                                                // auditLogs={
-                                                //     this.props.auditLogs || {}
-                                                // }
+                                                emailLogs={
+                                                    this.props.emailLogs || {}
+                                                }
                                                 prevClicked={this.prevClicked}
                                                 nextClicked={this.nextClicked}
-                                                // userId={this.props.userId}
-                                                // requesting={
-                                                //     this.props.requesting
-                                                // }
+                                                userId={this.props.userId}
+                                                requesting={
+                                                    this.props.requesting
+                                                }
                                             />
                                         </div>
                                     </div>
@@ -182,46 +182,45 @@ class AuditLogs extends React.Component {
     }
 }
 
-AuditLogs.displayName = 'AuditLogs';
+EmailLogs.displayName = 'EmailLogs';
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
-            // fetchAuditLogs,
-            // searchAuditLogs,
-            // fetchAuditLogStatus,
+            fetchEmailLogs,
+            searchEmailLogs,
+            fetchEmailLogStatus,
         },
         dispatch
     );
 };
 
 const mapStateToProps = state => {
-    const auditLogs = state.auditLogs.auditLogs;
-    const searchAuditLogs = state.auditLogs.searchAuditLogs;
+    const emailLogs = state.emailLogs.emailLogs;
+    const searchEmailLogs = state.emailLogs.searchEmailLogs;
     const requesting =
-        auditLogs && searchAuditLogs
-            ? auditLogs.requesting || searchAuditLogs.requesting
+        emailLogs && searchEmailLogs
+            ? emailLogs.requesting || searchEmailLogs.requesting
                 ? true
                 : false
             : false;
-    const auditLogStatus = state.auditLogs.auditLogStatus;
-    const changeAuditLogStatus = state.auditLogs.changeAuditLogStatus;
+    const emailLogStatus = state.emailLogs.emailLogStatus;
+    const changeEmailLogStatus = state.emailLogs.changeEmailLogStatus;
     return {
-        auditLogs,
+        emailLogs,
         requesting,
-        auditLogStatus,
-        changeAuditLogStatus,
+        emailLogStatus,
+        changeEmailLogStatus,
     };
 };
-
-AuditLogs.propTypes = {
-    //fetchAuditLogs: PropTypes.func.isRequired,
-    //searchAuditLogs: PropTypes.func.isRequired,
-    // requesting: PropTypes.bool,
-    // auditLogs: PropTypes.object,
-    // userId: PropTypes.string,
-    //fetchAuditLogStatus: PropTypes.func.isRequired,
-    //auditLogStatus: PropTypes.object,
+EmailLogs.propTypes = {
+    fetchEmailLogs: PropTypes.func.isRequired,
+    searchEmailLogs: PropTypes.func.isRequired,
+    requesting: PropTypes.bool,
+    emailLogs: PropTypes.object,
+    userId: PropTypes.string,
+    fetchEmailLogStatus: PropTypes.func.isRequired,
+    emailLogStatus: PropTypes.object,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(AuditLogs);
+export default connect(mapStateToProps, mapDispatchToProps)(EmailLogs);
