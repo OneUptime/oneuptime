@@ -5074,8 +5074,8 @@ input[type='radio']{
   -webkit-appearance: none;
   -moz-appearance: none;
   border-radius: 50%;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border: 2px solid #999;
   transition: 0.2s all linear;
   outline: none;
