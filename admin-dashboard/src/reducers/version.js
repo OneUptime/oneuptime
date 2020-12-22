@@ -37,10 +37,10 @@ export default (state = initialState, action) => {
                     success: true,
                     error: null,
                     server: action.payload.server,
-                    helm: action.payload.helm,
-                    dashboard: action.payload.dashboard,
+                    helm: action.payload.helmChartVersion,
+                    dashboard: action.payload.dashboardVersion,
+                    docs: action.payload.docsVersion,
                     adminDashboard: process.env.REACT_APP_VERSION,
-                    docs: action.payload.docs,
                 },
             });
 

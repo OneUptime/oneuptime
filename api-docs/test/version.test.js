@@ -12,7 +12,9 @@ describe('Version API', function() {
     it('should get the current api-docs version', function(done) {
         request.get('/version').end(function(err, res) {
             expect(res).to.have.status(200);
-            expect(res.body.docs).to.be.equal(process.env.npm_package_version);
+            expect(res.body.docsVersion).to.be.equal(
+                process.env.npm_package_version
+            );
             done();
         });
     });

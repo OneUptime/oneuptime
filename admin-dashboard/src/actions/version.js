@@ -1,4 +1,4 @@
-import { getApi, getApiDocs, getApiHelm } from '../api';
+import { getApi, getApiDocs, getApiHelm, getApiDashboard } from '../api';
 import * as types from '../constants/version';
 
 export function getVersionRequest(promise) {
@@ -34,12 +34,19 @@ export function getVersion() {
         let backendPromise = null;
         let helmChartPromise = null;
         let docsPromise = null;
+        let dashboardPromise = null;
 
         backendPromise = getApi('version');
         helmChartPromise = getApiHelm('version');
         docsPromise = getApiDocs('version');
+        dashboardPromise = getApiDashboard('version');
 
-        promise = Promise.all([backendPromise, helmChartPromise, docsPromise]);
+        promise = Promise.all([
+            backendPromise,
+            helmChartPromise,
+            docsPromise,
+            dashboardPromise,
+        ]);
 
         dispatch(getVersionRequest(promise));
 

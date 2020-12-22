@@ -6,6 +6,7 @@ import {
     ACCOUNTS_URL,
     HELM_CHART_URL,
     API_DOCS_URL,
+    DASHBOARD_URL,
 } from './config';
 import { User } from './config';
 const baseURL = API_URL;
@@ -184,6 +185,37 @@ export function getApiHelm(url, licensing) {
     axios({
         method: 'GET',
         url: `${HELM_CHART_URL}/${url}`,
+        headers,
+    })
+        .then(function(response) {
+            deffered.resolve(response);
+        })
+        .catch(function(error) {
+            if (error && error.response && error.response.status === 401) {
+                const cookies = new Cookies();
+                cookies.remove('admin-data', { path: '/' });
+                cookies.remove('data', { path: '/' });
+                User.clear();
+                window.location = ACCOUNTS_URL + '/login';
+            }
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            deffered.reject(error);
+        });
+
+    return deffered.promise;
+}
+
+export function getApiDashboard(url, licensing) {
+    if (User.isLoggedIn())
+        headers['Authorization'] = 'Basic ' + User.getAccessToken();
+    const deffered = Q.defer();
+    axios({
+        method: 'GET',
+        url: `${DASHBOARD_URL}/api/${url}`,
         headers,
     })
         .then(function(response) {
