@@ -54,7 +54,6 @@ const GlobalConfigModel = require('../backend/models/globalConfig');
 const GlobalConfigService = require('../backend/services/globalConfigService');
 const EmailSmtpService = require('../backend/services/emailSmtpService');
 const AlertChargeService = require('../backend/services/alertChargeService');
-const alertType = require('../backend/config/alertType');
 const {
     getAlertChargeAmount,
     getCountryType,
@@ -1624,7 +1623,7 @@ describe('SMS/Calls Incident Alerts', function() {
             );
 
             // create multiple subscribers
-            for (let i = 0; i < 9; i++) {
+            for (let i = 0; i < 10; i++) {
                 const newSubscriber = await addSubscriberToMonitor({
                     request,
                     authorization,
