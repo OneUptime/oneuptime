@@ -113,23 +113,25 @@ class TopContent extends Component {
         <>
             {typeof incidentCounter === 'number' && (
                 <div
-                    className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${incidentCounter && incidentCounter > 0
+                    className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
+                        incidentCounter && incidentCounter > 0
                             ? 'red'
                             : incidentCounter === 0
-                                ? 'green'
-                                : null
-                        } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
+                            ? 'green'
+                            : null
+                    } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
                     style={{ paddingBottom: '6px', paddingTop: '6px' }}
                     onClick={this.handleActiveIncidentClick}
                     id="activeIncidents"
                 >
                     <span
-                        className={`db-SideNav-icon db-SideNav-icon--${incidentCounter && incidentCounter > 0
+                        className={`db-SideNav-icon db-SideNav-icon--${
+                            incidentCounter && incidentCounter > 0
                                 ? 'info'
                                 : incidentCounter === 0
-                                    ? 'tick'
-                                    : null
-                            } db-SideNav-icon--selected`}
+                                ? 'tick'
+                                : null
+                        } db-SideNav-icon--selected`}
                         style={{
                             filter: 'brightness(0) invert(1)',
                             marginTop: '1px',
@@ -175,8 +177,9 @@ class TopContent extends Component {
                         marginRight: '3px',
                     }}
                 />
-                <span className={topNavCardClass}>{`${count} Scheduled Event${count === 1 ? '' : 's'
-                    } Currently Active`}</span>
+                <span className={topNavCardClass}>{`${count} Scheduled Event${
+                    count === 1 ? '' : 's'
+                } Currently Active`}</span>
             </div>
         ) : null;
     };
@@ -219,8 +222,8 @@ class TopContent extends Component {
     render() {
         const IMG_URL =
             this.props.profilePic &&
-                this.props.profilePic !== '' &&
-                this.props.profilePic !== 'null'
+            this.props.profilePic !== '' &&
+            this.props.profilePic !== 'null'
                 ? `url(${API_URL}/file/${this.props.profilePic})`
                 : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
         const userId = User.getUserId();
@@ -276,62 +279,69 @@ class TopContent extends Component {
         if (userSchedules && userSchedules.length > 0) {
             userSchedules.forEach(userSchedule => {
                 const now = (userSchedule && moment()).format('HH:mm');
-                const oncallstart = moment(userSchedule.startTime).format('HH:mm');
+                const oncallstart = moment(userSchedule.startTime).format(
+                    'HH:mm'
+                );
                 const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
 
                 const startTime = moment(
-                    (userSchedule &&
-                        userSchedule.startTime) ||
-                    dayStart
+                    (userSchedule && userSchedule.startTime) || dayStart
                 ).format('HH:mm');
 
                 const endTime = moment(
-                    (userSchedule &&
-                        userSchedule.endTime) ||
-                    dayEnd
+                    (userSchedule && userSchedule.endTime) || dayEnd
                 ).format('HH:mm');
 
                 const compareDate = (oncallstart, oncallend, now) => {
                     const isDifferentDay = oncallstart >= oncallend;
-                    const [startHour, startMin] = oncallstart.split(":");
-                    const [endHour, endMin] = oncallend.split(":");
-                    const [nowHour, nowMin] = now.split(":");
+                    const [startHour, startMin] = oncallstart.split(':');
+                    const [endHour, endMin] = oncallend.split(':');
+                    const [nowHour, nowMin] = now.split(':');
                     const addDay = 86400000;
 
-                    const start = new Date(new Date()
-                        .setHours(startHour, startMin))
-                        .getTime();
-                    const end = isDifferentDay ?
-                        new Date(new Date(new Date()
-                            .getTime() + addDay)
-                            .setHours(endHour, endMin))
-                            .getTime() :
-                        new Date(new Date(new Date()
-                            .getTime())
-                            .setHours(endHour, endMin))
-                            .getTime();
-                    let current = new Date(new Date()
-                        .setHours(nowHour, nowMin))
-                        .getTime();
+                    const start = new Date(
+                        new Date().setHours(startHour, startMin)
+                    ).getTime();
+                    const end = isDifferentDay
+                        ? new Date(
+                              new Date(new Date().getTime() + addDay).setHours(
+                                  endHour,
+                                  endMin
+                              )
+                          ).getTime()
+                        : new Date(
+                              new Date(new Date().getTime()).setHours(
+                                  endHour,
+                                  endMin
+                              )
+                          ).getTime();
+                    let current = new Date(
+                        new Date().setHours(nowHour, nowMin)
+                    ).getTime();
 
-                    current = ((current < start) && isDifferentDay) ?
-                        new Date(new Date(new Date()
-                            .getTime() + addDay)
-                            .setHours(nowHour, nowMin))
-                            .getTime() : current;
+                    current =
+                        current < start && isDifferentDay
+                            ? new Date(
+                                  new Date(
+                                      new Date().getTime() + addDay
+                                  ).setHours(nowHour, nowMin)
+                              ).getTime()
+                            : current;
 
                     if (current >= start && current <= end) return true;
                     return false;
-                }
+                };
 
                 const isUserActive =
-                    (compareDate(oncallstart, oncallend, now) || (oncallstart === oncallend));
+                    compareDate(oncallstart, oncallend, now) ||
+                    oncallstart === oncallend;
 
-                const isUpcoming = moment(startTime, 'HH:mm')
-                    .diff(moment(now, 'HH:mm'),
-                        'minutes');
+                const isUpcoming = moment(startTime, 'HH:mm').diff(
+                    moment(now, 'HH:mm'),
+                    'minutes'
+                );
                 const isOnDutyAllTheTime =
                     userSchedule.startTime === userSchedule.endTime;
 
@@ -405,8 +415,8 @@ class TopContent extends Component {
                                 </ShouldRender>
                             </>
                         ) : (
-                                ''
-                            )}
+                            ''
+                        )}
 
                         {this.renderActiveIncidents(
                             incidentCounter,
@@ -433,31 +443,31 @@ class TopContent extends Component {
                                         }}
                                     >
                                         <span className="Text-color--disabled Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            { }
+                                            {}
                                             {this.props.feedback.feedback
                                                 .success ||
-                                                this.props.feedback.feedback
-                                                    .requesting ? (
-                                                    <span>
-                                                        Thank you for your feedback.
-                                                    </span>
-                                                ) : null}
+                                            this.props.feedback.feedback
+                                                .requesting ? (
+                                                <span>
+                                                    Thank you for your feedback.
+                                                </span>
+                                            ) : null}
                                             {!this.props.feedback.feedback
                                                 .success &&
-                                                !this.props.feedback.feedback
-                                                    .requesting &&
-                                                !this.props.feedback.feedback
-                                                    .error ? (
-                                                    <span>
-                                                        Anything we can do to help?
-                                                    </span>
-                                                ) : null}
+                                            !this.props.feedback.feedback
+                                                .requesting &&
+                                            !this.props.feedback.feedback
+                                                .error ? (
+                                                <span>
+                                                    Anything we can do to help?
+                                                </span>
+                                            ) : null}
                                             {this.props.feedback.feedback
                                                 .error ? (
-                                                    <span>
-                                                        Sorry, Please try again.
-                                                    </span>
-                                                ) : null}
+                                                <span>
+                                                    Sorry, Please try again.
+                                                </span>
+                                            ) : null}
                                         </span>
                                     </div>
                                     <span />
@@ -520,8 +530,8 @@ const mapStateToProps = (state, props) => {
     const { projectId } = props;
     const monitors = projectId
         ? state.monitor.monitorsList.monitors.find(project => {
-            return project._id === projectId;
-        })
+              return project._id === projectId;
+          })
         : [];
     const currentProjectId = state.project.currentProject
         ? state.project.currentProject._id

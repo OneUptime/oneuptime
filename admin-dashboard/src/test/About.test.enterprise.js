@@ -87,23 +87,23 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 await page.waitForSelector('#server-version', {
                     visible: true,
                 });
-                let serverVersion = await page.$eval(
+                const serverVersion = await page.$eval(
                     '#server-version',
                     elem => elem.textContent
                 );
-                let docsVersion = await page.$eval(
+                const docsVersion = await page.$eval(
                     '#docs-version',
                     elem => elem.textContent
                 );
-                let helmVersion = await page.$eval(
+                const helmVersion = await page.$eval(
                     '#helm-version',
                     elem => elem.textContent
                 );
-                let dashboardVersion = await page.$eval(
+                const dashboardVersion = await page.$eval(
                     '#dashboard-version',
                     elem => elem.textContent
                 );
-                let adminDashboardVersion = await page.$eval(
+                const adminDashboardVersion = await page.$eval(
                     '#admin-dashboard-version',
                     elem => elem.textContent
                 );

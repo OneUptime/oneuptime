@@ -234,11 +234,19 @@ const EscalationSummarySingle = ({
                                                 {' '}
                                                 <br />
                                                 <br /> Will only be active from{' '}
-                                                {moment(moment(member.startTime).format('HH:mm'), 'HH:mm').format('hh:mm A')}
-                                                {' '}
+                                                {moment(
+                                                    moment(
+                                                        member.startTime
+                                                    ).format('HH:mm'),
+                                                    'HH:mm'
+                                                ).format('hh:mm A')}{' '}
                                                 and{' '}
-                                                {moment(moment(member.endTime).format('HH:mm'), 'HH:mm').format('hh:mm A')}
-                                                {' '}
+                                                {moment(
+                                                    moment(
+                                                        member.endTime
+                                                    ).format('HH:mm'),
+                                                    'HH:mm'
+                                                ).format('hh:mm A')}{' '}
                                                 everyday. <br />
                                                 <br />
                                             </span>
