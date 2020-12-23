@@ -10,6 +10,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
+import IncomingRequestBox from '../components/webHooks/IncomingRequestBox';
 
 class Integrations extends Component {
     constructor(props) {
@@ -38,6 +39,7 @@ class Integrations extends Component {
                     <BreadCrumbItem route={pathname} name="Integrations" />
                     {/* <Slack />*/}
                     <WebHookBox />
+                    <IncomingRequestBox />
                     <MSTeamsBox />
                     <SlackBox />
                     <ZapierBox />
