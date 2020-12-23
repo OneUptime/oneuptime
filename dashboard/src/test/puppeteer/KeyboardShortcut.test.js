@@ -203,14 +203,14 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to project settings page with keyboard shortcut (f + j)',
+        'should navigate to project settings page with keyboard shortcut (s + j)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('f');
+                await page.keyboard.press('s');
                 await page.keyboard.press('j');
                 const projectSettings = await page.waitForSelector(
                     '#settingsPage',

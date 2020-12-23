@@ -430,7 +430,7 @@ export const groups = [
                 icon: 'businessSettings',
                 exact: true,
                 visible: true,
-                shortcut: 'f+j',
+                shortcut: 's+j',
                 subRoutes: [
                     {
                         title: 'Billing',
