@@ -21,7 +21,7 @@ function validate(values) {
     const errors = {};
 
     if (!values.name) {
-        errors.name = 'Event name is required';
+        errors.name = 'Maintenance name is required';
     }
     return errors;
 }
@@ -355,7 +355,7 @@ class CreateSchedule extends React.Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Create Scheduled Event</span>
+                                    <span>Create Scheduled Maintenance</span>
                                 </span>
                             </div>
                         </div>
@@ -375,7 +375,9 @@ class CreateSchedule extends React.Component {
                                                     className="bs-Fieldset-label Text-align--left"
                                                     htmlFor="endpoint"
                                                 >
-                                                    <span>Event name</span>
+                                                    <span>
+                                                        Maintenance name
+                                                    </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div
@@ -389,7 +391,7 @@ class CreateSchedule extends React.Component {
                                                                 RenderField
                                                             }
                                                             name="name"
-                                                            placeholder="Event name"
+                                                            placeholder="Event Maintenance"
                                                             id="name"
                                                             className="bs-TextInput"
                                                             style={{
@@ -446,7 +448,7 @@ class CreateSchedule extends React.Component {
                                                     htmlFor="monitorIds"
                                                 >
                                                     <span>
-                                                        Event Description
+                                                        Maintenance Description
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -465,7 +467,7 @@ class CreateSchedule extends React.Component {
                                                             name="description"
                                                             rows="5"
                                                             id="description"
-                                                            placeholder="Event Description"
+                                                            placeholder="Maintenance Description"
                                                             style={{
                                                                 width: '100%',
                                                                 resize: 'none',
@@ -626,8 +628,9 @@ class CreateSchedule extends React.Component {
                                                     <div className="Checkbox-label Box-root Margin-left--8">
                                                         <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
-                                                                Show this event
-                                                                on Status Page
+                                                                Show this
+                                                                Maintenance on
+                                                                Status Page
                                                             </span>
                                                         </span>
                                                     </div>
@@ -669,7 +672,7 @@ class CreateSchedule extends React.Component {
                                                                 Alert your team
                                                                 members who are
                                                                 on call when
-                                                                this event
+                                                                this Maintenance
                                                                 starts
                                                             </span>
                                                         </span>
@@ -712,7 +715,8 @@ class CreateSchedule extends React.Component {
                                                                 Alert
                                                                 subscribers
                                                                 about this
-                                                                scheduled event
+                                                                scheduled
+                                                                Maintenance
                                                             </span>
                                                         </span>
                                                     </div>
@@ -754,7 +758,7 @@ class CreateSchedule extends React.Component {
                                                                 Do not monitor
                                                                 this monitor
                                                                 during this
-                                                                event
+                                                                Maintenance
                                                             </span>
                                                         </span>
                                                     </div>
