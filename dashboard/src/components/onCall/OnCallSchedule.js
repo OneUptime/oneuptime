@@ -50,8 +50,8 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                             {status === 'active'
                                                 ? "You're currently on-call duty for these schedules:"
                                                 : status === 'upcoming'
-                                                ? 'Your duty is starting soon for these schedules:'
-                                                : "You're not on duty for these schedules:"}
+                                                ? 'Your duty is starting soon for these on-call schedules:'
+                                                : "You're not on duty for these on-call schedules:"}
                                         </span>
                                     </span>
                                 </span>

@@ -46,12 +46,12 @@ const job = async monitor => {
         const { stat: validUp, reasons } = await (monitor &&
         monitor.criteria &&
         monitor.criteria.up
-            ? ProbeService.conditions(null, null, monitor.criteria.up)
+            ? ProbeService.conditions(monitor.type, monitor.criteria.up)
             : { stat: false, reasons: [] });
         const { stat: validDown } = await (monitor &&
         monitor.criteria &&
         monitor.criteria.down
-            ? ProbeService.conditions(null, null, monitor.criteria.down)
+            ? ProbeService.conditions(monitor.type, monitor.criteria.down)
             : { stat: false });
         if (!validUp || validDown) {
             await ProbeService.saveMonitorLog({

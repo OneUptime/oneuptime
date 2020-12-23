@@ -126,9 +126,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     reasons: upFailedReasons,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.up,
                           res,
                           resp,
-                          monitor.criteria.up,
                           rawResp
                       )
                     : { stat: false, reasons: [] });
@@ -139,9 +140,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 monitor.criteria &&
                 monitor.criteria.degraded
                     ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.degraded,
                           res,
                           resp,
-                          monitor.criteria.degraded,
                           rawResp
                       )
                     : { stat: false, reasons: [] });
@@ -150,9 +152,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     reasons: downFailedReasons,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.down,
                           res,
                           resp,
-                          monitor.criteria.down,
                           rawResp
                       )
                     : { stat: false, reasons: [] });
@@ -234,7 +237,11 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validUp,
                     reasons: upFailedReasons,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.conditions(data, null, monitor.criteria.up)
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.up,
+                          data
+                      )
                     : { stat: false, reasons: [] });
                 const {
                     stat: validDegraded,
@@ -243,16 +250,20 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 monitor.criteria &&
                 monitor.criteria.degraded
                     ? ProbeService.conditions(
-                          data,
-                          null,
-                          monitor.criteria.degraded
+                          monitor.type,
+                          monitor.criteria.degraded,
+                          data
                       )
                     : { stat: false, reasons: [] });
                 const {
                     stat: validDown,
                     reasons: downFailedReasons,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.conditions(data, null, monitor.criteria.down)
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.down,
+                          data
+                      )
                     : { stat: false, reasons: [] });
 
                 if (validDown) {
