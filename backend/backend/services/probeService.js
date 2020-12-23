@@ -620,7 +620,7 @@ module.exports = {
         return { stat, reasons };
     },
 
-    conditions: async (payload, resp, con, response) => {
+    conditions: async (monitorType, con, payload, resp, response) => {
         let stat = true;
         const status = resp
             ? resp.status
@@ -642,7 +642,8 @@ module.exports = {
                 body,
                 sslCertificate,
                 response,
-                reasons
+                reasons,
+                monitorType
             );
         } else if (con && con.or && con.or.length) {
             stat = await checkOr(
@@ -652,7 +653,8 @@ module.exports = {
                 body,
                 sslCertificate,
                 response,
-                reasons
+                reasons,
+                monitorType
             );
         }
         return { stat, reasons };
@@ -1072,17 +1074,19 @@ module.exports = {
                 stat: validUp,
                 reasons: upFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.up
-                ? _this.conditions(payload, { body }, monitor.criteria.up, null)
+                ? _this.conditions(monitor.type, monitor.criteria.up, payload, {
+                      body,
+                  })
                 : { stat: false, reasons: [] });
             const {
                 stat: validDegraded,
                 reasons: degradedFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? _this.conditions(
-                      payload,
-                      { body },
+                      monitor.type,
                       monitor.criteria.degraded,
-                      null
+                      payload,
+                      { body }
                   )
                 : { stat: false, reasons: [] });
             const {
@@ -1090,10 +1094,10 @@ module.exports = {
                 reasons: downFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? _this.conditions(
-                      payload,
-                      { body },
+                      monitor.type,
                       monitor.criteria.down,
-                      null
+                      payload,
+                      { body }
                   )
                 : { stat: false, reasons: [] });
 
@@ -1494,7 +1498,8 @@ const checkAnd = async (
     body,
     ssl,
     response,
-    reasons
+    reasons,
+    type
 ) => {
     let validity = true;
     for (let i = 0; i < con.length; i++) {
@@ -1754,12 +1759,16 @@ const checkAnd = async (
             if (con[i] && con[i].filter && con[i].filter === 'isUp') {
                 if (!(con[i] && con[i].filter && payload)) {
                     validity = false;
-                    reasons.push(`Offline`);
+                    reasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Offline`
+                    );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
                 if (!(con[i] && con[i].filter && !payload)) {
                     validity = false;
-                    reasons.push(`Online`);
+                    reasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Online`
+                    );
                 }
             }
         } else if (con[i] && con[i].responseType === 'ssl') {
@@ -2728,7 +2737,8 @@ const checkOr = async (
     body,
     ssl,
     response,
-    reasons
+    reasons,
+    type
 ) => {
     let validity = false;
     for (let i = 0; i < con.length; i++) {
@@ -2995,13 +3005,17 @@ const checkOr = async (
                 if (con[i] && con[i].filter && payload) {
                     validity = true;
                 } else {
-                    reasons.push(`Offline`);
+                    reasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Offline`
+                    );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
                 if (con[i] && con[i].filter && !payload) {
                     validity = true;
                 } else {
-                    reasons.push(`Online`);
+                    reasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Online`
+                    );
                 }
             }
         } else if (con[i] && con[i].responseType === 'ssl') {
@@ -4143,16 +4157,20 @@ const checkScriptOr = async (payload, con, statusCode, body, reasons) => {
 };
 
 const criteriaStrings = {
-    responseTime: 'Response Time was',
+    responseTime: 'Response Time is',
     sslCertificate: 'SSL Certificate',
-    statusCode: 'Status Code was',
-    cpuLoad: 'CPU Load was',
-    memoryUsed: 'Memory Used was',
-    freeStorage: 'Free Storage was',
-    temperature: 'Temperature was',
+    statusCode: 'Status Code is',
+    cpuLoad: 'CPU Load is',
+    memoryUsed: 'Memory Used is',
+    freeStorage: 'Free Storage is',
+    temperature: 'Temperature is',
     responseBody: 'Response Body',
     response: 'Response',
-    incomingTime: 'Incoming request time interval was',
+    incomingTime: 'Incoming request time interval is',
+    'server-monitor': 'Server is',
+    url: 'Website is',
+    api: 'API is',
+    incomingHttpRequest: 'Incoming request is',
 };
 
 const formatDecimal = (value, decimalPlaces, roundType) => {
