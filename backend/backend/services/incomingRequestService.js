@@ -360,6 +360,49 @@ module.exports = {
             throw error;
         }
     },
+
+    handleIncomingRequestAction: async function(data) {
+        const _this = this;
+        try {
+            const incomingRequest = await _this.findOneBy({
+                _id: data.requestId,
+                projectId: data.projectId,
+            });
+
+            if (incomingRequest && incomingRequest.createIncident) {
+                // TODO:
+                // find a way to handle incidentType
+                data.incidentType = 'offline';
+
+                if (incomingRequest.isDefault) {
+                    let monitors = await MonitorService.findBy({
+                        projectId: data.projectId,
+                    });
+                    // grab the monitor ids
+                    monitors = monitors.map(monitor => monitor._id);
+                    for (const monitorId of monitors) {
+                        data.monitorId = monitorId;
+                        await IncidentService.create(data);
+                    }
+                } else {
+                    // grab the monitor ids
+                    const monitors = incomingRequest.monitors.map(
+                        monitor => monitor.monitorId
+                    );
+                    for (const monitorId of monitors) {
+                        data.monitorId = monitorId;
+                        await IncidentService.create(data);
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'incomingRequestService.handleIncomingRequestAction',
+                error
+            );
+            throw error;
+        }
+    },
 };
 
 /**
