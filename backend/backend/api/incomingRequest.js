@@ -140,4 +140,27 @@ router.delete(
     }
 );
 
+router.post('/:projectId/request/:requestId', async function(req, res) {
+    try {
+        //TODO
+        // when the payload is available from external service
+        // perform the action specified on the incoming request collection
+
+        // req.body
+        // req.body.fields
+
+        const { projectId, requestId } = req.params;
+        const data = { projectId, requestId };
+        await IncomingRequestService.handleIncomingRequestAction(data);
+
+        return sendItemResponse(
+            req,
+            res,
+            'Request accepted and handled appropriately ):'
+        );
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;
