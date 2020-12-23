@@ -1,4 +1,4 @@
-import FyipeListiner from './listener';
+import FyipeListener from './listener';
 import Util from './util';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
@@ -31,7 +31,7 @@ class FyipeTracker {
         this._setUpOptions(options);
         this._setEventId();
         this.#isWindow = typeof window !== 'undefined';
-        this.#listenerObj = new FyipeListiner(
+        this.#listenerObj = new FyipeListener(
             this.getEventId(),
             this.#isWindow,
             this.#options

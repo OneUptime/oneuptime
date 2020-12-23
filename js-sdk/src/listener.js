@@ -4,7 +4,7 @@ import Util from './util';
 import Http from 'http';
 import Https from 'https';
 
-class FyipeListiner {
+class FyipeListener {
     #BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
     #timelineObj;
     #debounceDuration = 1000;
@@ -373,4 +373,4 @@ class FyipeListiner {
         return attributes; // return the final list of attributes
     }
 }
-export default FyipeListiner;
+export default FyipeListener;
