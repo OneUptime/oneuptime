@@ -1681,27 +1681,35 @@ describe('SMS/Calls Incident Alerts', function() {
 
             await sleep(25 * 1000);
 
-            // check closing balance in each subscriber alert
-            const alertCharges = await AlertChargeService.findBy({
-                incidentId: newIncident.body._id,
-                projectId: projectId,
-            });
+            // get all alert charges sorted by date in descending order
+            const alertCharges = await AlertChargeService.findBy(
+                {
+                    incidentId: newIncident.body._id,
+                    projectId: projectId,
+                },
+                null,
+                null,
+                1
+            );
             expect(alertCharges).to.be.an('array');
 
             let calculatedBalance = originalProjectBalance;
 
+            // calculate balance for each alert charge amount and compare it with
+            // alert charge's closing balance
             const allAlertChargesCorrect = alertCharges.every(alertCharge => {
                 if (alertCharge.subscriberAlertId) {
                     const alertVia = alertCharge.subscriberAlertId.alertVia;
-                    const countryType = getCountryType('+251921615223');
+                    const countryType = getCountryType(alertCharge.sentTo);
                     const alertChargeAmount = getAlertChargeAmount(
                         alertVia,
                         countryType
                     );
-
                     calculatedBalance -= alertChargeAmount.price;
 
-                    return calculatedBalance === alertCharge.closingBalance;
+                    return (
+                        calculatedBalance === alertCharge.closingAccountBalance
+                    );
                 }
                 return false;
             });
