@@ -248,6 +248,10 @@ app.use(
     ['/monitorSla', '/api/monitorSla'],
     require('./backend/api/monitorSla')
 );
+app.use(
+    ['/incoming-request', '/api/incoming-request'],
+    require('./backend/api/incomingRequest')
+);
 
 app.set('port', process.env.PORT || 3002);
 
