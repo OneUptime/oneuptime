@@ -59,12 +59,12 @@ export class DeleteScheduleBox extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Delete Schedule</span>
+                                    <span>Delete Duty</span>
                                 </span>
                                 <p>
                                     <span>
-                                        Click the button to permanantly delete
-                                        this schedule.
+                                        Click the button to permanently delete
+                                        this duty.
                                     </span>
                                 </p>
                             </div>

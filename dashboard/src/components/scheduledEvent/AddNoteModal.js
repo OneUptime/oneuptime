@@ -139,7 +139,7 @@ class AddNoteModal extends Component {
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
-                                                    Event State
+                                                    Maintenance State
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
@@ -147,7 +147,7 @@ class AddNoteModal extends Component {
                                                         component={RenderSelect}
                                                         name="event_state"
                                                         id="event_state"
-                                                        placeholder="Event State"
+                                                        placeholder="Maintenance State"
                                                         disabled={false}
                                                         validate={
                                                             ValidateField.select
@@ -180,7 +180,7 @@ class AddNoteModal extends Component {
                                             >
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
-                                                        Custom Event State
+                                                        Custom Maintenance State
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
@@ -191,7 +191,7 @@ class AddNoteModal extends Component {
                                                             type="text"
                                                             name={`custom_event_state`}
                                                             id="custom_event_state"
-                                                            placeholder="Enter a custom event state"
+                                                            placeholder="Enter a custom maintenance state"
                                                             validate={
                                                                 ValidateField.text
                                                             }
