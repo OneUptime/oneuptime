@@ -290,7 +290,7 @@ module.exports = {
         try {
             const _this = this;
             const schedule = await _this.findOneBy({ _id: scheduleId });
-
+            
             const escalationIds = schedule.escalationIds;
             const escalations = await Promise.all(
                 escalationIds.map(async escalationId => {
