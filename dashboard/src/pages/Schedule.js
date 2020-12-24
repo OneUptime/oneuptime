@@ -37,7 +37,6 @@ class Schedule extends Component {
 
     render() {
         const { editSchedule, error } = this.state;
-
         const {
             escalations,
             teamMembers,
@@ -147,7 +146,7 @@ const mapStateToProps = (state, props) => {
     schedule = schedule.find(
         schedule => schedule && schedule._id === scheduleId
     );
-    const escalations = state.schedule.escalations;
+    const escalations = state.schedule.scheduleEscalations;
     const { projectId } = props.match.params;
 
     const { subProjectId } = props.match.params;
