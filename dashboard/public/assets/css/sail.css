@@ -5076,7 +5076,7 @@ input[type='radio']{
   border-radius: 50%;
   width: 16px;
   height: 16px;
-  border: 2px solid #999;
+  border: 1px solid #999;
   transition: 0.2s all linear;
   outline: none;
   position: relative;
