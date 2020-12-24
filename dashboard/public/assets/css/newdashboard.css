@@ -10237,7 +10237,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 
 .monitor-type-grid{
     display: grid;
-  grid-template-columns: auto auto auto;
+  grid-template-columns: auto;
   grid-gap: 20px;
 }
 
@@ -10262,12 +10262,8 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     border: 1px solid #f7f7f7;
     border-radius: 4px;
     display: flex;
-    justify-content: center;
     position: relative;
     max-width: 100%;
-    flex: 1;
-    padding: 0;   
-    flex-direction:row;
     cursor: pointer;
     border-radius: 5px;  
 }
@@ -10275,17 +10271,15 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 .radioButtonStyle{
     height: 100%;
     display: flex;
-    justify-content: center;
     color: #4c4c4c;
+    align-self:center;
 }
 
 .imageAndLabel {
     display:flex;
-    flex-direction:column;
+    flex-direction:row;
     align-items:center;
-    padding-top:13%;
-    padding-right:13%;
-    padding-bottom:13%;
+    padding:5%;
 }
 
 .price-list-item input[name='planId'] {
@@ -11025,9 +11019,6 @@ table {
     .price-list-2c {
         grid-template-columns: auto;
     }
-    .monitor-type-grid{
-        grid-template-columns: auto auto auto;
-    }
     /* make pricing list two column system */
     .price-list-3c {
         grid-template-columns: auto auto;
@@ -11039,6 +11030,9 @@ table {
 }
 
 @media screen and (max-width: 500px) {
+    .monitor-type-grid{
+        grid-template-columns: auto;
+    }
     .db-FeedbackInput-container {
         width: auto;
     }
@@ -11265,7 +11259,7 @@ table {
 @media only screen and (max-width: 470px) {
 
     .monitor-type-grid{
-      grid-template-columns: auto auto auto;
+      grid-template-columns: auto;
     }
   /* single column system on mobile */
   .price-list-3c,
