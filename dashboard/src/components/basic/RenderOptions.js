@@ -225,7 +225,10 @@ export class RenderOption extends Component {
                                 },
                                 {
                                     value: 'responseBody',
-                                    label: 'Response Body',
+                                    label:
+                                        type !== 'incomingHttpRequest'
+                                            ? 'Response Body'
+                                            : 'Request Body',
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor',
