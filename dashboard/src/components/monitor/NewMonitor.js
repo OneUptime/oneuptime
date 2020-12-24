@@ -764,9 +764,9 @@ class NewMonitor extends Component {
                                                                             padding: 0,   
                                                                             flexDirection:'row',
                                                                             cursor: 'pointer',
-                                                                            border:'1px solid rgba(0,0,0,0.2)',
+                                                                            border:`1px solid ${(this.props.type === el.value)?'black':'rgba(0,0,0,0.2)'}`,
                                                                             borderRadius: '5px',
-                                                                            //textAlign:'center',                                                              
+                                                                            //textAlign:'center',                                                             
                                                                         }}> 
                                                                         <div
                                                                             //className="radioButtonClass"
