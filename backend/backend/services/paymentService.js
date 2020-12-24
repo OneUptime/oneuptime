@@ -1,9 +1,11 @@
 module.exports = {
     /**
      * charges a project for an alert
-     * @param {*} userId owner of the project
-     * @param {*} project project to cut balance from
-     * @returns {{closingBalance, chargeAmount}}  closing balance and charge amount
+     * @param {(object | string)} userId owner of the project
+     * @param {object} project project to cut balance from
+     * @param {string} alertType the type of alert to use
+     * @param {string} alertPhoneNumber phone number of the recipient
+     * @returns { (Promise<{error : (string) }> | Promise< {closingBalance : number, chargeAmount:number}>} an object containing error or closing balance and charge amount
      */
     chargeAlertAndGetProjectBalance: async function(
         userId,
@@ -36,7 +38,7 @@ module.exports = {
                 'PaymentService.chargeAlertAndGetProjectBalance',
                 error
             );
-            return {};
+            return { error: 'Could not charge alert' };
         } finally {
             if (release) {
                 release();

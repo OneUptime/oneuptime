@@ -918,10 +918,7 @@ module.exports = {
                     user.alertPhoneNumber
                 );
 
-                if (
-                    balanceStatus.chargeAmount &&
-                    balanceStatus.closingBalance
-                ) {
+                if (!balanceStatus.error) {
                     await AlertChargeService.create(
                         incident.projectId,
                         balanceStatus.chargeAmount,
@@ -1103,10 +1100,7 @@ module.exports = {
                     user.alertPhoneNumber
                 );
 
-                if (
-                    balanceStatus.chargeAmount &&
-                    balanceStatus.closingBalance
-                ) {
+                if (!balanceStatus.error) {
                     await AlertChargeService.create(
                         incident.projectId,
                         balanceStatus.chargeAmount,
@@ -2428,10 +2422,7 @@ module.exports = {
                                 contactPhone
                             );
 
-                            if (
-                                balanceStatus.chargeAmount &&
-                                balanceStatus.closingBalance
-                            ) {
+                            if (!balanceStatus.error) {
                                 await AlertChargeService.create(
                                     incident.projectId,
                                     balanceStatus.chargeAmount,
