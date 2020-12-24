@@ -50,7 +50,6 @@ import PricingPlan from '../basic/PricingPlan';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
 
-
 class NewMonitor extends Component {
     constructor(props) {
         super(props);
@@ -347,6 +346,12 @@ class NewMonitor extends Component {
         this.props.editMonitorSwitch(this.props.index);
         this.props.toggleEdit(false);
     };
+
+    componentWillUnmount() {
+        if (this.props.edit) {
+            this.cancelEdit();
+        }
+    }
 
     openAdvance = () => {
         this.setState({ advance: !this.state.advance });
