@@ -776,7 +776,8 @@ class NewMonitor extends Component {
                                                                             }}/>
                                                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                                                 style={{                                                    
-                                                                                    marginRight:'5%',                                                                              
+                                                                                    marginRight:'5%',
+                                                                                    minWidth:'68px',                                                                              
                                                                                 }}>
                                                                                 {el.label}
                                                                             </span>
