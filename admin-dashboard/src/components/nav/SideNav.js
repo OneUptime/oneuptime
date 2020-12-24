@@ -23,7 +23,8 @@ class SideNav extends Component {
             <ClickOutside onClickOutside={this.props.closeSideNav}>
                 <div
                     onKeyDown={this.handleKeyBoard}
-                    className={`db-World-sideNavContainer${this.props.sidenavopen ? ' open' : ''
+                    className={`db-World-sideNavContainer${
+                        this.props.sidenavopen ? ' open' : ''
                         }`}
                 >
                     <div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
