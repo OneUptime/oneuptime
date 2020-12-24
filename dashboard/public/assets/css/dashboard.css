@@ -35033,6 +35033,11 @@ span.CodeMirror-selectedtext {
   color: black;
 }
 
+.bs-mar-cursor {
+  cursor: default;
+  margin-bottom: 8px
+}
+
 @media (max-width: 768px) {
   .bs-Fieldset.bs-container, .bs-content-1 {
     width: 100%;

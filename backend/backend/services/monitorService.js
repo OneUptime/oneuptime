@@ -350,7 +350,7 @@ module.exports = {
                     }
                     const projectUsers = await TeamService.getTeamMembersBy({
                         parentProjectId: project._id,
-                    }); // eslint-disable-next-line no-console
+                    });
                     const seats = await TeamService.getSeats(projectUsers);
                     // check if project seats are more based on users in project or by count of monitors
                     if (
@@ -386,6 +386,7 @@ module.exports = {
                 await StatusPageService.removeMonitor(monitor._id);
                 await ScheduleService.removeMonitor(monitor._id);
                 await ScheduledEventService.removeMonitor(monitor._id, userId);
+                await IncomingRequestService.removeMonitor(monitor._id);
                 await IncidentService.removeMonitor(monitor._id, userId);
                 await IntegrationService.removeMonitor(monitor._id, userId);
                 await NotificationService.create(
@@ -474,7 +475,12 @@ module.exports = {
                                 $and: [
                                     {
                                         type: {
-                                            $in: ['url', 'device', 'api'],
+                                            $in: [
+                                                'url',
+                                                'device',
+                                                'api',
+                                                'incomingHttpRequest',
+                                            ],
                                         },
                                     },
                                     {
@@ -1334,3 +1340,4 @@ const _ = require('lodash');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const ScheduledEventService = require('./scheduledEventService');
 const MonitorSlaService = require('./monitorSlaService');
+const IncomingRequestService = require('./incomingRequestService');

@@ -341,56 +341,50 @@ router.get(
         }
     }
 );
-// get all error event issues related to a componnent
+// get all error trackers issues related to a project
 router.get(
-    '/:projectId/issues/:componentId',
+    '/:projectId/issues',
     getUser,
     isAuthorized,
     getSubProjects,
     async function(req, res) {
         try {
-            // find the particular component
-            const componentId = req.params.componentId;
-            const type = req.query.type;
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map(project => project._id)
                 : null;
 
-            const query = type
-                ? { _id: componentId, projectId: { $in: subProjectIds }, type }
-                : { _id: componentId, projectId: { $in: subProjectIds } };
+            // Call the ComponentService.
+            const components = await ComponentService.getComponentsBySubprojects(
+                subProjectIds,
+                req.query.limit || 0,
+                req.query.skip || 0
+            );
+            let allComponents = [];
 
-            // Get that component
-            const component = await ComponentService.findOneBy(query);
-            if (!component) {
-                return sendErrorResponse(req, res, {
-                    code: 404,
-                    message: 'Component not Found',
-                });
-            }
-            // get the error trackers attached to it
-            const errorTrackers = await ErrorTrackerService.findBy({
-                componentId: component._id,
+            components.map(component => {
+                allComponents = [...allComponents, ...component.components];
+                return component;
             });
-            let totalIssues = [];
-            // for each of these error tracker, fetch their error event issues
-            await Promise.all(
-                errorTrackers.map(async errorTracker => {
-                    // fetch the issues related to this error tracker
-                    const issues = await IssueService.findBy(
-                        { errorTrackerId: errorTracker._id },
-                        2,
-                        0
-                    );
 
-                    totalIssues = totalIssues.concat(...issues);
-                    return errorTracker;
+            let errorTrackers = [];
+            await Promise.all(
+                allComponents.map(async component => {
+                    const componentErrorTrackers = await ErrorTrackerService.findBy(
+                        {
+                            componentId: component._id,
+                        }
+                    );
+                    errorTrackers = [
+                        ...errorTrackers,
+                        ...componentErrorTrackers,
+                    ];
+                    return component;
                 })
             );
+
             // return response
             return sendItemResponse(req, res, {
-                totalIssues,
-                componentId,
+                errorTrackers,
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);

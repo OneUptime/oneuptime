@@ -213,8 +213,9 @@ module.exports = {
                     : null;
 
             let log = await MonitorLogService.create(data);
-
-            await MonitorService.updateMonitorPingTime(data.monitorId);
+            if (!data.stopPingTimeUpdate) {
+                await MonitorService.updateMonitorPingTime(data.monitorId);
+            }
 
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
@@ -619,7 +620,7 @@ module.exports = {
         return { stat, reasons };
     },
 
-    conditions: async (payload, resp, con, response) => {
+    conditions: async (monitorType, con, payload, resp, response) => {
         let stat = true;
         const status = resp
             ? resp.status
@@ -641,7 +642,8 @@ module.exports = {
                 body,
                 sslCertificate,
                 response,
-                reasons
+                reasons,
+                monitorType
             );
         } else if (con && con.or && con.or.length) {
             stat = await checkOr(
@@ -651,7 +653,8 @@ module.exports = {
                 body,
                 sslCertificate,
                 response,
-                reasons
+                reasons,
+                monitorType
             );
         }
         return { stat, reasons };
@@ -1030,33 +1033,72 @@ module.exports = {
         }
     },
 
+    incomingCondition: async (payload, condition) => {
+        let response = false;
+        let respAnd = false,
+            respOr = false,
+            countAnd = 0,
+            countOr = 0;
+        if (condition && condition.and && condition.and.length) {
+            respAnd = await incomingCheckAnd(payload, condition.and);
+            countAnd++;
+        }
+        if (condition && condition.or && condition.or.length) {
+            respOr = await incomingCheckOr(payload, condition.or);
+            countOr++;
+        }
+        if (countAnd > 0 && countOr > 0) {
+            if (respAnd && respOr) {
+                response = true;
+            }
+        } else if (countAnd > 0 && countOr <= 0) {
+            if (respAnd) {
+                response = true;
+            }
+        } else if (countOr > 0 && countAnd <= 0) {
+            if (respOr) {
+                response = true;
+            }
+        }
+        return response;
+    },
+
     processHttpRequest: async function(data) {
         try {
             const _this = this;
             const { monitor, body } = data;
             let status, reason;
+            const lastPingTime = monitor.lastPingTime;
+            const payload = moment().diff(moment(lastPingTime), 'minutes');
             const {
                 stat: validUp,
                 reasons: upFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.up
-                ? _this.conditions(null, { body }, monitor.criteria.up, null)
+                ? _this.conditions(monitor.type, monitor.criteria.up, payload, {
+                      body,
+                  })
                 : { stat: false, reasons: [] });
             const {
                 stat: validDegraded,
                 reasons: degradedFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? _this.conditions(
-                      null,
-                      { body },
+                      monitor.type,
                       monitor.criteria.degraded,
-                      null
+                      payload,
+                      { body }
                   )
                 : { stat: false, reasons: [] });
             const {
                 stat: validDown,
                 reasons: downFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.down
-                ? _this.conditions(null, { body }, monitor.criteria.down, null)
+                ? _this.conditions(
+                      monitor.type,
+                      monitor.criteria.down,
+                      payload,
+                      { body }
+                  )
                 : { stat: false, reasons: [] });
 
             if (validDown) {
@@ -1069,7 +1111,7 @@ module.exports = {
                 status = 'online';
                 reason = [...degradedFailedReasons, ...downFailedReasons];
             } else {
-                status = 'offline';
+                status = 'online';
                 reason = upFailedReasons;
             }
             const logData = body;
@@ -1090,9 +1132,79 @@ module.exports = {
             logData.reason = reason;
             logData.response = null;
             const log = await _this.saveMonitorLog(logData);
+            await MonitorService.updateMonitorPingTime(monitor._id);
             return log;
         } catch (error) {
             ErrorService.log('monitorService.processHttpRequest', error);
+            throw error;
+        }
+    },
+
+    probeHttpRequest: async function(monitor) {
+        try {
+            const _this = this;
+            let status, reason;
+            const lastPingTime = monitor.lastPingTime;
+            const payload = moment().diff(moment(lastPingTime), 'minutes');
+            const validUp = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.up
+                ? _this.incomingCondition(payload, monitor.criteria.up)
+                : false);
+            const validDegraded = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.degraded
+                ? _this.incomingCondition(payload, monitor.criteria.degraded)
+                : false);
+            const validDown = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.down
+                ? _this.incomingCondition(payload, monitor.criteria.down)
+                : false);
+            let timeHours = 0;
+            let timeMinutes = payload;
+            let tempReason = `${payload} min`;
+            if (timeMinutes > 60) {
+                timeHours = Math.floor(timeMinutes / 60);
+                timeMinutes = Math.floor(timeMinutes % 60);
+                tempReason = `${timeHours} hrs ${timeMinutes} min`;
+            }
+
+            if (validDown) {
+                status = 'offline';
+                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+            } else if (validDegraded) {
+                status = 'degraded';
+                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+            } else if (validUp) {
+                status = 'online';
+                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+            } else {
+                status = 'online';
+                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+            }
+            const logData = {};
+            logData.responseTime = 0;
+            logData.responseStatus = null;
+            logData.status = status;
+            logData.probeId = null;
+            logData.monitorId = monitor && monitor.id ? monitor.id : null;
+            logData.sslCertificate = null;
+            logData.lighthouseScanStatus = null;
+            logData.performance = null;
+            logData.accessibility = null;
+            logData.bestPractices = null;
+            logData.seo = null;
+            logData.pwa = null;
+            logData.lighthouseData = null;
+            logData.retryCount = 3;
+            logData.reason = reason;
+            logData.response = null;
+            logData.stopPingTimeUpdate = true;
+            const log = await _this.saveMonitorLog(logData);
+            return log;
+        } catch (error) {
+            ErrorService.log('monitorService.probeHttpRequest', error);
             throw error;
         }
     },
@@ -1101,6 +1213,292 @@ module.exports = {
 const _ = require('lodash');
 
 // eslint-disable-next-line no-unused-vars
+const incomingCheckAnd = async (payload, condition) => {
+    let validity = false;
+    let val = 0;
+    let incomingVal = 0;
+    for (let i = 0; i < condition.length; i++) {
+        if (
+            condition[i] &&
+            condition[i].responseType &&
+            condition[i].responseType === 'incomingTime'
+        ) {
+            if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'greaterThan'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload > condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'lessThan'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload < condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'inBetween'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    condition[i].field2 &&
+                    payload > condition[i].field1 &&
+                    payload < condition[i].field2
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'equalTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload == condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'notEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload != condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'gtEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload >= condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'ltEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload <= condition[i].field1
+                ) {
+                    val++;
+                }
+            }
+            incomingVal++;
+        } else if (
+            condition[i] &&
+            condition[i].collection &&
+            condition[i].collection.length
+        ) {
+            if (
+                condition[i].collection.and &&
+                condition[i].collection.and.length
+            ) {
+                const tempAnd = await incomingCheckAnd(
+                    payload,
+                    condition[i].collection.and
+                );
+                if (tempAnd) {
+                    val++;
+                    incomingVal++;
+                }
+            } else if (
+                condition[i].collection.or &&
+                condition[i].collection.or.length
+            ) {
+                const tempOr = await incomingCheckOr(
+                    payload,
+                    condition[i].collection.or
+                );
+                if (tempOr) {
+                    val++;
+                    incomingVal++;
+                }
+            }
+        }
+    }
+    if (val > 0 && incomingVal > 0 && val === incomingVal) {
+        validity = true;
+    }
+    return validity;
+};
+
+const incomingCheckOr = async (payload, condition) => {
+    let validity = false;
+    let val = 0;
+    let incomingVal = 0;
+    for (let i = 0; i < condition.length; i++) {
+        if (
+            condition[i] &&
+            condition[i].responseType &&
+            condition[i].responseType === 'incomingTime'
+        ) {
+            if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'greaterThan'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload > condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'lessThan'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload < condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'inBetween'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    condition[i].field2 &&
+                    payload > condition[i].field1 &&
+                    payload < condition[i].field2
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'equalTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload == condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'notEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload != condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'gtEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload >= condition[i].field1
+                ) {
+                    val++;
+                }
+            } else if (
+                condition[i] &&
+                condition[i].filter &&
+                condition[i].filter === 'ltEqualTo'
+            ) {
+                if (
+                    condition[i] &&
+                    condition[i].field1 &&
+                    payload &&
+                    payload <= condition[i].field1
+                ) {
+                    val++;
+                }
+            }
+            incomingVal++;
+        } else if (
+            condition[i] &&
+            condition[i].collection &&
+            condition[i].collection.length
+        ) {
+            if (
+                condition[i].collection.and &&
+                condition[i].collection.and.length
+            ) {
+                const tempAnd = await incomingCheckAnd(
+                    payload,
+                    condition[i].collection.and
+                );
+                if (tempAnd) {
+                    val++;
+                    incomingVal++;
+                }
+            } else if (
+                condition[i].collection.or &&
+                condition[i].collection.or.length
+            ) {
+                const tempor = await incomingCheckAnd(
+                    payload,
+                    condition[i].collection.or
+                );
+                if (tempor) {
+                    val++;
+                    incomingVal++;
+                }
+            }
+        }
+    }
+    if (val > 0 && incomingVal > 0) {
+        validity = true;
+    }
+    return validity;
+};
+
 const checkAnd = async (
     payload,
     con,
@@ -1108,10 +1506,25 @@ const checkAnd = async (
     body,
     ssl,
     response,
-    reasons
+    reasons,
+    type
 ) => {
     let validity = true;
     for (let i = 0; i < con.length; i++) {
+        let tempReason = `${payload} min`;
+        if (
+            con[i] &&
+            con[i].responseType &&
+            con[i].responseType === 'incomingTime'
+        ) {
+            let timeHours = 0;
+            let timeMinutes = payload;
+            if (timeMinutes > 60) {
+                timeHours = Math.floor(timeMinutes / 60);
+                timeMinutes = Math.floor(timeMinutes % 60);
+                tempReason = `${timeHours} hrs ${timeMinutes} min`;
+            }
+        }
         if (
             con[i] &&
             con[i].responseType &&
@@ -1238,16 +1651,146 @@ const checkAnd = async (
                     );
                 }
             }
+        } else if (
+            con[i] &&
+            con[i].responseType &&
+            con[i].responseType === 'incomingTime'
+        ) {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload > con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'lessThan'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload < con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'inBetween'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        con[i].field2 &&
+                        payload > con[i].field1 &&
+                        payload < con[i].field2
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                }
+            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload == con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload != con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'gtEqualTo'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload >= con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'ltEqualTo'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload <= con[i].field1
+                    )
+                ) {
+                    validity = false;
+                    reasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                }
+            }
         } else if (con[i] && con[i].responseType === 'doesRespond') {
             if (con[i] && con[i].filter && con[i].filter === 'isUp') {
                 if (!(con[i] && con[i].filter && payload)) {
                     validity = false;
-                    reasons.push(`Offline`);
+                    reasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Offline`
+                    );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
                 if (!(con[i] && con[i].filter && !payload)) {
                     validity = false;
-                    reasons.push(`Online`);
+                    reasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Online`
+                    );
                 }
             }
         } else if (con[i] && con[i].responseType === 'ssl') {
@@ -2216,10 +2759,25 @@ const checkOr = async (
     body,
     ssl,
     response,
-    reasons
+    reasons,
+    type
 ) => {
     let validity = false;
     for (let i = 0; i < con.length; i++) {
+        let tempReason = `${payload} min`;
+        if (
+            con[i] &&
+            con[i].responseType &&
+            con[i].responseType === 'incomingTime'
+        ) {
+            let timeHours = 0;
+            let timeMinutes = payload;
+            if (timeMinutes > 60) {
+                timeHours = Math.floor(timeMinutes / 60);
+                timeMinutes = Math.floor(timeMinutes % 60);
+                tempReason = `${timeHours} hrs ${timeMinutes} min`;
+            }
+        }
         if (con[i] && con[i].responseType === 'responseTime') {
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (
@@ -2349,18 +2907,151 @@ const checkOr = async (
                     }
                 }
             }
+        } else if (con[i] && con[i].responseType === 'incomingTime') {
+            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload > con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${tempReason}`
+                        );
+                    }
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'lessThan'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload < con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${tempReason}`
+                        );
+                    }
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'inBetween'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    con[i].field2 &&
+                    payload > con[i].field1 &&
+                    payload < con[i].field2
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${tempReason}`
+                        );
+                    }
+                }
+            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload == con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${tempReason}`
+                        );
+                    }
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload != con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${tempReason}`
+                        );
+                    }
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'gtEqualTo'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload >= con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${tempReason}`
+                        );
+                    }
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'ltEqualTo'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload <= con[i].field1
+                ) {
+                    validity = true;
+                } else {
+                    if (payload) {
+                        reasons.push(
+                            `${criteriaStrings.incomingTime} ${tempReason}`
+                        );
+                    }
+                }
+            }
         } else if (con[i] && con[i].responseType === 'doesRespond') {
             if (con[i] && con[i].filter && con[i].filter === 'isUp') {
                 if (con[i] && con[i].filter && payload) {
                     validity = true;
                 } else {
-                    reasons.push(`Offline`);
+                    reasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Offline`
+                    );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
                 if (con[i] && con[i].filter && !payload) {
                     validity = true;
                 } else {
-                    reasons.push(`Online`);
+                    reasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Online`
+                    );
                 }
             }
         } else if (con[i] && con[i].responseType === 'ssl') {
@@ -3502,15 +4193,20 @@ const checkScriptOr = async (payload, con, statusCode, body, reasons) => {
 };
 
 const criteriaStrings = {
-    responseTime: 'Response Time was',
+    responseTime: 'Response Time is',
     sslCertificate: 'SSL Certificate',
-    statusCode: 'Status Code was',
-    cpuLoad: 'CPU Load was',
-    memoryUsed: 'Memory Used was',
-    freeStorage: 'Free Storage was',
-    temperature: 'Temperature was',
+    statusCode: 'Status Code is',
+    cpuLoad: 'CPU Load is',
+    memoryUsed: 'Memory Used is',
+    freeStorage: 'Free Storage is',
+    temperature: 'Temperature is',
     responseBody: 'Response Body',
     response: 'Response',
+    incomingTime: 'Incoming request time interval is',
+    'server-monitor': 'Server is',
+    url: 'Website is',
+    api: 'API is',
+    incomingHttpRequest: 'Incoming request is',
 };
 
 const formatDecimal = (value, decimalPlaces, roundType) => {

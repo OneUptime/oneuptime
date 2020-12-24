@@ -71,15 +71,17 @@ function ScheduledEventDescription({
                         <div className="Box-root">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 {isOngoing ? (
-                                    <span>Ongoing Scheduled Event</span>
+                                    <span>Ongoing Scheduled Maintenance</span>
                                 ) : (
-                                    <span>Scheduled Event Description</span>
+                                    <span>
+                                        Scheduled Maintenance Description
+                                    </span>
                                 )}
                             </span>
                             <p>
                                 <span>
                                     Here&#39;s a little more information about
-                                    the scheduled event.
+                                    the scheduled maintenance.
                                 </span>
                             </p>
                         </div>
@@ -96,7 +98,7 @@ function ScheduledEventDescription({
                                     }
                                 >
                                     <span className="bs-Button">
-                                        <span>View Event</span>
+                                        <span>View maintenance</span>
                                     </span>
                                 </button>
                             )}
@@ -135,7 +137,7 @@ function ScheduledEventDescription({
                                                     textAlign: 'left',
                                                 }}
                                             >
-                                                Event Name
+                                                Maintenance Name
                                             </label>
                                             <div className="bs-Fieldset-fields">
                                                 <span
@@ -160,7 +162,7 @@ function ScheduledEventDescription({
                                                         textAlign: 'left',
                                                     }}
                                                 >
-                                                    Event Description
+                                                    Maintenance Description
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <span
@@ -256,7 +258,7 @@ function ScheduledEventDescription({
                                                     textAlign: 'left',
                                                 }}
                                             >
-                                                Mark event as resolved
+                                                Mark Maintenance as resolved
                                             </label>
                                             <div className="bs-Fieldset-fields">
                                                 {!scheduledEvent.resolved ? (
@@ -272,7 +274,7 @@ function ScheduledEventDescription({
                                                         >
                                                             You cannot resolve
                                                             future scheduled
-                                                            events
+                                                            Maintenances
                                                         </span>
                                                     ) : (
                                                         <div className="Box-root Flex-flex Flex-alignItems--center">
@@ -292,7 +294,7 @@ function ScheduledEventDescription({
                                                                         <span>
                                                                             Resolve
                                                                             this
-                                                                            event
+                                                                            maintenance
                                                                         </span>
                                                                     </label>
                                                                 </ShouldRender>

@@ -37,7 +37,6 @@ class Schedule extends Component {
 
     render() {
         const { editSchedule, error } = this.state;
-
         const {
             escalations,
             teamMembers,
@@ -55,13 +54,13 @@ class Schedule extends Component {
                 <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
-                        name="On-Call Schedules"
+                        name="On-Call Duties"
                     />
                     <BreadCrumbItem
                         route={pathname}
                         name={name}
                         pageTitle="Schedule"
-                        containerType="Call Schedule"
+                        containerType="Call Duty"
                     />
                     <div className="Box-root">
                         <div>
@@ -147,7 +146,7 @@ const mapStateToProps = (state, props) => {
     schedule = schedule.find(
         schedule => schedule && schedule._id === scheduleId
     );
-    const escalations = state.schedule.escalations;
+    const escalations = state.schedule.scheduleEscalations;
     const { projectId } = props.match.params;
 
     const { subProjectId } = props.match.params;

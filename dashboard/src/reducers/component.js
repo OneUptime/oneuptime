@@ -27,10 +27,6 @@ import {
     FETCH_COMPONENT_RESOURCES_SUCCESS,
     SHOW_DELETE_MODAL,
     HIDE_DELETE_MODAL,
-    FETCH_COMPONENT_ISSUES_FAILURE,
-    FETCH_COMPONENT_ISSUES_REQUEST,
-    FETCH_COMPONENT_ISSUES_RESET,
-    FETCH_COMPONENT_ISSUES_SUCCESS,
 } from '../constants/component';
 
 const INITIAL_STATE = {
@@ -67,8 +63,7 @@ export default function component(state = INITIAL_STATE, action) {
     let components,
         isExistingComponent,
         failureComponentResourceList,
-        requestComponentResourceList,
-        componentIssueList;
+        requestComponentResourceList;
     switch (action.type) {
         case CREATE_COMPONENT_SUCCESS:
             isExistingComponent = state.componentList.components.find(
@@ -477,69 +472,6 @@ export default function component(state = INITIAL_STATE, action) {
             };
             return Object.assign({}, state, {
                 componentResourceList: requestComponentResourceList,
-            });
-        case FETCH_COMPONENT_ISSUES_SUCCESS:
-            return Object.assign({}, state, {
-                componentIssueList: {
-                    ...state.componentIssueList,
-                    [action.payload.componentId]: {
-                        requesting: false,
-                        error: null,
-                        success: false,
-                        componentIssues: action.payload.totalIssues,
-                    },
-                },
-            });
-
-        case FETCH_COMPONENT_ISSUES_FAILURE:
-            componentIssueList = {
-                ...state.componentIssueList,
-                [action.payload.componentId]: state.componentIssueList[
-                    action.payload.componentId
-                ]
-                    ? {
-                          ...state.componentIssueList[
-                              action.payload.componentId
-                          ],
-                          error: action.payload.error,
-                      }
-                    : {
-                          componentIssues: [],
-                          error: action.payload.error,
-                          requesting: false,
-                          success: false,
-                      },
-            };
-            return Object.assign({}, state, {
-                componentIssueList,
-            });
-
-        case FETCH_COMPONENT_ISSUES_RESET:
-            return Object.assign({}, state, {
-                componentIssueList: INITIAL_STATE.componentIssueList,
-            });
-
-        case FETCH_COMPONENT_ISSUES_REQUEST:
-            componentIssueList = {
-                ...state.componentIssueList,
-                [action.payload.componentId]: state.componentIssueList[
-                    action.payload.componentId
-                ]
-                    ? {
-                          ...state.componentIssueList[
-                              action.payload.componentId
-                          ],
-                          requesting: true,
-                      }
-                    : {
-                          componentIssues: [],
-                          error: null,
-                          requesting: true,
-                          success: false,
-                      },
-            };
-            return Object.assign({}, state, {
-                componentIssueList,
             });
 
         default:

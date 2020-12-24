@@ -3,6 +3,7 @@ import { IS_SAAS_SERVICE } from './config';
 import ErrorTracking from './pages/ErrorTracking';
 import ErrorTrackingView from './pages/ErrorTrackingView';
 import ErrorEventView from './pages/ErrorEventView';
+import WebhookSettings from './pages/WebhookSettings';
 
 const {
     Home,
@@ -343,7 +344,7 @@ export const groups = [
                 index: 3,
             },
             {
-                title: 'On-Call Schedules',
+                title: 'On-Call Duty',
                 path: '/dashboard/project/:projectId/on-call',
                 icon: 'call',
                 visible: true,
@@ -375,7 +376,7 @@ export const groups = [
                 index: 4,
             },
             {
-                title: 'Scheduled Events',
+                title: 'Scheduled Maintenance',
                 path: '/dashboard/project/:projectId/scheduledEvents',
                 icon: 'connect',
                 visible: true,
@@ -429,7 +430,7 @@ export const groups = [
                 icon: 'businessSettings',
                 exact: true,
                 visible: true,
-                shortcut: 'f+j',
+                shortcut: 'f+s',
                 subRoutes: [
                     {
                         title: 'Billing',
@@ -503,6 +504,16 @@ export const groups = [
                         component: SmsTemplates,
                         index: 7,
                         shortcut: 's+c',
+                    },
+                    {
+                        title: 'Webhooks',
+                        path: '/dashboard/project/:projectId/settings/webhooks',
+                        icon: 'integration',
+                        visible: true,
+                        subRoutes: [],
+                        component: WebhookSettings,
+                        index: 7,
+                        shortcut: 's+w',
                     },
                     {
                         title: 'Probe',
