@@ -1103,10 +1103,10 @@ module.exports = {
 
             if (validDown) {
                 status = 'offline';
-                reason = downFailedReasons;
+                reason = upFailedReasons;
             } else if (validDegraded) {
                 status = 'degraded';
-                reason = degradedFailedReasons;
+                reason = upFailedReasons;
             } else if (validUp) {
                 status = 'online';
                 reason = [...degradedFailedReasons, ...downFailedReasons];
@@ -1161,19 +1161,27 @@ module.exports = {
             monitor.criteria.down
                 ? _this.incomingCondition(payload, monitor.criteria.down)
                 : false);
+            let timeHours = 0;
+            let timeMinutes = payload;
+            let tempReason = `${payload} min`;
+            if (timeMinutes > 60) {
+                timeHours = Math.floor(timeMinutes / 60);
+                timeMinutes = Math.floor(timeMinutes % 60);
+                tempReason = `${timeHours} hrs ${timeMinutes} min`;
+            }
 
             if (validDown) {
                 status = 'offline';
-                reason = [`${criteriaStrings.incomingTime} ${payload} min`];
+                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             } else if (validDegraded) {
                 status = 'degraded';
-                reason = [`${criteriaStrings.incomingTime} ${payload} min`];
+                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             } else if (validUp) {
                 status = 'online';
-                reason = [`${criteriaStrings.incomingTime} ${payload} min`];
+                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             } else {
                 status = 'online';
-                reason = [`${criteriaStrings.incomingTime} ${payload} min`];
+                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             }
             const logData = {};
             logData.responseTime = 0;
@@ -1503,6 +1511,20 @@ const checkAnd = async (
 ) => {
     let validity = true;
     for (let i = 0; i < con.length; i++) {
+        let tempReason = `${payload} min`;
+        if (
+            con[i] &&
+            con[i].responseType &&
+            con[i].responseType === 'incomingTime'
+        ) {
+            let timeHours = 0;
+            let timeMinutes = payload;
+            if (timeMinutes > 60) {
+                timeHours = Math.floor(timeMinutes / 60);
+                timeMinutes = Math.floor(timeMinutes % 60);
+                tempReason = `${timeHours} hrs ${timeMinutes} min`;
+            }
+        }
         if (
             con[i] &&
             con[i].responseType &&
@@ -1645,7 +1667,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.incomingTime} ${payload} min`
+                        `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
             } else if (
@@ -1663,7 +1685,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.incomingTime} ${payload} min`
+                        `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
             } else if (
@@ -1683,7 +1705,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.incomingTime} ${payload} min`
+                        `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
@@ -1697,7 +1719,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.incomingTime} ${payload} min`
+                        `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
             } else if (
@@ -1715,7 +1737,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.incomingTime} ${payload} min`
+                        `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
             } else if (
@@ -1733,7 +1755,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.incomingTime} ${payload} min`
+                        `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
             } else if (
@@ -1751,7 +1773,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.incomingTime} ${payload} min`
+                        `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
             }
@@ -2742,6 +2764,20 @@ const checkOr = async (
 ) => {
     let validity = false;
     for (let i = 0; i < con.length; i++) {
+        let tempReason = `${payload} min`;
+        if (
+            con[i] &&
+            con[i].responseType &&
+            con[i].responseType === 'incomingTime'
+        ) {
+            let timeHours = 0;
+            let timeMinutes = payload;
+            if (timeMinutes > 60) {
+                timeHours = Math.floor(timeMinutes / 60);
+                timeMinutes = Math.floor(timeMinutes % 60);
+                tempReason = `${timeHours} hrs ${timeMinutes} min`;
+            }
+        }
         if (con[i] && con[i].responseType === 'responseTime') {
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (
@@ -2883,7 +2919,7 @@ const checkOr = async (
                 } else {
                     if (payload) {
                         reasons.push(
-                            `${criteriaStrings.incomingTime} ${payload} min`
+                            `${criteriaStrings.incomingTime} ${tempReason}`
                         );
                     }
                 }
@@ -2902,7 +2938,7 @@ const checkOr = async (
                 } else {
                     if (payload) {
                         reasons.push(
-                            `${criteriaStrings.incomingTime} ${payload} min`
+                            `${criteriaStrings.incomingTime} ${tempReason}`
                         );
                     }
                 }
@@ -2923,7 +2959,7 @@ const checkOr = async (
                 } else {
                     if (payload) {
                         reasons.push(
-                            `${criteriaStrings.incomingTime} ${payload} min`
+                            `${criteriaStrings.incomingTime} ${tempReason}`
                         );
                     }
                 }
@@ -2938,7 +2974,7 @@ const checkOr = async (
                 } else {
                     if (payload) {
                         reasons.push(
-                            `${criteriaStrings.incomingTime} ${payload} min`
+                            `${criteriaStrings.incomingTime} ${tempReason}`
                         );
                     }
                 }
@@ -2957,7 +2993,7 @@ const checkOr = async (
                 } else {
                     if (payload) {
                         reasons.push(
-                            `${criteriaStrings.incomingTime} ${payload} min`
+                            `${criteriaStrings.incomingTime} ${tempReason}`
                         );
                     }
                 }
@@ -2976,7 +3012,7 @@ const checkOr = async (
                 } else {
                     if (payload) {
                         reasons.push(
-                            `${criteriaStrings.incomingTime} ${payload} min`
+                            `${criteriaStrings.incomingTime} ${tempReason}`
                         );
                     }
                 }
@@ -2995,7 +3031,7 @@ const checkOr = async (
                 } else {
                     if (payload) {
                         reasons.push(
-                            `${criteriaStrings.incomingTime} ${payload} min`
+                            `${criteriaStrings.incomingTime} ${tempReason}`
                         );
                     }
                 }

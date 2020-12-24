@@ -1,9 +1,9 @@
-/* eslint-disable*/
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { reduxForm, Field, formValueSelector, change } from 'redux-form';
+import uuid from 'uuid';
+import { reduxForm, Field, formValueSelector } from 'redux-form';
 import {
     createMonitor,
     createMonitorSuccess,
@@ -42,14 +42,13 @@ import 'ace-builds/src-noconflict/theme-github';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
-import PricingPlan from '../basic/PricingPlan';
-const selector = formValueSelector('NewMonitor');
-const dJSON = require('dirty-json');
-import { history } from '../../store';
-import uuid from 'uuid';
 import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../../actions/monitorSla';
 import { UploadFile } from '../basic/UploadFile';
+import { history } from '../../store';
+import PricingPlan from '../basic/PricingPlan';
+const selector = formValueSelector('NewMonitor');
+const dJSON = require('dirty-json');
 
 class NewMonitor extends Component {
     constructor(props) {
@@ -347,6 +346,12 @@ class NewMonitor extends Component {
         this.props.editMonitorSwitch(this.props.index);
         this.props.toggleEdit(false);
     };
+
+    componentWillUnmount() {
+        if (this.props.edit) {
+            this.cancelEdit();
+        }
+    }
 
     openAdvance = () => {
         this.setState({ advance: !this.state.advance });
@@ -2358,7 +2363,7 @@ const mapStateToProps = (state, ownProps) => {
             fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
-            fetchSlaError: state.monitorSla.monitorSlas.error,
+            fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
         };
     } else {
         return {
@@ -2391,7 +2396,7 @@ const mapStateToProps = (state, ownProps) => {
             fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
-            fetchSlaError: state.monitorSla.monitorSlas.error,
+            fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
         };
     }
 };
