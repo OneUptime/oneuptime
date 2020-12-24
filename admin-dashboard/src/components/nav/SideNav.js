@@ -25,7 +25,7 @@ class SideNav extends Component {
                     onKeyDown={this.handleKeyBoard}
                     className={`db-World-sideNavContainer${
                         this.props.sidenavopen ? ' open' : ''
-                        }`}
+                    }`}
                 >
                     <div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
                         <div className="Box-root Margin-bottom--20">
