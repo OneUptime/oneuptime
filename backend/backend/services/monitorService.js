@@ -386,6 +386,7 @@ module.exports = {
                 await StatusPageService.removeMonitor(monitor._id);
                 await ScheduleService.removeMonitor(monitor._id);
                 await ScheduledEventService.removeMonitor(monitor._id, userId);
+                await IncomingRequestService.removeMonitor(monitor._id);
                 await IncidentService.removeMonitor(monitor._id, userId);
                 await IntegrationService.removeMonitor(monitor._id, userId);
                 await NotificationService.create(
@@ -1339,3 +1340,4 @@ const _ = require('lodash');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const ScheduledEventService = require('./scheduledEventService');
 const MonitorSlaService = require('./monitorSlaService');
+const IncomingRequestService = require('./incomingRequestService');
