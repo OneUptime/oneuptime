@@ -349,7 +349,9 @@ class UpdateSchedule extends React.Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Update Scheduled Maintenance</span>
+                                    <span>
+                                        Update Scheduled Maintenance Event
+                                    </span>
                                 </span>
                             </div>
                         </div>

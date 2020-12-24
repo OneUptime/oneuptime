@@ -59,7 +59,7 @@ const ScheduleProjectBox = props => {
                                         : props.subProjects.length > 0
                                         ? 'Project'
                                         : ''}{' '}
-                                    on-call duties
+                                    on-call duty
                                 </span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -101,14 +101,18 @@ const ScheduleProjectBox = props => {
                                             </div>
                                             {props.allScheduleLength === 1 ? (
                                                 <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                                                    <span>Create Duty</span>
+                                                    <span>
+                                                        Create New On-Call Duty
+                                                    </span>
                                                     <span className="new-btn__keycode">
                                                         N
                                                     </span>
                                                 </span>
                                             ) : (
                                                 <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                    <span>Create Duty</span>
+                                                    <span>
+                                                        Create New On-Call Duty
+                                                    </span>
                                                 </span>
                                             )}
                                         </div>
@@ -125,7 +129,7 @@ const ScheduleProjectBox = props => {
                     <table className="Table">
                         <thead className="Table-body">
                             <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                                <OnCallTableHeader text="Duty Name" />
+                                <OnCallTableHeader text="On-Call Duty Name" />
 
                                 <OnCallTableHeader text="Monitor" />
 
@@ -139,7 +143,7 @@ const ScheduleProjectBox = props => {
                                 schedules={sortByName(props.schedules)}
                                 requesting={props.isRequesting}
                                 subProjectId={props.subProjectSchedule._id}
-                                bottonTitle="View Duty"
+                                bottonTitle="View On-Call Duty"
                             />
                         </tbody>
                     </table>
