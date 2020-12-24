@@ -47,4 +47,10 @@ class FyipeListener
         // this always get the current state of the timeline array
         return $this->timelineObj->getTimeline();
     }
+    public function clearTimeline($eventId) {
+        // set a new eventId
+        $this->currentEventId = $eventId;
+        // this will reset the state of the timeline array
+        return $this->timelineObj->clearTimeline();
+    }
 }
