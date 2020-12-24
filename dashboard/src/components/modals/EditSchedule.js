@@ -371,7 +371,9 @@ class UpdateSchedule extends React.Component {
                                                     className="bs-Fieldset-label Text-align--left"
                                                     htmlFor="endpoint"
                                                 >
-                                                    <span>Event Name</span>
+                                                    <span>
+                                                        Maintenance Name
+                                                    </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div
@@ -442,7 +444,7 @@ class UpdateSchedule extends React.Component {
                                                     htmlFor="monitorIds"
                                                 >
                                                     <span>
-                                                        Event Description
+                                                        Maintenance Description
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
