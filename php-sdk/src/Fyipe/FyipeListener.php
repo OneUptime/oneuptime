@@ -37,4 +37,14 @@ class FyipeListener
         // add timeline to the stack
         $this->timelineObj->addToTimeline($timelineObj);
     }
+    public function logCustomTimelineEvent($timelineObj) {
+        $timelineObj->eventId = $this->currentEventId;
+
+        // add timeline to the stack
+        $this->timelineObj->addToTimeline($timelineObj);
+    }
+    public function getTimeline() {
+        // this always get the current state of the timeline array
+        return $this->timelineObj->getTimeline();
+    }
 }
