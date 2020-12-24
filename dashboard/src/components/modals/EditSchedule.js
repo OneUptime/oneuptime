@@ -371,9 +371,7 @@ class UpdateSchedule extends React.Component {
                                                     className="bs-Fieldset-label Text-align--left"
                                                     htmlFor="endpoint"
                                                 >
-                                                    <span>
-                                                        Maintenance name
-                                                    </span>
+                                                    <span>Event Name</span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div
@@ -577,8 +575,10 @@ class UpdateSchedule extends React.Component {
                                                     <div className="Checkbox-label Box-root Margin-left--8">
                                                         <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
-                                                                Show this event
-                                                                on Status Page
+                                                                Show this
+                                                                maintenance
+                                                                event on Status
+                                                                Page
                                                             </span>
                                                         </span>
                                                     </div>
@@ -618,8 +618,8 @@ class UpdateSchedule extends React.Component {
                                                                 Alert your team
                                                                 members who are
                                                                 on call when
-                                                                this event
-                                                                starts
+                                                                this maintenance
+                                                                event starts
                                                             </span>
                                                         </span>
                                                     </div>
@@ -659,7 +659,9 @@ class UpdateSchedule extends React.Component {
                                                                 Alert
                                                                 subscribers
                                                                 about this
-                                                                scheduled event
+                                                                scheduled
+                                                                maintenance
+                                                                event
                                                             </span>
                                                         </span>
                                                     </div>

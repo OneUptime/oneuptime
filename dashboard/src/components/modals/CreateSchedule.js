@@ -355,7 +355,9 @@ class CreateSchedule extends React.Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Create Scheduled Event</span>
+                                    <span>
+                                        Create Scheduled Maintenance Event
+                                    </span>
                                 </span>
                             </div>
                         </div>
@@ -375,7 +377,9 @@ class CreateSchedule extends React.Component {
                                                     className="bs-Fieldset-label Text-align--left"
                                                     htmlFor="endpoint"
                                                 >
-                                                    <span>Event Name</span>
+                                                    <span>
+                                                        Maintenance Name
+                                                    </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div
@@ -389,7 +393,7 @@ class CreateSchedule extends React.Component {
                                                                 RenderField
                                                             }
                                                             name="name"
-                                                            placeholder="Event Maintenance"
+                                                            placeholder="Maintenance Name"
                                                             id="name"
                                                             className="bs-TextInput"
                                                             style={{
@@ -446,7 +450,7 @@ class CreateSchedule extends React.Component {
                                                     htmlFor="monitorIds"
                                                 >
                                                     <span>
-                                                        Event Description
+                                                        Maintenance Description
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -714,7 +718,7 @@ class CreateSchedule extends React.Component {
                                                                 Alert
                                                                 subscribers
                                                                 about this
-                                                                scheduled
+                                                                Scheduled
                                                                 Maintenance
                                                                 Event
                                                             </span>
