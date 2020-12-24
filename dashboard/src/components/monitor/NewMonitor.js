@@ -257,7 +257,9 @@ class NewMonitor extends Component {
                         const val = text.replace(/^,{+|},+$/g, '');
                         const r = dJSON.parse(val);
                         text = JSON.stringify(r);
-                    } catch (e) {}
+                    } catch (e) {
+                        //
+                    }
                 }
                 postObj.text = text;
             }
@@ -393,7 +395,6 @@ class NewMonitor extends Component {
         };
         try {
             reader.readAsDataURL(file);
-            console.log('*** Identity File ***', file);
         } catch (error) {
             return;
         }
@@ -493,8 +494,8 @@ class NewMonitor extends Component {
                     </span>
                     <p>
                         <span>
-                            Setup your new monitor's configuration as per your
-                            needs.
+                            Setup your new monitor&apos;s configuration as per
+                            your needs.
                         </span>
                     </p>
                 </div>
@@ -1721,7 +1722,7 @@ class NewMonitor extends Component {
                                                                     Set the
                                                                     configuration
                                                                     for your
-                                                                    Monitor's
+                                                                    Monitor&apos;s
                                                                     Call duties.
                                                                 </span>
                                                             </p>
@@ -1774,7 +1775,7 @@ class NewMonitor extends Component {
                                                                         <p>
                                                                             Call
                                                                             Schedules
-                                                                            let's
+                                                                            let&apos;s
                                                                             you
                                                                             connect
                                                                             your
