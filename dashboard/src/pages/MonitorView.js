@@ -765,6 +765,7 @@ const mapStateToProps = (state, props) => {
             monitor.monitors.find(monitor => monitor._id === monitorId)
         )
         .filter(monitor => monitor)[0];
+    const editMode = monitor && monitor.editMode ? true : false;
     const initialValues = {};
     if (monitor) {
         initialValues[`name_${monitor._id}`] = monitor.name;
@@ -789,7 +790,8 @@ const mapStateToProps = (state, props) => {
         if (
             monitor.type === 'url' ||
             monitor.type === 'api' ||
-            monitor.type === 'server-monitor'
+            monitor.type === 'server-monitor' ||
+            monitor.type === 'incomingHttpRequest'
         ) {
             if (monitor.criteria && monitor.criteria.up) {
                 initialValues[`up_${monitor._id}`] = mapCriteria(
@@ -863,7 +865,7 @@ const mapStateToProps = (state, props) => {
         monitorId,
         componentId,
         monitor,
-        edit: state.monitor.monitorsList.editMode,
+        edit: state.monitor.monitorsList.editMode && editMode ? true : false,
         initialValues,
         match: props.match,
         component,
