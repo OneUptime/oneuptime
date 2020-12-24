@@ -161,6 +161,28 @@ class FyipeTracker
 
         $this->manageErrorObject($errorObj);
     }
+    public function captureMessage($message) {
+        // set the a handled tag
+        $this->setTag('handled', 'true');
+        $messageObj = new stdClass();
+        $messageObj->message = $message;
+        $this->prepareErrorObject('message', $messageObj);
+
+        // send to the server
+        return $this->sendErrorEventToServer();
+    }
+    public function captureException($exception) {
+        // construct the error object
+        $exceptionObj = $this->utilObj->getExceptionStackTrace($exception);
+
+        // set the a handled tag
+        $this->setTag('handled', 'true');
+
+        $this->prepareErrorObject('exception', $exceptionObj);
+
+        // send to the server
+        return $this->sendErrorEventToServer();
+    }
     private function manageErrorObject($errorObj)
     {
         // log error event
@@ -171,10 +193,10 @@ class FyipeTracker
         // set the a handled tag
         $this->setTag('handled', 'false');
         // prepare to send to server
-        // $this->prepareErrorObject('error', $errorObj);
+        $this->prepareErrorObject('error', $errorObj);
 
         // send to the server
-        // return this.sendErrorEventToServer();
+        return $this->sendErrorEventToServer();
     }
     public function prepareErrorObject($type, $errorStackTrace) {
         // get current timeline
@@ -206,6 +228,29 @@ class FyipeTracker
     public function getTimeline() {
         return $this->listenerObj->getTimeline();
     }
+    private function sendErrorEventToServer() {
+        $response = $this->makeApiRequest($this->event);
+        // generate a new event Id
+        $this->setEventId();
+        // clear the timeline after a successful call to the server
+        $this->clear($this->getEventId());
+        return $response;
+    }
+    private function makeApiRequest($body): \stdClass
+    {
+        // make api request and return response
+        $client = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
+        try {
+            $response = $client->request('POST', '',  ['form_params' => $body]);
+
+            $responseBody = json_decode($response->getBody()->getContents());
+            return $responseBody;
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $exception = (string) $e->getResponse()->getBody();
+            $exception = json_decode($exception);
+            return $exception;
+        }
+    }
     private function getSDKDetails() {
         $content = file_get_contents('../../composer.json');
         $content = json_decode($content,true);
@@ -214,5 +259,15 @@ class FyipeTracker
         $sdkDetail->name = $content['name'];
         $sdkDetail->version = $content['version'];
         return $sdkDetail;
+    }
+    private function clear($newEventId) {
+        // clear tags
+        $this->tags = [];
+        // clear extras
+        $this->extras = [];
+        // clear fingerprint
+        $this->fingerprint = [];
+        // clear timeline
+        $this->listenerObj->clearTimeline($newEventId);
     }
 }
