@@ -10262,10 +10262,30 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     border: 1px solid #f7f7f7;
     border-radius: 4px;
     display: flex;
-    /* align-items: center; */
     justify-content: center;
     position: relative;
     max-width: 100%;
+    flex: 1;
+    padding: 0;   
+    flex-direction:row;
+    cursor: pointer;
+    border-radius: 5px;  
+}
+
+.radioButtonStyle{
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    color: #4c4c4c;
+}
+
+.imageAndLabel {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-top:13%;
+    padding-right:13%;
+    padding-bottom:13%;
 }
 
 .price-list-item input[name='planId'] {
