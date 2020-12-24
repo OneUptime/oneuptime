@@ -1,4 +1,3 @@
-/* eslint-disable*/
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -2358,7 +2357,7 @@ const mapStateToProps = (state, ownProps) => {
             fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
-            fetchSlaError: state.monitorSla.monitorSlas.error,
+            fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
         };
     } else {
         return {
@@ -2391,7 +2390,7 @@ const mapStateToProps = (state, ownProps) => {
             fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
-            fetchSlaError: state.monitorSla.monitorSlas.error,
+            fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
         };
     }
 };
