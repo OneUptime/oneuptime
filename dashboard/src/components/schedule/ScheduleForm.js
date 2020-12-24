@@ -70,7 +70,7 @@ export class ScheduleForm extends React.Component {
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>Create New Schedule</span>
+                                            <span>Create New On-Call Duty</span>
                                         </span>
                                     </div>
                                     <div className="bs-Modal-messages">
@@ -94,7 +94,7 @@ export class ScheduleForm extends React.Component {
                                         required={true}
                                         component="input"
                                         name="name"
-                                        placeholder="Call Schedule Name?"
+                                        placeholder="Call Duty Name?"
                                         id="name"
                                         className="bs-TextInput"
                                         style={{

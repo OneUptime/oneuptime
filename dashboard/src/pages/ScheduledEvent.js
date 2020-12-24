@@ -16,7 +16,10 @@ class ScheduledEvent extends Component {
         return (
             <Dashboard>
                 <Fade>
-                    <BreadCrumbItem route={pathname} name="Scheduled Events" />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name="Scheduled Maintenances"
+                    />
                     <div id="scheduleEventsPage">
                         <ScheduledEventBox projectId={projectId} />
                     </div>

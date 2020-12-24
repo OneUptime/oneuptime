@@ -44,14 +44,13 @@ class DeleteScheduleModal extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Delete Schedule</span>
+                                        <span>Delete Duty</span>
                                     </span>
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Are you sure you want to delete this
-                                    schedule?
+                                    Are you sure you want to delete this duty?
                                 </span>
                             </div>
                             <div className="bs-Modal-footer">
@@ -103,7 +102,7 @@ class DeleteScheduleModal extends Component {
                                         <ShouldRender if={isRequesting}>
                                             <Spinner />
                                         </ShouldRender>
-                                        <span>Delete Schedule</span>
+                                        <span>Delete Duty</span>
                                         <span className="delete-btn__keycode">
                                             <span className="keycode__icon keycode__icon--enter" />
                                         </span>

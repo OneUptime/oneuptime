@@ -18,7 +18,7 @@ function validate(value) {
     const errors = {};
 
     if (!Validate.text(value.schedule_name)) {
-        errors.name = 'Schedule name is required.';
+        errors.name = 'Duty name is required.';
     }
 
     return errors;
@@ -57,19 +57,18 @@ export class RenameScheduleBox extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Schedule Description</span>
+                                    <span>Duty Description</span>
                                 </span>
                                 <p>
                                     <RenderIfSubProjectAdmin>
                                         <span>
                                             Use the field below to name the
-                                            schedule.
+                                            duty.
                                         </span>
                                     </RenderIfSubProjectAdmin>
                                     <RenderIfSubProjectMember>
                                         <span>
-                                            Basic information about this
-                                            schedule.
+                                            Basic information about this duty.
                                         </span>
                                     </RenderIfSubProjectMember>
                                 </p>
@@ -85,7 +84,7 @@ export class RenameScheduleBox extends Component {
                                             <div className="bs-Fieldset-rows">
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
-                                                        Schedule Name
+                                                        Duty Name
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <RenderIfSubProjectAdmin>
@@ -97,7 +96,7 @@ export class RenameScheduleBox extends Component {
                                                                 type="text"
                                                                 name="schedule_name"
                                                                 id="name"
-                                                                placeholder="New Schedule Name"
+                                                                placeholder="New On-Call Duty Name"
                                                                 required="required"
                                                                 disabled={
                                                                     this.props

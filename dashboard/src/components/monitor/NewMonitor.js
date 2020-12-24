@@ -1,9 +1,9 @@
-/* eslint-disable*/
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { reduxForm, Field, formValueSelector, change } from 'redux-form';
+import uuid from 'uuid';
+import { reduxForm, Field, formValueSelector } from 'redux-form';
 import {
     createMonitor,
     createMonitorSuccess,
@@ -42,14 +42,14 @@ import 'ace-builds/src-noconflict/theme-github';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
-import PricingPlan from '../basic/PricingPlan';
-const selector = formValueSelector('NewMonitor');
-const dJSON = require('dirty-json');
-import { history } from '../../store';
-import uuid from 'uuid';
 import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../../actions/monitorSla';
 import { UploadFile } from '../basic/UploadFile';
+import { history } from '../../store';
+import PricingPlan from '../basic/PricingPlan';
+const selector = formValueSelector('NewMonitor');
+const dJSON = require('dirty-json');
+
 
 class NewMonitor extends Component {
     constructor(props) {
@@ -71,7 +71,7 @@ class NewMonitor extends Component {
         const projectMember = this.props.currentProject.users.find(
             user => user.userId === userId
         );
-        //load call schedules
+        //load call schedules/duties
         if (projectMember) {
             this.props.fetchMonitorSlas(this.props.currentProject._id);
             this.props.fetchCommunicationSlas(this.props.currentProject._id);
@@ -330,7 +330,7 @@ class NewMonitor extends Component {
     };
 
     scheduleChange = (e, value) => {
-        //load call schedules
+        //load call schedules/duties
         if (value && value !== '') {
             this.props.fetchSchedules(value);
         } else {
@@ -479,22 +479,23 @@ class NewMonitor extends Component {
         return count;
     };
 
-    renderMonitorConfiguration = (name)=>{
-        return(
+    renderMonitorConfiguration = name => {
+        return (
             <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                 <div className="Box-root">
                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                    <span>{name} Monitor Configuration</span>
+                        <span>{name} Monitor Configuration</span>
                     </span>
                     <p>
                         <span>
-                            Setup your new monitor's configuration as per your needs.
+                            Setup your new monitor's configuration as per your
+                            needs.
                         </span>
                     </p>
                 </div>
             </div>
         );
-    }
+    };
     render() {
         const requesting =
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||
@@ -584,18 +585,24 @@ class NewMonitor extends Component {
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
-                                            <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                                                <div className="Box-root">
-                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                        <span>Basic Configuration</span>
-                                                    </span>
-                                                    <p>
-                                                        <span>
-                                                            Basic Configuration for your new Monitor.
+                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root">
+                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                            <span>
+                                                                Basic
+                                                                Configuration
+                                                            </span>
                                                         </span>
-                                                    </p>
+                                                        <p>
+                                                            <span>
+                                                                Basic
+                                                                Configuration
+                                                                for your new
+                                                                Monitor.
+                                                            </span>
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                            </div>
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
                                                         Name
@@ -1086,7 +1093,9 @@ class NewMonitor extends Component {
                                                         !this.props.edit
                                                     }
                                                 >
-                                                {this.renderMonitorConfiguration("Server")}                                                    
+                                                    {this.renderMonitorConfiguration(
+                                                        'Server'
+                                                    )}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Mode
@@ -1416,8 +1425,10 @@ class NewMonitor extends Component {
 
                                                 <ShouldRender
                                                     if={type === 'api'}
-                                                >   
-                                                    {this.renderMonitorConfiguration("API")}
+                                                >
+                                                    {this.renderMonitorConfiguration(
+                                                        'API'
+                                                    )}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             HTTP Method
@@ -1507,11 +1518,11 @@ class NewMonitor extends Component {
                                                     </div>
                                                 </ShouldRender>
                                                 <ShouldRender
-                                                    if={
-                                                        type === 'url'
-                                                    }
-                                                >   
-                                                    {this.renderMonitorConfiguration("Website")}
+                                                    if={type === 'url'}
+                                                >
+                                                    {this.renderMonitorConfiguration(
+                                                        'Website'
+                                                    )}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             URL
@@ -1547,8 +1558,10 @@ class NewMonitor extends Component {
                                                         type ===
                                                         'incomingHttpRequest'
                                                     }
-                                                >   
-                                                    {this.renderMonitorConfiguration("Incoming HTTP Request")}
+                                                >
+                                                    {this.renderMonitorConfiguration(
+                                                        'Incoming HTTP Request'
+                                                    )}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Incoming URL
@@ -1575,7 +1588,9 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={type === 'manual'}
                                                 >
-                                                    {this.renderMonitorConfiguration("Manual")}
+                                                    {this.renderMonitorConfiguration(
+                                                        'Manual'
+                                                    )}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Description
@@ -1599,12 +1614,14 @@ class NewMonitor extends Component {
                                                     </div>
                                                 </ShouldRender>
                                                 {type === 'device' && (
-                                                    <div>                                                        
-                                                        {this.renderMonitorConfiguration("IOT Device")}   
+                                                    <div>
+                                                        {this.renderMonitorConfiguration(
+                                                            'IOT Device'
+                                                        )}
                                                         <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Device ID
-                                                        </label>
+                                                            <label className="bs-Fieldset-label">
+                                                                Device ID
+                                                            </label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1624,12 +1641,14 @@ class NewMonitor extends Component {
                                                                 />
                                                             </div>
                                                         </div>
-                                                    </div>                                                    
+                                                    </div>
                                                 )}
                                                 <ShouldRender
                                                     if={type === 'script'}
-                                                >   
-                                                    {this.renderMonitorConfiguration("Script")}
+                                                >
+                                                    {this.renderMonitorConfiguration(
+                                                        'Script'
+                                                    )}
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Script
@@ -1685,18 +1704,24 @@ class NewMonitor extends Component {
                                                         schedules.length > 0
                                                     }
                                                 >
-                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                                                    <div className="Box-root">
-                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                            <span>Call Schedules</span>
-                                                        </span>
-                                                        <p>
-                                                            <span>
-                                                            Set the configuration for your Monitor's Call Schedules.
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                        <div className="Box-root">
+                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Call Duties
+                                                                </span>
                                                             </span>
-                                                        </p>
+                                                            <p>
+                                                                <span>
+                                                                    Set the
+                                                                    configuration
+                                                                    for your
+                                                                    Monitor's
+                                                                    Call duties.
+                                                                </span>
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
                                                             Call Schedule
@@ -1710,7 +1735,7 @@ class NewMonitor extends Component {
                                                                     }
                                                                     name={`callSchedule_${this.props.index}`}
                                                                     id="callSchedule"
-                                                                    placeholder="Call Schedule"
+                                                                    placeholder="Call Duty"
                                                                     disabled={
                                                                         requesting
                                                                     }
@@ -1780,17 +1805,26 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={
                                                         this.props.monitorSlas
-                                                        .length > 0 ||  this.props.incidentSlas
-                                                        .length > 0
-                                                    }>
+                                                            .length > 0 ||
+                                                        this.props.incidentSlas
+                                                            .length > 0
+                                                    }
+                                                >
                                                     <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                                         <div className="Box-root">
                                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                                <span>Service Level Agreement</span>
+                                                                <span>
+                                                                    Service
+                                                                    Level
+                                                                    Agreement
+                                                                </span>
                                                             </span>
                                                             <p>
                                                                 <span>
-                                                                    Select the SLAs for your new Monitor.
+                                                                    Select the
+                                                                    SLAs for
+                                                                    your new
+                                                                    Monitor.
                                                                 </span>
                                                             </p>
                                                         </div>
@@ -1916,54 +1950,61 @@ class NewMonitor extends Component {
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
-                                                            {
-                                                                this.props.edit ? (<Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="incidentCommunicationSla"
-                                                                    id="incidentCommunicationSla"
-                                                                    placeholder="Incident Communication SLA"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        ...this.props.incidentSlas.map(sla => ({
-                                                                            value: sla._id,
-                                                                            label: sla.name,
-                                                                        }))
-                                                                    ]}
-                                                                />) : (<Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="incidentCommunicationSla"
-                                                                    id="incidentCommunicationSla"
-                                                                    placeholder="Incident Communication SLA"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select Incident Communication SLA',
-                                                                        },
-                                                                        ...this.props.incidentSlas.map(
-                                                                            sla => ({
+                                                                {this.props
+                                                                    .edit ? (
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="incidentCommunicationSla"
+                                                                        id="incidentCommunicationSla"
+                                                                        placeholder="Incident Communication SLA"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        options={[
+                                                                            ...this.props.incidentSlas.map(
+                                                                                sla => ({
+                                                                                    value:
+                                                                                        sla._id,
+                                                                                    label:
+                                                                                        sla.name,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                ) : (
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="incidentCommunicationSla"
+                                                                        id="incidentCommunicationSla"
+                                                                        placeholder="Incident Communication SLA"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        options={[
+                                                                            {
                                                                                 value:
-                                                                                    sla._id,
+                                                                                    '',
                                                                                 label:
-                                                                                    sla.name,
-                                                                            })
-                                                                        ),
-                                                                    ]}
-                                                                />)
-                                                            }
-                                                                
+                                                                                    'Select Incident Communication SLA',
+                                                                            },
+                                                                            ...this.props.incidentSlas.map(
+                                                                                sla => ({
+                                                                                    value:
+                                                                                        sla._id,
+                                                                                    label:
+                                                                                        sla.name,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                )}
+
                                                                 <Tooltip title="Incident Communication SLA">
                                                                     <div>
                                                                         <p>
@@ -2037,18 +2078,24 @@ class NewMonitor extends Component {
                                                         !this.state.advance
                                                     }
                                                 >
-                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                                                    <div className="Box-root">
-                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                            <span>Advanced</span>
-                                                        </span>
-                                                        <p>
-                                                            <span>
-                                                                Advanced Configuration settings for your new Monitor.
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                        <div className="Box-root">
+                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Advanced
+                                                                </span>
                                                             </span>
-                                                        </p>
+                                                            <p>
+                                                                <span>
+                                                                    Advanced
+                                                                    Configuration
+                                                                    settings for
+                                                                    your new
+                                                                    Monitor.
+                                                                </span>
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
@@ -2311,7 +2358,7 @@ const mapStateToProps = (state, ownProps) => {
             fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
-            fetchSlaError: state.monitorSla.monitorSlas.error,
+            fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
         };
     } else {
         return {
@@ -2344,7 +2391,7 @@ const mapStateToProps = (state, ownProps) => {
             fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
-            fetchSlaError: state.monitorSla.monitorSlas.error,
+            fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
         };
     }
 };
