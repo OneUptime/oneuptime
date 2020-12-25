@@ -6,6 +6,10 @@ import PropTypes from 'prop-types';
 import { ResponseParent } from './ResponseParent';
 import ShouldRender from '../basic/ShouldRender';
 import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
+import { RenderField } from '../basic/RenderField';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
+import uuid from 'uuid';
+import { RenderSelect } from '../basic/RenderSelect';
 
 const newSelector = formValueSelector('NewMonitor');
 
@@ -28,7 +32,7 @@ export class ResponseComponent extends Component {
         });
     };
 
-    handleAddCriteria = type => {
+    handleAddCriterion = type => {
         let head, tagline;
         switch (type) {
             case CRITERIA_TYPES.DOWN:
@@ -48,7 +52,7 @@ export class ResponseComponent extends Component {
                 break;
         }
         if (head && tagline) {
-            this.props.addCriteria({ head, tagline, type });
+            this.props.addCriterion({ head, tagline, type, id: uuid.v4() });
         }
     };
     render() {
@@ -95,8 +99,8 @@ export class ResponseComponent extends Component {
                                     type="button"
                                     // onClick={this.addValue}
                                     onClick={() =>
-                                        this.handleAddCriteria(
-                                            this.props.criterionType
+                                        this.handleAddCriterion(
+                                            this.props.criterion.type
                                         )
                                     }
                                 >
@@ -123,20 +127,92 @@ export class ResponseComponent extends Component {
                                 </fieldset>
                             </div>
                         </div>
+
+                        <ShouldRender
+                            if={
+                                this.props.schedules &&
+                                this.props.schedules.length > 0
+                            }
+                        >
+                            <div className="bs-Fieldset-row Flex-alignItems--flexStart">
+                                <label
+                                    className="bs-Fieldset-label"
+                                    style={{
+                                        flex: '0 0 7rem',
+                                        textAlign: 'start',
+                                    }}
+                                >
+                                    Call Schedule
+                                </label>
+                                <div className="bs-Fieldset-fields">
+                                    <span className="flex">
+                                        <Field
+                                            className="db-select-nw"
+                                            component={RenderSelect}
+                                            name={`callSchedule_${
+                                                this.props.criterion
+                                                    ? this.props.criterion.id
+                                                    : ''
+                                            }`}
+                                            id="callSchedule"
+                                            placeholder="Call Schedule"
+                                            style={{
+                                                height: '28px',
+                                            }}
+                                            onChange={(e, scheduleId) => {
+                                                this.props.handleScheduleChangedForCriterion(
+                                                    this.props.criterion.id,
+                                                    scheduleId
+                                                );
+                                            }}
+                                            options={[
+                                                {
+                                                    value: '',
+                                                    label:
+                                                        'Select call schedule',
+                                                },
+                                                ...(this.props.schedules &&
+                                                    this.props.schedules
+                                                        .length &&
+                                                    this.props.schedules.map(
+                                                        schedule => ({
+                                                            value: schedule._id,
+                                                            label:
+                                                                schedule.name,
+                                                        })
+                                                    )),
+                                            ]}
+                                        />
+                                    </span>
+                                </div>
+                            </div>
+                        </ShouldRender>
                         {this.props.bodyfield && this.props.bodyfield.length ? (
                             <div>
                                 <div className="bs-Fieldset-row">
                                     <label
                                         className="Checkbox"
-                                        htmlFor={`${this.props.fieldname}_createAlert`}
+                                        htmlFor={`${
+                                            this.props.criterion
+                                                ? this.props.criterion.id
+                                                : ''
+                                        }_incidentCreatedAlert`}
                                     >
                                         <Field
                                             component="input"
                                             type="checkbox"
-                                            name={`${this.props.fieldname}_createAlert`}
+                                            name={`${
+                                                this.props.criterion
+                                                    ? this.props.criterion.id
+                                                    : ''
+                                            }_incidentCreatedAlert`}
                                             data-test="RetrySettings-failedPaymentsCheckbox"
                                             className="Checkbox-source"
-                                            id={`${this.props.fieldname}_createAlert`}
+                                            id={`${
+                                                this.props.criterion
+                                                    ? this.props.criterion.id
+                                                    : ''
+                                            }_incidentCreatedAlert`}
                                         />
                                         <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                             <div className="Checkbox-target Box-root">
@@ -150,6 +226,73 @@ export class ResponseComponent extends Component {
                                         </div>
                                     </label>
                                 </div>
+
+                                <ShouldRender
+                                    if={
+                                        this.props
+                                            .incidentCreatedAlertEnabledForCriterion
+                                    }
+                                >
+                                    <div className="Flex-flex Flex-direction--column">
+                                        <div
+                                            className="bs-Fieldset-row Flex-alignItems--flexStart"
+                                            style={{ gap: '1rem' }}
+                                        >
+                                            <label style={{ flex: '0 0 6rem' }}>
+                                                Incident title
+                                            </label>
+                                            <div className="bs-Fieldset-fields">
+                                                <Field
+                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                    component={RenderField}
+                                                    name={`incident_title_${
+                                                        this.props.criterion
+                                                            ? this.props
+                                                                  .criterion.id
+                                                            : ''
+                                                    }`}
+                                                    onChange={() => {
+                                                        this.props.handleIncidentTitleChangedForCriterion(
+                                                            this.props.criterion
+                                                                .id
+                                                        );
+                                                    }}
+                                                    id="title"
+                                                    placeholder="Custom Incident title"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="bs-Fieldset-row  Flex-alignItems--flexStart"
+                                            style={{ gap: '1rem' }}
+                                        >
+                                            <label style={{ flex: '0 0 6rem' }}>
+                                                Description
+                                            </label>
+                                            <div className="bs-Fieldset-fields">
+                                                <Field
+                                                    name={`incident_description_${
+                                                        this.props.criterion
+                                                            ? this.props
+                                                                  .criterion.id
+                                                            : ''
+                                                    }`}
+                                                    onChange={() => {
+                                                        this.props.handleIncidentDescriptionChangedForCriterion(
+                                                            this.props.criterion
+                                                                .id
+                                                        );
+                                                    }}
+                                                    component={RenderCodeEditor}
+                                                    height="100px"
+                                                    width="100%"
+                                                    placeholder="Custom Incident Description"
+                                                    wrapEnabled={true}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ShouldRender>
                                 <ShouldRender
                                     if={
                                         this.props.fieldname !==
@@ -267,8 +410,16 @@ ResponseComponent.propTypes = {
     tagline: PropTypes.string,
     index: PropTypes.number,
     type: PropTypes.string,
-    addCriteria: PropTypes.func,
-    criterionType: PropTypes.string,
+    addCriterion: PropTypes.func.isRequired,
+    criterion: PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        type: PropTypes.string.isRequired,
+    }).isRequired,
+    incidentCreatedAlertEnabledForCriterion: PropTypes.bool.isRequired,
+    schedules: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.any)).isRequired,
+    handleIncidentTitleChangedForCriterion: PropTypes.func.isRequired,
+    handleIncidentDescriptionChangedForCriterion: PropTypes.func.isRequired,
+    handleScheduleChangedForCriterion: PropTypes.func.isRequired,
 };
 
 const mapDispatchToProps = {
@@ -278,6 +429,12 @@ const mapDispatchToProps = {
 function mapStateToProps(state, ownProps) {
     return {
         bodyfield: newSelector(state, `${ownProps.fieldname}`),
+        incidentCreatedAlertEnabledForCriterion: newSelector(
+            state,
+            `${
+                ownProps.criterion ? ownProps.criterion.id : ''
+            }_incidentCreatedAlert`
+        ),
     };
 }
 

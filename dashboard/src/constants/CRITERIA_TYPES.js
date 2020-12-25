@@ -1,7 +1,7 @@
 const CRITERIA_TYPES = {
-    DOWN: 'down',
-    DEGRADED: 'degraded',
     UP: 'up',
+    DEGRADED: 'degraded',
+    DOWN: 'down',
 };
 
 export default CRITERIA_TYPES;

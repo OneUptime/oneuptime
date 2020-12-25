@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, createRef } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -48,6 +48,8 @@ import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../../actions/monitorSla';
 import { UploadFile } from '../basic/UploadFile';
 import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
+import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
+import Fade from 'react-reveal/Fade';
 
 const dJSON = require('dirty-json');
 const selector = formValueSelector('NewMonitor');
@@ -69,21 +71,36 @@ class NewMonitor extends Component {
                     tagline:
                         'This is where you describe when your monitor is considered up',
                     type: CRITERIA_TYPES.UP,
+                    incidentTitle: '',
+                    incidentDescription: '',
+                    id: uuid.v4(),
+                    scheduleId: '',
                 },
                 {
                     head: 'Monitor degraded criteria',
                     tagline:
                         'This is where you describe when your monitor is considered degraded',
                     type: CRITERIA_TYPES.DEGRADED,
+                    incidentTitle: '',
+                    incidentDescription: '',
+                    id: uuid.v4(),
+                    scheduleId: '',
                 },
                 {
                     head: 'Monitor down criteria',
                     tagline:
                         'This is where you describe when your monitor is considered down',
                     type: CRITERIA_TYPES.DOWN,
+                    incidentTitle: '',
+                    incidentDescription: '',
+                    id: uuid.v4(),
+                    scheduleId: '',
                 },
             ],
+            criteriaTabIndex: 0,
         };
+
+        this.tabIndexRef = createRef();
     }
 
     componentDidMount() {
@@ -114,19 +131,84 @@ class NewMonitor extends Component {
     /**
      *
      * adds a criteria to the state
-     * @param {Object} [data={}] data of the new criteria
+     * @param {{head : string, tagline:string, type:string}} [data={}] data of the new criteria
      * @memberof NewMonitor
      */
-    addCriteria = (data = {}) => {
+    addCriterion(data = {}) {
         this.setState({
             ...this.state,
             criteria: [...this.state.criteria, data],
         });
-    };
+    }
+
+    /**
+     * updates a criterion's property with the specified value
+     *
+     * @param {*} id unique id of the criterion
+     * @param {*} property property of the criterion to update
+     * @param {*} value updated value for the property of the criterion
+     * @return {boolean} if the criterion is updated
+     * @memberof NewMonitor
+     */
+    updateCriterion(id, property, value) {
+        const criterionIndex = this.state.criteria.findIndex(
+            criterion => criterion.id === id
+        );
+
+        if (criterionIndex === -1) return;
+
+        // create an updated criterion
+        const updatedCriterion = { ...this.state.criteria[criterionIndex] };
+        updatedCriterion[property] = value;
+
+        // create an updated criteria
+        const updatedCriteria = [
+            ...this.state.criteria.slice(0, criterionIndex),
+            updatedCriterion,
+            ...this.state.criteria.slice(criterionIndex + 1),
+        ];
+        this.setState({ ...this.state, criteria: updatedCriteria });
+    }
+
+    /**
+     * sets a criterion's schedule
+     *
+     * @param {*} id unique id of the criterion
+     * @param {string} scheduleId schedule id
+     * @memberof NewMonitor
+     */
+    handleScheduleChangedForCriterion(id, scheduleId) {
+        this.updateCriterion(id, 'scheduleId', scheduleId);
+    }
+
+    /**
+     *
+     *
+     * @param {*} id unique id of the criterion
+     * @param {string} incidentDescription incident description
+     * @memberof NewMonitor
+     */
+    handleIncidentDescriptionChangedForCriterion(id, incidentDescription) {
+        this.updateCriterion(id, 'incidentDescription', incidentDescription);
+    }
+
+    /**
+     * sets a criterion's incident title
+     *
+     * @param {*} unique id of the criterion
+     * @param {string} incidentTitle  incident title
+     * @memberof NewMonitor
+     */
+    handleIncidentTitleChangedForCriterion(id, incidentTitle) {
+        this.updateCriterion(id, 'incidentTitle', incidentTitle);
+    }
 
     submitForm = values => {
         const thisObj = this;
         const postObj = { data: {}, criteria: {} };
+
+        postObj.newCriteria = this.state.criteria;
+
         postObj.componentId = thisObj.props.componentId;
         postObj.projectId = this.props.projectId;
         postObj.incidentCommunicationSla = values.incidentCommunicationSla;
@@ -509,6 +591,10 @@ class NewMonitor extends Component {
             count = project.users.length;
         }
         return count;
+    };
+
+    criteriaTabSelected = index => {
+        this.setState({ ...this.state, criteriaTabIndex: index });
     };
 
     render() {
@@ -2021,44 +2107,174 @@ class NewMonitor extends Component {
                                                             }
                                                         />
                                                     </ShouldRender>
-                                                    {[
-                                                        ...this.state.criteria.map(
-                                                            (
-                                                                criterion,
-                                                                index
-                                                            ) => {
-                                                                return (
-                                                                    <ResponseComponent
-                                                                        key={
-                                                                            index
-                                                                        }
-                                                                        head={
-                                                                            criterion.head
-                                                                        }
-                                                                        tagline={
-                                                                            criterion.tagline
-                                                                        }
-                                                                        fieldname={`${criterion.type}_${this.props.index}`}
-                                                                        index={
-                                                                            criterion.index
-                                                                        }
-                                                                        type={
-                                                                            this
-                                                                                .state
-                                                                                .type
-                                                                        }
-                                                                        addCriteria={
-                                                                            this
-                                                                                .addCriteria
-                                                                        }
-                                                                        criterionType={
-                                                                            criterion.type
-                                                                        }
-                                                                    />
-                                                                );
-                                                            }
-                                                        ),
-                                                    ]}
+
+                                                    <Tabs
+                                                        selectedTabClassName={
+                                                            'custom-tab-selected'
+                                                        }
+                                                        onSelect={tabIndex =>
+                                                            this.criteriaTabSelected(
+                                                                tabIndex
+                                                            )
+                                                        }
+                                                        selectedIndex={
+                                                            this.state
+                                                                .criteriaTabIndex
+                                                        }
+                                                    >
+                                                        <div className="Flex-flex Flex-direction--columnReverse">
+                                                            <TabList
+                                                                id="customTabList"
+                                                                className={
+                                                                    'custom-tab-list'
+                                                                }
+                                                            >
+                                                                {[
+                                                                    'Monitor Up Criteria',
+                                                                    'Monitor Degraded Criteria',
+                                                                    'Monitor Down Criteria',
+                                                                ].map(
+                                                                    mainCriterion => {
+                                                                        return (
+                                                                            <Tab
+                                                                                key={
+                                                                                    mainCriterion
+                                                                                }
+                                                                                className={
+                                                                                    'custom-tab custom-tab-3 uppercase Text-typeface--capitalize'
+                                                                                }
+                                                                            >
+                                                                                <span>
+                                                                                    {
+                                                                                        mainCriterion
+                                                                                    }
+                                                                                </span>
+                                                                            </Tab>
+                                                                        );
+                                                                    }
+                                                                )}
+
+                                                                <div
+                                                                    ref={
+                                                                        this
+                                                                            .tabIndexRef
+                                                                    }
+                                                                    style={{
+                                                                        transform: `translate(${this
+                                                                            .state
+                                                                            .criteriaTabIndex *
+                                                                            (this
+                                                                                .tabIndexRef
+                                                                                .current
+                                                                                ? this
+                                                                                      .tabIndexRef
+                                                                                      .current
+                                                                                      .offsetWidth
+                                                                                : 0)}px)`,
+                                                                    }}
+                                                                    id="tab-slider"
+                                                                    className="custom-tab-3"
+                                                                ></div>
+                                                            </TabList>
+                                                        </div>
+
+                                                        {Object.values(
+                                                            CRITERIA_TYPES
+                                                        ).map(criterionType => {
+                                                            return (
+                                                                <TabPanel
+                                                                    key={
+                                                                        criterionType
+                                                                    }
+                                                                >
+                                                                    <Fade>
+                                                                        <div>
+                                                                            {[
+                                                                                ...this.state.criteria
+                                                                                    .filter(
+                                                                                        criterion =>
+                                                                                            criterion.type ===
+                                                                                            criterionType
+                                                                                    )
+                                                                                    .map(
+                                                                                        (
+                                                                                            criterion,
+                                                                                            index
+                                                                                        ) => {
+                                                                                            return (
+                                                                                                <ResponseComponent
+                                                                                                    key={
+                                                                                                        index
+                                                                                                    }
+                                                                                                    head={
+                                                                                                        criterion.head
+                                                                                                    }
+                                                                                                    tagline={
+                                                                                                        criterion.tagline
+                                                                                                    }
+                                                                                                    fieldname={`${criterion.type}_${this.props.index}`}
+                                                                                                    index={
+                                                                                                        criterion.index
+                                                                                                    }
+                                                                                                    type={
+                                                                                                        this
+                                                                                                            .state
+                                                                                                            .type
+                                                                                                    }
+                                                                                                    addCriterion={data =>
+                                                                                                        this.addCriterion(
+                                                                                                            data
+                                                                                                        )
+                                                                                                    }
+                                                                                                    criterion={{
+                                                                                                        type:
+                                                                                                            criterion.type,
+                                                                                                        id:
+                                                                                                            criterion.id,
+                                                                                                    }}
+                                                                                                    schedules={
+                                                                                                        this
+                                                                                                            .props
+                                                                                                            .schedules
+                                                                                                    }
+                                                                                                    handleIncidentTitleChangedForCriterion={(
+                                                                                                        id,
+                                                                                                        incidentTitle
+                                                                                                    ) =>
+                                                                                                        this.handleIncidentTitleChangedForCriterion(
+                                                                                                            id,
+                                                                                                            incidentTitle
+                                                                                                        )
+                                                                                                    }
+                                                                                                    handleIncidentDescriptionChangedForCriterion={(
+                                                                                                        id,
+                                                                                                        incidentDescription
+                                                                                                    ) =>
+                                                                                                        this.handleIncidentDescriptionChangedForCriterion(
+                                                                                                            id,
+                                                                                                            incidentDescription
+                                                                                                        )
+                                                                                                    }
+                                                                                                    handleScheduleChangedForCriterion={(
+                                                                                                        id,
+                                                                                                        scheduleId
+                                                                                                    ) =>
+                                                                                                        this.handleScheduleChangedForCriterion(
+                                                                                                            id,
+                                                                                                            scheduleId
+                                                                                                        )
+                                                                                                    }
+                                                                                                />
+                                                                                            );
+                                                                                        }
+                                                                                    ),
+                                                                            ]}
+                                                                        </div>
+                                                                    </Fade>
+                                                                </TabPanel>
+                                                            );
+                                                        })}
+                                                    </Tabs>
                                                 </ShouldRender>
                                             </div>
                                         </fieldset>
