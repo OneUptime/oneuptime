@@ -150,7 +150,8 @@ export class MonitorViewLogsBox extends Component {
                                             Here&#39;s all of the logs for the
                                             monitor created by the{' '}
                                             {this.props.monitorType ===
-                                            'server-monitor'
+                                                'server-monitor' &&
+                                            !this.props.agentless
                                                 ? 'daemon'
                                                 : 'probes'}
                                             .
@@ -164,7 +165,8 @@ export class MonitorViewLogsBox extends Component {
                         if={
                             !(
                                 this.props.incidentId ||
-                                this.props.monitorType === 'server-monitor'
+                                (this.props.monitorType === 'server-monitor' &&
+                                    !this.props.agentless)
                             )
                         }
                     >
@@ -222,6 +224,7 @@ export class MonitorViewLogsBox extends Component {
                         monitorId={this.props.monitorId}
                         monitorName={this.props.monitorName}
                         monitorType={this.props.monitorType}
+                        agentless={this.props.agentless}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
                     />
@@ -241,6 +244,7 @@ MonitorViewLogsBox.propTypes = {
     monitorLogs: PropTypes.object,
     monitorName: PropTypes.string,
     monitorType: PropTypes.string,
+    agentless: PropTypes.bool,
     probes: PropTypes.array,
 };
 
