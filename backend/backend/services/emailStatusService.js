@@ -14,7 +14,7 @@ module.exports = {
             }
 
             if (!sort) {
-                sort = { createdAt: 'desc' };
+                sort = { createdAt: 'asc' };
             }
 
             if (!query.deleted) query.deleted = false;

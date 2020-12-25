@@ -6,7 +6,6 @@ import uuid from 'uuid';
 
 import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
-import EmailLogsJsonViewModal from './EmailLogsJsonViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 export class EmailLogsList extends Component {
@@ -159,10 +158,8 @@ export class EmailLogsList extends Component {
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root Margin-right--16">
                                                             <span>
-                                                                {emailLog.projectId
-                                                                    ? emailLog
-                                                                          .projectId
-                                                                          .name
+                                                                {emailLog.status
+                                                                    ? emailLog.status
                                                                     : 'N/A'}
                                                             </span>
                                                         </div>
@@ -178,10 +175,8 @@ export class EmailLogsList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root">
                                                                 <span>
-                                                                    {emailLog.userId
-                                                                        ? emailLog
-                                                                              .userId
-                                                                              .name
+                                                                    {emailLog.from
+                                                                        ? emailLog.from
                                                                         : 'N/A'}
                                                                 </span>
                                                             </div>
@@ -198,13 +193,8 @@ export class EmailLogsList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Flex-flex">
                                                                 <span>
-                                                                    {emailLog.request &&
-                                                                    emailLog
-                                                                        .request
-                                                                        .apiSection
-                                                                        ? emailLog
-                                                                              .request
-                                                                              .apiSection
+                                                                    {emailLog.to
+                                                                        ? emailLog.to
                                                                         : ''}
                                                                 </span>
                                                             </div>
@@ -222,35 +212,9 @@ export class EmailLogsList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root">
                                                                 <span>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            this.props.openModal(
-                                                                                {
-                                                                                    id: uuid.v4(),
-                                                                                    onConfirm: () => {
-                                                                                        return Promise.resolve();
-                                                                                    },
-                                                                                    content: props => (
-                                                                                        <EmailLogsJsonViewModal
-                                                                                            {...props}
-                                                                                            reqLog={
-                                                                                                emailLog.request
-                                                                                            }
-                                                                                            resLog={
-                                                                                                emailLog.response
-                                                                                            }
-                                                                                        />
-                                                                                    ),
-                                                                                }
-                                                                            );
-                                                                        }}
-                                                                        id="view"
-                                                                        className="bs-Button"
-                                                                    >
-                                                                        <span>
-                                                                            View
-                                                                        </span>
-                                                                    </button>
+                                                                    {emailLog.subject
+                                                                        ? emailLog.subject
+                                                                        : ''}
                                                                 </span>
                                                             </div>
                                                         </span>

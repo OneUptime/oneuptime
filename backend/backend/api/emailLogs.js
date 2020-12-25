@@ -22,7 +22,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
         const limit = req.query.limit;
 
         const emailLogs = await EmailLogsService.findBy({ query, skip, limit });
-        const count = await EmailLogsService.countBy({ query });
+        const count = await EmailLogsService.countBy(query);
 
         return sendListResponse(req, res, emailLogs, count);
     } catch (error) {
