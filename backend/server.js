@@ -121,6 +121,7 @@ app.use(express.static(path.join(__dirname, 'views')));
 app.use('/api', express.static(path.join(__dirname, 'views')));
 
 app.use(require('./backend/middlewares/auditLogs').log);
+app.use(require('./backend/middlewares/emailLogs').log);
 
 // Routes(API)
 app.use(
@@ -199,6 +200,7 @@ app.use(['/probe', '/api/probe'], require('./backend/api/probe'));
 app.use(['/version', '/api/version'], require('./backend/api/version'));
 app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
 app.use(['/audit-logs', '/api/audit-logs'], require('./backend/api/auditLogs'));
+app.use(['/email-logs', '/api/email-logs'], require('./backend/api/emailLogs'));
 app.use(['/component', '/api/component'], require('./backend/api/component'));
 app.use(
     ['/application-log', '/api/application-log'],
