@@ -1,4 +1,4 @@
-import React, { Fragment, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import BlockChart from '../blockchart/BlockChart';
@@ -308,7 +308,7 @@ export function MonitorChart({
                                     <small>
                                         <span className="chart-font">
                                             We&apos;re currently not monitoring
-                                            this monitor.please reenable it to
+                                            this monitor. Please re-enable it to
                                             resume monitoring.
                                         </span>
                                     </small>
@@ -320,293 +320,53 @@ export function MonitorChart({
             </div>
         );
     } else if (type === 'server-monitor') {
-        monitorInfo = (
-            <Fragment>
+        monitorInfo =
+            monitor && monitor.agentlessConfig && isCurrentlyNotMonitoring ? (
                 <div className="db-Trend">
                     <div className="block-chart-side line-chart">
                         <div className="db-TrendRow">
-                            <div className="db-Trend-colInformation">
+                            <div className="db-Trend-colInformation probe-offline">
                                 <div
                                     className="db-Trend-rowTitle"
-                                    title="Current CPU Load"
+                                    title="Currently not monitoring"
                                 >
                                     <div className="db-Trend-title">
-                                        <span className="chart-font">
-                                            Current CPU Load
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue">
-                                        <span>
-                                            {' '}
+                                        <strong>
                                             <span className="chart-font">
-                                                {checkLogs && data[0].cpuLoad
-                                                    ? formatDecimal(
-                                                          data[0].cpuLoad,
-                                                          2
-                                                      )
-                                                    : 0}{' '}
-                                                %
+                                                Currently not monitoring
                                             </span>
-                                        </span>
+                                        </strong>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="db-Trend-colInformation">
-                                <div
-                                    className="db-Trend-rowTitle"
-                                    title="Average CPU Load"
-                                >
-                                    <div className="db-Trend-title">
-                                        <span className="chart-font">
-                                            Average CPU Load
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue">
-                                        <span>
-                                            {' '}
+                                <div className="db-Trend-rowTitle">
+                                    <div className="db-Trend-title description">
+                                        <small>
                                             <span className="chart-font">
-                                                {checkLogs && data[0].avgCpuLoad
-                                                    ? formatDecimal(
-                                                          data[0].avgCpuLoad,
-                                                          2
-                                                      )
-                                                    : 0}{' '}
-                                                %
+                                                We&apos;re currently not
+                                                monitoring this monitor from
+                                                this probe because the probe is
+                                                offline.
                                             </span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="db-Trend-colInformation">
-                                <div
-                                    className="db-Trend-rowTitle"
-                                    title="Cores"
-                                >
-                                    <div className="db-Trend-title">
-                                        <span className="chart-font">
-                                            CPU Cores
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue">
-                                        <span>
-                                            {' '}
-                                            <span className="chart-font">
-                                                {checkLogs && data[0].cpuCores
-                                                    ? data[0].cpuCores
-                                                    : 0}
-                                            </span>
-                                        </span>
+                                        </small>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div className="block-chart-main line-chart">
-                        <AreaChart type={type} data={data} name={'load'} />
-                    </div>
                 </div>
-                <div className="db-Trend">
-                    <div className="block-chart-side line-chart">
-                        <div className="db-TrendRow">
-                            <div className="db-Trend-colInformation">
-                                <div
-                                    className="db-Trend-rowTitle"
-                                    title="Memory Used"
-                                >
-                                    <div className="db-Trend-title">
-                                        <span className="chart-font">
-                                            Memory Used
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue">
-                                        <span>
-                                            {' '}
-                                            <span className="chart-font">
-                                                {checkLogs && data[0].memoryUsed
-                                                    ? formatBytes(
-                                                          data[0].memoryUsed
-                                                      )
-                                                    : '0 Bytes'}
-                                            </span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="db-Trend-colInformation">
-                                <div
-                                    className="db-Trend-rowTitle"
-                                    title="Memory Available"
-                                >
-                                    <div className="db-Trend-title">
-                                        <span className="chart-font">
-                                            Memory Available
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue">
-                                        <span>
-                                            {' '}
-                                            <span className="chart-font">
-                                                {checkLogs &&
-                                                data[0].totalMemory
-                                                    ? formatBytes({
-                                                          value:
-                                                              data[0]
-                                                                  .totalMemory,
-                                                          decimalPlaces: 0,
-                                                          roundType: 'down',
-                                                      })
-                                                    : '0 Bytes'}
-                                            </span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="db-Trend-colInformation">
-                                <div
-                                    className="db-Trend-rowTitle"
-                                    title="Swap Used"
-                                >
-                                    <div className="db-Trend-title">
-                                        <span className="chart-font">
-                                            Swap Used
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue">
-                                        <span>
-                                            {' '}
-                                            <span className="chart-font">
-                                                {checkLogs && data[0].swapUsed
-                                                    ? formatBytes(
-                                                          data[0].swapUsed
-                                                      )
-                                                    : '0 Bytes'}
-                                            </span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="block-chart-main line-chart">
-                        <AreaChart type={type} data={data} name={'memory'} />
-                    </div>
-                </div>
-                <div className="db-Trend">
-                    <div className="block-chart-side line-chart">
-                        <div className="db-TrendRow">
-                            <div className="db-Trend-colInformation">
-                                <div
-                                    className="db-Trend-rowTitle"
-                                    title="Storage Used"
-                                >
-                                    <div className="db-Trend-title">
-                                        <span className="chart-font">
-                                            Storage Used
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue">
-                                        <span>
-                                            {' '}
-                                            <span className="chart-font">
-                                                {checkLogs &&
-                                                data[0].storageUsed
-                                                    ? formatBytes(
-                                                          data[0].storageUsed
-                                                      )
-                                                    : '0 Bytes'}
-                                            </span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="db-Trend-colInformation">
-                                <div
-                                    className="db-Trend-rowTitle"
-                                    title="Storage Available"
-                                >
-                                    <div className="db-Trend-title">
-                                        <span className="chart-font">
-                                            Storage Available
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue">
-                                        <span>
-                                            {' '}
-                                            <span className="chart-font">
-                                                {checkLogs &&
-                                                data[0].totalStorage
-                                                    ? formatBytes(
-                                                          data[0].totalStorage
-                                                      )
-                                                    : '0 Bytes'}
-                                            </span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="db-Trend-colInformation">
-                                <div
-                                    className="db-Trend-rowTitle"
-                                    title="Storage Usage"
-                                >
-                                    <div className="db-Trend-title">
-                                        <span className="chart-font">
-                                            Storage Usage
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="db-Trend-row">
-                                    <div className="db-Trend-col db-Trend-colValue">
-                                        <span>
-                                            {' '}
-                                            <span className="chart-font">
-                                                {checkLogs &&
-                                                data[0].storageUsage
-                                                    ? formatDecimal(
-                                                          data[0].storageUsage,
-                                                          2
-                                                      )
-                                                    : 0}{' '}
-                                                %
-                                            </span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="block-chart-main line-chart">
-                        <AreaChart type={type} data={data} name={'disk'} />
-                    </div>
-                </div>
-                <ShouldRender if={showAll}>
+            ) : (
+                <>
                     <div className="db-Trend">
                         <div className="block-chart-side line-chart">
                             <div className="db-TrendRow">
                                 <div className="db-Trend-colInformation">
                                     <div
                                         className="db-Trend-rowTitle"
-                                        title="Main Temperature"
+                                        title="Current CPU Load"
                                     >
                                         <div className="db-Trend-title">
                                             <span className="chart-font">
-                                                Main Temperature
+                                                Current CPU Load
                                             </span>
                                         </div>
                                     </div>
@@ -616,10 +376,13 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].mainTemp
-                                                        ? data[0].mainTemp
+                                                    data[0].cpuLoad
+                                                        ? formatDecimal(
+                                                              data[0].cpuLoad,
+                                                              2
+                                                          )
                                                         : 0}{' '}
-                                                    &deg;C
+                                                    %
                                                 </span>
                                             </span>
                                         </div>
@@ -628,11 +391,11 @@ export function MonitorChart({
                                 <div className="db-Trend-colInformation">
                                     <div
                                         className="db-Trend-rowTitle"
-                                        title="Max. Temperature"
+                                        title="Average CPU Load"
                                     >
                                         <div className="db-Trend-title">
                                             <span className="chart-font">
-                                                Max. Temperature
+                                                Average CPU Load
                                             </span>
                                         </div>
                                     </div>
@@ -642,29 +405,313 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].maxTemp
-                                                        ? data[0].maxTemp
+                                                    data[0].avgCpuLoad
+                                                        ? formatDecimal(
+                                                              data[0]
+                                                                  .avgCpuLoad,
+                                                              2
+                                                          )
                                                         : 0}{' '}
-                                                    &deg;C
+                                                    %
                                                 </span>
                                             </span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="db-Trend-colInformation"></div>
+                                <div className="db-Trend-colInformation">
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Cores"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                CPU Cores
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    {checkLogs &&
+                                                    data[0].cpuCores
+                                                        ? data[0].cpuCores
+                                                        : 0}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="block-chart-main line-chart">
+                            <AreaChart type={type} data={data} name={'load'} />
+                        </div>
+                    </div>
+                    <div className="db-Trend">
+                        <div className="block-chart-side line-chart">
+                            <div className="db-TrendRow">
+                                <div className="db-Trend-colInformation">
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Memory Used"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Memory Used
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    {checkLogs &&
+                                                    data[0].memoryUsed
+                                                        ? formatBytes(
+                                                              data[0].memoryUsed
+                                                          )
+                                                        : '0 Bytes'}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="db-Trend-colInformation">
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Memory Available"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Memory Available
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    {checkLogs &&
+                                                    data[0].totalMemory
+                                                        ? formatBytes({
+                                                              value:
+                                                                  data[0]
+                                                                      .totalMemory,
+                                                              decimalPlaces: 0,
+                                                              roundType: 'down',
+                                                          })
+                                                        : '0 Bytes'}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="db-Trend-colInformation">
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Swap Used"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Swap Used
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    {checkLogs &&
+                                                    data[0].swapUsed
+                                                        ? formatBytes(
+                                                              data[0].swapUsed
+                                                          )
+                                                        : '0 Bytes'}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div className="block-chart-main line-chart">
                             <AreaChart
                                 type={type}
                                 data={data}
-                                name={'temperature'}
+                                name={'memory'}
                             />
                         </div>
                     </div>
-                </ShouldRender>
-            </Fragment>
-        );
+                    <div className="db-Trend">
+                        <div className="block-chart-side line-chart">
+                            <div className="db-TrendRow">
+                                <div className="db-Trend-colInformation">
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Storage Used"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Storage Used
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    {checkLogs &&
+                                                    data[0].storageUsed
+                                                        ? formatBytes(
+                                                              data[0]
+                                                                  .storageUsed
+                                                          )
+                                                        : '0 Bytes'}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="db-Trend-colInformation">
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Storage Available"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Storage Available
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    {checkLogs &&
+                                                    data[0].totalStorage
+                                                        ? formatBytes(
+                                                              data[0]
+                                                                  .totalStorage
+                                                          )
+                                                        : '0 Bytes'}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="db-Trend-colInformation">
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Storage Usage"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Storage Usage
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span className="chart-font">
+                                                    {checkLogs &&
+                                                    data[0].storageUsage
+                                                        ? formatDecimal(
+                                                              data[0]
+                                                                  .storageUsage,
+                                                              2
+                                                          )
+                                                        : 0}{' '}
+                                                    %
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="block-chart-main line-chart">
+                            <AreaChart type={type} data={data} name={'disk'} />
+                        </div>
+                    </div>
+                    <ShouldRender if={showAll}>
+                        <div className="db-Trend">
+                            <div className="block-chart-side line-chart">
+                                <div className="db-TrendRow">
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Main Temperature"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Main Temperature
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].mainTemp
+                                                            ? data[0].mainTemp
+                                                            : 0}{' '}
+                                                        &deg;C
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Max. Temperature"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Max. Temperature
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].maxTemp
+                                                            ? data[0].maxTemp
+                                                            : 0}{' '}
+                                                        &deg;C
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation"></div>
+                                </div>
+                            </div>
+                            <div className="block-chart-main line-chart">
+                                <AreaChart
+                                    type={type}
+                                    data={data}
+                                    name={'temperature'}
+                                />
+                            </div>
+                        </div>
+                    </ShouldRender>
+                </>
+            );
     } else if (type === 'url' || type === 'api' || type === 'device') {
         monitorInfo = (
             <>

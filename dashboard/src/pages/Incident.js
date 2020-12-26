@@ -280,6 +280,8 @@ class Incident extends React.Component {
             this.props.monitor && this.props.monitor.type
                 ? this.props.monitor.type
                 : '';
+        const agentless =
+            this.props.monitor && this.props.monitor.agentlessConfig;
 
         const incidentCommunicationSla =
             this.props.monitor &&
@@ -476,6 +478,7 @@ class Incident extends React.Component {
                                         monitorId={monitorId}
                                         monitorName={monitorName}
                                         monitorType={monitorType}
+                                        agentless={agentless}
                                     />
                                 </div>
                             </Fade>

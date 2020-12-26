@@ -201,6 +201,7 @@ class MonitorView extends React.Component {
         const componentName = component ? component.name : '';
         const monitorName = monitor ? monitor.name : '';
         const monitorType = monitor && monitor.type ? monitor.type : '';
+        const agentless = monitor && monitor.agentlessConfig;
 
         const componentMonitorsRoute = getParentRoute(pathname);
         const defaultMonitorSla = monitorSlas.find(sla => sla.isDefault);
@@ -586,19 +587,16 @@ class MonitorView extends React.Component {
                                                                             <div className="Box-root Margin-bottom--12">
                                                                                 <MonitorViewLogsBox
                                                                                     monitorId={
-                                                                                        this
-                                                                                            .props
-                                                                                            .monitor
-                                                                                            ._id
+                                                                                        monitor._id
                                                                                     }
                                                                                     monitorName={
-                                                                                        this
-                                                                                            .props
-                                                                                            .monitor
-                                                                                            .name
+                                                                                        monitorName
                                                                                     }
                                                                                     monitorType={
                                                                                         monitorType
+                                                                                    }
+                                                                                    agentless={
+                                                                                        agentless
                                                                                     }
                                                                                 />
                                                                             </div>

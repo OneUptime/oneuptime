@@ -82,7 +82,10 @@ app.use(function(req, res, next) {
 app.set('port', process.env.PORT || 1445);
 
 //version
-app.get(['/version', '/api/version'], version);
+app.get(
+    ['/api-docs/version', '/api-docs/api/version', '/version', '/api/version'],
+    version
+);
 
 // set the view engine to ejs
 app.set('views', path.join(__dirname, 'views'));

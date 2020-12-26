@@ -15,8 +15,9 @@ module.exports = {
                 return {
                     alertType: 'sms',
                     category: 'us',
-                    price: 0.05,
+                    price: 0.02,
                     minimumBalance: 5,
+                    pricingQuota: '$0.02 / sms / 160 chars',
                 };
             } else if (country === 'non-us') {
                 return {
@@ -24,6 +25,7 @@ module.exports = {
                     category: 'non-us',
                     price: 1.0,
                     minimumBalance: 10,
+                    pricingQuota: '$1.0 / sms / 160 chars',
                 };
             } else if (country === 'risk') {
                 return {
@@ -31,6 +33,7 @@ module.exports = {
                     category: 'risk',
                     price: 1.0,
                     minimumBalance: 20,
+                    pricingQuota: '$1.0 / sms / 160 chars',
                 };
             } else return {};
         } else if (type === 'email') {
