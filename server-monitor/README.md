@@ -74,12 +74,12 @@ A complete log of the daemon can be found in these directories:
 
 ```bash
 # linux logs
-/var/log/fsmd.log
-/var/log/fsmd_error.log
+/var/log/fsmd/fsmd.log
+/var/log/fsmd/fsmd_error.log
 
 # mac logs
-/Library/Logs/fsmd.log
-/Library/Logs/fsmd_error.log
+/Library/Logs/fsmd/fsmd.log
+/Library/Logs/fsmd/fsmd_error.log
 
 # windows logs
 <service_path>/fsmd.out.log
@@ -92,11 +92,11 @@ NB:- In most cases, `sudo` or admin privileges are required to run the shell as 
 
 #### Linux
 
-Services created by the daemon are like other services running on Linux. It can be started/stopped using `service fsmd start` or `service fsmd stop` and logs are available. This file is created in /etc/init.d by default. Additionally, log files are generated in /var/log/ for general output and error logging.
+Services created by the daemon are like other services running on Linux. It can be started/stopped using `service fsmd start` or `service fsmd stop` and logs are available. This file is created in /etc/init.d by default. Additionally, log files are generated in /var/log/fsmd/ for general output and error logging.
 
 #### Mac
 
-Services created by the daemon are similar to most other services running on OSX. It can be stopped from the Activity Monitor and make logs available in the Console app. A plist file is created in /Library/LaunchDaemons by default. Additionally, two log files are generated in /Library/Logs/ for general output and error logging.
+Services created by the daemon are similar to most other services running on OSX. It can be stopped from the Activity Monitor and make logs available in the Console app. A plist file is created in /Library/LaunchDaemons by default. Additionally, two log files are generated in /Library/Logs/fsmd/ for general output and error logging.
 
 #### Windows
 
