@@ -1212,7 +1212,6 @@ module.exports = {
 
 const _ = require('lodash');
 
-// eslint-disable-next-line no-unused-vars
 const incomingCheckAnd = async (payload, condition) => {
     let validity = false;
     let val = 0;

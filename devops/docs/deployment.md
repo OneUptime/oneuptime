@@ -50,7 +50,6 @@ git push
 git checkout master
 ```
 
-
 ## BE VERY CAREFUL - EMERGENCY DEPLOYMENT TO PRODUCTION
 
 ```

@@ -129,9 +129,15 @@ class NewMonitor extends Component {
                 port: values[`port_${this.props.index}`],
                 username: values[`username_${this.props.index}`],
                 authentication: values[`authentication_${this.props.index}`],
-                password: values[`password_${this.props.index}`],
-                identityFile: this.props.identityFile,
             };
+            if (
+                values[`authentication_${this.props.index}`] === 'identityFile'
+            ) {
+                postObj.agentlessConfig.identityFile = this.props.identityFile;
+            } else {
+                postObj.agentlessConfig.password =
+                    values[`password_${this.props.index}`];
+            }
         }
 
         if (postObj.type === 'incomingHttpRequest')
@@ -257,7 +263,9 @@ class NewMonitor extends Component {
                         const val = text.replace(/^,{+|},+$/g, '');
                         const r = dJSON.parse(val);
                         text = JSON.stringify(r);
-                    } catch (e) {}
+                    } catch (e) {
+                        //
+                    }
                 }
                 postObj.text = text;
             }
@@ -393,7 +401,6 @@ class NewMonitor extends Component {
         };
         try {
             reader.readAsDataURL(file);
-            console.log('*** Identity File ***', file);
         } catch (error) {
             return;
         }
@@ -493,8 +500,8 @@ class NewMonitor extends Component {
                     </span>
                     <p>
                         <span>
-                            Setup your new monitor's configuration as per your
-                            needs.
+                            Setup your new monitor&apos;s configuration as per
+                            your needs.
                         </span>
                     </p>
                 </div>
@@ -517,6 +524,7 @@ class NewMonitor extends Component {
             project,
             currentPlanId,
             identityFile,
+            uploadingIdentityFile,
             fileInputKey,
         } = this.props;
         const { type, mode, authentication, httpRequestLink } = this.state;
@@ -1381,6 +1389,9 @@ class NewMonitor extends Component {
                                                                                             this
                                                                                                 .changeFile
                                                                                         }
+                                                                                        disabled={
+                                                                                            uploadingIdentityFile
+                                                                                        }
                                                                                         fileInputKey={
                                                                                             fileInputKey
                                                                                         }
@@ -1406,6 +1417,9 @@ class NewMonitor extends Component {
                                                                                     onClick={
                                                                                         this
                                                                                             .removeFile
+                                                                                    }
+                                                                                    disabled={
+                                                                                        uploadingIdentityFile
                                                                                     }
                                                                                     style={{
                                                                                         margin:
@@ -1721,7 +1735,7 @@ class NewMonitor extends Component {
                                                                     Set the
                                                                     configuration
                                                                     for your
-                                                                    Monitor's
+                                                                    Monitor&apos;s
                                                                     Call duties.
                                                                 </span>
                                                             </p>
@@ -1774,7 +1788,7 @@ class NewMonitor extends Component {
                                                                         <p>
                                                                             Call
                                                                             Schedules
-                                                                            let's
+                                                                            let&apos;s
                                                                             you
                                                                             connect
                                                                             your
@@ -2342,6 +2356,7 @@ const mapStateToProps = (state, ownProps) => {
             authentication,
             category,
             identityFile: state.monitor.file,
+            uploadingIdentityFile: state.monitor.uploadFileRequest,
             schedule,
             monitorSla,
             incidentCommunicationSla,
@@ -2376,6 +2391,7 @@ const mapStateToProps = (state, ownProps) => {
             authentication,
             category,
             identityFile: state.monitor.file,
+            uploadingIdentityFile: state.monitor.uploadFileRequest,
             schedule,
             monitorSla,
             incidentCommunicationSla,
@@ -2440,6 +2456,7 @@ NewMonitor.propTypes = {
     logFile: PropTypes.func,
     resetFile: PropTypes.func,
     identityFile: PropTypes.string,
+    uploadingIdentityFile: PropTypes.string,
     setFileInputKey: PropTypes.func,
     fileInputKey: PropTypes.string,
     uploadIdentityFile: PropTypes.func,

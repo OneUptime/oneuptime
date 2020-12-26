@@ -54,6 +54,21 @@ export class MonitorLogsList extends Component {
                                 {this.props.monitorType &&
                                 this.props.monitorType === 'server-monitor' ? (
                                     <>
+                                        <ShouldRender if={this.props.agentless}>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{
+                                                    height: '1px',
+                                                    minWidth: '210px',
+                                                }}
+                                            >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                        <span>Probe</span>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </ShouldRender>
                                         <td
                                             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{ height: '1px' }}
@@ -241,6 +256,72 @@ export class MonitorLogsList extends Component {
                                             this.props.monitorType ===
                                                 'server-monitor' ? (
                                                 <>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props.agentless
+                                                        }
+                                                    >
+                                                        <td
+                                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                            style={{
+                                                                height: '1px',
+                                                                minWidth:
+                                                                    '210px',
+                                                            }}
+                                                        >
+                                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                                <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <div className="Box-root Margin-right--16">
+                                                                        <span>
+                                                                            {log.probeId &&
+                                                                            log
+                                                                                .probeId
+                                                                                .probeName
+                                                                                ? log
+                                                                                      .probeId
+                                                                                      .probeName
+                                                                                : 'Fyipe'}
+                                                                        </span>
+                                                                    </div>
+                                                                </span>
+                                                                <div className="Box-root Flex">
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-vertical--2">
+                                                                                <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                    <span>
+                                                                                        {moment(
+                                                                                            log.createdAt
+                                                                                        ).fromNow()}{' '}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <div
+                                                                            className="Box-root Flex"
+                                                                            style={{
+                                                                                paddingTop:
+                                                                                    '5px',
+                                                                            }}
+                                                                        >
+                                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                (
+                                                                                {moment(
+                                                                                    log.createdAt
+                                                                                ).format(
+                                                                                    'MMMM Do YYYY, h:mm:ss a'
+                                                                                )}
+
+                                                                                )
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </ShouldRender>
                                                     <td
                                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                         style={{
@@ -973,6 +1054,7 @@ MonitorLogsList.propTypes = {
     monitorLogs: PropTypes.object,
     monitorName: PropTypes.string,
     monitorType: PropTypes.string,
+    agentless: PropTypes.bool,
     nextClicked: PropTypes.func.isRequired,
     openModal: PropTypes.func,
     prevClicked: PropTypes.func.isRequired,
