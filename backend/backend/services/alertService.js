@@ -1054,7 +1054,7 @@ module.exports = {
             }
         }
 
-        let alertStatus = await TwilioService.sendIncidentCreatedMessage(
+        const sendResult = await TwilioService.sendIncidentCreatedMessage(
             date,
             monitor.name,
             user.alertPhoneNumber,
@@ -1065,7 +1065,7 @@ module.exports = {
             projectId
         );
 
-        if (alertStatus && alertStatus.code && alertStatus.code === 400) {
+        if (sendResult && sendResult.code && sendResult.code === 400) {
             await _this.create({
                 projectId: incident.projectId,
                 monitorId,
@@ -1077,10 +1077,10 @@ module.exports = {
                 onCallScheduleStatus: onCallScheduleStatus._id,
                 alertStatus: null,
                 error: true,
-                errorMessage: alertStatus.message,
+                errorMessage: sendResult.message,
             });
-        } else if (alertStatus) {
-            alertStatus = 'Success';
+        } else if (sendResult) {
+            const alertStatus = 'Success';
             alert = await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -1093,11 +1093,16 @@ module.exports = {
                 alertStatus,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                // calculate charge per 160 chars
+                // numSegments is the number of segments the sms will be divided into
+                // numSegments is provided by twilio
+                const segments = Number(sendResult.numSegments);
                 const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                     user._id,
                     project,
                     AlertType.SMS,
-                    user.alertPhoneNumber
+                    user.alertPhoneNumber,
+                    segments
                 );
 
                 if (!balanceStatus.error) {
@@ -2415,11 +2420,16 @@ module.exports = {
                             IS_SAAS_SERVICE &&
                             !hasCustomTwilioSettings
                         ) {
+                            // charge sms per 160 chars
+                            // numSegments is the number of segments an sms can be divided into
+                            // numSegments is provided by twilio
+                            const segments = Number(sendResult.numSegments);
                             const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                                 owner.userId,
                                 project,
                                 AlertType.SMS,
-                                contactPhone
+                                contactPhone,
+                                segments
                             );
 
                             if (!balanceStatus.error) {

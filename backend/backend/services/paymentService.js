@@ -11,7 +11,8 @@ module.exports = {
         userId,
         project,
         alertType,
-        alertPhoneNumber
+        alertPhoneNumber,
+        segments
     ) {
         let release;
         try {
@@ -23,14 +24,16 @@ module.exports = {
                 alertType,
                 countryType
             );
+            const chargeAmount = alertChargeAmount.price * segments;
+
             const updatedProject = await this.chargeAlert(
                 userId,
                 project._id,
-                alertChargeAmount.price
+                chargeAmount
             );
 
             return {
-                chargeAmount: alertChargeAmount.price,
+                chargeAmount,
                 closingBalance: updatedProject.balance,
             };
         } catch (error) {
