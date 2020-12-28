@@ -236,7 +236,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
         data.projectId = projectId;
-
+        data.variables = [data.name];
         const monitor = await MonitorService.create(data);
         if (data.callScheduleId) {
             const schedule = await ScheduleService.findOneBy({

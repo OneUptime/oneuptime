@@ -175,6 +175,17 @@ module.exports = {
 
             await this.updateMonitorSlaStat(query);
 
+            if (data.name) {
+                const monitor = await this.findOneBy(query);
+
+                if (data.name !== monitor.name) {
+                    const initialVariables = monitor.variables
+                        ? monitor.variables
+                        : [];
+                    data.variables = [...initialVariables, data.name];
+                }
+            }
+
             if (data) {
                 await MonitorModel.findOneAndUpdate(
                     query,
