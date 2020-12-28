@@ -2504,7 +2504,7 @@ module.exports = {
     },
 
     checkIsOnDuty(startTime, endTime) {
-        if (!startTime || !endTime) return false;
+        if (!startTime || !endTime) return true;
         const oncallstart = moment(startTime).format('HH:mm');
         const oncallend = moment(endTime).format('HH:mm');
         const currentTime = moment().format('HH:mm');
