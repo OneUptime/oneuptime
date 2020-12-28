@@ -88,6 +88,7 @@ module.exports = {
                     monitor.incidentCommunicationSla =
                         data.incidentCommunicationSla;
                     monitor.createdById = data.createdById;
+                    monitor.variables = data.variables;
                     if (data.type === 'url' || data.type === 'api') {
                         monitor.data = {};
                         monitor.data.url = data.data.url;
