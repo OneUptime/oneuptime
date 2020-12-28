@@ -85,6 +85,15 @@ module.exports = {
         }
     },
 
+    hardDeleteBy: async function({ query }) {
+        try {
+            await EmailStatusModel.deleteMany(query);
+        } catch (error) {
+            ErrorService.log('emailLogs.hardDeleteBy', error);
+            throw error;
+        }
+    },
+
     // Description: Get EmailStatus by item Id.
     // Params:
     // Param 1: monitorId: monitor Id
