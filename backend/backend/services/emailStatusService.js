@@ -152,6 +152,18 @@ module.exports = {
             throw error;
         }
     },
+
+    search: async function({ filter, skip, limit }) {
+        const _this = this;
+        const query = {
+            to: { $regex: new RegExp(filter), $options: 'i' },
+        };
+
+        const searchedEmailLogs = await _this.findBy({ query, skip, limit });
+        const totalSearchCount = await _this.countBy({ query });
+
+        return { searchedEmailLogs, totalSearchCount };
+    },
 };
 
 const EmailStatusModel = require('../models/emailStatus');
