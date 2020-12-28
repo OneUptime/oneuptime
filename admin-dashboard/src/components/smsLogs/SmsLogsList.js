@@ -143,10 +143,8 @@ export class SmsLogsList extends Component {
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root Margin-right--16">
                                                             <span>
-                                                                {smsLog.projectId
-                                                                    ? smsLog
-                                                                          .projectId
-                                                                          .name
+                                                                {smsLog.userId
+                                                                    ? smsLog.userId
                                                                     : 'N/A'}
                                                             </span>
                                                         </div>
@@ -162,10 +160,8 @@ export class SmsLogsList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root">
                                                                 <span>
-                                                                    {smsLog.userId
-                                                                        ? smsLog
-                                                                              .userId
-                                                                              .name
+                                                                    {smsLog.projectId
+                                                                        ? smsLog.projectId
                                                                         : 'N/A'}
                                                                 </span>
                                                             </div>
@@ -182,14 +178,9 @@ export class SmsLogsList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Flex-flex">
                                                                 <span>
-                                                                    {smsLog.request &&
-                                                                    smsLog
-                                                                        .request
-                                                                        .apiSection
-                                                                        ? smsLog
-                                                                              .request
-                                                                              .apiSection
-                                                                        : ''}
+                                                                    {smsLog.sentTo
+                                                                        ? smsLog.sentTo
+                                                                        : 'N/A'}
                                                                 </span>
                                                             </div>
                                                         </span>
