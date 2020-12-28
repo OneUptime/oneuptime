@@ -911,31 +911,24 @@ module.exports = {
                 alertStatus: 'Success',
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                balanceStatus = await _this.getBalanceStatus(
-                    project._id,
-                    user.alertPhoneNumber,
-                    AlertType.Call
-                );
-                await AlertChargeService.create(
-                    incident.projectId,
-                    balanceStatus.chargeAmount,
-                    balanceStatus.closingBalance,
-                    alert._id,
-                    monitorId,
-                    incident._id,
+                const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
+                    user._id,
+                    project,
+                    AlertType.Call,
                     user.alertPhoneNumber
                 );
-                // cut payment for call notification
-                const countryType = getCountryType(user.alertPhoneNumber);
-                const alertChargeAmount = getAlertChargeAmount(
-                    AlertType.Call,
-                    countryType
-                );
-                await PaymentService.chargeAlert(
-                    user._id,
-                    incident.projectId,
-                    alertChargeAmount.price
-                );
+
+                if (!balanceStatus.error) {
+                    await AlertChargeService.create(
+                        incident.projectId,
+                        balanceStatus.chargeAmount,
+                        balanceStatus.closingBalance,
+                        alert._id,
+                        monitorId,
+                        incident._id,
+                        user.alertPhoneNumber
+                    );
+                }
             }
         }
     },
@@ -1100,36 +1093,29 @@ module.exports = {
                 alertStatus,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                balanceStatus = await _this.getBalanceStatus(
-                    incident.projectId,
-                    user.alertPhoneNumber,
-                    AlertType.SMS
-                );
-                await AlertChargeService.create(
-                    incident.projectId,
-                    balanceStatus.chargeAmount,
-                    balanceStatus.closingBalance,
-                    alert._id,
-                    monitorId,
-                    incident._id,
-                    user.alertPhoneNumber
-                );
-
-                // cut payment for sms notification
-                const countryType = getCountryType(user.alertPhoneNumber);
-                const alertChargeAmount = getAlertChargeAmount(
-                    AlertType.SMS,
-                    countryType
-                );
                 // calculate charge per 160 chars
                 // numSegments is the number of segments the sms will be divided into
                 // numSegments is provided by twilio
                 const segments = Number(sendResult.numSegments);
-                await PaymentService.chargeAlert(
+                const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                     user._id,
-                    incident.projectId,
-                    alertChargeAmount.price * segments
+                    project,
+                    AlertType.SMS,
+                    user.alertPhoneNumber,
+                    segments
                 );
+
+                if (!balanceStatus.error) {
+                    await AlertChargeService.create(
+                        incident.projectId,
+                        balanceStatus.chargeAmount,
+                        balanceStatus.closingBalance,
+                        alert._id,
+                        monitorId,
+                        incident._id,
+                        user.alertPhoneNumber
+                    );
+                }
             }
         }
     },
@@ -2434,39 +2420,32 @@ module.exports = {
                             IS_SAAS_SERVICE &&
                             !hasCustomTwilioSettings
                         ) {
-                            const balanceStatus = await _this.getBalanceStatus(
-                                incident.projectId,
-                                contactPhone,
-                                AlertType.SMS
-                            );
-                            await AlertChargeService.create(
-                                incident.projectId,
-                                balanceStatus.chargeAmount,
-                                balanceStatus.closingBalance,
-                                null,
-                                incident.monitorId._id
-                                    ? incident.monitorId._id
-                                    : incident.monitorId,
-                                incident._id,
-                                contactPhone,
-                                alertId
-                            );
-                            // cut payment for subscriber sms notification
-                            const countryType = getCountryType(contactPhone);
-                            const alertChargeAmount = getAlertChargeAmount(
-                                AlertType.SMS,
-                                countryType
-                            );
-
                             // charge sms per 160 chars
                             // numSegments is the number of segments an sms can be divided into
                             // numSegments is provided by twilio
                             const segments = Number(sendResult.numSegments);
-                            await PaymentService.chargeAlert(
+                            const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                                 owner.userId,
-                                incident.projectId,
-                                alertChargeAmount.price * segments
+                                project,
+                                AlertType.SMS,
+                                contactPhone,
+                                segments
                             );
+
+                            if (!balanceStatus.error) {
+                                await AlertChargeService.create(
+                                    incident.projectId,
+                                    balanceStatus.chargeAmount,
+                                    balanceStatus.closingBalance,
+                                    null,
+                                    incident.monitorId._id
+                                        ? incident.monitorId._id
+                                        : incident.monitorId,
+                                    incident._id,
+                                    contactPhone,
+                                    alertId
+                                );
+                            }
                         }
                     }
                 } catch (error) {
@@ -2590,25 +2569,6 @@ module.exports = {
             return alert;
         }
     },
-    getBalanceStatus: async function(projectId, alertPhoneNumber, alertType) {
-        try {
-            const project = await ProjectService.findOneBy({ _id: projectId });
-            const balance = project.balance;
-            const countryType = getCountryType(alertPhoneNumber);
-            const alertChargeAmount = getAlertChargeAmount(
-                alertType,
-                countryType
-            );
-            const closingBalance = balance - alertChargeAmount.price;
-            return {
-                chargeAmount: alertChargeAmount.price,
-                closingBalance,
-            };
-        } catch (error) {
-            ErrorService.log('AlertService.getBalanceStatus', error);
-            throw error;
-        }
-    },
 
     //Return true, if the limit is not reached yet.
     checkPhoneAlertsLimit: async function(projectId) {
@@ -2708,7 +2668,7 @@ const ErrorService = require('./errorService');
 const StatusPageService = require('./statusPageService');
 const AlertChargeService = require('./alertChargeService');
 const countryCode = require('../config/countryCode');
-const { getAlertChargeAmount, getCountryType } = require('../config/alertType');
+const { getCountryType } = require('../config/alertType');
 const SmsCountService = require('./smsCountService');
 const DateTime = require('../utils/DateTime');
 const moment = require('moment-timezone');
