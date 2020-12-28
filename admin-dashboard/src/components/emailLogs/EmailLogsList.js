@@ -195,7 +195,7 @@ export class EmailLogsList extends Component {
                                                                 <span>
                                                                     {emailLog.to
                                                                         ? emailLog.to
-                                                                        : ''}
+                                                                        : 'N/A'}
                                                                 </span>
                                                             </div>
                                                         </span>
@@ -214,7 +214,7 @@ export class EmailLogsList extends Component {
                                                                 <span>
                                                                     {emailLog.subject
                                                                         ? emailLog.subject
-                                                                        : ''}
+                                                                        : 'N/A'}
                                                                 </span>
                                                             </div>
                                                         </span>
