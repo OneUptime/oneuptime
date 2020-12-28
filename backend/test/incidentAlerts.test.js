@@ -54,10 +54,6 @@ const GlobalConfigModel = require('../backend/models/globalConfig');
 const GlobalConfigService = require('../backend/services/globalConfigService');
 const EmailSmtpService = require('../backend/services/emailSmtpService');
 const AlertChargeService = require('../backend/services/alertChargeService');
-const {
-    getAlertChargeAmount,
-    getCountryType,
-} = require('../backend/config/alertType');
 
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -1698,14 +1694,7 @@ describe('SMS/Calls Incident Alerts', function() {
             // alert charge's closing balance
             const allAlertChargesCorrect = alertCharges.every(alertCharge => {
                 if (alertCharge.subscriberAlertId) {
-                    const alertVia = alertCharge.subscriberAlertId.alertVia;
-                    const countryType = getCountryType(alertCharge.sentTo);
-                    const alertChargeAmount = getAlertChargeAmount(
-                        alertVia,
-                        countryType
-                    );
-                    calculatedBalance -= alertChargeAmount.price;
-
+                    calculatedBalance -= alertCharge.chargeAmount;
                     return (
                         calculatedBalance === alertCharge.closingAccountBalance
                     );
