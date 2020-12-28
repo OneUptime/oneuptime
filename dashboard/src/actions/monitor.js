@@ -102,6 +102,7 @@ export function uploadIdentityFile(projectId, file) {
             data.append('identityFile', file);
 
             const promise = postApi(`monitor/${projectId}/identityFile`, data);
+            dispatch(uploadIdentityFileRequest());
             promise.then(
                 function(response) {
                     const data = response.data;
@@ -128,15 +129,21 @@ export function uploadIdentityFile(projectId, file) {
     };
 }
 
+export function uploadIdentityFileRequest() {
+    return {
+        type: types.UPLOAD_IDENTITY_FILE_REQUEST,
+    };
+}
+
 export function logFile(file) {
     return function(dispatch) {
-        dispatch({ type: 'LOG_IDENTITY_FILE', payload: file });
+        dispatch({ type: types.UPLOAD_IDENTITY_FILE_SUCCESS, payload: file });
     };
 }
 
 export function resetFile() {
     return function(dispatch) {
-        dispatch({ type: 'RESET_IDENTITY_FILE' });
+        dispatch({ type: types.RESET_UPLOAD_IDENTITY_FILE });
     };
 }
 

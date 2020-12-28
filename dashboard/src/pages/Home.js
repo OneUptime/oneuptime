@@ -255,59 +255,56 @@ class Home extends Component {
         }
         let errorEventList;
         if (this.props.errorTrackers) {
-            {
-                this.props.errorTrackers && this.props.errorTrackers.length > 0
-                    ? (errorEventList = (
-                          <div className="Box-root Margin-vertical--12">
-                              <div
-                                  className="db-Trends Card-root"
-                                  style={{ overflow: 'visible' }}
-                              >
-                                  <ErrorTrackerList
-                                      errorTrackers={this.props.errorTrackers}
-                                      showComponentWithIssue={true}
-                                  />
-                              </div>
+            this.props.errorTrackers && this.props.errorTrackers.length > 0
+                ? (errorEventList = (
+                      <div className="Box-root Margin-vertical--12">
+                          <div
+                              className="db-Trends Card-root"
+                              style={{ overflow: 'visible' }}
+                          >
+                              <ErrorTrackerList
+                                  errorTrackers={this.props.errorTrackers}
+                                  showComponentWithIssue={true}
+                              />
                           </div>
-                      ))
-                    : (errorEventList = (
-                          <div>
-                              <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
-                                  <div className="db-Trends-header Padding-vertical--48">
-                                      <div className="db-Trends-controls">
-                                          <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                              <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                  <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                      <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
-                                                          <span
-                                                              className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
-                                                              style={{
-                                                                  filter:
-                                                                      'brightness(0) invert(1)',
-                                                                  marginTop:
-                                                                      '1px',
-                                                                  marginRight:
-                                                                      '5px',
-                                                              }}
-                                                          />
-                                                          <span
-                                                              id="component-content-header"
-                                                              className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
-                                                          >
-                                                              You currently
-                                                              don&apos;t have
-                                                              any error events.
-                                                          </span>
+                      </div>
+                  ))
+                : (errorEventList = (
+                      <div>
+                          <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
+                              <div className="db-Trends-header Padding-vertical--48">
+                                  <div className="db-Trends-controls">
+                                      <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                          <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                              <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                  <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
+                                                      <span
+                                                          className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                          style={{
+                                                              filter:
+                                                                  'brightness(0) invert(1)',
+                                                              marginTop: '1px',
+                                                              marginRight:
+                                                                  '5px',
+                                                          }}
+                                                      />
+                                                      <span
+                                                          id="component-content-header"
+                                                          className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
+                                                      >
+                                                          You currently
+                                                          don&apos;t have any
+                                                          error events.
                                                       </span>
-                                                  </div>
+                                                  </span>
                                               </div>
                                           </div>
                                       </div>
                                   </div>
                               </div>
                           </div>
-                      ));
-            }
+                      </div>
+                  ));
         }
 
         let ongoingEventList;
@@ -451,26 +448,6 @@ class Home extends Component {
                                                                 >
                                                                     {userSchedules ? (
                                                                         <>
-                                                                            <ShouldRender
-                                                                                if={
-                                                                                    activeSchedules &&
-                                                                                    activeSchedules.length >
-                                                                                        0
-                                                                                }
-                                                                            >
-                                                                                <OnCallSchedule
-                                                                                    status="active"
-                                                                                    schedules={
-                                                                                        activeSchedules
-                                                                                    }
-                                                                                    currentProjectId={
-                                                                                        this
-                                                                                            .props
-                                                                                            .currentProjectId
-                                                                                    }
-                                                                                />
-                                                                            </ShouldRender>
-
                                                                             <ShouldRender
                                                                                 if={
                                                                                     upcomingSchedules &&

@@ -188,6 +188,7 @@ export class IncidentStatus extends Component {
         const incidentReason =
             this.props.incident.reason &&
             changeFormat(this.props.incident.reason);
+
         function changeFormat(data) {
             let result;
             const strArr = data.split('\n');

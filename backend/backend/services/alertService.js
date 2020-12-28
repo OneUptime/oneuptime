@@ -1061,7 +1061,7 @@ module.exports = {
             }
         }
 
-        let alertStatus = await TwilioService.sendIncidentCreatedMessage(
+        const sendResult = await TwilioService.sendIncidentCreatedMessage(
             date,
             monitor.name,
             user.alertPhoneNumber,
@@ -1072,7 +1072,7 @@ module.exports = {
             projectId
         );
 
-        if (alertStatus && alertStatus.code && alertStatus.code === 400) {
+        if (sendResult && sendResult.code && sendResult.code === 400) {
             await _this.create({
                 projectId: incident.projectId,
                 monitorId,
@@ -1084,10 +1084,10 @@ module.exports = {
                 onCallScheduleStatus: onCallScheduleStatus._id,
                 alertStatus: null,
                 error: true,
-                errorMessage: alertStatus.message,
+                errorMessage: sendResult.message,
             });
-        } else if (alertStatus) {
-            alertStatus = 'Success';
+        } else if (sendResult) {
+            const alertStatus = 'Success';
             alert = await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -1121,10 +1121,14 @@ module.exports = {
                     AlertType.SMS,
                     countryType
                 );
+                // calculate charge per 160 chars
+                // numSegments is the number of segments the sms will be divided into
+                // numSegments is provided by twilio
+                const segments = Number(sendResult.numSegments);
                 await PaymentService.chargeAlert(
                     user._id,
                     incident.projectId,
-                    alertChargeAmount.price
+                    alertChargeAmount.price * segments
                 );
             }
         }
@@ -2453,10 +2457,15 @@ module.exports = {
                                 AlertType.SMS,
                                 countryType
                             );
+
+                            // charge sms per 160 chars
+                            // numSegments is the number of segments an sms can be divided into
+                            // numSegments is provided by twilio
+                            const segments = Number(sendResult.numSegments);
                             await PaymentService.chargeAlert(
                                 owner.userId,
                                 incident.projectId,
-                                alertChargeAmount.price
+                                alertChargeAmount.price * segments
                             );
                         }
                     }
