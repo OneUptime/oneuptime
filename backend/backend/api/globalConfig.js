@@ -57,6 +57,14 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
                 });
             }
 
+            if (!value && name !== 'emailLogMonitoringStatus') {
+                // Email Log Status can be 'false'
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Value must be present.',
+                });
+            }
+
             if (name === 'twilio') {
                 const data = {
                     accountSid: value['account-sid'],
@@ -131,6 +139,15 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
         if (!globalConfig && req.params.name === 'auditLogMonitoringStatus') {
             const auditLogConfig = {
                 name: 'auditLogMonitoringStatus',
+                value: true,
+            };
+            await GlobalConfigService.create(auditLogConfig);
+        }
+
+        // If email logs status was fetched and it doesnt exist, we need to create it
+        if (!globalConfig && req.params.name === 'emailLogMonitoringStatus') {
+            const auditLogConfig = {
+                name: 'emailLogMonitoringStatus',
                 value: true,
             };
             await GlobalConfigService.create(auditLogConfig);
