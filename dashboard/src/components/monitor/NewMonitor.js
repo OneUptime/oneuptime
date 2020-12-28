@@ -101,8 +101,8 @@ class NewMonitor extends Component {
         postObj.type = values[`type_${this.props.index}`]
             ? values[`type_${this.props.index}`]
             : this.props.edit
-                ? this.props.editMonitorProp.type
-                : this.props.type;
+            ? this.props.editMonitorProp.type
+            : this.props.type;
         postObj.resourceCategory =
             values[`resourceCategory_${this.props.index}`];
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
@@ -184,7 +184,7 @@ class NewMonitor extends Component {
                         : false;
                 postObj.criteria.degraded.autoAcknowledge =
                     values &&
-                        values[`degraded_${this.props.index}_autoAcknowledge`]
+                    values[`degraded_${this.props.index}_autoAcknowledge`]
                         ? true
                         : false;
                 postObj.criteria.degraded.autoResolve =
@@ -575,10 +575,10 @@ class NewMonitor extends Component {
                                             <span>
                                                 Edit Monitor
                                                 {this.props.editMonitorProp &&
-                                                    this.props.editMonitorProp.name
+                                                this.props.editMonitorProp.name
                                                     ? ' - ' +
-                                                    this.props.editMonitorProp
-                                                        .name
+                                                      this.props.editMonitorProp
+                                                          .name
                                                     : null}
                                             </span>
                                         </ShouldRender>
@@ -597,7 +597,7 @@ class NewMonitor extends Component {
                                         <span>
                                             Edit Name and URL of
                                             {this.props.editMonitorProp &&
-                                                this.props.editMonitorProp.name
+                                            this.props.editMonitorProp.name
                                                 ? ` ${this.props.editMonitorProp.name}`
                                                 : ''}
                                         </span>
@@ -663,7 +663,7 @@ class NewMonitor extends Component {
                                                     if={
                                                         resourceCategoryList &&
                                                         resourceCategoryList.length >
-                                                        0
+                                                            0
                                                     }
                                                 >
                                                     <div className="bs-Fieldset-row">
@@ -691,16 +691,16 @@ class NewMonitor extends Component {
                                                                                 'Select resource category',
                                                                         },
                                                                         ...(resourceCategoryList &&
-                                                                            resourceCategoryList.length >
+                                                                        resourceCategoryList.length >
                                                                             0
                                                                             ? resourceCategoryList.map(
-                                                                                category => ({
-                                                                                    value:
-                                                                                        category._id,
-                                                                                    label:
-                                                                                        category.name,
-                                                                                })
-                                                                            )
+                                                                                  category => ({
+                                                                                      value:
+                                                                                          category._id,
+                                                                                      label:
+                                                                                          category.name,
+                                                                                  })
+                                                                              )
                                                                             : []),
                                                                     ]}
                                                                 />
@@ -759,13 +759,14 @@ class NewMonitor extends Component {
                                                                                 <div
                                                                                     className={`radio-field monitor-type-item Box-background--white`}
                                                                                     style={{
-                                                                                        border: `1px solid ${this
+                                                                                        border: `1px solid ${
+                                                                                            this
                                                                                                 .props
                                                                                                 .type ===
-                                                                                                el.value
+                                                                                            el.value
                                                                                                 ? 'black'
                                                                                                 : 'rgba(0,0,0,0.2)'
-                                                                                            }`,
+                                                                                        }`,
                                                                                     }}
                                                                                 >
                                                                                     <div className="radioButtonStyle">
@@ -844,7 +845,7 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={
                                                         type ===
-                                                        'server-monitor' &&
+                                                            'server-monitor' &&
                                                         !this.props.edit
                                                     }
                                                 >
@@ -1261,11 +1262,12 @@ class NewMonitor extends Component {
                                                                 type="url"
                                                                 name={`url_${this.props.index}`}
                                                                 id="url"
-                                                                placeholder={`https://mywebsite.com${type ===
-                                                                        'api'
+                                                                placeholder={`https://mywebsite.com${
+                                                                    type ===
+                                                                    'api'
                                                                         ? '/api'
                                                                         : ''
-                                                                    }`}
+                                                                }`}
                                                                 disabled={
                                                                     requesting
                                                                 }
@@ -1296,11 +1298,12 @@ class NewMonitor extends Component {
                                                                 type="url"
                                                                 name={`url_${this.props.index}`}
                                                                 id="url"
-                                                                placeholder={`https://mywebsite.com${type ===
-                                                                        'api'
+                                                                placeholder={`https://mywebsite.com${
+                                                                    type ===
+                                                                    'api'
                                                                         ? '/api'
                                                                         : ''
-                                                                    }`}
+                                                                }`}
                                                                 disabled={
                                                                     requesting
                                                                 }
@@ -1510,16 +1513,16 @@ class NewMonitor extends Component {
                                                                                 'Select call schedule',
                                                                         },
                                                                         ...(schedules &&
-                                                                            schedules.length >
+                                                                        schedules.length >
                                                                             0
                                                                             ? schedules.map(
-                                                                                schedule => ({
-                                                                                    value:
-                                                                                        schedule._id,
-                                                                                    label:
-                                                                                        schedule.name,
-                                                                                })
-                                                                            )
+                                                                                  schedule => ({
+                                                                                      value:
+                                                                                          schedule._id,
+                                                                                      label:
+                                                                                          schedule.name,
+                                                                                  })
+                                                                              )
                                                                             : []),
                                                                     ]}
                                                                 />
@@ -1604,58 +1607,58 @@ class NewMonitor extends Component {
                                                             <span className="flex">
                                                                 {this.props
                                                                     .edit ? (
-                                                                        <Field
-                                                                            className="db-select-nw"
-                                                                            component={
-                                                                                RenderSelect
-                                                                            }
-                                                                            name="monitorSla"
-                                                                            id="monitorSla"
-                                                                            placeholder="Monitor SLA"
-                                                                            disabled={
-                                                                                requesting
-                                                                            }
-                                                                            options={[
-                                                                                ...this.props.monitorSlas.map(
-                                                                                    sla => ({
-                                                                                        value:
-                                                                                            sla._id,
-                                                                                        label:
-                                                                                            sla.name,
-                                                                                    })
-                                                                                ),
-                                                                            ]}
-                                                                        />
-                                                                    ) : (
-                                                                        <Field
-                                                                            className="db-select-nw"
-                                                                            component={
-                                                                                RenderSelect
-                                                                            }
-                                                                            name="monitorSla"
-                                                                            id="monitorSla"
-                                                                            placeholder="Monitor SLA"
-                                                                            disabled={
-                                                                                requesting
-                                                                            }
-                                                                            options={[
-                                                                                {
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="monitorSla"
+                                                                        id="monitorSla"
+                                                                        placeholder="Monitor SLA"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        options={[
+                                                                            ...this.props.monitorSlas.map(
+                                                                                sla => ({
                                                                                     value:
-                                                                                        '',
+                                                                                        sla._id,
                                                                                     label:
-                                                                                        'Select Monitor SLA',
-                                                                                },
-                                                                                ...this.props.monitorSlas.map(
-                                                                                    sla => ({
-                                                                                        value:
-                                                                                            sla._id,
-                                                                                        label:
-                                                                                            sla.name,
-                                                                                    })
-                                                                                ),
-                                                                            ]}
-                                                                        />
-                                                                    )}
+                                                                                        sla.name,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                ) : (
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="monitorSla"
+                                                                        id="monitorSla"
+                                                                        placeholder="Monitor SLA"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        options={[
+                                                                            {
+                                                                                value:
+                                                                                    '',
+                                                                                label:
+                                                                                    'Select Monitor SLA',
+                                                                            },
+                                                                            ...this.props.monitorSlas.map(
+                                                                                sla => ({
+                                                                                    value:
+                                                                                        sla._id,
+                                                                                    label:
+                                                                                        sla.name,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                )}
 
                                                                 <Tooltip title="Monitor SLA">
                                                                     <div>
@@ -1711,58 +1714,58 @@ class NewMonitor extends Component {
                                                             <span className="flex">
                                                                 {this.props
                                                                     .edit ? (
-                                                                        <Field
-                                                                            className="db-select-nw"
-                                                                            component={
-                                                                                RenderSelect
-                                                                            }
-                                                                            name="incidentCommunicationSla"
-                                                                            id="incidentCommunicationSla"
-                                                                            placeholder="Incident Communication SLA"
-                                                                            disabled={
-                                                                                requesting
-                                                                            }
-                                                                            options={[
-                                                                                ...this.props.incidentSlas.map(
-                                                                                    sla => ({
-                                                                                        value:
-                                                                                            sla._id,
-                                                                                        label:
-                                                                                            sla.name,
-                                                                                    })
-                                                                                ),
-                                                                            ]}
-                                                                        />
-                                                                    ) : (
-                                                                        <Field
-                                                                            className="db-select-nw"
-                                                                            component={
-                                                                                RenderSelect
-                                                                            }
-                                                                            name="incidentCommunicationSla"
-                                                                            id="incidentCommunicationSla"
-                                                                            placeholder="Incident Communication SLA"
-                                                                            disabled={
-                                                                                requesting
-                                                                            }
-                                                                            options={[
-                                                                                {
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="incidentCommunicationSla"
+                                                                        id="incidentCommunicationSla"
+                                                                        placeholder="Incident Communication SLA"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        options={[
+                                                                            ...this.props.incidentSlas.map(
+                                                                                sla => ({
                                                                                     value:
-                                                                                        '',
+                                                                                        sla._id,
                                                                                     label:
-                                                                                        'Select Incident Communication SLA',
-                                                                                },
-                                                                                ...this.props.incidentSlas.map(
-                                                                                    sla => ({
-                                                                                        value:
-                                                                                            sla._id,
-                                                                                        label:
-                                                                                            sla.name,
-                                                                                    })
-                                                                                ),
-                                                                            ]}
-                                                                        />
-                                                                    )}
+                                                                                        sla.name,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                ) : (
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="incidentCommunicationSla"
+                                                                        id="incidentCommunicationSla"
+                                                                        placeholder="Incident Communication SLA"
+                                                                        disabled={
+                                                                            requesting
+                                                                        }
+                                                                        options={[
+                                                                            {
+                                                                                value:
+                                                                                    '',
+                                                                                label:
+                                                                                    'Select Incident Communication SLA',
+                                                                            },
+                                                                            ...this.props.incidentSlas.map(
+                                                                                sla => ({
+                                                                                    value:
+                                                                                        sla._id,
+                                                                                    label:
+                                                                                        sla.name,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                )}
 
                                                                 <Tooltip title="Incident Communication SLA">
                                                                     <div>
@@ -1830,10 +1833,10 @@ class NewMonitor extends Component {
                                                         (type === 'api' ||
                                                             type === 'url' ||
                                                             type ===
-                                                            'server-monitor' ||
+                                                                'server-monitor' ||
                                                             type === 'script' ||
                                                             type ===
-                                                            'incomingHttpRequest') &&
+                                                                'incomingHttpRequest') &&
                                                         !this.state.advance
                                                     }
                                                 >
@@ -1877,10 +1880,10 @@ class NewMonitor extends Component {
                                                         (type === 'api' ||
                                                             type === 'url' ||
                                                             type ===
-                                                            'server-monitor' ||
+                                                                'server-monitor' ||
                                                             type === 'script' ||
                                                             type ===
-                                                            'incomingHttpRequest')
+                                                                'incomingHttpRequest')
                                                     }
                                                 >
                                                     <ShouldRender
@@ -1914,8 +1917,17 @@ class NewMonitor extends Component {
                                                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                                             <div className="Box-root">
                                                                 <div className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                                    When the monitor is not considered online or degraded, it is considered down by default
-                                                            </div>
+                                                                    When the
+                                                                    monitor is
+                                                                    not
+                                                                    considered
+                                                                    online or
+                                                                    degraded, it
+                                                                    is
+                                                                    considered
+                                                                    down by
+                                                                    default
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1981,7 +1993,7 @@ class NewMonitor extends Component {
                                                     planCategory
                                                 ) ||
                                                 currentMonitorCount <
-                                                monitorCount
+                                                    monitorCount
                                             }
                                         >
                                             <ShouldRender
@@ -2078,8 +2090,8 @@ const mapStateToProps = (state, ownProps) => {
 
     const currentPlanId =
         state.project &&
-            state.project.currentProject &&
-            state.project.currentProject.stripePlanId
+        state.project.currentProject &&
+        state.project.currentProject.stripePlanId
             ? state.project.currentProject.stripePlanId
             : '';
 
