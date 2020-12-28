@@ -389,8 +389,8 @@ module.exports = {
                     const monitors = incomingRequest.monitors.map(
                         monitor => monitor.monitorId
                     );
-                    for (const monitorId of monitors) {
-                        data.monitorId = monitorId;
+                    for (const monitor of monitors) {
+                        data.monitorId = monitor._id;
                         await IncidentService.create(data);
                     }
                 }

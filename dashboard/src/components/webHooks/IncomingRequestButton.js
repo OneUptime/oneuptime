@@ -7,14 +7,6 @@ import DataPathHoC from '../DataPathHoC';
 import CreateIncomingRequest from '../modals/CreateIncomingRequest';
 
 class IncomingRequestButton extends React.Component {
-    componentDidMount() {
-        window.addEventListener('keydown', this.handleKeyboard);
-    }
-
-    componentWillUnmount() {
-        window.removeEventListener('keydown', this.handleKeyboard);
-    }
-
     render() {
         const { currentProject } = this.props;
 
