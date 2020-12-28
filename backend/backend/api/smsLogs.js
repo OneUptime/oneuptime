@@ -22,8 +22,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
         const limit = req.query.limit;
 
         const smsLogs = await SmsLogsService.findBy({ query, skip, limit });
-        const count = await SmsLogsService.countBy({ query });
-
+        const count = await SmsLogsService.countBy(query);
         return sendListResponse(req, res, smsLogs, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
