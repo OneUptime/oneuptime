@@ -36,6 +36,7 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import { fetchCommunicationSlas } from '../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../actions/monitorSla';
+import ThirdPartyVariables from '../components/monitor/ThirdPartyVariables';
 class MonitorView extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
@@ -647,6 +648,20 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         ._id
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                        <div>
+                                                                            <ThirdPartyVariables
+                                                                                monitor={
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                }
+                                                                                componentId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .componentId
                                                                                 }
                                                                             />
                                                                         </div>
