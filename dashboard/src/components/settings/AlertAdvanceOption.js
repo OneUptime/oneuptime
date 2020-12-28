@@ -460,7 +460,7 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             Charge:
-                                                                            $0.05/SMS{' '}
+                                                                            $0.02/SMS{' '}
                                                                             <br></br>
                                                                             Minimum
                                                                             Account
