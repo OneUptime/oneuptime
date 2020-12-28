@@ -460,7 +460,7 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             Charge:
-                                                                            $0.02 / SMS / 160 / CHARS{' '}
+                                                                            $0.02 / SMS / 160 / Chars{' '}
                                                                             <br></br>
                                                                             Minimum
                                                                             Account
@@ -485,7 +485,7 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             Charge:
-                                                                            $1 / SMS / 160 / CHARS{' '}
+                                                                            $1 / SMS / 160 / Chars{' '}
                                                                             <br></br>
                                                                             Minimum
                                                                             Account
@@ -511,7 +511,7 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             Charge:
-                                                                            $1 / SMS / 160 / CHARS{' '}
+                                                                            $1 / SMS / 160 / Chars{' '}
                                                                             <br></br>
                                                                             Minimum
                                                                             Account
