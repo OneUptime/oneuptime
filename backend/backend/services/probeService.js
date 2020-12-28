@@ -1103,16 +1103,20 @@ module.exports = {
 
             if (validDown) {
                 status = 'offline';
-                reason = upFailedReasons;
+                reason = downFailedReasons;
             } else if (validDegraded) {
                 status = 'degraded';
-                reason = upFailedReasons;
+                reason = degradedFailedReasons;
             } else if (validUp) {
                 status = 'online';
-                reason = [...degradedFailedReasons, ...downFailedReasons];
+                reason = upFailedReasons;
             } else {
                 status = 'online';
-                reason = upFailedReasons;
+                reason = [
+                    ...degradedFailedReasons,
+                    ...downFailedReasons,
+                    ...upFailedReasons,
+                ];
             }
             const logData = body;
             logData.responseTime = 0;
@@ -1539,6 +1543,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
@@ -1557,6 +1562,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
@@ -1577,6 +1583,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
@@ -1591,6 +1598,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
@@ -1609,6 +1617,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
@@ -1627,6 +1636,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
@@ -1645,6 +1655,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
@@ -1665,6 +1676,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
@@ -1683,6 +1695,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
@@ -1703,6 +1716,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
@@ -1717,6 +1731,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
@@ -1735,6 +1750,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
@@ -1753,6 +1769,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
@@ -1771,6 +1788,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
@@ -1780,6 +1798,7 @@ const checkAnd = async (
             if (con[i] && con[i].filter && con[i].filter === 'isUp') {
                 if (!(con[i] && con[i].filter && payload)) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings[type] || 'Monitor was'} Offline`
                     );
@@ -1787,6 +1806,7 @@ const checkAnd = async (
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
                 if (!(con[i] && con[i].filter && !payload)) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings[type] || 'Monitor was'} Online`
                     );
@@ -1801,6 +1821,7 @@ const checkAnd = async (
             if (con[i] && con[i].filter && con[i].filter === 'isValid') {
                 if (!(ssl && !ssl.selfSigned)) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.sslCertificate} was not valid`
                     );
@@ -1812,6 +1833,7 @@ const checkAnd = async (
             ) {
                 if (ssl) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.sslCertificate} was present`
                     );
@@ -1823,6 +1845,7 @@ const checkAnd = async (
             ) {
                 if (!(ssl && ssl.selfSigned)) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.sslCertificate} was not Self-Signed`
                     );
@@ -1834,6 +1857,7 @@ const checkAnd = async (
             ) {
                 if (!(ssl && !ssl.selfSigned && expiresIn < 30)) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
                     );
@@ -1845,6 +1869,7 @@ const checkAnd = async (
             ) {
                 if (!(ssl && !ssl.selfSigned && expiresIn < 10)) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
                     );
@@ -1861,6 +1886,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
                 }
             } else if (
@@ -1877,6 +1903,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
                 }
             } else if (
@@ -1895,6 +1922,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
@@ -1907,6 +1935,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
                 }
             } else if (
@@ -1923,6 +1952,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
                 }
             } else if (
@@ -1939,6 +1969,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
                 }
             } else if (
@@ -1955,6 +1986,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
                 }
             }
@@ -1970,6 +2002,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -1994,6 +2027,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -2020,6 +2054,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -2040,6 +2075,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -2064,6 +2100,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -2088,6 +2125,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -2112,6 +2150,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -2138,6 +2177,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -2161,6 +2201,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -2186,6 +2227,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -2205,6 +2247,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -2228,6 +2271,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -2251,6 +2295,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -2274,6 +2319,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -2298,6 +2344,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -2324,6 +2371,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -2352,6 +2400,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -2374,6 +2423,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -2400,6 +2450,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -2426,6 +2477,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -2452,6 +2504,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -2477,6 +2530,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -2498,6 +2552,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -2521,6 +2576,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -2538,6 +2594,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -2559,6 +2616,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -2580,6 +2638,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -2601,6 +2660,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -2612,6 +2672,7 @@ const checkAnd = async (
             if (con[i] && con[i].filter && con[i].filter === 'contains') {
                 if (!(con[i] && con[i].field1 && body && body[con[i].field1])) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseBody} \`${body}\` did not contain ${con[i].field1}`
                     );
@@ -2625,6 +2686,7 @@ const checkAnd = async (
                     !(con[i] && con[i].field1 && body && !body[con[i].field1])
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseBody} \`${body}\` contains ${con[i].field1}`
                     );
@@ -2643,6 +2705,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseBody} \`${body}\` did not have Javascript expression \`${con[i].field1}\``
                     );
@@ -2650,6 +2713,7 @@ const checkAnd = async (
             } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
                 if (!(con[i] && con[i].filter && body && _.isEmpty(body))) {
                     validity = false;
+                } else {
                     reasons.push(
                         `${criteriaStrings.responseBody} \`${body}\` was not empty`
                     );
@@ -2661,6 +2725,7 @@ const checkAnd = async (
             ) {
                 if (!(con[i] && con[i].filter && body && !_.isEmpty(body))) {
                     validity = false;
+                } else {
                     reasons.push(`${criteriaStrings.responseBody} was empty`);
                 }
             } else if (
@@ -2694,6 +2759,7 @@ const checkAnd = async (
                         )
                     ) {
                         validity = false;
+                    } else {
                         reasons.push(
                             `${criteriaStrings.response} \`${JSON.stringify(
                                 responseDisplay
@@ -2786,7 +2852,6 @@ const checkOr = async (
                     payload > con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.responseTime} ${payload} ms`
@@ -2805,7 +2870,6 @@ const checkOr = async (
                     payload < con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.responseTime} ${payload} ms`
@@ -2826,7 +2890,6 @@ const checkOr = async (
                     payload < con[i].field2
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.responseTime} ${payload} ms`
@@ -2841,7 +2904,6 @@ const checkOr = async (
                     payload == con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.responseTime} ${payload} ms`
@@ -2860,7 +2922,6 @@ const checkOr = async (
                     payload != con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.responseTime} ${payload} ms`
@@ -2879,7 +2940,6 @@ const checkOr = async (
                     payload >= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.responseTime} ${payload} ms`
@@ -2898,7 +2958,6 @@ const checkOr = async (
                     payload <= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.responseTime} ${payload} ms`
@@ -2915,7 +2974,6 @@ const checkOr = async (
                     payload > con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.incomingTime} ${tempReason}`
@@ -2934,7 +2992,6 @@ const checkOr = async (
                     payload < con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.incomingTime} ${tempReason}`
@@ -2955,7 +3012,6 @@ const checkOr = async (
                     payload < con[i].field2
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.incomingTime} ${tempReason}`
@@ -2970,7 +3026,6 @@ const checkOr = async (
                     payload == con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.incomingTime} ${tempReason}`
@@ -2989,7 +3044,6 @@ const checkOr = async (
                     payload != con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.incomingTime} ${tempReason}`
@@ -3008,7 +3062,6 @@ const checkOr = async (
                     payload >= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.incomingTime} ${tempReason}`
@@ -3027,7 +3080,6 @@ const checkOr = async (
                     payload <= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload) {
                         reasons.push(
                             `${criteriaStrings.incomingTime} ${tempReason}`
@@ -3039,7 +3091,6 @@ const checkOr = async (
             if (con[i] && con[i].filter && con[i].filter === 'isUp') {
                 if (con[i] && con[i].filter && payload) {
                     validity = true;
-                } else {
                     reasons.push(
                         `${criteriaStrings[type] || 'Monitor was'} Offline`
                     );
@@ -3047,7 +3098,6 @@ const checkOr = async (
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
                 if (con[i] && con[i].filter && !payload) {
                     validity = true;
-                } else {
                     reasons.push(
                         `${criteriaStrings[type] || 'Monitor was'} Online`
                     );
@@ -3062,7 +3112,6 @@ const checkOr = async (
             if (con[i] && con[i].filter && con[i].filter === 'isValid') {
                 if (ssl && !ssl.selfSigned) {
                     validity = true;
-                } else {
                     reasons.push(
                         `${criteriaStrings.sslCertificate} was not valid`
                     );
@@ -3074,7 +3123,6 @@ const checkOr = async (
             ) {
                 if (!ssl) {
                     validity = true;
-                } else {
                     reasons.push(
                         `${criteriaStrings.sslCertificate} was present`
                     );
@@ -3086,7 +3134,6 @@ const checkOr = async (
             ) {
                 if (ssl && ssl.selfSigned) {
                     validity = true;
-                } else {
                     reasons.push(
                         `${criteriaStrings.sslCertificate} was not Self-Signed`
                     );
@@ -3098,7 +3145,6 @@ const checkOr = async (
             ) {
                 if (ssl && !ssl.selfSigned && expiresIn < 30) {
                     validity = true;
-                } else {
                     if (expiresIn) {
                         reasons.push(
                             `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
@@ -3112,7 +3158,6 @@ const checkOr = async (
             ) {
                 if (ssl && !ssl.selfSigned && expiresIn < 10) {
                     validity = true;
-                } else {
                     if (expiresIn) {
                         reasons.push(
                             `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
@@ -3129,7 +3174,6 @@ const checkOr = async (
                     statusCode > con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (statusCode) {
                         reasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
@@ -3148,7 +3192,6 @@ const checkOr = async (
                     statusCode < con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (statusCode) {
                         reasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
@@ -3169,7 +3212,6 @@ const checkOr = async (
                     statusCode < con[i].field2
                 ) {
                     validity = true;
-                } else {
                     if (statusCode) {
                         reasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
@@ -3184,7 +3226,6 @@ const checkOr = async (
                     statusCode == con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (statusCode) {
                         reasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
@@ -3203,7 +3244,6 @@ const checkOr = async (
                     statusCode != con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (statusCode) {
                         reasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
@@ -3222,7 +3262,6 @@ const checkOr = async (
                     statusCode >= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (statusCode) {
                         reasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
@@ -3241,7 +3280,6 @@ const checkOr = async (
                     statusCode <= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (statusCode) {
                         reasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
@@ -3259,7 +3297,6 @@ const checkOr = async (
                     payload.cpuLoad > con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -3282,7 +3319,6 @@ const checkOr = async (
                     payload.cpuLoad < con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -3307,7 +3343,6 @@ const checkOr = async (
                     payload.cpuLoad < con[i].field2
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -3326,7 +3361,6 @@ const checkOr = async (
                     payload.cpuLoad == con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -3349,7 +3383,6 @@ const checkOr = async (
                     payload.cpuLoad != con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -3372,7 +3405,6 @@ const checkOr = async (
                     payload.cpuLoad >= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -3395,7 +3427,6 @@ const checkOr = async (
                     payload.cpuLoad <= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.cpuLoad !== null) {
                         reasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -3419,7 +3450,6 @@ const checkOr = async (
                     memoryUsed > con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -3440,7 +3470,6 @@ const checkOr = async (
                     memoryUsed < con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -3463,7 +3492,6 @@ const checkOr = async (
                     memoryUsed < con[i].field2
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -3480,7 +3508,6 @@ const checkOr = async (
                     memoryUsed == con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -3501,7 +3528,6 @@ const checkOr = async (
                     memoryUsed != con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -3522,7 +3548,6 @@ const checkOr = async (
                     memoryUsed >= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -3543,7 +3568,6 @@ const checkOr = async (
                     memoryUsed <= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.memoryUsed !== null) {
                         reasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
@@ -3561,7 +3585,6 @@ const checkOr = async (
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (con[i] && con[i].field1 && free > con[i].field1) {
                     validity = true;
-                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -3581,7 +3604,6 @@ const checkOr = async (
             ) {
                 if (con[i] && con[i].field1 && free < con[i].field1) {
                     validity = true;
-                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -3607,7 +3629,6 @@ const checkOr = async (
                     free < con[i].field2
                 ) {
                     validity = true;
-                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -3623,7 +3644,6 @@ const checkOr = async (
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (con[i] && con[i].field1 && free === con[i].field1) {
                     validity = true;
-                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -3643,7 +3663,6 @@ const checkOr = async (
             ) {
                 if (con[i] && con[i].field1 && free !== con[i].field1) {
                     validity = true;
-                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -3663,7 +3682,6 @@ const checkOr = async (
             ) {
                 if (con[i] && con[i].field1 && free >= con[i].field1) {
                     validity = true;
-                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -3683,7 +3701,6 @@ const checkOr = async (
             ) {
                 if (con[i] && con[i].field1 && free <= con[i].field1) {
                     validity = true;
-                } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
@@ -3707,7 +3724,6 @@ const checkOr = async (
                     payload.mainTemp > con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -3727,7 +3743,6 @@ const checkOr = async (
                     payload.mainTemp < con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -3749,7 +3764,6 @@ const checkOr = async (
                     payload.mainTemp < con[i].field2
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -3765,7 +3779,6 @@ const checkOr = async (
                     payload.mainTemp == con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -3785,7 +3798,6 @@ const checkOr = async (
                     payload.mainTemp != con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -3805,7 +3817,6 @@ const checkOr = async (
                     payload.mainTemp >= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -3825,7 +3836,6 @@ const checkOr = async (
                     payload.mainTemp <= con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (payload && payload.mainTemp !== null) {
                         reasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
@@ -3837,7 +3847,6 @@ const checkOr = async (
             if (con[i] && con[i].filter && con[i].filter === 'contains') {
                 if (con[i] && con[i].field1 && body && body[con[i].field1]) {
                     validity = true;
-                } else {
                     if (con[i].field1) {
                         reasons.push(
                             `${criteriaStrings.responseBody} \`${body}\` did not contain ${con[i].field1}`
@@ -3851,7 +3860,6 @@ const checkOr = async (
             ) {
                 if (con[i] && con[i].field1 && body && !body[con[i].field1]) {
                     validity = true;
-                } else {
                     if (con[i].field1) {
                         reasons.push(
                             `${criteriaStrings.responseBody} \`${body}\` contains ${con[i].field1}`
@@ -3870,7 +3878,6 @@ const checkOr = async (
                     body[con[i].field1] === con[i].field1
                 ) {
                     validity = true;
-                } else {
                     if (con[i].field1) {
                         reasons.push(
                             `${criteriaStrings.responseBody} \`${body}\` did not have Javascript expression \`${con[i].field1}\``
@@ -3880,7 +3887,6 @@ const checkOr = async (
             } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
                 if (con[i] && con[i].filter && body && _.isEmpty(body)) {
                     validity = true;
-                } else {
                     reasons.push(
                         `${criteriaStrings.responseBody} \`${body}\` was not empty`
                     );
@@ -3892,7 +3898,6 @@ const checkOr = async (
             ) {
                 if (con[i] && con[i].filter && body && !_.isEmpty(body)) {
                     validity = true;
-                } else {
                     reasons.push(`${criteriaStrings.responseBody} was empty`);
                 }
             } else if (
@@ -3924,7 +3929,6 @@ const checkOr = async (
                         )()
                     ) {
                         validity = true;
-                    } else {
                         if (con[i].field1) {
                             reasons.push(
                                 `${criteriaStrings.response} \`${JSON.stringify(
