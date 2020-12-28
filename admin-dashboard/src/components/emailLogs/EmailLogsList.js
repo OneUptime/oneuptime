@@ -157,11 +157,29 @@ export class EmailLogsList extends Component {
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root Margin-right--16">
-                                                            <span>
-                                                                {emailLog.status
-                                                                    ? emailLog.status
-                                                                    : 'N/A'}
-                                                            </span>
+                                                            <div
+                                                                className={`Badge Badge--color--${
+                                                                    emailLog.status ===
+                                                                    'Success'
+                                                                        ? 'green'
+                                                                        : 'red'
+                                                                } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                            >
+                                                                <span
+                                                                    className={`Badge-text Text-color--${
+                                                                        emailLog.status ===
+                                                                        'Success'
+                                                                            ? 'green'
+                                                                            : 'red'
+                                                                    } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                >
+                                                                    <span>
+                                                                        {emailLog.status
+                                                                            ? emailLog.status
+                                                                            : 'N/A'}
+                                                                    </span>
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </span>
                                                 </div>
