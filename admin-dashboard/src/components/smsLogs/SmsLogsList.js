@@ -6,7 +6,6 @@ import uuid from 'uuid';
 
 import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
-import SmsLogsJsonViewModal from './SmsLogsJsonViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 export class SmsLogsList extends Component {
@@ -80,7 +79,7 @@ export class SmsLogsList extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Status</span>
+                                            <span>User name</span>
                                         </span>
                                     </div>
                                 </td>
@@ -90,27 +89,17 @@ export class SmsLogsList extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>From</span>
+                                            <span>Project name</span>
                                         </span>
                                     </div>
                                 </td>
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px', minWidth: '200px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>To</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--center Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Content</span>
+                                            <span>Sent to</span>
                                         </span>
                                     </div>
                                 </td>
@@ -201,51 +190,6 @@ export class SmsLogsList extends Component {
                                                                               .request
                                                                               .apiSection
                                                                         : ''}
-                                                                </span>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <td
-                                                className="Table-cell Table-cell--align--center Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root">
-                                                                <span>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            this.props.openModal(
-                                                                                {
-                                                                                    id: uuid.v4(),
-                                                                                    onConfirm: () => {
-                                                                                        return Promise.resolve();
-                                                                                    },
-                                                                                    content: props => (
-                                                                                        <SmsLogsJsonViewModal
-                                                                                            {...props}
-                                                                                            reqLog={
-                                                                                                smsLog.request
-                                                                                            }
-                                                                                            resLog={
-                                                                                                smsLog.response
-                                                                                            }
-                                                                                        />
-                                                                                    ),
-                                                                                }
-                                                                            );
-                                                                        }}
-                                                                        id="view"
-                                                                        className="bs-Button"
-                                                                    >
-                                                                        <span>
-                                                                            View
-                                                                        </span>
-                                                                    </button>
                                                                 </span>
                                                             </div>
                                                         </span>
