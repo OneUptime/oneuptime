@@ -18,8 +18,8 @@ let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let adminDashboardUrl = window.location.origin + '/admin';
 let accountsUrl = window.location.origin + '/accounts';
-let helmChartUrl = window.location.origin + '/helm-chart';
-let docsUrl = window.location.origin + '/api-docs';
+let helmChartUrl = window.location.origin + '/chart';
+let docsUrl = window.location.origin + '/docs';
 const licensingUrl = env('LICENSE_URL');
 
 if (

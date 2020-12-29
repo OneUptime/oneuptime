@@ -92,15 +92,7 @@ app.use(
 );
 
 //Application version
-app.get(
-    [
-        '/helm-chart/version',
-        '/helm-chart/api/version',
-        '/version',
-        '/api/version',
-    ],
-    version
-);
+app.get(['/chart/version', '/version'], version);
 
 app.listen(app.get('port'), function() {
     // eslint-disable-next-line no-console
