@@ -13,7 +13,7 @@ module.exports = {
 
             query.deleted = false;
             const incomingRequest = await IncomingRequestModel.findOne(query)
-                .populate('monitors.monitorId', 'name')
+                .populate('monitors.monitorId', 'name thirdPartyVariable')
                 .populate('projectId', 'name')
                 .lean();
 
@@ -363,35 +363,95 @@ module.exports = {
 
     handleIncomingRequestAction: async function(data) {
         const _this = this;
+        const filter = data.filter;
         try {
-            const incomingRequest = await _this.findOneBy({
-                _id: data.requestId,
-                projectId: data.projectId,
-            });
+            let incomingRequest = null;
+            if (filter && filter.trim()) {
+                incomingRequest = await _this.findOneBy({
+                    _id: data.requestId,
+                    projectId: data.projectId,
+                    filterText: filter,
+                });
+            } else {
+                incomingRequest = await _this.findOneBy({
+                    _id: data.requestId,
+                    projectId: data.projectId,
+                });
+            }
 
             if (incomingRequest && incomingRequest.createIncident) {
                 // TODO:
-                // find a way to handle incidentType
+                // 1. find a way to handle incidentType
+                // 2. handle incident priority
+                // 3. handle incident title and description
+                // 4. handle other filter conditions --> greaterThan, lessThan, greaterThanOrEqualTo, lessThanOrEqualTo
                 data.incidentType = 'offline';
 
-                if (incomingRequest.isDefault) {
-                    let monitors = await MonitorService.findBy({
-                        projectId: data.projectId,
-                    });
-                    // grab the monitor ids
-                    monitors = monitors.map(monitor => monitor._id);
-                    for (const monitorId of monitors) {
-                        data.monitorId = monitorId;
-                        await IncidentService.create(data);
+                const filterCriteria = incomingRequest.filterCriteria,
+                    filterCondition = incomingRequest.filterCondition,
+                    filterText = incomingRequest.filterText;
+
+                if (filterCriteria && filterCondition && filterText) {
+                    if (incomingRequest.isDefault) {
+                        const monitors = await MonitorService.findBy({
+                            projectId: data.projectId,
+                        });
+                        for (const monitor of monitors) {
+                            const filterArray = monitor[filterCriteria];
+                            if (
+                                filterCondition === 'equalTo' &&
+                                filterArray.includes(filterText)
+                            ) {
+                                data.monitorId = monitor._id;
+                                await IncidentService.create(data);
+                            } else if (
+                                filterCondition === 'notEqualTo' &&
+                                !filterArray.includes(filterText)
+                            ) {
+                                data.monitorId = monitor._id;
+                                await IncidentService.create(data);
+                            }
+                        }
+                    } else {
+                        // grab the monitor from monitorId {_id, name}
+                        const monitors = incomingRequest.monitors.map(
+                            monitor => monitor.monitorId
+                        );
+                        for (const monitor of monitors) {
+                            const filterArray = monitor[filterCriteria];
+                            if (
+                                filterCondition === 'equalTo' &&
+                                filterArray.includes(filterText)
+                            ) {
+                                data.monitorId = monitor._id;
+                                await IncidentService.create(data);
+                            } else if (
+                                filterCondition === 'notEqualTo' &&
+                                !filterArray.includes(filterText)
+                            ) {
+                                data.monitorId = monitor._id;
+                                await IncidentService.create(data);
+                            }
+                        }
                     }
                 } else {
-                    // grab the monitor ids
-                    const monitors = incomingRequest.monitors.map(
-                        monitor => monitor.monitorId
-                    );
-                    for (const monitor of monitors) {
-                        data.monitorId = monitor._id;
-                        await IncidentService.create(data);
+                    if (incomingRequest.isDefault) {
+                        const monitors = await MonitorService.findBy({
+                            projectId: data.projectId,
+                        });
+                        for (const monitor of monitors) {
+                            data.monitorId = monitor._id;
+                            await IncidentService.create(data);
+                        }
+                    } else {
+                        // grab the monitor from monitorId {_id, name}
+                        const monitors = incomingRequest.monitors.map(
+                            monitor => monitor.monitorId
+                        );
+                        for (const monitor of monitors) {
+                            data.monitorId = monitor._id;
+                            await IncidentService.create(data);
+                        }
                     }
                 }
             }
