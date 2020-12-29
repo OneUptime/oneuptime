@@ -478,8 +478,6 @@ describe('Incident API', function() {
 
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
-        expect(res.body).to.have.property('skip');
-        expect(res.body).to.have.property('limit');
         expect(res.body).to.have.property('count');
     });
 
