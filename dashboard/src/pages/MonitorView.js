@@ -844,6 +844,13 @@ const mapStateToProps = (state, props) => {
             if (monitor.headers && monitor.headers.length)
                 initialValues[`headers_${monitor._id}`] = monitor.headers;
         }
+        console.log(
+            ' monitor type ',
+            monitor.type,
+            monitor,
+            'init values',
+            initialValues
+        );
     }
     return {
         scheduleWarning,

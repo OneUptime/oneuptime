@@ -65,38 +65,7 @@ class NewMonitor extends Component {
             authentication: props.edit
                 ? props.editMonitorProp.authentication
                 : props.authentication,
-            criteria: [
-                {
-                    head: 'Monitor up criteria',
-                    tagline:
-                        'This is where you describe when your monitor is considered up',
-                    type: CRITERIA_TYPES.UP,
-                    incidentTitle: '',
-                    incidentDescription: '',
-                    id: uuid.v4(),
-                    scheduleId: '',
-                },
-                {
-                    head: 'Monitor degraded criteria',
-                    tagline:
-                        'This is where you describe when your monitor is considered degraded',
-                    type: CRITERIA_TYPES.DEGRADED,
-                    incidentTitle: '',
-                    incidentDescription: '',
-                    id: uuid.v4(),
-                    scheduleId: '',
-                },
-                {
-                    head: 'Monitor down criteria',
-                    tagline:
-                        'This is where you describe when your monitor is considered down',
-                    type: CRITERIA_TYPES.DOWN,
-                    incidentTitle: '',
-                    incidentDescription: '',
-                    id: uuid.v4(),
-                    scheduleId: '',
-                },
-            ],
+            criteria: [],
             criteriaTabIndex: 0,
         };
 
@@ -118,7 +87,7 @@ class NewMonitor extends Component {
         this.props.setFileInputKey(new Date());
     }
 
-    componentDidUpdate() {
+    componentDidUpdate(prevProps) {
         const { monitor } = this.props;
         if (
             monitor.newMonitor.error ===
@@ -126,18 +95,162 @@ class NewMonitor extends Component {
         ) {
             this.props.showUpgradeForm();
         }
+
+        // setup criteria for up, down, and degraded events based on the type
+        // of criteria event selected
+
+        if (prevProps.initialValues !== this.props.initialValues) {
+            const { edit, index, initialValues, change } = this.props;
+
+            const criteria = [];
+
+            Object.values(CRITERIA_TYPES).forEach(criterion => {
+                const id = uuid.v4();
+                const criterionFieldName = `${criterion.type}_${id}`;
+                let criterionValues = {};
+
+                if (edit) {
+                    criterionValues = {
+                        bodyField: initialValues[`${criterion.type}_${index}`],
+                        createAlert:
+                            initialValues[
+                                `${criterion.type}_${index}_createAlert`
+                            ],
+                        autoAcknowledge:
+                            initialValues[
+                                `${criterion.type}_${index}_autoAcknowledge`
+                            ],
+                        autoResolve:
+                            initialValues[
+                                `${criterion.type}_${index}_autoResolve`
+                            ],
+                    };
+                    console.log(
+                        'editing',
+                        criterionValues,
+                        initialValues,
+                        criterion,
+                        index
+                    );
+                } else {
+                    criterionValues = this.getCriterionInitialValue(
+                        criterion.type
+                    );
+                }
+
+                criteria.push({
+                    ...criterion,
+                    bodyField: criterionValues.bodyField,
+                    id,
+                });
+
+                change(
+                    `createAlert_${criterionFieldName}`,
+                    criterionValues.createAlert
+                );
+                change(
+                    `autoAcknowledge_${criterionFieldName}`,
+                    criterionValues.autoAcknowledge
+                );
+                change(
+                    `autoResolve_${criterionFieldName}`,
+                    criterionValues.autoResolve
+                );
+
+                change(criterionFieldName, criterionValues.bodyField);
+            });
+
+            this.setState({ ...this.state, criteria: criteria });
+        }
+    }
+
+    /**
+     * gets a criterion's initial value depending on its type
+     *
+     * @param {string} criterionType type of criterion, up, down or degraded
+     * @returns {{bodyField: object, createAlert: boolean, autoAcknowledge: boolean, autoResolve: boolean} | {}} initial values for a criterion
+     * @memberof NewMonitor
+     */
+    getCriterionInitialValue(criterionType) {
+        try {
+            const initialCriterionValue = {};
+
+            const { initialValues } = this.props;
+
+            switch (criterionType) {
+                case CRITERIA_TYPES.UP.type:
+                    initialCriterionValue.bodyField = initialValues.up_1000;
+                    initialCriterionValue.createAlert =
+                        initialValues.up_1000_createAlert;
+                    initialCriterionValue.autoAcknowledge =
+                        initialValues.up_1000_autoAcknowledge;
+                    initialCriterionValue.autoResolve =
+                        initialValues.up_1000_autoResolve;
+                    break;
+                case CRITERIA_TYPES.DOWN.type:
+                    initialCriterionValue.bodyField = initialValues.down_1000;
+                    initialCriterionValue.createAlert =
+                        initialValues.down_1000_createAlert;
+                    initialCriterionValue.autoAcknowledge =
+                        initialValues.down_1000_autoAcknowledge;
+                    initialCriterionValue.autoResolve =
+                        initialValues.down_1000_autoResolve;
+                    break;
+
+                case CRITERIA_TYPES.DEGRADED.type:
+                    initialCriterionValue.bodyField =
+                        initialValues.degraded_1000;
+                    initialCriterionValue.createAlert =
+                        initialValues.degraded_1000_createAlert;
+                    initialCriterionValue.autoAcknowledge =
+                        initialValues.degraded_1000_autoAcknowledge;
+                    initialCriterionValue.autoResolve =
+                        initialValues.degraded_1000_autoResolve;
+                    break;
+            }
+            return initialCriterionValue;
+        } catch (error) {
+            // amplitude.logEventWithTimestamp(error);
+            return {};
+        }
     }
 
     /**
      *
      * adds a criteria to the state
-     * @param {{head : string, tagline:string, type:string}} [data={}] data of the new criteria
+     * @param {{head : string, tagline:string, type:string, id:string}} [criterion={}] data of the new criteria
      * @memberof NewMonitor
      */
-    addCriterion(data = {}) {
+    addCriterion(criterion = {}) {
+        const { change } = this.props;
+
+        const defaultCriterionValues = this.getCriterionInitialValue(
+            criterion.type
+        );
+        const newCriterion = {
+            ...criterion,
+            bodyField: defaultCriterionValues.bodyField,
+        };
+
+        const criterionFieldName = `${criterion.type}_${criterion.id}`;
+
+        change(criterionFieldName, defaultCriterionValues.bodyField);
+        change(
+            `createAlert_${criterionFieldName}`,
+            defaultCriterionValues.createAlert
+        );
+        change(
+            `autoAcknowledge_${criterionFieldName}`,
+            defaultCriterionValues.autoAcknowledge
+        );
+        change(
+            `autoResolve_${criterionFieldName}`,
+            defaultCriterionValues.autoResolve
+        );
+
         this.setState({
             ...this.state,
-            criteria: [...this.state.criteria, data],
+            criteria: [...this.state.criteria, newCriterion],
         });
     }
 
@@ -465,6 +578,7 @@ class NewMonitor extends Component {
 
     openAdvance = () => {
         this.setState({ advance: !this.state.advance });
+        this.setState({ criteriaTabIndex: 0 });
     };
 
     changeBox = (e, value) => {
@@ -2129,16 +2243,14 @@ class NewMonitor extends Component {
                                                                     'custom-tab-list'
                                                                 }
                                                             >
-                                                                {[
-                                                                    'Monitor Up Criteria',
-                                                                    'Monitor Degraded Criteria',
-                                                                    'Monitor Down Criteria',
-                                                                ].map(
-                                                                    mainCriterion => {
+                                                                {Object.keys(
+                                                                    CRITERIA_TYPES
+                                                                ).map(
+                                                                    category => {
                                                                         return (
                                                                             <Tab
                                                                                 key={
-                                                                                    mainCriterion
+                                                                                    category
                                                                                 }
                                                                                 className={
                                                                                     'custom-tab custom-tab-3 uppercase Text-typeface--capitalize'
@@ -2146,7 +2258,7 @@ class NewMonitor extends Component {
                                                                             >
                                                                                 <span>
                                                                                     {
-                                                                                        mainCriterion
+                                                                                        category
                                                                                     }
                                                                                 </span>
                                                                             </Tab>
@@ -2184,7 +2296,7 @@ class NewMonitor extends Component {
                                                             return (
                                                                 <TabPanel
                                                                     key={
-                                                                        criterionType
+                                                                        criterionType.type
                                                                     }
                                                                 >
                                                                     <Fade>
@@ -2194,7 +2306,7 @@ class NewMonitor extends Component {
                                                                                     .filter(
                                                                                         criterion =>
                                                                                             criterion.type ===
-                                                                                            criterionType
+                                                                                            criterionType.type
                                                                                     )
                                                                                     .map(
                                                                                         (
@@ -2206,16 +2318,6 @@ class NewMonitor extends Component {
                                                                                                     key={
                                                                                                         index
                                                                                                     }
-                                                                                                    head={
-                                                                                                        criterion.head
-                                                                                                    }
-                                                                                                    tagline={
-                                                                                                        criterion.tagline
-                                                                                                    }
-                                                                                                    fieldname={`${criterion.type}_${this.props.index}`}
-                                                                                                    index={
-                                                                                                        criterion.index
-                                                                                                    }
                                                                                                     type={
                                                                                                         this
                                                                                                             .state
@@ -2226,12 +2328,9 @@ class NewMonitor extends Component {
                                                                                                             data
                                                                                                         )
                                                                                                     }
-                                                                                                    criterion={{
-                                                                                                        type:
-                                                                                                            criterion.type,
-                                                                                                        id:
-                                                                                                            criterion.id,
-                                                                                                    }}
+                                                                                                    criterion={
+                                                                                                        criterion
+                                                                                                    }
                                                                                                     schedules={
                                                                                                         this
                                                                                                             .props
@@ -2403,6 +2502,7 @@ const mapDispatchToProps = dispatch =>
             toggleEdit,
             fetchCommunicationSlas,
             fetchMonitorSlas,
+            change,
         },
         dispatch
     );
@@ -2569,6 +2669,8 @@ NewMonitor.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     requestingMonitorSla: PropTypes.bool,
+    change: PropTypes.func,
+    initialValues: PropTypes.objectOf(PropTypes.any),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

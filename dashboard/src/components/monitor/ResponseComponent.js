@@ -21,34 +21,20 @@ const responsestyle = {
 };
 
 export class ResponseComponent extends Component {
-    addValue = () => {
-        this.props.pushArray('NewMonitor', this.props.fieldname, {
-            match: '',
-            responseType: '',
-            filter: '',
-            field1: '',
-            field2: '',
-            field3: false,
-        });
-    };
-
     handleAddCriterion = type => {
         let head, tagline;
         switch (type) {
-            case CRITERIA_TYPES.DOWN:
-                head = 'Monitor down criteria';
-                tagline =
-                    'This is where you describe when your monitor is considered down';
+            case CRITERIA_TYPES.DOWN.type:
+                head = CRITERIA_TYPES.DOWN.head;
+                tagline = CRITERIA_TYPES.DOWN.tagline;
                 break;
-            case CRITERIA_TYPES.UP:
-                head = 'Monitor up criteria';
-                tagline =
-                    'This is where you describe when your monitor is considered up';
+            case CRITERIA_TYPES.UP.type:
+                head = CRITERIA_TYPES.UP.head;
+                tagline = CRITERIA_TYPES.UP.tagline;
                 break;
-            case CRITERIA_TYPES.DEGRADED:
-                head = 'Monitor degraded criteria';
-                tagline =
-                    'This is where you describe when your monitor is considered degraded';
+            case CRITERIA_TYPES.DEGRADED.type:
+                head = CRITERIA_TYPES.DEGRADED.head;
+                tagline = CRITERIA_TYPES.DEGRADED.tagline;
                 break;
         }
         if (head && tagline) {
@@ -56,7 +42,7 @@ export class ResponseComponent extends Component {
         }
     };
     render() {
-        const { type } = this.props;
+        const { type, criterion } = this.props;
         const status = {
             display: 'inline-block',
             borderRadius: '2px',
@@ -64,14 +50,21 @@ export class ResponseComponent extends Component {
             width: '8px',
             margin: '0 8px 1px 0',
         };
+        const { id: criterionId, type: criterionType } = this.props.criterion;
+        const criterionFieldName = `${criterionType}_${criterionId}`;
 
-        if (this.props.fieldname === `up_${this.props.index}`) {
-            status.backgroundColor = 'rgb(117, 211, 128)'; // "green-status";
-        } else if (this.props.fieldname === `down_${this.props.index}`) {
-            status.backgroundColor = 'rgb(250, 117, 90)'; // "red-status";
-        } else if (this.props.fieldname === `degraded_${this.props.index}`) {
-            status.backgroundColor = 'rgb(255, 222, 36)'; // "yellow-status";
+        switch (criterionType) {
+            case CRITERIA_TYPES.UP:
+                status.backgroundColor = 'rgb(117, 211, 128)'; // "green-status";
+                break;
+            case CRITERIA_TYPES.DEGRADED:
+                status.backgroundColor = 'rgb(255, 222, 36)'; // "yellow-status";
+                break;
+            case CRITERIA_TYPES.DOWN:
+                status.backgroundColor = 'rgb(250, 117, 90)'; // "red-status";
+                break;
         }
+
         return (
             <div
                 className="bs-ContentSection Card-root Card-shadow--medium"
@@ -82,11 +75,11 @@ export class ResponseComponent extends Component {
                         <div className="Box-root">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <span style={status}></span>
-                                <span>{this.props.head}</span>
+                                <span>{criterion.head}</span>
                             </span>
                             <p>
                                 <span style={{ marginLeft: '18px' }}>
-                                    {this.props.tagline}
+                                    {criterion.tagline}
                                 </span>
                             </p>
                         </div>
@@ -94,14 +87,11 @@ export class ResponseComponent extends Component {
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <div>
                                 <button
-                                    id={`${this.props.fieldname}_addCriteria`}
                                     className="Button bs-ButtonLegacy ActionIconParent"
                                     type="button"
                                     // onClick={this.addValue}
                                     onClick={() =>
-                                        this.handleAddCriterion(
-                                            this.props.criterion.type
-                                        )
+                                        this.handleAddCriterion(criterionType)
                                     }
                                 >
                                     <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
@@ -117,9 +107,9 @@ export class ResponseComponent extends Component {
                                 <fieldset className="bs-Fieldset">
                                     <div className="bs-Fieldset-rows">
                                         <FieldArray
-                                            name={this.props.fieldname}
+                                            name={criterionFieldName}
                                             component={ResponseParent}
-                                            bodyfield={this.props.bodyfield}
+                                            bodyfield={criterion.bodyField}
                                             level={1}
                                             type={type}
                                         />
@@ -141,6 +131,7 @@ export class ResponseComponent extends Component {
                                         flex: '0 0 7rem',
                                         textAlign: 'start',
                                     }}
+                                    htmlFor={`callSchedule_${criterionFieldName}`}
                                 >
                                     Call Schedule
                                 </label>
@@ -149,19 +140,15 @@ export class ResponseComponent extends Component {
                                         <Field
                                             className="db-select-nw"
                                             component={RenderSelect}
-                                            name={`callSchedule_${
-                                                this.props.criterion
-                                                    ? this.props.criterion.id
-                                                    : ''
-                                            }`}
-                                            id="callSchedule"
+                                            name={`callSchedule_${criterionFieldName}`}
+                                            id={`callSchedule_${criterionFieldName}`}
                                             placeholder="Call Schedule"
                                             style={{
                                                 height: '28px',
                                             }}
                                             onChange={(e, scheduleId) => {
                                                 this.props.handleScheduleChangedForCriterion(
-                                                    this.props.criterion.id,
+                                                    criterionId,
                                                     scheduleId
                                                 );
                                             }}
@@ -187,32 +174,20 @@ export class ResponseComponent extends Component {
                                 </div>
                             </div>
                         </ShouldRender>
-                        {this.props.bodyfield && this.props.bodyfield.length ? (
+                        {criterion.bodyField && criterion.bodyField.length ? (
                             <div>
                                 <div className="bs-Fieldset-row">
                                     <label
                                         className="Checkbox"
-                                        htmlFor={`${
-                                            this.props.criterion
-                                                ? this.props.criterion.id
-                                                : ''
-                                        }_incidentCreatedAlert`}
+                                        htmlFor={`createAlert_${criterionFieldName}`}
                                     >
                                         <Field
                                             component="input"
                                             type="checkbox"
-                                            name={`${
-                                                this.props.criterion
-                                                    ? this.props.criterion.id
-                                                    : ''
-                                            }_incidentCreatedAlert`}
+                                            name={`createAlert_${criterionFieldName}`}
                                             data-test="RetrySettings-failedPaymentsCheckbox"
                                             className="Checkbox-source"
-                                            id={`${
-                                                this.props.criterion
-                                                    ? this.props.criterion.id
-                                                    : ''
-                                            }_incidentCreatedAlert`}
+                                            id={`createAlert_${criterionFieldName}`}
                                         />
                                         <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                             <div className="Checkbox-target Box-root">
@@ -238,26 +213,23 @@ export class ResponseComponent extends Component {
                                             className="bs-Fieldset-row Flex-alignItems--flexStart"
                                             style={{ gap: '1rem' }}
                                         >
-                                            <label style={{ flex: '0 0 6rem' }}>
+                                            <label
+                                                style={{ flex: '0 0 6rem' }}
+                                                htmlFor={`incidentTitle_${criterionFieldName}`}
+                                            >
                                                 Incident title
                                             </label>
                                             <div className="bs-Fieldset-fields">
                                                 <Field
                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                                     component={RenderField}
-                                                    name={`incident_title_${
-                                                        this.props.criterion
-                                                            ? this.props
-                                                                  .criterion.id
-                                                            : ''
-                                                    }`}
+                                                    name={`incidentTitle_${criterionFieldName}`}
                                                     onChange={() => {
                                                         this.props.handleIncidentTitleChangedForCriterion(
-                                                            this.props.criterion
-                                                                .id
+                                                            criterionId
                                                         );
                                                     }}
-                                                    id="title"
+                                                    id={`incidentTitle_${criterionFieldName}`}
                                                     placeholder="Custom Incident title"
                                                 />
                                             </div>
@@ -266,21 +238,19 @@ export class ResponseComponent extends Component {
                                             className="bs-Fieldset-row  Flex-alignItems--flexStart"
                                             style={{ gap: '1rem' }}
                                         >
-                                            <label style={{ flex: '0 0 6rem' }}>
+                                            <label
+                                                style={{ flex: '0 0 6rem' }}
+                                                htmlFor={`incidentDescription_${criterionFieldName}`}
+                                            >
                                                 Description
                                             </label>
                                             <div className="bs-Fieldset-fields">
                                                 <Field
-                                                    name={`incident_description_${
-                                                        this.props.criterion
-                                                            ? this.props
-                                                                  .criterion.id
-                                                            : ''
-                                                    }`}
+                                                    name={`incidentDescription_${criterionFieldName}`}
+                                                    id={`incidentDescription_${criterionFieldName}`}
                                                     onChange={() => {
                                                         this.props.handleIncidentDescriptionChangedForCriterion(
-                                                            this.props.criterion
-                                                                .id
+                                                            criterionId
                                                         );
                                                     }}
                                                     component={RenderCodeEditor}
@@ -294,23 +264,20 @@ export class ResponseComponent extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ShouldRender
-                                    if={
-                                        this.props.fieldname !==
-                                        `up_${this.props.index}`
-                                    }
+                                    if={criterionType !== CRITERIA_TYPES.UP}
                                 >
                                     <div className="bs-Fieldset-row">
                                         <label
                                             className="Checkbox"
-                                            htmlFor={`${this.props.fieldname}_autoAcknowledge`}
+                                            htmlFor={`autoAcknowledge_${criterionFieldName}`}
                                         >
                                             <Field
                                                 component="input"
                                                 type="checkbox"
-                                                name={`${this.props.fieldname}_autoAcknowledge`}
+                                                name={`autoAcknowledge_${criterionFieldName}`}
                                                 data-test="RetrySettings-failedPaymentsCheckbox"
                                                 className="Checkbox-source"
-                                                id={`${this.props.fieldname}_autoAcknowledge`}
+                                                id={`autoAcknowledge_${criterionFieldName}`}
                                             />
                                             <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                                 <div className="Checkbox-target Box-root">
@@ -330,23 +297,21 @@ export class ResponseComponent extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ShouldRender
-                                    if={
-                                        this.props.fieldname !==
-                                        `up_${this.props.index}`
-                                    }
+                                    if={criterionType !== CRITERIA_TYPES.UP}
                                 >
                                     <div className="bs-Fieldset-row">
                                         <label
                                             className="Checkbox"
-                                            htmlFor={`${this.props.fieldname}_autoResolve`}
+                                            htmlFor={`autoResolve_${criterionFieldName}`}
                                         >
                                             <Field
                                                 component="input"
                                                 type="checkbox"
-                                                name={`${this.props.fieldname}_autoResolve`}
+                                                name={`autoResolve_${criterionFieldName}`}
+                                                defaultChecked={true}
                                                 data-test="RetrySettings-failedPaymentsCheckbox"
                                                 className="Checkbox-source"
-                                                id={`${this.props.fieldname}_autoResolve`}
+                                                id={`autoResolve_${criterionFieldName}`}
                                             />
                                             <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                                 <div className="Checkbox-target Box-root">
@@ -403,17 +368,15 @@ export class ResponseComponent extends Component {
 ResponseComponent.displayName = 'ResponseComponent';
 
 ResponseComponent.propTypes = {
-    pushArray: PropTypes.func,
-    bodyfield: PropTypes.array,
-    fieldname: PropTypes.string,
-    head: PropTypes.string,
-    tagline: PropTypes.string,
-    index: PropTypes.number,
     type: PropTypes.string,
     addCriterion: PropTypes.func.isRequired,
     criterion: PropTypes.shape({
         id: PropTypes.string.isRequired,
         type: PropTypes.string.isRequired,
+        head: PropTypes.string.isRequired,
+        tagline: PropTypes.string.isRequired,
+        bodyField: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.any))
+            .isRequired,
     }).isRequired,
     incidentCreatedAlertEnabledForCriterion: PropTypes.bool.isRequired,
     schedules: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.any)).isRequired,
@@ -428,12 +391,13 @@ const mapDispatchToProps = {
 
 function mapStateToProps(state, ownProps) {
     return {
-        bodyfield: newSelector(state, `${ownProps.fieldname}`),
+        // defaultBodyField: newSelector(
+        //     state,
+        //     `${ownProps.defaultBodyFieldName}`
+        // ),
         incidentCreatedAlertEnabledForCriterion: newSelector(
             state,
-            `${
-                ownProps.criterion ? ownProps.criterion.id : ''
-            }_incidentCreatedAlert`
+            `createAlert_${ownProps.criterion.type}_${ownProps.criterion.id}`
         ),
     };
 }
