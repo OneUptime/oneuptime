@@ -162,16 +162,20 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
                 if (validDown) {
                     status = 'offline';
-                    reason = upFailedReasons;
+                    reason = downFailedReasons;
                 } else if (validDegraded) {
                     status = 'degraded';
-                    reason = upFailedReasons;
+                    reason = degradedFailedReasons;
                 } else if (validUp) {
                     status = 'online';
-                    reason = [...degradedFailedReasons, ...downFailedReasons];
+                    reason = upFailedReasons;
                 } else {
                     status = 'offline';
-                    reason = upFailedReasons;
+                    reason = [
+                        ...degradedFailedReasons,
+                        ...downFailedReasons,
+                        ...upFailedReasons,
+                    ];
                 }
             }
             if (type === 'script') {
@@ -268,19 +272,20 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
                 if (validDown) {
                     data.status = 'offline';
-                    data.reason = upFailedReasons;
+                    data.reason = downFailedReasons;
                 } else if (validDegraded) {
                     data.status = 'degraded';
-                    data.reason = upFailedReasons;
+                    data.reason = degradedFailedReasons;
                 } else if (validUp) {
                     data.status = 'online';
+                    data.reason = upFailedReasons;
+                } else {
+                    data.status = 'offline';
                     data.reason = [
                         ...degradedFailedReasons,
                         ...downFailedReasons,
+                        ...upFailedReasons,
                     ];
-                } else {
-                    data.status = 'offline';
-                    data.reason = upFailedReasons;
                 }
             } else {
                 data = req.body;
