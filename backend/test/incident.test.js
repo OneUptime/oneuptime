@@ -299,7 +299,7 @@ describe('Incident API', function() {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body.acknowledged).to.be.equal(true);
-        expect(emailStatus.length).toBeGreaterThan(0);
+        expect(emailStatus.length).to.be.greaterThan(0);
     });
 
     it('should resolve an incident and send email to users', async function() {
