@@ -245,12 +245,12 @@ describe('Incident API', function() {
         expect(res1.body).to.have.property('data');
         expect(res1.body.data).to.be.an('array');
         expect(res1.body.data.length).to.be.equal(6);
-        expect(res1.body.data[5].status).to.be.equal('offline');
-        expect(res1.body.data[4].status).to.be.equal('offline');
-        expect(res1.body.data[3].status).to.be.equal('online');
+        expect(res1.body.data[0].status).to.be.equal('offline');
+        expect(res1.body.data[1].status).to.be.equal('offline');
         expect(res1.body.data[2].status).to.be.equal('online');
-        expect(res1.body.data[1].status).to.be.equal('acknowledged');
-        expect(res1.body.data[0].status).to.be.equal('resolved');
+        expect(res1.body.data[3].status).to.be.equal('online');
+        expect(res1.body.data[4].status).to.be.equal('acknowledged');
+        expect(res1.body.data[5].status).to.be.equal('resolved');
     });
 
     it('should get incidents belonging to a monitor', async function() {
