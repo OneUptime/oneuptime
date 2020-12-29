@@ -496,7 +496,7 @@ describe('Incident API', function() {
         expect(res.body.data[0].type).to.be.equal(type);
     });
 
-    it('should recharge and send incident alert when balance is below minimum amount', async function () {
+    it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function () {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
             $set: {
@@ -509,6 +509,12 @@ describe('Incident API', function() {
                     billingRiskCountries: false,
                 },
             },
+        });
+        const user = await UserService.findOneBy({_id:userId});
+        const stripeCustomerId= user.stripeCustomerId;
+        await UserService.updateOneBy({
+            _id:userId},{
+            stripeCustomerId:'wrong_customer_id'
         });
         await sleep(10000);
         await UserModel.findByIdAndUpdate(userId, {
@@ -533,9 +539,9 @@ describe('Incident API', function() {
             .post(`/schedule/${projectId}/${schedule.body._id}/addescalation`)
             .set('Authorization', authorization)
             .send([{
-                emailReminders: 10,
-                callReminders: 10,
-                smsReminders: 10,
+                emailReminders: 1,
+                callReminders: 1,
+                smsReminders: 1,
                 call: true,
                 sms: true,
                 email: true,
@@ -563,11 +569,21 @@ describe('Incident API', function() {
             alertVia: 'call',
         });
         expect(smsAlert).to.be.an('object');
-        expect(smsAlert.alertStatus).to.equal("Success");
-        expect(smsAlert.error).to.equal(false);
+        expect(smsAlert.alertStatus).to.equal(null);
+        expect(smsAlert.error).to.equal(true);
+        expect(smsAlert.errorMessage).to.equal("Low Balance");
         expect(callAlert).to.be.an('object');
-        expect(callAlert.alertStatus).to.equal("Success");
-        expect(callAlert.error).to.equal(false);
+        expect(callAlert.alertStatus).to.equal(null);
+        expect(callAlert.error).to.equal(true);
+        expect(callAlert.errorMessage).to.equal("Low Balance");
+
+        await UserService.updateOneBy({
+            _id:userId,
+        },{    
+            stripeCustomerId
+        },
+        );
+
     });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
