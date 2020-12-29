@@ -136,13 +136,13 @@ class EventBox extends Component {
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                 <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                    <span>Scheduled Maintenances</span>
+                                    <span>Scheduled Maintenance Event</span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        Scheduled Maintenances show up on status
-                                        pages and dashboard to let your team or
-                                        customers know of any planned
+                                        Scheduled Maintenance Event shows up on
+                                        status pages and dashboard to let your
+                                        team or customers know of any planned
                                         maintenance activity you have for{' '}
                                         {projectName}
                                     </span>
@@ -180,8 +180,7 @@ class EventBox extends Component {
                                                 1 ? (
                                                     <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                                         <span>
-                                                            Create New Scheduled
-                                                            Maintenance
+                                                            Create New Event
                                                         </span>
                                                         <span className="new-btn__keycode">
                                                             N
@@ -190,8 +189,7 @@ class EventBox extends Component {
                                                 ) : (
                                                     <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                                                         <span>
-                                                            Create New Scheduled
-                                                            Maintenance
+                                                            Create New Event{' '}
                                                         </span>
                                                     </span>
                                                 )}
@@ -216,7 +214,7 @@ class EventBox extends Component {
                                 >
                                     <header className="bs-ObjectList-row bs-ObjectList-row--header">
                                         <div className="bs-ObjectList-cell">
-                                            Maintenance
+                                            Event
                                         </div>
                                         <div className="bs-ObjectList-cell">
                                             Created by
@@ -469,7 +467,7 @@ class EventBox extends Component {
                                             scheduledEvents.length === 0) &&
                                         !requesting &&
                                         !error
-                                            ? 'You have no scheduled maintenance at this time'
+                                            ? 'You have no scheduled maintenance event at this time'
                                             : null}
                                         {error ? error : null}
                                     </span>
@@ -489,9 +487,9 @@ class EventBox extends Component {
                                                 {this.props.count
                                                     ? this.props.count +
                                                       (this.props.count > 1
-                                                          ? '  Maintenances'
-                                                          : ' Maintenance')
-                                                    : '0 Scheduled Maintenance'}
+                                                          ? '  Events'
+                                                          : ' Event')
+                                                    : '0 Events'}
                                             </span>
                                         </span>
                                     </span>
