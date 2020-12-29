@@ -46,6 +46,11 @@ class EditIncomingRequest extends Component {
         postObj.name = values.name;
         postObj.isDefault = values.isDefault;
         postObj.createIncident = values.createIncident;
+        if (postObj.createIncident) {
+            postObj.filterCriteria = values.filterCriteria;
+            postObj.filterCondition = values.filterCondition;
+            postObj.filterText = values.filterText;
+        }
 
         postObj.monitors = [];
         if (!postObj.isDefault) {
@@ -422,6 +427,135 @@ class EditIncomingRequest extends Component {
                                             </div>
                                         </div>
                                     </fieldset>
+                                    {formValues && formValues.createIncident && (
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        style={{
+                                                            flexBasis: '20%',
+                                                        }}
+                                                    >
+                                                        <span>Filters</span>
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            flexBasis: '80%',
+                                                            maxWidth: '80%',
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                className="db-select-nw Table-cell--width--maximized"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="filterCriteria"
+                                                                id="filterCriteria"
+                                                                placeholder="Criteria"
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                    width:
+                                                                        '100%',
+                                                                }}
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            'thirdPartyVariables',
+                                                                        label:
+                                                                            'Third Party Variables',
+                                                                    },
+                                                                ]}
+                                                            />
+                                                            <Field
+                                                                className="db-select-nw Table-cell--width--maximized"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="filterCondition"
+                                                                id="filterCondition"
+                                                                placeholder="Condition"
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                    width:
+                                                                        '100%',
+                                                                    marginLeft: 5,
+                                                                }}
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            'equalTo',
+                                                                        label:
+                                                                            'Equal To',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'notEqualTo',
+                                                                        label:
+                                                                            'Not Equal To',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'greaterThan',
+                                                                        label:
+                                                                            'Greater Than',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'lessThan',
+                                                                        label:
+                                                                            'Less Than',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'lessThanOrEqualTo',
+                                                                        label:
+                                                                            'Less Than Or Equal To',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'greaterThanOrEqualTo',
+                                                                        label:
+                                                                            'Greater Than Or Equal To',
+                                                                    },
+                                                                ]}
+                                                            />
+                                                            <Field
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="filterText"
+                                                                type="input"
+                                                                placeholder="Text to filter"
+                                                                id="filterText"
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                    padding:
+                                                                        '3px 5px',
+                                                                    marginLeft: 5,
+                                                                }}
+                                                                autoFocus={true}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    )}
                                 </div>
                             </div>
                             <div className="bs-Modal-footer">
@@ -535,6 +669,11 @@ const mapStateToProps = state => {
         initialValues.createIncident =
             incomingRequestToBeUpdated.createIncident;
         initialValues._id = incomingRequestToBeUpdated._id;
+        initialValues.filterCriteria =
+            incomingRequestToBeUpdated.filterCriteria;
+        initialValues.filterCondition =
+            incomingRequestToBeUpdated.filterCondition;
+        initialValues.filterText = incomingRequestToBeUpdated.filterText;
     }
 
     const monitorData = state.monitor.monitorsList.monitors.find(

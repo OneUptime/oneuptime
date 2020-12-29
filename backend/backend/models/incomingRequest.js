@@ -16,6 +16,19 @@ const incomingRequestSchema = new Schema(
         url: String,
         deleted: { type: Boolean, default: false },
         deletedAt: Date,
+        filterCriteria: String,
+        filterCondition: {
+            type: String,
+            enum: [
+                'equalTo',
+                'notEqualTo',
+                'lessThan',
+                'greaterThan',
+                'greaterThanOrEqualTo',
+                'lessThanOrEqualTo',
+            ],
+        },
+        filterText: String,
     },
     { timestamps: true }
 );
