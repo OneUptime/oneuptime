@@ -316,7 +316,7 @@ describe('Incident API', function() {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body.resolved).to.be.equal(true);
-        expect(emailStatus.length).toBeGreaterThan(0);
+        expect(emailStatus.length).to.be.greaterThan(0);
     });
 
     it('should update incident details.', async function() {
@@ -496,13 +496,13 @@ describe('Incident API', function() {
         expect(res.body.data[0].type).to.be.equal(type);
     });
 
-    it('should not send incident alert when balance is below minimum amount', async function() {
+    it('should recharge and send incident alert when balance is below minimum amount', async function () {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
             $set: {
                 alertEnable: true,
                 alertOptions: {
-                    minimumBalance: 50,
+                    minimumBalance: 0,
                     rechargeToBalance: 100,
                     billingUS: true,
                     billingNonUSCountries: true,
@@ -528,57 +528,46 @@ describe('Incident API', function() {
             .send({
                 monitorIds: [monitorId],
             });
-        let smsAlert = null;
-        let callAlert = null;
-        if (selectMonitor) {
-            const createEscalation = await request
-                .post(
-                    `/schedule/${projectId}/${schedule.body._id}/addescalation`
-                )
-                .set('Authorization', authorization)
-                .send([
-                    {
-                        emailReminders: 10,
-                        callReminders: 10,
-                        smsReminders: 10,
-                        call: true,
-                        sms: true,
-                        email: true,
-                        teams: [
-                            {
-                                teamMembers: [
-                                    {
-                                        userId: userId,
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ]);
-            if (createEscalation) {
-                const createdIncident = await request
-                    .post(`/incident/${projectId}/${monitorId}`)
-                    .set('Authorization', authorization)
-                    .send(incidentData);
-                await sleep(2000);
-                smsAlert = await AlertModel.findOne({
-                    incidentId: createdIncident.body._id,
-                    alertVia: 'sms',
-                });
-                callAlert = await AlertModel.findOne({
-                    incidentId: createdIncident.body._id,
-                    alertVia: 'call',
-                });
-            }
-        }
+        expect(selectMonitor).to.have.status(200);
+        const createEscalation = await request
+            .post(`/schedule/${projectId}/${schedule.body._id}/addescalation`)
+            .set('Authorization', authorization)
+            .send([{
+                emailReminders: 10,
+                callReminders: 10,
+                smsReminders: 10,
+                call: true,
+                sms: true,
+                email: true,
+                teams: [{
+                    teamMembers: [{
+                        userId
+                    }, ],
+                }, ],
+            }, ]);
+        expect(createEscalation).to.have.status(200);
+        const createdIncident = await request
+            .post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(incidentData);
+        expect(createdIncident).to.have.status(200);
+
+        await sleep(10000);
+        const smsAlert = await AlertModel.findOne({
+            incidentId: createdIncident.body._id,
+            alertVia: 'sms',
+        });
+
+        const callAlert = await AlertModel.findOne({
+            incidentId: createdIncident.body._id,
+            alertVia: 'call',
+        });
         expect(smsAlert).to.be.an('object');
-        expect(smsAlert.alertStatus).to.be.equal(null);
-        expect(smsAlert.error).to.be.equal(true);
-        expect(smsAlert.errorMessage).to.be.equal('Low Balance');
+        expect(smsAlert.alertStatus).to.equal("Success");
+        expect(smsAlert.error).to.equal(false);
         expect(callAlert).to.be.an('object');
-        expect(callAlert.alertStatus).to.be.equal(null);
-        expect(callAlert.error).to.be.equal(true);
-        expect(callAlert.errorMessage).to.be.equal('Low Balance');
+        expect(callAlert.alertStatus).to.equal("Success");
+        expect(callAlert.error).to.equal(false);
     });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
@@ -617,7 +606,8 @@ describe('Incident API', function() {
             alertVia: 'call',
         });
         expect(callAlert).to.be.an('object');
-        expect(callAlert.alertStatus).to.be.equal('Success');
+        expect(callAlert.alertStatus).to.be.equal("Success");
+        expect(callAlert.error).to.be.equal(false);
     });
     it('should create an alert charge when an alert is sent to a user.', async function() {
         const authorization = `Basic ${token}`;
