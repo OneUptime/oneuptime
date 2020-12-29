@@ -121,8 +121,6 @@ app.use(express.static(path.join(__dirname, 'views')));
 app.use('/api', express.static(path.join(__dirname, 'views')));
 
 app.use(require('./backend/middlewares/auditLogs').log);
-app.use(require('./backend/middlewares/emailLogs').log);
-app.use(require('./backend/middlewares/smsLogs').log);
 
 // Routes(API)
 app.use(
