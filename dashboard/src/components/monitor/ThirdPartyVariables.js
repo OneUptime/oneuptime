@@ -17,11 +17,11 @@ class ThirdPartyVariables extends Component {
         values._id = monitor._id;
         values.projectId = currentProject._id;
 
-        if (values.variables && values.variables.length > 0) {
-            const variables = values.variables.filter(
+        if (values.thirdPartyVariable && values.thirdPartyVariable.length > 0) {
+            const thirdPartyVariable = values.thirdPartyVariable.filter(
                 variable => typeof variable === 'string'
             );
-            values.variables = variables;
+            values.thirdPartyVariable = thirdPartyVariable;
         }
 
         this.props.editMonitor(currentProject._id, values);
@@ -52,8 +52,8 @@ class ThirdPartyVariables extends Component {
                         }}
                     ></button>
                     {formValues &&
-                        (!formValues.variables ||
-                            formValues.variables.length === 0) && (
+                        (!formValues.thirdPartyVariable ||
+                            formValues.thirdPartyVariable.length === 0) && (
                             <span
                                 style={{
                                     display: 'block',
@@ -218,7 +218,7 @@ class ThirdPartyVariables extends Component {
                                                                                     }}
                                                                                 >
                                                                                     <FieldArray
-                                                                                        name="variables"
+                                                                                        name="thirdPartyVariable"
                                                                                         component={
                                                                                             this
                                                                                                 .renderVariables
@@ -271,13 +271,7 @@ class ThirdPartyVariables extends Component {
                                                     <button
                                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                                         disabled={
-                                                            formValues &&
-                                                            (!formValues.variables ||
-                                                                formValues
-                                                                    .variables
-                                                                    .length ===
-                                                                    0 ||
-                                                                editingMonitor)
+                                                            editingMonitor
                                                         }
                                                         type="submit"
                                                         id="saveMonitorVariables"
@@ -339,8 +333,12 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = (state, ownProps) => {
     const { monitor } = ownProps;
     const initialValues = {};
-    if (monitor && monitor.variables && monitor.variables.length > 0) {
-        initialValues.variables = monitor.variables;
+    if (
+        monitor &&
+        monitor.thirdPartyVariable &&
+        monitor.thirdPartyVariable.length > 0
+    ) {
+        initialValues.thirdPartyVariable = monitor.thirdPartyVariable;
     }
 
     return {

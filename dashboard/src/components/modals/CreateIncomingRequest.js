@@ -500,7 +500,7 @@ class CreateIncomingRequest extends Component {
                                                                 options={[
                                                                     {
                                                                         value:
-                                                                            'thirdPartyVariables',
+                                                                            'thirdPartyVariable',
                                                                         label:
                                                                             'Third Party Variables',
                                                                     },
