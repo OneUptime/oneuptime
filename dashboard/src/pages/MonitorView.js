@@ -36,6 +36,7 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import { fetchCommunicationSlas } from '../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../actions/monitorSla';
+import ThirdPartyVariables from '../components/monitor/ThirdPartyVariables';
 class MonitorView extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
@@ -150,10 +151,14 @@ class MonitorView extends React.Component {
             monitorId,
             projectId,
             history,
+            defaultSchedule,
         } = this.props;
         const redirectTo = `/dashboard/project/${projectId}/on-call`;
         let scheduleAlert;
-        if (scheduleWarning.includes(monitorId) === false) {
+        if (
+            scheduleWarning.includes(monitorId) === false &&
+            defaultSchedule !== true
+        ) {
             scheduleAlert = (
                 <div id="alertWarning" className="Box-root Margin-vertical--12">
                     <div className="db-Trends bs-ContentSection Card-root">
@@ -197,6 +202,7 @@ class MonitorView extends React.Component {
         const componentName = component ? component.name : '';
         const monitorName = monitor ? monitor.name : '';
         const monitorType = monitor && monitor.type ? monitor.type : '';
+        const agentless = monitor && monitor.agentlessConfig;
 
         const componentMonitorsRoute = getParentRoute(pathname);
         const defaultMonitorSla = monitorSlas.find(sla => sla.isDefault);
@@ -582,19 +588,16 @@ class MonitorView extends React.Component {
                                                                             <div className="Box-root Margin-bottom--12">
                                                                                 <MonitorViewLogsBox
                                                                                     monitorId={
-                                                                                        this
-                                                                                            .props
-                                                                                            .monitor
-                                                                                            ._id
+                                                                                        monitor._id
                                                                                     }
                                                                                     monitorName={
-                                                                                        this
-                                                                                            .props
-                                                                                            .monitor
-                                                                                            .name
+                                                                                        monitorName
                                                                                     }
                                                                                     monitorType={
                                                                                         monitorType
+                                                                                    }
+                                                                                    agentless={
+                                                                                        agentless
                                                                                     }
                                                                                 />
                                                                             </div>
@@ -645,6 +648,20 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         ._id
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                        <div>
+                                                                            <ThirdPartyVariables
+                                                                                monitor={
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                }
+                                                                                componentId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .componentId
                                                                                 }
                                                                             />
                                                                         </div>
@@ -741,6 +758,13 @@ const mapStateToProps = (state, props) => {
         });
     });
 
+    let defaultSchedule;
+    state.schedule.subProjectSchedules.forEach(item => {
+        item.schedules.forEach(item => {
+            defaultSchedule = item.isDefault;
+        });
+    });
+
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
@@ -754,6 +778,7 @@ const mapStateToProps = (state, props) => {
             monitor.monitors.find(monitor => monitor._id === monitorId)
         )
         .filter(monitor => monitor)[0];
+    const editMode = monitor && monitor.editMode ? true : false;
     const initialValues = {};
     if (monitor) {
         initialValues[`name_${monitor._id}`] = monitor.name;
@@ -778,7 +803,8 @@ const mapStateToProps = (state, props) => {
         if (
             monitor.type === 'url' ||
             monitor.type === 'api' ||
-            monitor.type === 'server-monitor'
+            monitor.type === 'server-monitor' ||
+            monitor.type === 'incomingHttpRequest'
         ) {
             if (monitor.criteria && monitor.criteria.up) {
                 initialValues[`up_${monitor._id}`] = mapCriteria(
@@ -853,12 +879,13 @@ const mapStateToProps = (state, props) => {
         );
     }
     return {
+        defaultSchedule,
         scheduleWarning,
         projectId,
         monitorId,
         componentId,
         monitor,
-        edit: state.monitor.monitorsList.editMode,
+        edit: state.monitor.monitorsList.editMode && editMode ? true : false,
         initialValues,
         match: props.match,
         component,
@@ -917,6 +944,7 @@ MonitorView.propTypes = {
     monitorSlas: PropTypes.array,
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
+    defaultSchedule: PropTypes.bool,
 };
 
 MonitorView.displayName = 'MonitorView';

@@ -252,7 +252,12 @@ class Incident extends React.Component {
 
     render() {
         let variable = null;
-        const { currentProject, history, scheduleWarning } = this.props;
+        const {
+            currentProject,
+            history,
+            scheduleWarning,
+            defaultSchedule,
+        } = this.props;
         const projectId = currentProject ? currentProject._id : null;
         const redirectTo = `/dashboard/project/${projectId}/on-call`;
         const {
@@ -275,6 +280,8 @@ class Incident extends React.Component {
             this.props.monitor && this.props.monitor.type
                 ? this.props.monitor.type
                 : '';
+        const agentless =
+            this.props.monitor && this.props.monitor.agentlessConfig;
 
         const incidentCommunicationSla =
             this.props.monitor &&
@@ -282,7 +289,10 @@ class Incident extends React.Component {
                 this.props.defaultIncidentSla);
 
         let scheduleAlert;
-        if (scheduleWarning.includes(monitorId) === false) {
+        if (
+            scheduleWarning.includes(monitorId) === false &&
+            defaultSchedule !== true
+        ) {
             scheduleAlert = (
                 <div id="alertWarning" className="Box-root Margin-vertical--12">
                     <div className="db-Trends bs-ContentSection Card-root">
@@ -468,6 +478,7 @@ class Incident extends React.Component {
                                         monitorId={monitorId}
                                         monitorName={monitorName}
                                         monitorType={monitorType}
+                                        agentless={agentless}
                                     />
                                 </div>
                             </Fade>
@@ -604,7 +615,12 @@ const mapStateToProps = (state, props) => {
             });
         });
     });
-
+    let defaultSchedule;
+    state.schedule.subProjectSchedules.forEach(item => {
+        item.schedules.forEach(item => {
+            defaultSchedule = item.isDefault;
+        });
+    });
     const { componentId } = props.match.params;
     const monitorId =
         state.incident &&
@@ -628,6 +644,7 @@ const mapStateToProps = (state, props) => {
         )
         .filter(monitor => monitor)[0];
     return {
+        defaultSchedule,
         scheduleWarning,
         monitor,
         currentProject: state.project.currentProject,
@@ -707,6 +724,7 @@ Incident.propTypes = {
     ]),
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
+    defaultSchedule: PropTypes.bool,
 };
 
 Incident.displayName = 'Incident';

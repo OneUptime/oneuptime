@@ -1,5 +1,54 @@
 module.exports = {
     /**
+     * charges a project for an alert
+     * @param {(object | string)} userId owner of the project
+     * @param {object} project project to cut balance from
+     * @param {string} alertType the type of alert to use
+     * @param {string} alertPhoneNumber phone number of the recipient
+     * @returns { (Promise<{error : (string) }> | Promise< {closingBalance : number, chargeAmount:number}>} an object containing error or closing balance and charge amount
+     */
+    chargeAlertAndGetProjectBalance: async function(
+        userId,
+        project,
+        alertType,
+        alertPhoneNumber,
+        segments
+    ) {
+        let release;
+        try {
+            const mutex = getProjectMutex(project._id.toString());
+            release = await mutex.acquire();
+
+            const countryType = getCountryType(alertPhoneNumber);
+            const alertChargeAmount = getAlertChargeAmount(
+                alertType,
+                countryType
+            );
+            const chargeAmount = alertChargeAmount.price * segments;
+
+            const updatedProject = await this.chargeAlert(
+                userId,
+                project._id,
+                chargeAmount
+            );
+
+            return {
+                chargeAmount,
+                closingBalance: updatedProject.balance,
+            };
+        } catch (error) {
+            ErrorService.log(
+                'PaymentService.chargeAlertAndGetProjectBalance',
+                error
+            );
+            return { error: 'Could not charge alert' };
+        } finally {
+            if (release) {
+                release();
+            }
+        }
+    },
+    /**
      *checks whether a project's balance is enough
      *
      * @param {*} projectId ID of project

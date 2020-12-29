@@ -5930,6 +5930,15 @@ pre.bs-PropertyList-definition, pre.bs-PropertyList-property {
   padding-left: 5px;
 }
 
+.radio-field {
+  align-items: flex-start;
+  display: flex;
+  flex: 0 0 55%;
+  flex-direction: row;
+  /* max-width: 350px; */
+  padding-left: 5px;
+}
+
 .bs-Fieldset-fields--wide {
   max-width: 700px;
 }
@@ -35024,6 +35033,11 @@ span.CodeMirror-selectedtext {
   color: black;
 }
 
+.bs-mar-cursor {
+  cursor: default;
+  margin-bottom: 8px
+}
+
 @media (max-width: 768px) {
   .bs-Fieldset.bs-container, .bs-content-1 {
     width: 100%;
@@ -35068,4 +35082,9 @@ span.CodeMirror-selectedtext {
 .email-smt-label{
   width: 6rem;
   flex: none
+}
+
+.radioButtonClass{
+  display: flex;
+  flex-direction: row;
 }

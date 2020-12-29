@@ -170,7 +170,7 @@ module.exports = {
 
             await this.updateOneBy(query, {
                 deleted: true,
-                deletedAt: Date.now(),
+                deleteAt: Date.now(),
             });
 
             containerSecurity = await this.findOneBy({

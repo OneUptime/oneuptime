@@ -236,7 +236,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
         data.projectId = projectId;
-
+        data.variables = [data.name];
         const monitor = await MonitorService.create(data);
         if (data.callScheduleId) {
             const schedule = await ScheduleService.findOneBy({
@@ -543,19 +543,31 @@ router.post(
                 stat: validUp,
                 reasons: upFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.up
-                ? ProbeService.conditions(data, null, monitor.criteria.up)
+                ? ProbeService.conditions(
+                      monitor.type,
+                      monitor.criteria.up,
+                      data
+                  )
                 : { stat: false, reasons: [] });
             const {
                 stat: validDegraded,
                 reasons: degradedFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
-                ? ProbeService.conditions(data, null, monitor.criteria.degraded)
+                ? ProbeService.conditions(
+                      monitor.type,
+                      monitor.criteria.degraded,
+                      data
+                  )
                 : { stat: false, reasons: [] });
             const {
                 stat: validDown,
                 reasons: downFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.down
-                ? ProbeService.conditions(data, null, monitor.criteria.down)
+                ? ProbeService.conditions(
+                      monitor.type,
+                      monitor.criteria.down,
+                      data
+                  )
                 : { stat: false, reasons: [] });
 
             if (validDown) {

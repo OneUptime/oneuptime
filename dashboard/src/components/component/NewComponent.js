@@ -122,7 +122,7 @@ class NewComponent extends Component {
     };
 
     scheduleChange = (e, value) => {
-        //load call schedules
+        //load call schedules/duties
         if (value && value !== '') {
             this.props.fetchSchedules(value);
         } else {

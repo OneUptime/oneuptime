@@ -19,7 +19,7 @@ function validate(values) {
     const errors = {};
 
     if (!values.name) {
-        errors.name = 'Event name is required';
+        errors.name = 'Maintenance name is required';
     }
     return errors;
 }
@@ -349,7 +349,7 @@ class UpdateSchedule extends React.Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Update Scheduled event</span>
+                                    <span>Update Scheduled Maintenance</span>
                                 </span>
                             </div>
                         </div>
@@ -369,7 +369,9 @@ class UpdateSchedule extends React.Component {
                                                     className="bs-Fieldset-label Text-align--left"
                                                     htmlFor="endpoint"
                                                 >
-                                                    <span>Event name</span>
+                                                    <span>
+                                                        Maintenance name
+                                                    </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div
@@ -383,7 +385,7 @@ class UpdateSchedule extends React.Component {
                                                                 RenderField
                                                             }
                                                             name="name"
-                                                            placeholder="Event name"
+                                                            placeholder="Maintenance name"
                                                             id="name"
                                                             className="bs-TextInput"
                                                             style={{

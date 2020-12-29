@@ -227,7 +227,10 @@ export class RenderOption extends Component {
                                 },
                                 {
                                     value: 'responseBody',
-                                    label: 'Response Body',
+                                    label:
+                                        type !== 'incomingHttpRequest'
+                                            ? 'Response Body'
+                                            : 'Request Body',
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor',
@@ -274,6 +277,11 @@ export class RenderOption extends Component {
                                     value: 'temperature',
                                     label: 'Temperature',
                                     show: type === 'server-monitor',
+                                },
+                                {
+                                    value: 'incomingTime',
+                                    label: 'Request Incoming Time',
+                                    show: type === 'incomingHttpRequest',
                                 },
                             ]}
                         />
@@ -368,6 +376,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -379,6 +389,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -390,6 +402,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -417,6 +431,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -428,6 +444,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -439,6 +457,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -450,6 +470,8 @@ export class RenderOption extends Component {
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
                                                     'statusCode' ||
+                                                bodyfield.responseType ===
+                                                    'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -773,6 +795,20 @@ export class RenderOption extends Component {
                         )}
                         {bodyfield &&
                         filterval !== '' &&
+                        bodyfield.responseType === 'incomingTime' ? (
+                            <span
+                                style={{
+                                    display: 'inline-block',
+                                    marginTop: '37px',
+                                }}
+                            >
+                                min
+                            </span>
+                        ) : (
+                            ''
+                        )}
+                        {bodyfield &&
+                        filterval !== '' &&
                         bodyfield.responseType === 'cpuLoad' ? (
                             <span
                                 style={{
@@ -873,6 +909,21 @@ export class RenderOption extends Component {
                         }}
                     >
                         ms
+                    </span>
+                ) : (
+                    ''
+                )}
+                {bodyfield &&
+                filterval !== '' &&
+                bodyfield.responseType === 'incomingTime' &&
+                filterval === 'inBetween' ? (
+                    <span
+                        style={{
+                            display: 'inline-block',
+                            marginTop: '37px',
+                        }}
+                    >
+                        min
                     </span>
                 ) : (
                     ''

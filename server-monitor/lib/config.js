@@ -6,6 +6,8 @@
 
 'use strict';
 
+const path = require('path');
+
 /** The api url to send server information. */
 const API_URL =
     process.env.API_URL ||
@@ -53,8 +55,24 @@ const offlineTestData = {
     maxTemp: 0,
 };
 
+const LOG_PATH = {
+    linux: {
+        log: '/var/log/fsmd/fsmd.log',
+        error: '/var/log/fsmd/fsmd_error.log',
+    },
+    darwin: {
+        log: '/Library/Logs/fsmd/fsmd.log',
+        error: '/Library/Logs/fsmd/fsmd_error.log',
+    },
+    win32: {
+        log: path.join(__dirname, 'fsmd.out.log'),
+        error: path.join(__dirname, 'fsmd.err.log'),
+    },
+};
+
 module.exports = {
     API_URL,
+    LOG_PATH,
     onlineTestData,
     degradedTestData,
     offlineTestData,

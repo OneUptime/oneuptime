@@ -53,6 +53,7 @@ const UserModel = require('../backend/models/user');
 const GlobalConfigModel = require('../backend/models/globalConfig');
 const GlobalConfigService = require('../backend/services/globalConfigService');
 const EmailSmtpService = require('../backend/services/emailSmtpService');
+const AlertChargeService = require('../backend/services/alertChargeService');
 
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -214,7 +215,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          * The project's balance is zero.
          */
-        it('should not send SMS/Call alerts to on-call teams and subscribers if project balance is 0, and custom twilio settings are not set.', async function() {
+        it('should send SMS/Call alerts to on-call teams and subscribers if project balance is 0, and custom twilio settings are not set.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -282,6 +283,8 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
+
+            // because the project balance recharges, the alerts should be sent
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -291,10 +294,10 @@ describe('SMS/Calls Incident Alerts', function() {
                     errorMessage,
                 } = event;
                 eventTypesSent.push(eventType);
-                expect(alertStatus).to.equal(null);
+                expect(alertStatus).to.equal('Success');
                 expect(alertVia).to.equal('sms');
-                expect(error).to.equal(true);
-                expect(errorMessage).to.equal('Low Balance');
+                expect(error).to.equal(false);
+                expect(errorMessage).to.be.undefined;
             }
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
@@ -314,9 +317,9 @@ describe('SMS/Calls Incident Alerts', function() {
             const alertsSentList = [];
             for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error, errorMessage } = event;
-                expect(alertStatus).to.equal(null);
-                expect(error).to.equal(true);
-                expect(errorMessage).equal('Low Balance');
+                expect(alertStatus).to.equal('Success');
+                expect(error).to.equal(false);
+                expect(errorMessage).to.be.undefined;
                 alertsSentList.push(alertVia);
             }
             expect(alertsSentList.includes('sms')).to.equal(true);
@@ -869,7 +872,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('it should also create billing details of subscriber  when sms is sent on the chargeAlert', async function() {
+        it('should create billing details of subscriber  when sms is sent on the chargeAlert', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -893,6 +896,10 @@ describe('SMS/Calls Incident Alerts', function() {
                     _id: projectId,
                 });
             expect(billingEndpointResponse).to.have.status(200);
+
+            // remove prior charge alerts (if created)
+            await AlertChargeService.hardDeleteBy({});
+
             const newIncident = await createIncident({
                 request,
                 authorization,
@@ -907,6 +914,9 @@ describe('SMS/Calls Incident Alerts', function() {
                 },
             });
             expect(newIncident).to.have.status(200);
+
+            await sleep(10 * 1000);
+
             const chargeResonse = await getChargedAlerts({
                 request,
                 authorization,
@@ -914,9 +924,12 @@ describe('SMS/Calls Incident Alerts', function() {
             });
             expect(chargeResonse).to.have.status(200);
             expect(chargeResonse.body).to.an('object');
-            expect(chargeResonse.body.count).to.equal(4);
+            // on the before hook, a subscriber is added, and the user
+            // is also added to duty for sms and call. So we expect
+            // a total of 3 alert charges
+            expect(chargeResonse.body.count).to.equal(3);
             expect(chargeResonse.body.data).to.an('array');
-            expect(chargeResonse.body.data.length).to.equal(4);
+            expect(chargeResonse.body.data.length).to.equal(3);
 
             const { _id: incidentId } = newIncident.body;
             const incidentResolved = await markIncidentAsResolved({
@@ -935,11 +948,13 @@ describe('SMS/Calls Incident Alerts', function() {
             });
             expect(chargeResonseAfterResolvedIncident).to.have.status(200);
             expect(chargeResonseAfterResolvedIncident.body).to.an('object');
-            expect(chargeResonseAfterResolvedIncident.body.count).to.equal(8);
+            // on the before hook, the call-duty limit is 1 SMS and 1 Call,
+            // so now, no SMS and Call alerts are sent to the duty memeber
+            expect(chargeResonseAfterResolvedIncident.body.count).to.equal(4);
             expect(chargeResonseAfterResolvedIncident.body.data).to.an('array');
             expect(
                 chargeResonseAfterResolvedIncident.body.data.length
-            ).to.equal(8);
+            ).to.equal(4);
         });
         it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
@@ -1305,6 +1320,116 @@ describe('SMS/Calls Incident Alerts', function() {
          * Global twilio settings: set
          * Custom twilio settings: not set
          * Global twilio settings SMS enable : true
+         * Global twilio settings Call enable : false
+         * SMS/Call alerts enabled for the project (billing): true
+         */
+        it('should not send statusPageNote(investigation note) SMS notification when disabled', async function() {
+            // update global setting to enable SMS
+            const globalSettings = await GlobalConfigModel.findOne({
+                name: 'twilio',
+            });
+            const { value } = globalSettings;
+            value['sms-enabled'] = true;
+            value['call-enabled'] = false;
+
+            await GlobalConfigModel.findOneAndUpdate(
+                { name: 'twilio' },
+                { value }
+            );
+
+            // enable billing for the project
+            const billingEndpointResponse = await request
+                .put(`/project/${projectId}/alertOptions`)
+                .set('Authorization', authorization)
+                .send({
+                    alertEnable: true,
+                    billingNonUSCountries: true,
+                    billingRiskCountries: true,
+                    billingUS: true,
+                    minimumBalance: '100',
+                    rechargeToBalance: '200',
+                    _id: projectId,
+                });
+            expect(billingEndpointResponse).to.have.status(200);
+
+            // disable status page note (investigation note) on the project
+            const {
+                enableInvestigationNoteNotificationSMS,
+            } = await ProjectService.updateOneBy(
+                { _id: projectId },
+                {
+                    enableInvestigationNoteNotificationSMS: false,
+                }
+            );
+
+            expect(enableInvestigationNoteNotificationSMS).to.be.false;
+
+            // create an incident
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
+                    monitorId,
+                    projectId,
+                    title: 'test monitor  is offline.',
+                    incidentType: 'offline',
+                    description: 'Incident description',
+                },
+            });
+            expect(newIncident).to.have.status(200);
+
+            const incidentId = newIncident.body._id;
+
+            // create a status page note (investiagation note)
+            const statusPageNotePayload = {
+                content: 'this is a test page note',
+                incident_state: 'update',
+                type: 'investigation',
+            };
+
+            const newStatusPageNote = await request
+                .post(`/incident/${projectId}/incident/${incidentId}/message`)
+                .set('Authorization', authorization)
+                .send(statusPageNotePayload);
+
+            expect(newStatusPageNote).to.have.status(200);
+
+            // resolve the incident
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
+
+            expect(incidentResolved).to.have.status(200);
+
+            await sleep(10 * 1000);
+
+            const subscriberAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
+
+            expect(subscriberAlerts.body.data).to.be.an('array');
+
+            const statusPageNoteNotificationAlert = subscriberAlerts.body.data.find(
+                subscriberAlert =>
+                    subscriberAlert.alertVia === 'sms' &&
+                    subscriberAlert.errorMessage ===
+                        'Investigation Note SMS Notification Disabled'
+            );
+            expect(statusPageNoteNotificationAlert).to.be.an('object');
+        });
+
+        /**
+         * Global twilio settings: set
+         * Custom twilio settings: not set
+         * Global twilio settings SMS enable : true
          * Global twilio settings Call enable : true
          * SMS/Call alerts enabled for the project (billing): true
          */
@@ -1317,6 +1442,7 @@ describe('SMS/Calls Incident Alerts', function() {
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
             // add a wrong config to twilio
+            const originalPhone = value.phone;
             value.phone = '+111111111';
 
             await GlobalConfigModel.findOneAndUpdate(
@@ -1359,6 +1485,16 @@ describe('SMS/Calls Incident Alerts', function() {
             });
             expect(newIncident).to.have.status(200);
 
+            // resolve the incident
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId: newIncident.body._id,
+            });
+
+            expect(incidentResolved).to.have.status(200);
+
             await sleep(10 * 1000);
 
             const {
@@ -1366,6 +1502,17 @@ describe('SMS/Calls Incident Alerts', function() {
             } = await ProjectService.findOneBy({ _id: projectId });
 
             expect(newProjectBalance).to.equal(originalProjectBalance);
+
+            // revert twilio settings
+            value.phone = originalPhone;
+            const revertedTwilioSettings = await GlobalConfigModel.findOneAndUpdate(
+                { name: 'twilio' },
+                { value },
+                { new: true }
+            );
+            expect(revertedTwilioSettings.value)
+                .to.have.property('phone')
+                .to.equal(originalPhone);
         });
 
         /**
@@ -1375,7 +1522,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * Global twilio settings Call enable : true
          * SMS/Call alerts enabled for the project (billing): true
          */
-        it('should recharge balance when project balance is low', async function() {
+        it('should recharge project balance when low', async function() {
             // update global setting to enable call and sms
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -1426,7 +1573,7 @@ describe('SMS/Calls Incident Alerts', function() {
             });
             expect(newIncident).to.have.status(200);
 
-            await sleep(15 * 1000);
+            await sleep(10 * 1000);
 
             // check the balance again
 
@@ -1438,6 +1585,134 @@ describe('SMS/Calls Incident Alerts', function() {
 
             expect(balance).to.be.lessThan(rechargeToBalance);
             expect(balance).to.be.greaterThan(minimumBalance);
+            // resolve the incident
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId: newIncident.body._id,
+            });
+
+            expect(incidentResolved).to.have.status(200);
+        });
+
+        /**
+         * Global twilio settings: set
+         * Custom twilio settings: not set
+         * Global twilio settings SMS enable : true
+         * Global twilio settings Call enable : true
+         * SMS/Call alerts enabled for the project (billing): true
+         */
+        it('should correctly register closing balance for alert charges', async function() {
+            this.timeout(60 * 1000);
+            // update global setting to enable call and sms
+            const globalSettings = await GlobalConfigModel.findOne({
+                name: 'twilio',
+            });
+            const { value } = globalSettings;
+            value['sms-enabled'] = true;
+            value['call-enabled'] = true;
+
+            await GlobalConfigModel.findOneAndUpdate(
+                { name: 'twilio' },
+                { value }
+            );
+
+            // create multiple subscribers
+            for (let i = 0; i < 10; i++) {
+                const newSubscriber = await addSubscriberToMonitor({
+                    request,
+                    authorization,
+                    monitorId,
+                    projectId,
+                    payload: {
+                        alertVia: 'sms',
+                        contactPhone: `92161522${i}`,
+                        countryCode: 'et',
+                    },
+                });
+                expect(newSubscriber).to.have.status(200);
+            }
+
+            // enable billing for the project
+            const billingEndpointResponse = await request
+                .put(`/project/${projectId}/alertOptions`)
+                .set('Authorization', authorization)
+                .send({
+                    alertEnable: true,
+                    billingNonUSCountries: true,
+                    billingRiskCountries: true,
+                    billingUS: true,
+                    minimumBalance: '100',
+                    rechargeToBalance: '200',
+                    _id: projectId,
+                });
+
+            expect(billingEndpointResponse).to.have.status(200);
+
+            // get original project balance
+            const {
+                balance: originalProjectBalance,
+            } = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+
+            // send notification
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
+                    monitorId,
+                    projectId,
+                    title: 'test monitor  is offline.',
+                    incidentType: 'offline',
+                    description: 'Incident description',
+                },
+            });
+
+            expect(newIncident).to.have.status(200);
+
+            await sleep(25 * 1000);
+
+            // get all alert charges sorted by date in descending order
+            const alertCharges = await AlertChargeService.findBy(
+                {
+                    incidentId: newIncident.body._id,
+                    projectId: projectId,
+                },
+                null,
+                null,
+                1
+            );
+            expect(alertCharges).to.be.an('array');
+
+            let calculatedBalance = originalProjectBalance;
+
+            // calculate balance for each alert charge amount and compare it with
+            // alert charge's closing balance
+            const allAlertChargesCorrect = alertCharges.every(alertCharge => {
+                if (alertCharge.subscriberAlertId) {
+                    calculatedBalance -= alertCharge.chargeAmount;
+                    return (
+                        calculatedBalance === alertCharge.closingAccountBalance
+                    );
+                }
+                return false;
+            });
+
+            expect(allAlertChargesCorrect).to.be.true;
+
+            // resolve the incident
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId: newIncident.body._id,
+            });
+
+            expect(incidentResolved).to.have.status(200);
         });
     });
     describe('Custom twilio settings are set', async () => {
@@ -2202,6 +2477,104 @@ describe('Email Incident Alerts', function() {
         expect(error).to.equal(false);
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
     });
+
+    /**
+     * Global SMTP configurations : set.
+     * Email alerts enabled.
+     * Custom SMTP configurations : not set.
+     * investigation note email notification : not set
+     */
+    it('should not send statusPageNote(investigation note) Email notification when disabled', async function() {
+        this.timeout(30 * 1000);
+        // update global smtp settings
+        await GlobalConfigService.create({
+            name: 'smtp',
+            value: {
+                'email-enabled': true,
+                email: 'ibukun.o.dairo@gmail.com',
+                password: 'ZEC1kY9xFN6aVf3j',
+                'from-name': 'Ibukun',
+                from: 'ibukun.o.dairo@gmail.com',
+                'smtp-server': 'smtp-relay.sendinblue.com',
+                'smtp-port': '465',
+                'smtp-secure': true,
+            },
+        });
+
+        // disable status page note (investigation note) Email notification on the project
+        const {
+            enableInvestigationNoteNotificationEmail,
+        } = await ProjectService.updateOneBy(
+            { _id: projectId },
+            {
+                enableInvestigationNoteNotificationEmail: false,
+            }
+        );
+
+        expect(enableInvestigationNoteNotificationEmail).to.be.false;
+
+        // create an incident
+        const newIncident = await createIncident({
+            request,
+            authorization,
+            projectId,
+            monitorId,
+            payload: {
+                monitorId,
+                projectId,
+                title: 'test monitor  is offline.',
+                incidentType: 'offline',
+                description: 'Incident description',
+            },
+        });
+        expect(newIncident).to.have.status(200);
+
+        const incidentId = newIncident.body._id;
+
+        // create a status page note (investigation note)
+        const statusPageNotePayload = {
+            content: 'this is a test investigation note',
+            incident_state: 'update',
+            type: 'investigation',
+        };
+
+        const newStatusPageNote = await request
+            .post(`/incident/${projectId}/incident/${incidentId}/message`)
+            .set('Authorization', authorization)
+            .send(statusPageNotePayload);
+
+        expect(newStatusPageNote).to.have.status(200);
+
+        // resolve the incident
+        const incidentResolved = await markIncidentAsResolved({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+
+        expect(incidentResolved).to.have.status(200);
+
+        await sleep(10 * 1000);
+
+        const subscriberAlerts = await getSubscribersAlerts({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+
+        expect(subscriberAlerts.body.data).to.be.an('array');
+
+        const statusPageNoteNotificationAlert = subscriberAlerts.body.data.find(
+            subscriberAlert =>
+                subscriberAlert.alertVia === 'email' &&
+                subscriberAlert.errorMessage ===
+                    'Investigation Note Email Notification Disabled'
+        );
+        expect(statusPageNoteNotificationAlert).to.be.an('object');
+    });
+
     /**
      * Global SMTP configurations : set.
      * Email alerts disabled.
@@ -2375,5 +2748,211 @@ describe('Email Incident Alerts', function() {
         expect(alertStatus).to.equal('Success');
         expect(error).to.equal(false);
         await EmailSmtpService.hardDeleteBy({ projectId });
+    });
+});
+
+describe('Webhook Incident Alerts', function() {
+    this.timeout(30 * 1000);
+    before(async function() {
+        this.timeout(30000);
+        const createdUser = await createUser(request, userData.user);
+        const project = createdUser.body.project;
+        projectId = project._id;
+        userId = createdUser.body.id;
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
+        });
+        const token = verificationToken.token;
+        await verifyToken({ request, token });
+        const { email, password } = userData.user;
+        const userLogin = await login({ request, email, password });
+        const jwtToken = userLogin.body.tokens.jwtAccessToken;
+        authorization = getAuthorizationHeader({ jwtToken });
+        const component = await createComponent({
+            request,
+            authorization,
+            projectId,
+            payload: {
+                projectId,
+                name: 'test',
+                criteria: {},
+                data: {},
+            },
+        });
+        componentId = component.body._id;
+        const monitor = await createMonitor({
+            request,
+            authorization,
+            projectId,
+            payload: {
+                componentId,
+                projectId,
+                type: 'device',
+                name: 'test monitor ',
+                data: { deviceId: 'abcdef' },
+                deviceId: 'abcdef',
+                criteria: {},
+            },
+        });
+        monitorId = monitor.body._id;
+
+        await addSubscriberToMonitor({
+            request,
+            authorization,
+            projectId,
+            monitorId,
+            payload: {
+                alertVia: 'webhook',
+                contactEmail: 'test@hackerbay.io',
+                contactWebhook: 'http://localhost:3010/api/webhooks/',
+                webhookMethod: 'post',
+            },
+        });
+
+        const schedule = await createSchedule({
+            request,
+            authorization,
+            projectId,
+            name: 'test schedule',
+        });
+        scheduleId = schedule.body._id;
+        await updateSchedule({
+            request,
+            authorization,
+            projectId,
+            scheduleId,
+            payload: {
+                monitorIds: [monitorId],
+            },
+        });
+        await addEscalation({
+            request,
+            authorization,
+            projectId,
+            scheduleId,
+            payload: [
+                {
+                    callReminders: '1',
+                    smsReminders: '1',
+                    emailReminders: '1',
+                    email: true,
+                    sms: false,
+                    call: false,
+                    teams: [
+                        {
+                            teamMembers: [
+                                {
+                                    member: '',
+                                    timezone: '',
+                                    startTime: '',
+                                    endTime: '',
+                                    userId,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
+    });
+
+    after(async function() {
+        this.timeout(30000);
+        await GlobalConfig.removeTestConfig();
+        await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
+        await SubscriberService.hardDeleteBy({ projectId });
+        await SubscriberAlertService.hardDeleteBy({ projectId });
+        await ScheduleService.hardDeleteBy({ projectId });
+        await EscalationService.hardDeleteBy({ projectId });
+        await IncidentService.hardDeleteBy({ projectId });
+        await AlertService.hardDeleteBy({ projectId });
+        await MonitorStatusModel.deleteMany({ monitorId });
+        await IncidentPriorityModel.deleteMany({ projectId });
+        await AlertChargeModel.deleteMany({ projectId });
+        await IncidentMessageModel.deleteMany({ createdById: userId });
+        await IncidentTimelineModel.deleteMany({ createdById: userId });
+        await VerificationToken.deleteMany({ userId });
+        await LoginIPLog.deleteMany({ userId });
+        await ComponentService.hardDeleteBy({ projectId });
+        await MonitorService.hardDeleteBy({ projectId });
+        await ProjectService.hardDeleteBy({ _id: projectId });
+        await UserService.hardDeleteBy({ _id: userId });
+        await NotificationService.hardDeleteBy({ projectId: projectId });
+        await AirtableService.deleteAll({ tableName: 'User' });
+    });
+
+    it('should not send statusPageNote(investigation note) Webhook notification when disabled', async () => {
+        // disable status page note (investigation note) notification for webhooks
+        const {
+            enableInvestigationNoteNotificationWebhook,
+        } = await ProjectService.updateOneBy(
+            { _id: projectId },
+            {
+                enableInvestigationNoteNotificationWebhook: false,
+            }
+        );
+
+        expect(enableInvestigationNoteNotificationWebhook).to.be.false;
+
+        // create an incident
+        const newIncident = await createIncident({
+            request,
+            authorization,
+            projectId,
+            monitorId,
+            payload: {
+                monitorId,
+                projectId,
+                title: 'test monitor  is offline.',
+                incidentType: 'offline',
+                description: 'Incident description',
+            },
+        });
+        expect(newIncident).to.have.status(200);
+
+        const incidentId = newIncident.body._id;
+
+        // create a status page note (investigation note)
+        const statusPageNotePayload = {
+            content: 'this is a test investigation note',
+            incident_state: 'update',
+            type: 'investigation',
+        };
+
+        const newStatusPageNote = await request
+            .post(`/incident/${projectId}/incident/${incidentId}/message`)
+            .set('Authorization', authorization)
+            .send(statusPageNotePayload);
+
+        expect(newStatusPageNote).to.have.status(200);
+
+        // resolve the incident
+        const incidentResolved = await markIncidentAsResolved({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+
+        expect(incidentResolved).to.have.status(200);
+
+        await sleep(10 * 1000);
+
+        const subscriberAlerts = await getSubscribersAlerts({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+
+        expect(subscriberAlerts.body.data).to.be.an('array');
+
+        const statusPageNoteNotificationAlert = subscriberAlerts.body.data.find(
+            subscriberAlert =>
+                subscriberAlert.alertVia === 'webhook' &&
+                subscriberAlert.errorMessage ===
+                    'Investigation Note Webhook Notification Disabled'
+        );
+        expect(statusPageNoteNotificationAlert).to.be.an('object');
     });
 });

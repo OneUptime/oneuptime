@@ -66,7 +66,12 @@ const App = () => (
                                 exact={route.exact}
                                 path={route.path}
                                 key={index}
-                                component={route.component}
+                                render={props => (
+                                    <route.component
+                                        icon={route.icon}
+                                        {...props}
+                                    />
+                                )}
                             />
                         );
                     })}

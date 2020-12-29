@@ -58,6 +58,7 @@ module.exports = {
                 alertCharges = await AlertChargeModel.find(query)
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
+                    .populate('subscriberAlertId', 'alertVia')
                     .populate('monitorId');
             }
             return alertCharges;
@@ -75,6 +76,18 @@ module.exports = {
             return count;
         } catch (error) {
             ErrorService.log('alertChargeService.countBy', error);
+            throw error;
+        }
+    },
+    /**
+     * deletes documents in alert charges based on the query condition
+     * @param {Object} query
+     */
+    hardDeleteBy: async query => {
+        try {
+            await AlertChargeModel.deleteMany(query);
+        } catch (error) {
+            ErrorService.log('alertChargeService.delete', error);
             throw error;
         }
     },
