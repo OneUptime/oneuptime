@@ -170,9 +170,7 @@ class NewMonitor extends Component {
                     values && values[`up_${this.props.index}_autoResolve`]
                         ? true
                         : false;
-            }
-
-            if (
+            } else if (
                 values &&
                 values[`degraded_${this.props.index}`] &&
                 values[`degraded_${this.props.index}`].length
@@ -193,13 +191,7 @@ class NewMonitor extends Component {
                     values && values[`degraded_${this.props.index}_autoResolve`]
                         ? true
                         : false;
-            }
-
-            if (
-                values &&
-                values[`down_${this.props.index}`] &&
-                values[`down_${this.props.index}`].length
-            ) {
+            } else {
                 postObj.criteria.down = makeCriteria(
                     values[`down_${this.props.index}`]
                 );
@@ -1921,13 +1913,24 @@ class NewMonitor extends Component {
                                                         index={this.props.index}
                                                         type={this.state.type}
                                                     />
-                                                    <ResponseComponent
-                                                        head="Monitor down criteria"
-                                                        tagline="This is where you describe when your monitor is considered down"
-                                                        fieldname={`down_${this.props.index}`}
-                                                        index={this.props.index}
-                                                        type={this.state.type}
-                                                    />
+                                                    <div className="Box-root">
+                                                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                            <div className="Box-root">
+                                                                <div className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                    When the
+                                                                    monitor is
+                                                                    not
+                                                                    considered
+                                                                    online or
+                                                                    degraded, it
+                                                                    is
+                                                                    considered
+                                                                    down by
+                                                                    default
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </ShouldRender>
                                             </div>
                                         </fieldset>
