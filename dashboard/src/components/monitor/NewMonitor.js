@@ -803,6 +803,7 @@ class NewMonitor extends Component {
                                                                                     </div>
                                                                                     <span className="imageAndLabel">
                                                                                         <img
+                                                                                            alt=""
                                                                                             src={
                                                                                                 el.icon
                                                                                             }
