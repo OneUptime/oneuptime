@@ -1692,7 +1692,7 @@ describe('SMS/Calls Incident Alerts', function() {
             // calculate balance for each alert charge amount and compare it with
             // alert charge's closing balance
             const allAlertChargesCorrect = alertCharges.every(alertCharge => {
-                    calculatedBalance -= alertCharge.chargeAmount;
+                    calculatedBalance = Math.round((calculatedBalance-alertCharge.chargeAmount)*100)/100;
                     return (
                         calculatedBalance === alertCharge.closingAccountBalance
                     );

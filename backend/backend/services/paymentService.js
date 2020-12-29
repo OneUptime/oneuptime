@@ -406,7 +406,7 @@ module.exports = {
             project = await ProjectService.findOneBy({
                 _id: projectId,
             });
-            const balanceAfterAlertSent = project.balance - chargeAmount;
+            const balanceAfterAlertSent = Math.round((project.balance - chargeAmount)*100)/100;
             const updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,
                 {
