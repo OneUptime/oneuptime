@@ -12,7 +12,7 @@ module.exports = {
         project,
         alertType,
         alertPhoneNumber,
-        segments
+        segments=1
     ) {
         let release;
         try {
@@ -24,7 +24,7 @@ module.exports = {
                 alertType,
                 countryType
             );
-            const chargeAmount = alertChargeAmount.price * segments;
+            const chargeAmount = alertType ===Call ? alertChargeAmount.price : alertChargeAmount.price * segments;
 
             const updatedProject = await this.chargeAlert(
                 userId,
@@ -406,7 +406,7 @@ module.exports = {
             project = await ProjectService.findOneBy({
                 _id: projectId,
             });
-            const balanceAfterAlertSent = project.balance - chargeAmount;
+            const balanceAfterAlertSent = Math.round((project.balance - chargeAmount)*100)/100;
             const updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,
                 {
@@ -458,5 +458,5 @@ const ProjectService = require('./projectService');
 const ProjectModel = require('../models/project');
 const StripeService = require('./stripeService');
 const NotificationService = require('./notificationService');
-const { getAlertChargeAmount, getCountryType } = require('../config/alertType');
+const { getAlertChargeAmount, getCountryType, Call } = require('../config/alertType');
 const getProjectMutex = require('../constants/projectMutexProvider');
