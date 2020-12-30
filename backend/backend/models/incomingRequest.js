@@ -29,6 +29,12 @@ const incomingRequestSchema = new Schema(
             ],
         },
         filterText: String,
+        incidentTitle: String,
+        incidentPriority: {
+            type: Schema.Types.ObjectId,
+            ref: 'IncidentPriority',
+        },
+        incidentDescription: String,
     },
     { timestamps: true }
 );
