@@ -54,7 +54,7 @@ const GlobalConfigModel = require('../backend/models/globalConfig');
 const GlobalConfigService = require('../backend/services/globalConfigService');
 const EmailSmtpService = require('../backend/services/emailSmtpService');
 const AlertChargeService = require('../backend/services/alertChargeService');
-const { balanceFormatter } = require('../backend/utils/number');
+const { formatBalance } = require('../backend/utils/number');
 
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -918,19 +918,19 @@ describe('SMS/Calls Incident Alerts', function() {
 
             await sleep(10 * 1000);
 
-            const chargeResonse = await getChargedAlerts({
+            const chargeResponse = await getChargedAlerts({
                 request,
                 authorization,
                 projectId,
             });
-            expect(chargeResonse).to.have.status(200);
-            expect(chargeResonse.body).to.an('object');
+            expect(chargeResponse).to.have.status(200);
+            expect(chargeResponse.body).to.an('object');
             // on the before hook, a subscriber is added, and the user
             // is also added to duty for sms and call. So we expect
             // a total of 3 alert charges
-            expect(chargeResonse.body.count).to.equal(3);
-            expect(chargeResonse.body.data).to.an('array');
-            expect(chargeResonse.body.data.length).to.equal(3);
+            expect(chargeResponse.body.count).to.equal(3);
+            expect(chargeResponse.body.data).to.an('array');
+            expect(chargeResponse.body.data.length).to.equal(3);
 
             const { _id: incidentId } = newIncident.body;
             const incidentResolved = await markIncidentAsResolved({
@@ -1698,11 +1698,10 @@ describe('SMS/Calls Incident Alerts', function() {
             // calculate balance for each alert charge amount and compare it with
             // alert charge's closing balance
             const allAlertChargesCorrect = alertCharges.every(alertCharge => {
-                calculatedBalance = parseFloat(
-                    balanceFormatter.format(
-                        calculatedBalance - alertCharge.chargeAmount
-                    )
+                calculatedBalance = formatBalance(
+                    calculatedBalance - alertCharge.chargeAmount
                 );
+
                 return calculatedBalance === alertCharge.closingAccountBalance;
             });
 

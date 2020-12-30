@@ -409,9 +409,10 @@ module.exports = {
             project = await ProjectService.findOneBy({
                 _id: projectId,
             });
-            const balanceAfterAlertSent = parseFloat(
-                balanceFormatter.format(project.balance - chargeAmount)
+            const balanceAfterAlertSent = formatBalance(
+                project.balance - chargeAmount
             );
+
             const updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,
                 {
@@ -469,4 +470,4 @@ const {
     Call,
 } = require('../config/alertType');
 const getProjectMutex = require('../constants/projectMutexProvider');
-const { balanceFormatter } = require('../utils/number');
+const { formatBalance } = require('../utils/number');
