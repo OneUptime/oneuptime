@@ -355,7 +355,9 @@ class CreateSchedule extends React.Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Create Scheduled Maintenance</span>
+                                    <span>
+                                        Create Scheduled Maintenance Event
+                                    </span>
                                 </span>
                             </div>
                         </div>
@@ -376,7 +378,7 @@ class CreateSchedule extends React.Component {
                                                     htmlFor="endpoint"
                                                 >
                                                     <span>
-                                                        Maintenance name
+                                                        Maintenance Name
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -391,7 +393,7 @@ class CreateSchedule extends React.Component {
                                                                 RenderField
                                                             }
                                                             name="name"
-                                                            placeholder="Event Maintenance"
+                                                            placeholder="Maintenance Name"
                                                             id="name"
                                                             className="bs-TextInput"
                                                             style={{
@@ -629,8 +631,9 @@ class CreateSchedule extends React.Component {
                                                         <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
                                                                 Show this
-                                                                Maintenance on
-                                                                Status Page
+                                                                Maintenance
+                                                                Event on Status
+                                                                Page
                                                             </span>
                                                         </span>
                                                     </div>
@@ -673,7 +676,7 @@ class CreateSchedule extends React.Component {
                                                                 members who are
                                                                 on call when
                                                                 this Maintenance
-                                                                starts
+                                                                Event starts
                                                             </span>
                                                         </span>
                                                     </div>
@@ -715,8 +718,9 @@ class CreateSchedule extends React.Component {
                                                                 Alert
                                                                 subscribers
                                                                 about this
-                                                                scheduled
+                                                                Scheduled
                                                                 Maintenance
+                                                                Event
                                                             </span>
                                                         </span>
                                                     </div>
@@ -759,6 +763,7 @@ class CreateSchedule extends React.Component {
                                                                 this monitor
                                                                 during this
                                                                 Maintenance
+                                                                Event
                                                             </span>
                                                         </span>
                                                     </div>

@@ -272,7 +272,7 @@ export class OnCall extends Component {
         return (
             <Dashboard>
                 <Fade>
-                    <BreadCrumbItem route={pathname} name="On-Call Duties" />
+                    <BreadCrumbItem route={pathname} name="On-Call Duty" />
                     <div
                         id="onCallSchedulePage"
                         tabIndex="0"
