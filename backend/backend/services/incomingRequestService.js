@@ -381,11 +381,11 @@ module.exports = {
 
             if (incomingRequest && incomingRequest.createIncident) {
                 // TODO:
-                // 1. find a way to handle incidentType
-                // 2. handle incident priority
-                // 3. handle incident title and description
-                // 4. handle other filter conditions --> greaterThan, lessThan, greaterThanOrEqualTo, lessThanOrEqualTo
-                data.incidentType = 'offline';
+                // 1. handle other filter conditions --> greaterThan, lessThan, greaterThanOrEqualTo, lessThanOrEqualTo
+                data.title = incomingRequest.incidentTitle;
+                data.description = incomingRequest.incidentDescription;
+                data.incidentPriority = incomingRequest.incidentPriority;
+                data.manuallyCreated = true;
 
                 const filterCriteria = incomingRequest.filterCriteria,
                     filterCondition = incomingRequest.filterCondition,
