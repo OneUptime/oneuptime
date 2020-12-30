@@ -942,19 +942,21 @@ describe('SMS/Calls Incident Alerts', function() {
 
             expect(incidentResolved).to.have.status(200);
             await sleep(10 * 1000);
-            const chargeResonseAfterResolvedIncident = await getChargedAlerts({
+            const chargeResponseAfterResolvedIncident = await getChargedAlerts({
                 request,
                 authorization,
                 projectId,
             });
-            expect(chargeResonseAfterResolvedIncident).to.have.status(200);
-            expect(chargeResonseAfterResolvedIncident.body).to.an('object');
+            expect(chargeResponseAfterResolvedIncident).to.have.status(200);
+            expect(chargeResponseAfterResolvedIncident.body).to.an('object');
             // on the before hook, the call-duty limit is 1 SMS and 1 Call,
             // so now, no SMS and Call alerts are sent to the duty memeber
-            expect(chargeResonseAfterResolvedIncident.body.count).to.equal(4);
-            expect(chargeResonseAfterResolvedIncident.body.data).to.an('array');
+            expect(chargeResponseAfterResolvedIncident.body.count).to.equal(4);
+            expect(chargeResponseAfterResolvedIncident.body.data).to.an(
+                'array'
+            );
             expect(
-                chargeResonseAfterResolvedIncident.body.data.length
+                chargeResponseAfterResolvedIncident.body.data.length
             ).to.equal(4);
         });
         it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function() {
