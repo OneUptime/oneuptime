@@ -35,12 +35,12 @@ if (
         : window.location.host.includes('0.0.0.0:')
         ? '0.0.0.0'
         : '127.0.0.1';
-    apiUrl = window.location.protocol + `//${address}:3002/api`;
+    apiUrl = window.location.protocol + `//${address}:3002`;
     dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
     adminDashboardUrl = window.location.protocol + `//${address}:3100/admin`;
     accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
     helmChartUrl = window.location.protocol + `//${address}:3423`;
-    docsUrl = window.location.protocol + `//${address}:1445/api`;
+    docsUrl = window.location.protocol + `//${address}:1445`;
 }
 
 export const API_URL = apiUrl;
