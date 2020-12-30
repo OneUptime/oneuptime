@@ -54,6 +54,7 @@ const GlobalConfigModel = require('../backend/models/globalConfig');
 const GlobalConfigService = require('../backend/services/globalConfigService');
 const EmailSmtpService = require('../backend/services/emailSmtpService');
 const AlertChargeService = require('../backend/services/alertChargeService');
+const { balanceFormatter } = require('../backend/utils/number');
 
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -1605,6 +1606,7 @@ describe('SMS/Calls Incident Alerts', function() {
          */
         it('should correctly register closing balance for alert charges', async function() {
             this.timeout(60 * 1000);
+
             // update global setting to enable call and sms
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -1617,22 +1619,6 @@ describe('SMS/Calls Incident Alerts', function() {
                 { name: 'twilio' },
                 { value }
             );
-
-            // create multiple subscribers
-            for (let i = 0; i < 10; i++) {
-                const newSubscriber = await addSubscriberToMonitor({
-                    request,
-                    authorization,
-                    monitorId,
-                    projectId,
-                    payload: {
-                        alertVia: 'sms',
-                        contactPhone: `92161522${i}`,
-                        countryCode: 'et',
-                    },
-                });
-                expect(newSubscriber).to.have.status(200);
-            }
 
             // enable billing for the project
             const billingEndpointResponse = await request
@@ -1650,6 +1636,26 @@ describe('SMS/Calls Incident Alerts', function() {
 
             expect(billingEndpointResponse).to.have.status(200);
 
+            // create multiple subscribers
+            for (let i = 0; i < 10; i++) {
+                const newSubscriber = await addSubscriberToMonitor({
+                    request,
+                    authorization,
+                    monitorId,
+                    projectId,
+                    payload: {
+                        alertVia: 'sms',
+                        contactPhone: `92161522${i}`,
+                        countryCode: 'et',
+                    },
+                });
+                expect(newSubscriber).to.have.status(200);
+            }
+
+            await sleep(10 * 1000);
+
+            // clean up alert charges
+            await AlertChargeService.hardDeleteBy({});
             // get original project balance
             const {
                 balance: originalProjectBalance,
@@ -1680,7 +1686,7 @@ describe('SMS/Calls Incident Alerts', function() {
             const alertCharges = await AlertChargeService.findBy(
                 {
                     incidentId: newIncident.body._id,
-                    projectId: projectId,
+                    projectId,
                 },
                 null,
                 null,
@@ -1692,10 +1698,12 @@ describe('SMS/Calls Incident Alerts', function() {
             // calculate balance for each alert charge amount and compare it with
             // alert charge's closing balance
             const allAlertChargesCorrect = alertCharges.every(alertCharge => {
-                    calculatedBalance = Math.round((calculatedBalance-alertCharge.chargeAmount)*100)/100;
-                    return (
-                        calculatedBalance === alertCharge.closingAccountBalance
-                    );
+                calculatedBalance = parseFloat(
+                    balanceFormatter.format(
+                        calculatedBalance - alertCharge.chargeAmount
+                    )
+                );
+                return calculatedBalance === alertCharge.closingAccountBalance;
             });
 
             expect(allAlertChargesCorrect).to.be.true;
@@ -1709,6 +1717,12 @@ describe('SMS/Calls Incident Alerts', function() {
             });
 
             expect(incidentResolved).to.have.status(200);
+
+            // clean up subscribers
+            await SubscriberService.hardDeleteBy({
+                contactPhone: /92161522/,
+                countryCode: 'et',
+            });
         });
     });
     describe('Custom twilio settings are set', async () => {
