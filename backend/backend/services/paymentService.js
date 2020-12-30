@@ -27,7 +27,7 @@ module.exports = {
             const chargeAmount =
                 alertType === Call
                     ? alertChargeAmount.price
-                    : alertChargeAmount.price * 0.459;
+                    : alertChargeAmount.price * segments;
 
             const updatedProject = await this.chargeAlert(
                 userId,
