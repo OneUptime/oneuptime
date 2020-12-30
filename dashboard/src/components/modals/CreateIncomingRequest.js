@@ -52,7 +52,11 @@ class CreateIncomingRequest extends Component {
 
         postObj.filterCriteria = values.filterCriteria;
         postObj.filterCondition = values.filterCondition;
-        postObj.filterText = values.filterText;
+        if (isNaN(values.filterText)) {
+            postObj.filterText = values.filterText;
+        } else {
+            postObj.filterText = Number(values.filterText);
+        }
         postObj.incidentTitle = values.incidentTitle;
         postObj.incidentPriority = values.incidentPriority;
         postObj.incidentDescription = values.incidentDescription;

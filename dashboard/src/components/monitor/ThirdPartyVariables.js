@@ -21,14 +21,19 @@ class ThirdPartyVariables extends Component {
             const thirdPartyVariable = values.thirdPartyVariable.filter(
                 variable => typeof variable === 'string'
             );
-            values.thirdPartyVariable = thirdPartyVariable;
+            values.thirdPartyVariable = thirdPartyVariable.map(variable => {
+                if (!isNaN(variable)) {
+                    variable = Number(variable);
+                }
+                return variable;
+            });
         }
 
         this.props.editMonitor(currentProject._id, values);
 
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > PRIVATE STATUS PAGE UPDATED'
+                'EVENT: DASHBOARD > PROJECT > MONITOR > INTEGRATION > THIRD PARTY VARIABLE'
             );
         }
     };
@@ -108,12 +113,7 @@ class ThirdPartyVariables extends Component {
     };
 
     render() {
-        const {
-            handleSubmit,
-            formValues,
-            editingMonitor,
-            editError,
-        } = this.props;
+        const { handleSubmit, editingMonitor, editError } = this.props;
 
         return (
             <div className="Box-root Margin-vertical--12">
