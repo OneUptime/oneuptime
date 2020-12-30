@@ -1,6 +1,8 @@
+const NumberFormatter = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+});
+
 module.exports = {
-    balanceFormatter: new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }),
+    formatBalance: number => parseFloat(NumberFormatter.format(number)),
 };
