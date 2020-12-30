@@ -145,7 +145,7 @@ router.post('/:projectId/request/:requestId', async function(req, res) {
         // target value key on request body, request query or request headers
         // more may be added in the future
         const externalFilter =
-            req.body.value || req.query.value || req.headers.value || '';
+            req.body.value || req.query.value || req.headers.value;
 
         const { projectId, requestId } = req.params;
         const data = { projectId, requestId, filter: externalFilter };

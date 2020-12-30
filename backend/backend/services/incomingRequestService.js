@@ -366,32 +366,41 @@ module.exports = {
         const filter = data.filter;
         try {
             let incomingRequest = null;
-            if (filter && filter.trim()) {
-                incomingRequest = await _this.findOneBy({
-                    _id: data.requestId,
-                    projectId: data.projectId,
-                    filterText: filter,
-                });
+            if (isNaN(filter)) {
+                if (filter && filter.trim()) {
+                    incomingRequest = await _this.findOneBy({
+                        _id: data.requestId,
+                        projectId: data.projectId,
+                        filterText: filter,
+                    });
+                } else {
+                    incomingRequest = await _this.findOneBy({
+                        _id: data.requestId,
+                        projectId: data.projectId,
+                    });
+                }
             } else {
                 incomingRequest = await _this.findOneBy({
                     _id: data.requestId,
                     projectId: data.projectId,
+                    filterText: Number(filter),
                 });
             }
 
             if (incomingRequest && incomingRequest.createIncident) {
-                // TODO:
-                // 1. handle other filter conditions --> greaterThan, lessThan, greaterThanOrEqualTo, lessThanOrEqualTo
-                data.title = incomingRequest.incidentTitle;
-                data.description = incomingRequest.incidentDescription;
-                data.incidentPriority = incomingRequest.incidentPriority;
-                data.manuallyCreated = true;
-
                 const filterCriteria = incomingRequest.filterCriteria,
                     filterCondition = incomingRequest.filterCondition,
                     filterText = incomingRequest.filterText;
 
-                if (filterCriteria && filterCondition && filterText) {
+                if (
+                    filterCriteria &&
+                    filterCondition &&
+                    ((!isNaN(filterText) && filterText >= 0) || filterText)
+                ) {
+                    data.title = incomingRequest.incidentTitle;
+                    data.description = incomingRequest.incidentDescription;
+                    data.incidentPriority = incomingRequest.incidentPriority;
+                    data.manuallyCreated = true;
                     if (incomingRequest.isDefault) {
                         const monitors = await MonitorService.findBy({
                             projectId: data.projectId,
@@ -410,10 +419,44 @@ module.exports = {
                             ) {
                                 data.monitorId = monitor._id;
                                 await IncidentService.create(data);
+                            } else if (!isNaN(filterText)) {
+                                // handle the case when filterText is a number
+                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                for (const filter of filterArray) {
+                                    if (!isNaN(filter)) {
+                                        if (
+                                            filterCondition === 'lessThan' &&
+                                            filter < filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition === 'greaterThan' &&
+                                            filter > filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition ===
+                                                'lessThanOrEqualTo' &&
+                                            filter <= filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition ===
+                                                'greaterThanOrEqualTo' &&
+                                            filter >= filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        }
+                                    }
+                                }
                             }
                         }
                     } else {
-                        // grab the monitor from monitorId {_id, name}
+                        // grab the monitor from monitorId {_id, name, thirdPartyVariable}
                         const monitors = incomingRequest.monitors.map(
                             monitor => monitor.monitorId
                         );
@@ -431,10 +474,46 @@ module.exports = {
                             ) {
                                 data.monitorId = monitor._id;
                                 await IncidentService.create(data);
+                            } else if (!isNaN(filterText)) {
+                                // handle the case when filterText is a number
+                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                for (const filter of filterArray) {
+                                    if (!isNaN(filter)) {
+                                        if (
+                                            filterCondition === 'lessThan' &&
+                                            filter < filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition === 'greaterThan' &&
+                                            filter > filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition ===
+                                                'lessThanOrEqualTo' &&
+                                            filter <= filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition ===
+                                                'greaterThanOrEqualTo' &&
+                                            filter >= filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 } else {
+                    data.incidentType = 'offline';
+
                     if (incomingRequest.isDefault) {
                         const monitors = await MonitorService.findBy({
                             projectId: data.projectId,
