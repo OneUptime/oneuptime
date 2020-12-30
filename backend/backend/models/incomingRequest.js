@@ -28,7 +28,7 @@ const incomingRequestSchema = new Schema(
                 'lessThanOrEqualTo',
             ],
         },
-        filterText: String,
+        filterText: Schema.Types.Mixed, // expected to store both string and number
         incidentTitle: String,
         incidentPriority: {
             type: Schema.Types.ObjectId,
