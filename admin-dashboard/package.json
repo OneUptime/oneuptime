@@ -50,6 +50,7 @@
         "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.js",
         "audit": "npm audit --audit-level=low",
+        "preinstall": "npx npm-force-resolutions",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
     },
     "devDependencies": {
@@ -88,5 +89,8 @@
             "last 1 firefox version",
             "last 1 safari version"
         ]
+    },
+    "resolutions": {
+        "node-fetch": "2.6.1"
     }
 }
