@@ -8,9 +8,10 @@ import Fade from 'react-reveal/Fade';
 import { RenderField } from '../basic/RenderField';
 import { PricingPlan, Validate, env } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
-import { openModal } from '../../actions/modal';
-import DataPathHoc from '../DataPathHoC';
-import ExtraCharge from '../ExtraCharge';
+import { openModal, closeModal } from '../../actions/modal';
+import ExtraCharge from '../modals/ExtraCharge';
+
+import uuid from 'uuid';
 import {
     CardNumberElement,
     CardExpiryElement,
@@ -61,12 +62,13 @@ const errorStyle = {
 };
 class CardForm extends Component {
     /* This state holds error 
-	messages for cardNumber,
-	cardCVC, cardExpiry */
+    messages for cardNumber,
+    cardCVC, cardExpiry */
     state = {
         cardNumber: '',
         cardCvc: '',
         cardExpiry: '',
+        registerModal : uuid.v4()
     };
 
     handleChange = event => {
@@ -93,7 +95,15 @@ class CardForm extends Component {
             logEvent('PAGE VIEW: CARD FORM');
         }
     }
-
+    handleClick = () => {
+        const { registerModal } = this.state;
+        this.props.openModal({
+            id: registerModal,
+            onClose: () => '',
+            content: ExtraCharge,
+        });
+    };
+    
     handleSubmit = values => {
         const {
             stripe,
@@ -182,20 +192,14 @@ class CardForm extends Component {
                                 <p>
                                     Your card will be charged $1.00 to check its
                                     billability.{' '}
+                                    <span key={()=> uuid.v4()}></span>
                                     <span
                                         style={{
                                             color: 'green',
                                             cursor: 'pointer',
                                             textDecoration: 'underline',
                                         }}
-                                        onClick={() =>
-                                            this.props.openModal({
-                                                id: 1,
-                                                content: DataPathHoc(
-                                                    ExtraCharge
-                                                ),
-                                            })
-                                        }
+                                        onClick={this.handleClick}
                                     >
                                         Learn Why?
                                     </span>
@@ -538,7 +542,7 @@ class CardForm extends Component {
 
 CardForm.displayName = 'CardForm';
 
-const validate = function(values) {
+const validate = function (values) {
     const errors = {};
 
     if (!Validate.text(values.cardName)) {
@@ -579,6 +583,7 @@ const mapDispatchToProps = dispatch => {
             addCardFailed,
             addCardRequest,
             openModal,
+            closeModal,
             signUpRequest,
             signupUser,
             signupError,
@@ -598,7 +603,7 @@ function mapStateToProps(state) {
 }
 
 CardForm.propTypes = {
-    openModal: PropTypes.func.isRequired,
+    openModal: PropTypes.func,
     handleSubmit: PropTypes.func.isRequired,
     submitForm: PropTypes.func.isRequired,
     register: PropTypes.object.isRequired,
