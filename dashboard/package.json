@@ -55,7 +55,7 @@
         "react-ga": "^2.5.3",
         "react-google-charts": "^3.0.15",
         "react-hover-observer": "^2.1.0",
-        "react-json-view": "^1.10.2",
+        "react-json-view": "1.19.1",
         "react-markdown": "^4.3.1",
         "react-phone-input-2": "^2.13.8",
         "react-redux": "^5.0.7",
@@ -93,7 +93,8 @@
         "start": "node index.js",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
         "audit": "npm audit --audit-level=low",
-        "fix-lint": "eslint . --fix"
+        "fix-lint": "eslint . --fix",
+        "preinstall": "npx npm-force-resolutions"
     },
     "devDependencies": {
         "@jest/test-sequencer": "^26.0.1",
@@ -102,8 +103,9 @@
         "babel-preset-react": "^6.24.1",
         "babel-runtime": "^6.26.0",
         "depcheck": "^1.3.1",
-        "fyipe-server-monitor": "^3.0.7384",
+        "fyipe-server-monitor": "^3.0.7421",
         "jest-localstorage-mock": "^2.2.0",
+        "npm-force-resolutions": "0.0.3",
         "redux-mock-store": "^1.5.3",
         "should": "^13.2.3",
         "workbox-build": "^4.3.1"
@@ -133,5 +135,10 @@
             "last 1 firefox version",
             "last 1 safari version"
         ]
+    },
+    "resolutions": {
+        "flux": "4.0.0",
+        "minimist": "1.2.5",
+        "node-fetch": "2.6.1"
     }
 }
