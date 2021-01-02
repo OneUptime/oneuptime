@@ -10951,7 +10951,7 @@ table {
 
 @media only screen and (min-width: 761px) and (max-width: 1000px) {
     .bs-Fieldset-fields {
-        max-width: 70%;
+        max-width: 100%;
     }
     .radio-field{
         max-width:100%;
@@ -11255,6 +11255,12 @@ table {
         margin-top: 63px;
     }
   }
+
+@media only screen and (min-width: 660px) and (max-width: 1000px) {
+.price-list-3c {
+    grid-template-columns: auto auto;
+    }
+}
 
 @media only screen and (max-width: 470px) {
 
