@@ -39,42 +39,6 @@ app.use(function(req, res, next) {
     if (req.get('host').includes('cluster.local')) {
         return next();
     }
-    // Add this to global object, and this can be used anywhere where you need backend host.
-    global.apiHost = 'https://' + req.hostname + '/api';
-    global.accountsHost = 'https://' + req.hostname + '/accounts';
-    global.homeHost = 'https://' + req.hostname;
-    global.dashboardHost = 'https://' + req.hostname + '/dashboard';
-    global.statusHost = global.homeHost;
-
-    if (
-        req.hostname.includes('localhost') ||
-        req.hostname.includes('127.0.0.1')
-    ) {
-        if (
-            req.get('host').includes('localhost:') ||
-            req.get('host').includes('127.0.0.1:')
-        ) {
-            global.apiHost =
-                'http://' +
-                req.hostname +
-                ':' +
-                (process.env.PORT || 3002) +
-                '/api';
-            global.accountsHost =
-                'http://' + req.hostname + ':' + 3003 + '/accounts';
-            global.homeHost = 'http://' + req.hostname + ':' + 1444;
-            global.dashboardHost =
-                'http://' + req.hostname + ':' + 3000 + '/dashboard';
-            global.statusHost = 'http://' + req.hostname + ':' + 3006;
-        } else {
-            global.apiHost = 'http://' + req.hostname + '/api';
-            global.accountsHost = 'http://' + req.hostname + '/accounts';
-            global.homeHost = 'http://' + req.hostname;
-            global.dashboardHost = 'http://' + req.hostname + '/dashboard';
-            global.statusHost = global.homeHost;
-        }
-    }
-
     next();
 });
 
@@ -82,10 +46,7 @@ app.use(function(req, res, next) {
 app.set('port', process.env.PORT || 1445);
 
 //version
-app.get(
-    ['/api-docs/version', '/api-docs/api/version', '/version', '/api/version'],
-    version
-);
+app.get(['/docs/version', '/version'], version);
 
 // set the view engine to ejs
 app.set('views', path.join(__dirname, 'views'));
