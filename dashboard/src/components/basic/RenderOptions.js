@@ -26,7 +26,7 @@ const firstField = [
     'lessThan',
     'inBetween',
     'equalTo',
-    'notEqualto',
+    'notEqualTo',
     'gtEqualTo',
     'ltEqualTo',
     'contains',
