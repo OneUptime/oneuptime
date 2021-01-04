@@ -45,8 +45,15 @@ build_n_test_enterprise_backend:
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name bredis -p 6379:6379 -d redis:5.0.7 redis-server
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-        - sudo docker ps
         - sudo docker run --name fyipe --env-file ./backend/.env --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID npm run enterprise-test
+        - sudo docker ps
+        - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - cd backend
+        - npm ci
+        - npm run build
+        - npm run enterprise-test
+        - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_enterprise_backend backend
         - chmod +x ./ci/scripts/cleanup.sh
