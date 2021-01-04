@@ -208,6 +208,29 @@ describe('Project API', function() {
             });
     });
 
+    it('should return error when project balance is tried to accessed without supplying a projectId', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(`/project/${null}/balance`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('should fetch a project balance when projectId is given', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(`/project/${projectId}/balance`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.balance).to.be.eql(0);
+                done();
+            });
+    });
+
     it('should delete a project when `projectId` is given', function(done) {
         const authorization = `Basic ${token}`;
         request

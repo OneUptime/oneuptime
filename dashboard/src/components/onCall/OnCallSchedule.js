@@ -48,7 +48,7 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
 
                                         <span>
                                             {status === 'active'
-                                                ? "You're currently on-call duty for these on-call schedules:"
+                                                ? "You're currently on-call duty for these schedules:"
                                                 : status === 'upcoming'
                                                 ? 'Your duty is starting soon for these on-call schedules:'
                                                 : "You're not on duty for these on-call schedules:"}
@@ -103,8 +103,6 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                                         ).format(
                                                                             'hh:mm A'
                                                                         )}
-                                                                        {schedule.timezone &&
-                                                                            ` (${schedule.timezone})`}
                                                                     </b>{' '}
                                                                     and your
                                                                     next duty
@@ -124,8 +122,6 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                                 ).format(
                                                                     'hh:mm A'
                                                                 )}
-                                                                {schedule.timezone &&
-                                                                    ` (${schedule.timezone})`}
                                                             </b>{' '}
                                                             and ends at{' '}
                                                             <b>
@@ -135,8 +131,6 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                                 ).format(
                                                                     'hh:mm A'
                                                                 )}
-                                                                {schedule.timezone &&
-                                                                    ` (${schedule.timezone})`}
                                                                 .
                                                             </b>
                                                         </span>

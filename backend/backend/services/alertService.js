@@ -438,8 +438,7 @@ module.exports = {
         await onCallScheduleStatus.save();
 
         for (const teamMember of activeTeam.teamMembers) {
-            const isOnDuty = await _this.isOnDuty(
-                teamMember.timezone,
+            const isOnDuty = await _this.checkIsOnDuty(
                 teamMember.startTime,
                 teamMember.endTime
             );
@@ -447,6 +446,10 @@ module.exports = {
             const user = await UserService.findOneBy({
                 _id: teamMember.userId,
             });
+
+            if (!user) {
+                continue;
+            }
 
             if (!isOnDuty) {
                 if (escalation.call && shouldSendCallReminder) {
@@ -490,51 +493,48 @@ module.exports = {
                 }
 
                 continue;
-            }
+            } else {
+                /**
+                 *  sendSMSAlert & sendCallAlert should not run in parallel
+                 *  otherwise we will have a wrong project balance in the end.
+                 *
+                 */
 
-            if (!user) {
-                continue;
-            }
-            /**
-             *  sendSMSAlert & sendCallAlert should not run in parallel
-             *  otherwise we will have a wrong project balance in the end.
-             *
-             */
+                if (escalation.sms && shouldSendSMSReminder) {
+                    await _this.sendSMSAlert({
+                        incident,
+                        user,
+                        project,
+                        monitor,
+                        schedule,
+                        escalation,
+                        onCallScheduleStatus,
+                    });
+                }
 
-            if (escalation.sms && shouldSendSMSReminder) {
-                await _this.sendSMSAlert({
-                    incident,
-                    user,
-                    project,
-                    monitor,
-                    schedule,
-                    escalation,
-                    onCallScheduleStatus,
-                });
-            }
+                if (escalation.email && shouldSendEmailReminder) {
+                    _this.sendEmailAlert({
+                        incident,
+                        user,
+                        project,
+                        monitor,
+                        schedule,
+                        escalation,
+                        onCallScheduleStatus,
+                    });
+                }
 
-            if (escalation.email && shouldSendEmailReminder) {
-                _this.sendEmailAlert({
-                    incident,
-                    user,
-                    project,
-                    monitor,
-                    schedule,
-                    escalation,
-                    onCallScheduleStatus,
-                });
-            }
-
-            if (escalation.call && shouldSendCallReminder) {
-                await _this.sendCallAlert({
-                    incident,
-                    user,
-                    project,
-                    monitor,
-                    schedule,
-                    escalation,
-                    onCallScheduleStatus,
-                });
+                if (escalation.call && shouldSendCallReminder) {
+                    await _this.sendCallAlert({
+                        incident,
+                        user,
+                        project,
+                        monitor,
+                        schedule,
+                        escalation,
+                        onCallScheduleStatus,
+                    });
+                }
             }
         }
     },
@@ -911,31 +911,24 @@ module.exports = {
                 alertStatus: 'Success',
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                balanceStatus = await _this.getBalanceStatus(
-                    project._id,
-                    user.alertPhoneNumber,
-                    AlertType.Call
-                );
-                await AlertChargeService.create(
-                    incident.projectId,
-                    balanceStatus.chargeAmount,
-                    balanceStatus.closingBalance,
-                    alert._id,
-                    monitorId,
-                    incident._id,
+                const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
+                    user._id,
+                    project,
+                    AlertType.Call,
                     user.alertPhoneNumber
                 );
-                // cut payment for call notification
-                const countryType = getCountryType(user.alertPhoneNumber);
-                const alertChargeAmount = getAlertChargeAmount(
-                    AlertType.Call,
-                    countryType
-                );
-                await PaymentService.chargeAlert(
-                    user._id,
-                    incident.projectId,
-                    alertChargeAmount.price
-                );
+
+                if (!balanceStatus.error) {
+                    await AlertChargeService.create(
+                        incident.projectId,
+                        balanceStatus.chargeAmount,
+                        balanceStatus.closingBalance,
+                        alert._id,
+                        monitorId,
+                        incident._id,
+                        user.alertPhoneNumber
+                    );
+                }
             }
         }
     },
@@ -1061,7 +1054,7 @@ module.exports = {
             }
         }
 
-        let alertStatus = await TwilioService.sendIncidentCreatedMessage(
+        const sendResult = await TwilioService.sendIncidentCreatedMessage(
             date,
             monitor.name,
             user.alertPhoneNumber,
@@ -1072,7 +1065,7 @@ module.exports = {
             projectId
         );
 
-        if (alertStatus && alertStatus.code && alertStatus.code === 400) {
+        if (sendResult && sendResult.code && sendResult.code === 400) {
             await _this.create({
                 projectId: incident.projectId,
                 monitorId,
@@ -1084,10 +1077,10 @@ module.exports = {
                 onCallScheduleStatus: onCallScheduleStatus._id,
                 alertStatus: null,
                 error: true,
-                errorMessage: alertStatus.message,
+                errorMessage: sendResult.message,
             });
-        } else if (alertStatus) {
-            alertStatus = 'Success';
+        } else if (sendResult) {
+            const alertStatus = 'Success';
             alert = await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -1100,32 +1093,29 @@ module.exports = {
                 alertStatus,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                balanceStatus = await _this.getBalanceStatus(
-                    incident.projectId,
+                // calculate charge per 160 chars
+                // numSegments is the number of segments the sms will be divided into
+                // numSegments is provided by twilio
+                const segments = Number(sendResult.numSegments);
+                const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
+                    user._id,
+                    project,
+                    AlertType.SMS,
                     user.alertPhoneNumber,
-                    AlertType.SMS
-                );
-                await AlertChargeService.create(
-                    incident.projectId,
-                    balanceStatus.chargeAmount,
-                    balanceStatus.closingBalance,
-                    alert._id,
-                    monitorId,
-                    incident._id,
-                    user.alertPhoneNumber
+                    segments
                 );
 
-                // cut payment for sms notification
-                const countryType = getCountryType(user.alertPhoneNumber);
-                const alertChargeAmount = getAlertChargeAmount(
-                    AlertType.SMS,
-                    countryType
-                );
-                await PaymentService.chargeAlert(
-                    user._id,
-                    incident.projectId,
-                    alertChargeAmount.price
-                );
+                if (!balanceStatus.error) {
+                    await AlertChargeService.create(
+                        incident.projectId,
+                        balanceStatus.chargeAmount,
+                        balanceStatus.closingBalance,
+                        alert._id,
+                        monitorId,
+                        incident._id,
+                        user.alertPhoneNumber
+                    );
+                }
             }
         }
     },
@@ -2430,34 +2420,32 @@ module.exports = {
                             IS_SAAS_SERVICE &&
                             !hasCustomTwilioSettings
                         ) {
-                            const balanceStatus = await _this.getBalanceStatus(
-                                incident.projectId,
-                                contactPhone,
-                                AlertType.SMS
-                            );
-                            await AlertChargeService.create(
-                                incident.projectId,
-                                balanceStatus.chargeAmount,
-                                balanceStatus.closingBalance,
-                                null,
-                                incident.monitorId._id
-                                    ? incident.monitorId._id
-                                    : incident.monitorId,
-                                incident._id,
-                                contactPhone,
-                                alertId
-                            );
-                            // cut payment for subscriber sms notification
-                            const countryType = getCountryType(contactPhone);
-                            const alertChargeAmount = getAlertChargeAmount(
-                                AlertType.SMS,
-                                countryType
-                            );
-                            await PaymentService.chargeAlert(
+                            // charge sms per 160 chars
+                            // numSegments is the number of segments an sms can be divided into
+                            // numSegments is provided by twilio
+                            const segments = Number(sendResult.numSegments);
+                            const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                                 owner.userId,
-                                incident.projectId,
-                                alertChargeAmount.price
+                                project,
+                                AlertType.SMS,
+                                contactPhone,
+                                segments
                             );
+
+                            if (!balanceStatus.error) {
+                                await AlertChargeService.create(
+                                    incident.projectId,
+                                    balanceStatus.chargeAmount,
+                                    balanceStatus.closingBalance,
+                                    null,
+                                    incident.monitorId._id
+                                        ? incident.monitorId._id
+                                        : incident.monitorId,
+                                    incident._id,
+                                    contactPhone,
+                                    alertId
+                                );
+                            }
                         }
                     }
                 } catch (error) {
@@ -2501,6 +2489,18 @@ module.exports = {
             escalationStartTime,
             escalationEndTime
         );
+    },
+
+    checkIsOnDuty(startTime, endTime) {
+        if (!startTime && !endTime) return true;
+        const oncallstart = moment(startTime).format('HH:mm');
+        const oncallend = moment(endTime).format('HH:mm');
+        const currentTime = moment().format('HH:mm');
+        const isUserActive =
+            DateTime.compareDate(oncallstart, oncallend, currentTime) ||
+            oncallstart === oncallend;
+        if (isUserActive) return true;
+        return false;
     },
 
     getSubProjectAlerts: async function(subProjectIds) {
@@ -2567,25 +2567,6 @@ module.exports = {
                 );
             }
             return alert;
-        }
-    },
-    getBalanceStatus: async function(projectId, alertPhoneNumber, alertType) {
-        try {
-            const project = await ProjectService.findOneBy({ _id: projectId });
-            const balance = project.balance;
-            const countryType = getCountryType(alertPhoneNumber);
-            const alertChargeAmount = getAlertChargeAmount(
-                alertType,
-                countryType
-            );
-            const closingBalance = balance - alertChargeAmount.price;
-            return {
-                chargeAmount: alertChargeAmount.price,
-                closingBalance,
-            };
-        } catch (error) {
-            ErrorService.log('AlertService.getBalanceStatus', error);
-            throw error;
         }
     },
 
@@ -2687,7 +2668,7 @@ const ErrorService = require('./errorService');
 const StatusPageService = require('./statusPageService');
 const AlertChargeService = require('./alertChargeService');
 const countryCode = require('../config/countryCode');
-const { getAlertChargeAmount, getCountryType } = require('../config/alertType');
+const { getCountryType } = require('../config/alertType');
 const SmsCountService = require('./smsCountService');
 const DateTime = require('../utils/DateTime');
 const moment = require('moment-timezone');

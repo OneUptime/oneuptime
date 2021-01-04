@@ -336,7 +336,15 @@ module.exports = {
             throw error;
         }
     },
-
+    getBalance: async function(query) {
+        try {
+            const project = await ProjectModel.findOne(query).select('balance');
+            return project;
+        } catch (error) {
+            ErrorService.log('projectService.getbalance', error);
+            throw error;
+        }
+    },
     resetApiKey: async function(projectId) {
         try {
             const _this = this;

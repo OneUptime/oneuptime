@@ -188,6 +188,7 @@ export class IncidentStatus extends Component {
         const incidentReason =
             this.props.incident.reason &&
             changeFormat(this.props.incident.reason);
+
         function changeFormat(data) {
             let result;
             const strArr = data.split('\n');
@@ -262,18 +263,18 @@ export class IncidentStatus extends Component {
             <>
                 <ShouldRender
                     if={
-                        !this.props.route ||
-                        (this.props.route &&
-                            !(
-                                this.props.route === homeRoute ||
-                                this.props.route === monitorRoute
-                            ) &&
-                            this.props.incident.acknowledged &&
-                            this.props.incident.resolved &&
-                            !this.props.incidentRequest.requesting)
+                        (!this.props.route ||
+                            (this.props.route &&
+                                !(
+                                    this.props.route === homeRoute ||
+                                    this.props.route === monitorRoute
+                                ))) &&
+                        this.props.incident.acknowledged &&
+                        this.props.incident.resolved &&
+                        !this.props.incidentRequest.requesting
                     }
                 >
-                    <div className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--green Text-color--white Border-radius--4 Text-fontWeight--bold Padding-horizontal--20 Padding-vertical--12 pointer">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--green Text-color--white Border-radius--4 Text-fontWeight--bold Padding-horizontal--20 Padding-vertical--12 pointer Card-shadow--medium bs-mar-cursor">
                         <span
                             className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
                             style={{

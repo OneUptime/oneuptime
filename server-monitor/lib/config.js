@@ -56,10 +56,13 @@ const offlineTestData = {
 };
 
 const LOG_PATH = {
-    linux: { log: '/var/log/fsmd.log', error: '/var/log/fsmd_error.log' },
+    linux: {
+        log: '/var/log/fsmd/fsmd.log',
+        error: '/var/log/fsmd/fsmd_error.log',
+    },
     darwin: {
-        log: '/Library/Logs/fsmd.log',
-        error: '/Library/Logs/fsmd_error.log',
+        log: '/Library/Logs/fsmd/fsmd.log',
+        error: '/Library/Logs/fsmd/fsmd_error.log',
     },
     win32: {
         log: path.join(__dirname, 'fsmd.out.log'),

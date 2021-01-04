@@ -149,12 +149,12 @@ export class OnCallAlertBox extends Component {
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <span>
                                             {' '}
-                                            Call Schedule and Escalation Policy
+                                            Call Duty and Escalation Policy
                                         </span>
                                     </span>
                                     <p>
-                                        Define your call schedule here. Alert
-                                        your backup on-call team if your primary
+                                        Define your call duty here. Alert your
+                                        backup on-call team if your primary
                                         on-call team does not respond to alerts.
                                     </p>
                                 </div>

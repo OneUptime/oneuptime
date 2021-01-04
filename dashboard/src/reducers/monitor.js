@@ -59,6 +59,9 @@ import {
     DISABLE_MONITOR_SUCCESS,
     DISABLE_MONITOR_FAILURE,
     DISABLE_MONITOR_REQUEST,
+    UPLOAD_IDENTITY_FILE_REQUEST,
+    UPLOAD_IDENTITY_FILE_SUCCESS,
+    RESET_UPLOAD_IDENTITY_FILE,
 } from '../constants/monitor';
 import moment from 'moment';
 
@@ -119,6 +122,7 @@ const INITIAL_STATE = {
     },
     file: null,
     fileInputKey: null,
+    uploadFileRequest: false,
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
@@ -155,14 +159,21 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
             });
 
-        case 'LOG_IDENTITY_FILE':
+        case UPLOAD_IDENTITY_FILE_REQUEST:
             return Object.assign({}, state, {
-                file: action.payload,
+                uploadFileRequest: true,
             });
 
-        case 'RESET_IDENTITY_FILE':
+        case UPLOAD_IDENTITY_FILE_SUCCESS:
+            return Object.assign({}, state, {
+                file: action.payload,
+                uploadFileRequest: false,
+            });
+
+        case RESET_UPLOAD_IDENTITY_FILE:
             return Object.assign({}, state, {
                 file: null,
+                uploadFileRequest: false,
             });
 
         case 'SET_IDENTITY_FILE_INPUT_KEY':

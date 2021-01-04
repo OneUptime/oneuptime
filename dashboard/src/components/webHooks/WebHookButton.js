@@ -7,33 +7,6 @@ import CreateWebHook from '../modals/CreateWebHook';
 import DataPathHoC from '../DataPathHoC';
 
 class WebHookButton extends React.Component {
-    componentDidMount() {
-        window.addEventListener('keydown', this.handleKeyboard);
-    }
-
-    componentWillUnmount() {
-        window.removeEventListener('keydown', this.handleKeyboard);
-    }
-
-    handleKeyboard = event => {
-        const { modalId } = this.props;
-        if (event.target.localName === 'body' && event.key) {
-            switch (event.key) {
-                case 'N':
-                case 'n':
-                    if (!modalId) {
-                        event.preventDefault();
-                        return document
-                            .getElementById('addWebhookButton')
-                            .click();
-                    }
-                    return false;
-                default:
-                    break;
-            }
-        }
-    };
-
     render() {
         const { monitorId } = this.props;
 
@@ -56,9 +29,8 @@ class WebHookButton extends React.Component {
                     <div className="Box-root Margin-right--8">
                         <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                     </div>
-                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                         <span>Add WebHook</span>
-                        <span className="new-btn__keycode">N</span>
                     </span>
                 </div>
             </button>
@@ -85,10 +57,6 @@ const mapStateToProps = state => ({
 WebHookButton.propTypes = {
     openModal: PropTypes.func.isRequired,
     monitorId: PropTypes.string,
-    modalId: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookButton);

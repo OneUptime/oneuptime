@@ -10235,6 +10235,12 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   grid-gap: 20px;
 }
 
+.monitor-type-grid{
+    display: grid;
+  grid-template-columns: auto;
+  grid-gap: 20px;
+}
+
 .price-list-4c {
   display: grid;
   grid-template-columns: auto auto auto auto;
@@ -10250,6 +10256,30 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   justify-content: center;
   position: relative;
   max-width: 100%;
+}
+
+.monitor-type-item {
+    border: 1px solid #f7f7f7;
+    border-radius: 4px;
+    display: flex;
+    position: relative;
+    max-width: 100%;
+    cursor: pointer;
+    border-radius: 5px;  
+}
+
+.radioButtonStyle{
+    height: 100%;
+    display: flex;
+    color: #4c4c4c;
+    align-self:center;
+}
+
+.imageAndLabel {
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    padding:5%;
 }
 
 .price-list-item input[name='planId'] {
@@ -10921,7 +10951,10 @@ table {
 
 @media only screen and (min-width: 761px) and (max-width: 1000px) {
     .bs-Fieldset-fields {
-        max-width: 70%;
+        max-width: 100%;
+    }
+    .radio-field{
+        max-width:100%;
     }
 }
 
@@ -10997,6 +11030,9 @@ table {
 }
 
 @media screen and (max-width: 500px) {
+    .monitor-type-grid{
+        grid-template-columns: auto;
+    }
     .db-FeedbackInput-container {
         width: auto;
     }
@@ -11220,7 +11256,17 @@ table {
     }
   }
 
+@media only screen and (min-width: 660px) and (max-width: 1000px) {
+.price-list-3c {
+    grid-template-columns: auto auto;
+    }
+}
+
 @media only screen and (max-width: 470px) {
+
+    .monitor-type-grid{
+      grid-template-columns: auto;
+    }
   /* single column system on mobile */
   .price-list-3c,
   .price-list-4c {
