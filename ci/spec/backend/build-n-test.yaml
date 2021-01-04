@@ -45,15 +45,11 @@ build_n_test_enterprise_backend:
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name bredis -p 6379:6379 -d redis:5.0.7 redis-server
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-        - sudo docker run --name fyipe --env-file ./backend/.env --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
-        - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
-        - sudo apt-get install -y nodejs
+        - sudo docker run --name fyipe --env-file ./backend/.env --net=host fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - cd backend
         - npm ci
-        - npm run build
-        - npm run enterprise-test
-        - cd ..
+        - ENCRYPTION_KEY=$ENCRYPTION_KEY TEST_EMAIL_SMTP_PORT=$TEST_EMAIL_SMTP_PORT TEST_EMAIL_SMTP_SERVER=$TEST_EMAIL_SMTP_SERVER TEST_EMAIL=$TEST_EMAIL TEST_EMAIL_NAME=$TEST_EMAIL TEST_EMAIL_PASSWORD=$TEST_EMAIL_PASSWORD IS_SAAS_SERVICE=true IS_TESTING=true DOCKER_UNMASKED_USERNAME=$DOCKER_UNMASKED_USERNAME DOCKER_UNMASKED_PASSWORD=$DOCKER_UNMASKED_PASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_UNMASKED_USERNAME=$GITHUB_UNMASKED_USERNAME GITHUB_UNMASKED_PASSWORD=$GITHUB_UNMASKED_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm run enterprise-test
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_enterprise_backend backend
         - chmod +x ./ci/scripts/cleanup.sh
