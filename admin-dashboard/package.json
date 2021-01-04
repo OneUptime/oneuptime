@@ -44,7 +44,7 @@
         "valid-url": "^1.0.9"
     },
     "scripts": {
-        "dev": "set PORT=3100 && react-scripts start",
+        "dev": "PORT=3100 react-scripts start",
         "build": "react-scripts build",
         "test": "jest --forceExit --runInBand ./src/test/*.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
