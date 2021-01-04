@@ -747,101 +747,110 @@ class NewMonitor extends Component {
                                                         <div className="radio-field">
                                                             <span className="flex">
                                                                 <div className="monitor-type-grid">
-                                                                    {monitorTypesOptions.map(
-                                                                        el => (
-                                                                            <label
-                                                                                key={
-                                                                                    el.value
-                                                                                }
-                                                                                htmlFor={
-                                                                                    el.value
-                                                                                }
-                                                                                style={{
-                                                                                    cursor:
-                                                                                        'pointer',
-                                                                                }}
-                                                                            >
-                                                                                <div
-                                                                                    className={`radio-field monitor-type-item Box-background--white`}
+                                                                    {monitorTypesOptions
+                                                                        .slice(
+                                                                            0,
+                                                                            this
+                                                                                .state
+                                                                                .showAllMonitors
+                                                                                ? 7
+                                                                                : 4
+                                                                        )
+                                                                        .map(
+                                                                            el => (
+                                                                                <label
+                                                                                    key={
+                                                                                        el.value
+                                                                                    }
+                                                                                    htmlFor={
+                                                                                        el.value
+                                                                                    }
                                                                                     style={{
-                                                                                        border: `1px solid ${
-                                                                                            this
-                                                                                                .props
-                                                                                                .type ===
-                                                                                            el.value
-                                                                                                ? 'black'
-                                                                                                : 'rgba(0,0,0,0.2)'
-                                                                                        }`,
+                                                                                        cursor:
+                                                                                            'pointer',
                                                                                     }}
                                                                                 >
-                                                                                    <div className="radioButtonStyle">
-                                                                                        <Field
-                                                                                            required={
-                                                                                                true
-                                                                                            }
-                                                                                            component="input"
-                                                                                            type="radio"
-                                                                                            id={
+                                                                                    <div
+                                                                                        className={`radio-field monitor-type-item Box-background--white`}
+                                                                                        style={{
+                                                                                            border: `1px solid ${
+                                                                                                this
+                                                                                                    .props
+                                                                                                    .type ===
                                                                                                 el.value
-                                                                                            }
-                                                                                            name={`type_${this.props.index}`}
-                                                                                            className="Margin-left--4 Margin-top--4"
-                                                                                            validate={
-                                                                                                ValidateField.select
-                                                                                            }
-                                                                                            disabled={
-                                                                                                requesting
-                                                                                            }
-                                                                                            onChange={(
-                                                                                                e,
-                                                                                                v
-                                                                                            ) => {
-                                                                                                this.changeBox(
+                                                                                                    ? 'black'
+                                                                                                    : 'rgba(0,0,0,0.2)'
+                                                                                            }`,
+                                                                                        }}
+                                                                                    >
+                                                                                        <div className="radioButtonStyle">
+                                                                                            <Field
+                                                                                                required={
+                                                                                                    true
+                                                                                                }
+                                                                                                component="input"
+                                                                                                type="radio"
+                                                                                                id={
+                                                                                                    el.value
+                                                                                                }
+                                                                                                name={`type_${this.props.index}`}
+                                                                                                className="Margin-left--4 Margin-top--4"
+                                                                                                validate={
+                                                                                                    ValidateField.select
+                                                                                                }
+                                                                                                disabled={
+                                                                                                    requesting
+                                                                                                }
+                                                                                                onChange={(
                                                                                                     e,
                                                                                                     v
-                                                                                                );
-                                                                                            }}
-                                                                                            value={
-                                                                                                el.value
-                                                                                            }
-                                                                                        />
-                                                                                    </div>
-                                                                                    <span className="imageAndLabel">
-                                                                                        <img
-                                                                                            alt=""
-                                                                                            src={
-                                                                                                el.icon
-                                                                                            }
-                                                                                            style={{
-                                                                                                width:
-                                                                                                    '10%',
-                                                                                                height:
-                                                                                                    '100%',
-                                                                                                marginRight:
-                                                                                                    '5%',
-                                                                                            }}
-                                                                                        />
-                                                                                        <span
-                                                                                            className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                                                                            style={{
-                                                                                                marginRight:
-                                                                                                    '5%',
-                                                                                                minWidth:
-                                                                                                    '68px',
-                                                                                            }}
-                                                                                        >
+                                                                                                ) => {
+                                                                                                    this.changeBox(
+                                                                                                        e,
+                                                                                                        v
+                                                                                                    );
+                                                                                                }}
+                                                                                                value={
+                                                                                                    el.value
+                                                                                                }
+                                                                                            />
+                                                                                        </div>
+                                                                                        <span className="imageAndLabel">
+                                                                                            <img
+                                                                                                alt=""
+                                                                                                src={
+                                                                                                    el.icon
+                                                                                                }
+                                                                                                style={{
+                                                                                                    width:
+                                                                                                        '10%',
+                                                                                                    height:
+                                                                                                        '100%',
+                                                                                                    marginRight:
+                                                                                                        '5%',
+                                                                                                }}
+                                                                                            />
+                                                                                            <span
+                                                                                                className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                                                                style={{
+                                                                                                    marginRight:
+                                                                                                        '5%',
+                                                                                                    minWidth:
+                                                                                                        '68px',
+                                                                                                }}
+                                                                                            >
+                                                                                                {
+                                                                                                    el.label
+                                                                                                }
+                                                                                            </span>
                                                                                             {
-                                                                                                el.label
+                                                                                                el.description
                                                                                             }
                                                                                         </span>
-                                                                                        {
-                                                                                            el.description
-                                                                                        }
-                                                                                    </span>
-                                                                                </div>
-                                                                            </label>
-                                                                        )
-                                                                    )}
+                                                                                    </div>
+                                                                                </label>
+                                                                            )
+                                                                        )}
                                                                     {this.state
                                                                         .showAllMonitors ? null : (
                                                                         <div className="bs-Fieldset-fields">
