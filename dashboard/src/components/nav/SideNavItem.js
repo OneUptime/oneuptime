@@ -50,6 +50,7 @@ export class SidebarNavItem extends Component {
                 ':projectId',
                 match.params.projectId || (currentProject || {})._id
             )
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
@@ -64,6 +65,7 @@ export class SidebarNavItem extends Component {
                 ':projectId',
                 match.params.projectId || (currentProject || {})._id
             )
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':componentId', match.params.componentId)
             .replace(/:issueId/, match.params.issueId)
             .replace(/:scheduleId/, match.params.scheduleId)
@@ -92,6 +94,7 @@ export class SidebarNavItem extends Component {
                 ':projectId',
                 match.params.projectId || (currentProject || {})._id
             )
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
@@ -149,6 +152,7 @@ export class SidebarNavItem extends Component {
                 /:projectId/,
                 match.params.projectId
             );
+            newPath = newPath.replace(/:slug/, match.params.slug);
             newPath = newPath.replace(/:issueId/, match.params.issueId);
             newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);
@@ -311,6 +315,7 @@ export class SidebarNavItem extends Component {
                         >
                             <RenderListItems
                                 projectId={match.params.projectId}
+                                slug={match.params.slug}
                                 schedule={schedule}
                                 active={match.url}
                                 onLoad={title => loadPage(title)}
@@ -323,7 +328,14 @@ export class SidebarNavItem extends Component {
         );
     }
 
-    RenderListItems({ projectId, schedule, active, onLoad, componentId }) {
+    RenderListItems({
+        projectId,
+        slug,
+        schedule,
+        active,
+        onLoad,
+        componentId,
+    }) {
         return this.props.route.subRoutes.map((child, index) => {
             const removedLinks = [
                 'Schedule',
@@ -346,6 +358,7 @@ export class SidebarNavItem extends Component {
             if (child.visible) {
                 let link = child.path
                     .replace(':projectId', projectId)
+                    .replace(':slug', slug)
                     .replace(':componentId', componentId);
                 link =
                     schedule && schedule._id

@@ -279,12 +279,14 @@ export function createProject(values) {
 
 export function switchProject(dispatch, project) {
     const currentProjectId = User.getCurrentProjectId();
+    const currentProjectSlug = User.getCurrentProjectSlug();
     const historyProjectId = history.location.pathname.split('project')[1];
-    if (!currentProjectId || project._id !== currentProjectId) {
-        history.push(`/dashboard/project/${project._id}`);
+    if (!currentProjectSlug || project.slug !== currentProjectSlug) {
+        history.push(`/dashboard/project/${project.slug}`);
         User.setCurrentProjectId(project._id);
+        User.setCurrentProjectSlug(project.slug);
     } else if (historyProjectId && historyProjectId === '/') {
-        history.push(`/dashboard/project/${project._id}`);
+        history.push(`/dashboard/project/${project.slug}`);
     }
 
     dispatch(resetSubProjects());
