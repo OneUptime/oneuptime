@@ -410,7 +410,7 @@ module.exports = {
                 if (
                     filterCriteria &&
                     filterCondition &&
-                    ((!isNaN(filterText) && filterText >= 0) ||
+                    ((!isNaN(filterText) && parseFloat(filterText) >= 0) ||
                         (filterText && filterText.trim()))
                 ) {
                     if (incomingRequest.isDefault) {
