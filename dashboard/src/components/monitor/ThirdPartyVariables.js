@@ -19,7 +19,8 @@ class ThirdPartyVariables extends Component {
 
         if (values.thirdPartyVariable && values.thirdPartyVariable.length > 0) {
             const thirdPartyVariable = values.thirdPartyVariable.filter(
-                variable => typeof variable === 'string'
+                variable =>
+                    typeof variable === 'string' || typeof variable === 'number'
             );
             values.thirdPartyVariable = thirdPartyVariable.map(variable => {
                 if (!isNaN(variable)) {
@@ -320,6 +321,7 @@ ThirdPartyVariables.propTypes = {
 const ThirdPartyVariableForm = reduxForm({
     form: 'ThirdPartyVariableForm', // a unique identifier for this form
     enableReinitialize: true,
+    destroyOnUnmount: true,
 })(ThirdPartyVariables);
 
 const mapDispatchToProps = dispatch =>
