@@ -388,6 +388,21 @@ module.exports = {
             }
 
             if (incomingRequest && incomingRequest.createIncident) {
+                data.incidentType = incomingRequest.incidentType;
+                data.incidentPriority = incomingRequest.incidentPriority;
+                data.title = incomingRequest.incidentTitle;
+                data.description = incomingRequest.incidentDescription;
+
+                if (
+                    data.title &&
+                    data.title.trim() &&
+                    data.description &&
+                    data.description.trim() &&
+                    data.incidentPriority
+                ) {
+                    data.manuallyCreated = true;
+                }
+
                 const filterCriteria = incomingRequest.filterCriteria,
                     filterCondition = incomingRequest.filterCondition,
                     filterText = incomingRequest.filterText;
@@ -395,12 +410,9 @@ module.exports = {
                 if (
                     filterCriteria &&
                     filterCondition &&
-                    ((!isNaN(filterText) && filterText >= 0) || filterText)
+                    ((!isNaN(filterText) && filterText >= 0) ||
+                        (filterText && filterText.trim()))
                 ) {
-                    data.title = incomingRequest.incidentTitle;
-                    data.description = incomingRequest.incidentDescription;
-                    data.incidentPriority = incomingRequest.incidentPriority;
-                    data.manuallyCreated = true;
                     if (incomingRequest.isDefault) {
                         const monitors = await MonitorService.findBy({
                             projectId: data.projectId,
@@ -512,8 +524,6 @@ module.exports = {
                         }
                     }
                 } else {
-                    data.incidentType = 'offline';
-
                     if (incomingRequest.isDefault) {
                         const monitors = await MonitorService.findBy({
                             projectId: data.projectId,
