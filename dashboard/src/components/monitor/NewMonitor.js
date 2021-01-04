@@ -56,6 +56,7 @@ class NewMonitor extends Component {
         this.state = {
             advance: false,
             script: '',
+            showAllMonitors: false,
             type: props.edit ? props.editMonitorProp.type : props.type,
             httpRequestLink: `${API_URL}/incomingHttpRequest/${uuid.v4()}`,
             mode: props.edit ? props.editMonitorProp.mode : props.mode,
@@ -840,6 +841,26 @@ class NewMonitor extends Component {
                                                                                 </div>
                                                                             </label>
                                                                         )
+                                                                    )}
+                                                                    {this.state
+                                                                        .showAllMonitors ? null : (
+                                                                        <div className="bs-Fieldset-fields">
+                                                                            <button
+                                                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--more"
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    this.setState(
+                                                                                        {
+                                                                                            showAllMonitors: true,
+                                                                                        }
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <span>
+                                                                                    More
+                                                                                </span>
+                                                                            </button>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             </span>
