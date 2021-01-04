@@ -57,6 +57,7 @@ class CreateIncomingRequest extends Component {
         } else {
             postObj.filterText = Number(values.filterText);
         }
+        postObj.incidentType = values.incidentType;
         postObj.incidentTitle = values.incidentTitle;
         postObj.incidentPriority = values.incidentPriority;
         postObj.incidentDescription = values.incidentDescription;
@@ -846,6 +847,82 @@ class CreateIncomingRequest extends Component {
                                                         </div>
                                                     </div>
                                                 </fieldset>
+                                                <fieldset className="Margin-bottom--16">
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            <label
+                                                                className="bs-Fieldset-label Text-align--left"
+                                                                htmlFor="incidentType"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '20%',
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Incident
+                                                                    Type
+                                                                </span>
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '80%',
+                                                                    maxWidth:
+                                                                        '80%',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                >
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="incidentType"
+                                                                        id="incidentType"
+                                                                        placeholder="Incident type"
+                                                                        disabled={
+                                                                            this
+                                                                                .props
+                                                                                .requesting
+                                                                        }
+                                                                        options={[
+                                                                            {
+                                                                                value:
+                                                                                    'online',
+                                                                                label:
+                                                                                    'Online',
+                                                                            },
+                                                                            {
+                                                                                value:
+                                                                                    'offline',
+                                                                                label:
+                                                                                    'Offline',
+                                                                            },
+                                                                            {
+                                                                                value:
+                                                                                    'degraded',
+                                                                                label:
+                                                                                    'Degraded',
+                                                                            },
+                                                                        ]}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
                                                 <ShouldRender
                                                     if={
                                                         incidentPriorities.length >
@@ -1112,6 +1189,7 @@ const mapStateToProps = (state, ownProps) => {
                 state.incidentBasicSettings.incidentBasicSettings
                     .incidentPriority,
             showAdvancedOptions: false,
+            incidentType: 'offline',
         },
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
