@@ -21,7 +21,9 @@ import NewMonitor from '../components/monitor/NewMonitor';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
-import { mapCriteria } from '../config';
+import { mapCriteria, User } from '../config';
+import { fetchSchedules } from '../actions/schedule';
+
 import WebHookBox from '../components/webHooks/WebHookBox';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -55,6 +57,17 @@ class MonitorView extends React.Component {
             logEvent(
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DETAIL PAGE'
             );
+        }
+
+        const { currentProject } = this.props;
+        if (currentProject) {
+            const userId = User.getUserId();
+            const projectMember = currentProject.users.find(
+                user => user.userId === userId
+            );
+            if (projectMember) {
+                this.props.fetchSchedules(currentProject._id);
+            }
         }
     }
 
@@ -780,6 +793,7 @@ const mapStateToProps = (state, props) => {
         .filter(monitor => monitor)[0];
     const editMode = monitor && monitor.editMode ? true : false;
     const initialValues = {};
+    let currentMonitorCriteria = [];
     if (monitor) {
         initialValues[`name_${monitor._id}`] = monitor.name;
         initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
@@ -806,56 +820,87 @@ const mapStateToProps = (state, props) => {
             monitor.type === 'server-monitor' ||
             monitor.type === 'incomingHttpRequest'
         ) {
-            if (monitor.criteria && monitor.criteria.up) {
-                initialValues[`up_${monitor._id}`] = mapCriteria(
-                    monitor.criteria.up
-                );
-                initialValues[`up_${monitor._id}_createAlert`] =
-                    monitor.criteria &&
+            // collect all criteria
+            if (monitor.criteria) {
+                if (
                     monitor.criteria.up &&
-                    monitor.criteria.up.createAlert;
-                initialValues[`up_${monitor._id}_autoAcknowledge`] =
-                    monitor.criteria &&
-                    monitor.criteria.up &&
-                    monitor.criteria.up.autoAcknowledge;
-                initialValues[`up_${monitor._id}_autoResolve`] =
-                    monitor.criteria &&
-                    monitor.criteria.up &&
-                    monitor.criteria.up.autoResolve;
-            }
-            if (monitor.criteria && monitor.criteria.degraded) {
-                initialValues[`degraded_${monitor._id}`] = mapCriteria(
+                    monitor.criteria.down &&
                     monitor.criteria.degraded
-                );
-                initialValues[`degraded_${monitor._id}_createAlert`] =
-                    monitor.criteria &&
-                    monitor.criteria.degraded &&
-                    monitor.criteria.degraded.createAlert;
-                initialValues[`degraded_${monitor._id}_autoAcknowledge`] =
-                    monitor.criteria &&
-                    monitor.criteria.degraded &&
-                    monitor.criteria.degraded.autoAcknowledge;
-                initialValues[`degraded_${monitor._id}_autoResolve`] =
-                    monitor.criteria &&
-                    monitor.criteria.degraded &&
-                    monitor.criteria.degraded.autoResolve;
-            }
-            if (monitor.criteria && monitor.criteria.down) {
-                initialValues[`down_${monitor._id}`] = mapCriteria(
-                    monitor.criteria.down
-                );
-                initialValues[`down_${monitor._id}_createAlert`] =
-                    monitor.criteria &&
-                    monitor.criteria.down &&
-                    monitor.criteria.down.createAlert;
-                initialValues[`down_${monitor._id}_autoAcknowledge`] =
-                    monitor.criteria &&
-                    monitor.criteria.down &&
-                    monitor.criteria.down.autoAcknowledge;
-                initialValues[`down_${monitor._id}_autoResolve`] =
-                    monitor.criteria &&
-                    monitor.criteria.down &&
-                    monitor.criteria.down.autoResolve;
+                ) {
+                    currentMonitorCriteria = [
+                        ...monitor.criteria.up,
+                        ...monitor.criteria.degraded,
+                        ...monitor.criteria.down,
+                    ].map((criterion, index) => {
+                        const monitorUpCriteriaCount =
+                            monitor.criteria.up.length;
+                        const monitorDegradedCriteriaCount =
+                            monitor.criteria.degraded.length;
+                        const type =
+                            index < monitorUpCriteriaCount
+                                ? 'up'
+                                : index <
+                                  monitorUpCriteriaCount +
+                                      monitorDegradedCriteriaCount
+                                ? 'degraded'
+                                : 'down';
+
+                        const id = criterion._id;
+                        const criterionBodyField = mapCriteria(criterion);
+                        const criterionFieldName = `${type}_${id}`;
+
+                        // set initial values for the criterion
+                        initialValues[criterionFieldName] = criterionBodyField;
+                        initialValues[`incidentTitle_${criterionFieldName}`] =
+                            criterion.title;
+                        initialValues[
+                            `incidentDescription_${criterionFieldName}`
+                        ] = criterion.description;
+                        initialValues[`createAlert_${criterionFieldName}`] =
+                            criterion.createAlert;
+                        initialValues[`autoAcknowledge_${criterionFieldName}`] =
+                            criterion.autoAcknowledge;
+                        initialValues[`autoResolve_${criterionFieldName}`] =
+                            criterion.autoResolve;
+
+                        // initialize schedules checkboxes for the criterions
+                        /**
+                         * @type Array.<String>
+                         */
+                        const criterionScheduleIds = criterion.scheduleIds;
+                        /**
+                         * @type { {data : Array}}
+                         */
+                        const schedules = state.schedule.schedules;
+
+                        if (
+                            criterionScheduleIds &&
+                            criterionScheduleIds.length &&
+                            schedules &&
+                            schedules.data
+                        ) {
+                            const criterionSchedules = [];
+
+                            // for each schedule, check if the criterion is already associated with it
+                            schedules.data.forEach(schedule => {
+                                const scheduleId = schedule._id.toString();
+                                criterionSchedules.push({
+                                    [scheduleId]: criterionScheduleIds.includes(
+                                        scheduleId
+                                    ),
+                                });
+                            });
+                            initialValues[
+                                `criterion_${id}_schedules`
+                            ] = criterionSchedules;
+                        }
+
+                        return {
+                            type,
+                            id,
+                        };
+                    });
+                }
             }
         }
         if (monitor.type === 'api') {
@@ -870,13 +915,6 @@ const mapStateToProps = (state, props) => {
             if (monitor.headers && monitor.headers.length)
                 initialValues[`headers_${monitor._id}`] = monitor.headers;
         }
-        console.log(
-            ' monitor type ',
-            monitor.type,
-            monitor,
-            'init values',
-            initialValues
-        );
     }
     return {
         defaultSchedule,
@@ -887,6 +925,7 @@ const mapStateToProps = (state, props) => {
         monitor,
         edit: state.monitor.monitorsList.editMode && editMode ? true : false,
         initialValues,
+        currentMonitorCriteria,
         match: props.match,
         component,
         probeList: state.probe.probes,
@@ -910,6 +949,7 @@ const mapDispatchToProps = dispatch => {
             fetchBasicIncidentSettings,
             fetchCommunicationSlas,
             fetchMonitorSlas,
+            fetchSchedules,
         },
         dispatch
     );
@@ -945,6 +985,7 @@ MonitorView.propTypes = {
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
     defaultSchedule: PropTypes.bool,
+    fetchSchedules: PropTypes.func,
 };
 
 MonitorView.displayName = 'MonitorView';

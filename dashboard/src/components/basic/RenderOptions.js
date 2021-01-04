@@ -166,7 +166,6 @@ export class RenderOption extends Component {
             type,
         } = this.props;
 
-        console.log(this.props, ' are the props of render option');
         const filterval =
             bodyfield && bodyfield.filter && bodyfield.filter !== ''
                 ? bodyfield.filter

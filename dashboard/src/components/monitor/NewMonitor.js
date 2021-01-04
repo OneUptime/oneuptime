@@ -2,8 +2,9 @@ import React, { Component, createRef } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import { isEqual } from 'lodash';
 import uuid from 'uuid';
-import { reduxForm, Field, formValueSelector } from 'redux-form';
+import { reduxForm, Field, formValueSelector, change } from 'redux-form';
 import {
     createMonitor,
     createMonitorSuccess,
@@ -44,23 +45,15 @@ import { SHOULD_LOG_ANALYTICS, PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
 import { history } from '../../store';
-import uuid from 'uuid';
 import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../../actions/monitorSla';
 import { UploadFile } from '../basic/UploadFile';
 import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import Fade from 'react-reveal/Fade';
-import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
-import { fetchMonitorSlas } from '../../actions/monitorSla';
-import { UploadFile } from '../basic/UploadFile';
-import { history } from '../../store';
-import PricingPlan from '../basic/PricingPlan';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
 
-const dJSON = require('dirty-json');
-const selector = formValueSelector('NewMonitor');
 class NewMonitor extends Component {
     constructor(props) {
         super(props);
@@ -73,7 +66,7 @@ class NewMonitor extends Component {
             authentication: props.edit
                 ? props.editMonitorProp.authentication
                 : props.authentication,
-            criteria: [],
+            criteria: props.currentMonitorCriteria || [],
             criteriaTabIndex: 0,
         };
 
@@ -104,72 +97,64 @@ class NewMonitor extends Component {
             this.props.showUpgradeForm();
         }
 
-        // setup criteria for up, down, and degraded events based on the type
-        // of criteria event selected
+        if (!this.props.edit) {
+            // setup criteria for up, down, and degraded events
+            // update automatically when monitor type is changed
 
-        if (prevProps.initialValues !== this.props.initialValues) {
-            const { edit, index, initialValues, change } = this.props;
+            const areCriterionInitialValuesEqual = isEqual(
+                prevProps.initialValues,
+                this.props.initialValues
+            );
 
-            const criteria = [];
+            if (!areCriterionInitialValuesEqual) {
+                const criteria = [];
 
-            Object.values(CRITERIA_TYPES).forEach(criterion => {
-                const id = uuid.v4();
-                const criterionFieldName = `${criterion.type}_${id}`;
-                let criterionValues = {};
+                Object.values(CRITERIA_TYPES).forEach(criterion => {
+                    const id = uuid.v4();
 
-                if (edit) {
-                    criterionValues = {
-                        bodyField: initialValues[`${criterion.type}_${index}`],
-                        createAlert:
-                            initialValues[
-                                `${criterion.type}_${index}_createAlert`
-                            ],
-                        autoAcknowledge:
-                            initialValues[
-                                `${criterion.type}_${index}_autoAcknowledge`
-                            ],
-                        autoResolve:
-                            initialValues[
-                                `${criterion.type}_${index}_autoResolve`
-                            ],
-                    };
-                    console.log(
-                        'editing',
-                        criterionValues,
-                        initialValues,
-                        criterion,
-                        index
-                    );
-                } else {
-                    criterionValues = this.getCriterionInitialValue(
-                        criterion.type
-                    );
-                }
+                    const newCriterion = { id, type: criterion.type };
+                    criteria.push(newCriterion);
 
-                criteria.push({
-                    ...criterion,
-                    bodyField: criterionValues.bodyField,
-                    id,
+                    this.addCriterionFieldsToReduxForm(newCriterion);
                 });
 
-                change(
-                    `createAlert_${criterionFieldName}`,
-                    criterionValues.createAlert
-                );
-                change(
-                    `autoAcknowledge_${criterionFieldName}`,
-                    criterionValues.autoAcknowledge
-                );
-                change(
-                    `autoResolve_${criterionFieldName}`,
-                    criterionValues.autoResolve
-                );
-
-                change(criterionFieldName, criterionValues.bodyField);
-            });
-
-            this.setState({ ...this.state, criteria: criteria });
+                // eslint-disable-next-line react/no-did-update-set-state
+                this.setState({ ...this.state, criteria });
+            }
         }
+    }
+
+    /**
+     * adds all necessary criterion fields to redux form
+     *
+     * @param { {id : string, type: string}} criterion criterion to add fields for
+     * @memberof NewMonitor
+     */
+    addCriterionFieldsToReduxForm(criterion) {
+        if (!criterion.id || !criterion.type) {
+            return;
+        }
+
+        const { change } = this.props;
+
+        const criterionFieldName = `${criterion.type}_${criterion.id}`;
+
+        /** @type {{bodyField:Object[], createAlert:boolean, autoAcknowledge: boolean, autoResolve:boolean}} */
+        const criterionValues = this.getCriterionInitialValue(criterion.type);
+
+        change(criterionFieldName, criterionValues.bodyField);
+        change(
+            `createAlert_${criterionFieldName}`,
+            criterionValues.createAlert
+        );
+        change(
+            `autoAcknowledge_${criterionFieldName}`,
+            criterionValues.autoAcknowledge
+        );
+        change(
+            `autoResolve_${criterionFieldName}`,
+            criterionValues.autoResolve
+        );
     }
 
     /**
@@ -180,10 +165,17 @@ class NewMonitor extends Component {
      * @memberof NewMonitor
      */
     getCriterionInitialValue(criterionType) {
+        let { initialValues } = this.props;
+        const { edit, monitor, editMonitorProp } = this.props;
+
+        if (edit) {
+            initialValues = monitor.monitorCriteria
+                ? monitor.monitorCriteria.criteria[editMonitorProp.type]
+                : {};
+        }
+
         try {
             const initialCriterionValue = {};
-
-            const { initialValues } = this.props;
 
             switch (criterionType) {
                 case CRITERIA_TYPES.UP.type:
@@ -218,7 +210,6 @@ class NewMonitor extends Component {
             }
             return initialCriterionValue;
         } catch (error) {
-            // amplitude.logEventWithTimestamp(error);
             return {};
         }
     }
@@ -226,35 +217,19 @@ class NewMonitor extends Component {
     /**
      *
      * adds a criteria to the state
-     * @param {{head : string, tagline:string, type:string, id:string}} [criterion={}] data of the new criteria
+     * @param {{ type:string, id:string}} [criterion={}] data of the new criteria
      * @memberof NewMonitor
      */
     addCriterion(criterion = {}) {
-        const { change } = this.props;
+        if (!criterion.id || !criterion.type) {
+            return;
+        }
 
-        const defaultCriterionValues = this.getCriterionInitialValue(
-            criterion.type
-        );
         const newCriterion = {
             ...criterion,
-            bodyField: defaultCriterionValues.bodyField,
         };
 
-        const criterionFieldName = `${criterion.type}_${criterion.id}`;
-
-        change(criterionFieldName, defaultCriterionValues.bodyField);
-        change(
-            `createAlert_${criterionFieldName}`,
-            defaultCriterionValues.createAlert
-        );
-        change(
-            `autoAcknowledge_${criterionFieldName}`,
-            defaultCriterionValues.autoAcknowledge
-        );
-        change(
-            `autoResolve_${criterionFieldName}`,
-            defaultCriterionValues.autoResolve
-        );
+        this.addCriterionFieldsToReduxForm(criterion);
 
         this.setState({
             ...this.state,
@@ -262,73 +237,9 @@ class NewMonitor extends Component {
         });
     }
 
-    /**
-     * updates a criterion's property with the specified value
-     *
-     * @param {*} id unique id of the criterion
-     * @param {*} property property of the criterion to update
-     * @param {*} value updated value for the property of the criterion
-     * @return {boolean} if the criterion is updated
-     * @memberof NewMonitor
-     */
-    updateCriterion(id, property, value) {
-        const criterionIndex = this.state.criteria.findIndex(
-            criterion => criterion.id === id
-        );
-
-        if (criterionIndex === -1) return;
-
-        // create an updated criterion
-        const updatedCriterion = { ...this.state.criteria[criterionIndex] };
-        updatedCriterion[property] = value;
-
-        // create an updated criteria
-        const updatedCriteria = [
-            ...this.state.criteria.slice(0, criterionIndex),
-            updatedCriterion,
-            ...this.state.criteria.slice(criterionIndex + 1),
-        ];
-        this.setState({ ...this.state, criteria: updatedCriteria });
-    }
-
-    /**
-     * sets a criterion's schedule
-     *
-     * @param {*} id unique id of the criterion
-     * @param {string} scheduleId schedule id
-     * @memberof NewMonitor
-     */
-    handleScheduleChangedForCriterion(id, scheduleId) {
-        this.updateCriterion(id, 'scheduleId', scheduleId);
-    }
-
-    /**
-     *
-     *
-     * @param {*} id unique id of the criterion
-     * @param {string} incidentDescription incident description
-     * @memberof NewMonitor
-     */
-    handleIncidentDescriptionChangedForCriterion(id, incidentDescription) {
-        this.updateCriterion(id, 'incidentDescription', incidentDescription);
-    }
-
-    /**
-     * sets a criterion's incident title
-     *
-     * @param {*} unique id of the criterion
-     * @param {string} incidentTitle  incident title
-     * @memberof NewMonitor
-     */
-    handleIncidentTitleChangedForCriterion(id, incidentTitle) {
-        this.updateCriterion(id, 'incidentTitle', incidentTitle);
-    }
-
     submitForm = values => {
         const thisObj = this;
         const postObj = { data: {}, criteria: {} };
-
-        postObj.newCriteria = this.state.criteria;
 
         postObj.componentId = thisObj.props.componentId;
         postObj.projectId = this.props.projectId;
@@ -387,72 +298,45 @@ class NewMonitor extends Component {
             postObj.type === 'script' ||
             postObj.type === 'incomingHttpRequest'
         ) {
-            if (
-                values &&
-                values[`up_${this.props.index}`] &&
-                values[`up_${this.props.index}`].length
-            ) {
-                postObj.criteria.up = makeCriteria(
-                    values[`up_${this.props.index}`]
-                );
-                postObj.criteria.up.createAlert =
-                    values && values[`up_${this.props.index}_createAlert`]
-                        ? true
-                        : false;
-                postObj.criteria.up.autoAcknowledge =
-                    values && values[`up_${this.props.index}_autoAcknowledge`]
-                        ? true
-                        : false;
-                postObj.criteria.up.autoResolve =
-                    values && values[`up_${this.props.index}_autoResolve`]
-                        ? true
-                        : false;
-            }
+            // collect and organize all criteria data
+            const criteria = { up: [], down: [], degraded: [] };
+            this.state.criteria.forEach(criterion => {
+                const criterionData = {};
 
-            if (
-                values &&
-                values[`degraded_${this.props.index}`] &&
-                values[`degraded_${this.props.index}`].length
-            ) {
-                postObj.criteria.degraded = makeCriteria(
-                    values[`degraded_${this.props.index}`]
-                );
-                postObj.criteria.degraded.createAlert =
-                    values && values[`degraded_${this.props.index}_createAlert`]
-                        ? true
-                        : false;
-                postObj.criteria.degraded.autoAcknowledge =
-                    values &&
-                    values[`degraded_${this.props.index}_autoAcknowledge`]
-                        ? true
-                        : false;
-                postObj.criteria.degraded.autoResolve =
-                    values && values[`degraded_${this.props.index}_autoResolve`]
-                        ? true
-                        : false;
-            }
+                const criterionFieldName = `${criterion.type}_${criterion.id}`;
 
-            if (
-                values &&
-                values[`down_${this.props.index}`] &&
-                values[`down_${this.props.index}`].length
-            ) {
-                postObj.criteria.down = makeCriteria(
-                    values[`down_${this.props.index}`]
+                const criterionSchedules =
+                    values[`criterion_${criterion.id}_schedules`];
+                const schedules = criterionSchedules
+                    ? criterionSchedules
+                          .filter(scheduleObject => {
+                              return Object.values(scheduleObject)[0] === true;
+                          })
+                          .map(scheduleObject => Object.keys(scheduleObject)[0])
+                    : [];
+
+                criterionData.scheduleIds = schedules;
+                criterionData.createAlert =
+                    values[`createAlert_${criterionFieldName}`];
+                criterionData.autoAcknowledge =
+                    values[`autoAcknowledge_${criterionFieldName}`];
+                criterionData.autoResolve =
+                    values[`autoResolve_${criterionFieldName}`];
+                criterionData.title =
+                    values[`incidentTitle_${criterionFieldName}`];
+                criterionData.description =
+                    values[`incidentDescription_${criterionFieldName}`];
+                const conditions = makeCriteria(
+                    values[`${criterionFieldName}`]
                 );
-                postObj.criteria.down.createAlert =
-                    values && values[`down_${this.props.index}_createAlert`]
-                        ? true
-                        : false;
-                postObj.criteria.down.autoAcknowledge =
-                    values && values[`down_${this.props.index}_autoAcknowledge`]
-                        ? true
-                        : false;
-                postObj.criteria.down.autoResolve =
-                    values && values[`down_${this.props.index}_autoResolve`]
-                        ? true
-                        : false;
-            }
+                criterionData.and = conditions.and;
+                criterionData.or = conditions.or;
+
+                if (Array.isArray(criteria[criterion.type])) {
+                    criteria[criterion.type].push(criterionData);
+                }
+            });
+            postObj.criteria = criteria;
         }
         if (postObj.type === 'api') {
             if (
@@ -2264,33 +2148,6 @@ class NewMonitor extends Component {
                                                                                                             .props
                                                                                                             .schedules
                                                                                                     }
-                                                                                                    handleIncidentTitleChangedForCriterion={(
-                                                                                                        id,
-                                                                                                        incidentTitle
-                                                                                                    ) =>
-                                                                                                        this.handleIncidentTitleChangedForCriterion(
-                                                                                                            id,
-                                                                                                            incidentTitle
-                                                                                                        )
-                                                                                                    }
-                                                                                                    handleIncidentDescriptionChangedForCriterion={(
-                                                                                                        id,
-                                                                                                        incidentDescription
-                                                                                                    ) =>
-                                                                                                        this.handleIncidentDescriptionChangedForCriterion(
-                                                                                                            id,
-                                                                                                            incidentDescription
-                                                                                                        )
-                                                                                                    }
-                                                                                                    handleScheduleChangedForCriterion={(
-                                                                                                        id,
-                                                                                                        scheduleId
-                                                                                                    ) =>
-                                                                                                        this.handleScheduleChangedForCriterion(
-                                                                                                            id,
-                                                                                                            scheduleId
-                                                                                                        )
-                                                                                                    }
                                                                                                 />
                                                                                             );
                                                                                         }
@@ -2447,6 +2304,7 @@ const mapStateToProps = (state, ownProps) => {
         state,
         'incidentCommunicationSla'
     );
+
     let projectId = null;
 
     for (const project of state.component.componentList.components) {
@@ -2602,6 +2460,9 @@ NewMonitor.propTypes = {
     requestingMonitorSla: PropTypes.bool,
     change: PropTypes.func,
     initialValues: PropTypes.objectOf(PropTypes.any),
+    currentMonitorCriteria: PropTypes.arrayOf(
+        PropTypes.objectOf(PropTypes.any)
+    ),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

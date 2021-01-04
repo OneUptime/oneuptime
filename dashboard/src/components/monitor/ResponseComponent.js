@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Component } from 'react';
-import { Field, FieldArray, formValueSelector, arrayPush } from 'redux-form';
+import { Field, FieldArray, formValueSelector, change } from 'redux-form';
 import PropTypes from 'prop-types';
 import { ResponseParent } from './ResponseParent';
 import ShouldRender from '../basic/ShouldRender';
@@ -9,7 +9,7 @@ import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import uuid from 'uuid';
-import { RenderSelect } from '../basic/RenderSelect';
+import ScheduleInput from '../schedule/ScheduleInput';
 
 const newSelector = formValueSelector('NewMonitor');
 
@@ -21,28 +21,19 @@ const responsestyle = {
 };
 
 export class ResponseComponent extends Component {
-    handleAddCriterion = type => {
-        let head, tagline;
-        switch (type) {
-            case CRITERIA_TYPES.DOWN.type:
-                head = CRITERIA_TYPES.DOWN.head;
-                tagline = CRITERIA_TYPES.DOWN.tagline;
-                break;
-            case CRITERIA_TYPES.UP.type:
-                head = CRITERIA_TYPES.UP.head;
-                tagline = CRITERIA_TYPES.UP.tagline;
-                break;
-            case CRITERIA_TYPES.DEGRADED.type:
-                head = CRITERIA_TYPES.DEGRADED.head;
-                tagline = CRITERIA_TYPES.DEGRADED.tagline;
-                break;
-        }
-        if (head && tagline) {
-            this.props.addCriterion({ head, tagline, type, id: uuid.v4() });
-        }
-    };
+    handleAddCriterion(type) {
+        this.props.addCriterion({ type, id: uuid.v4() });
+    }
+
     render() {
-        const { type, criterion } = this.props;
+        const {
+            type,
+            criterion,
+            schedules,
+            currentProject,
+            criterionBodyField,
+        } = this.props;
+
         const status = {
             display: 'inline-block',
             borderRadius: '2px',
@@ -50,18 +41,27 @@ export class ResponseComponent extends Component {
             width: '8px',
             margin: '0 8px 1px 0',
         };
-        const { id: criterionId, type: criterionType } = this.props.criterion;
+
+        const { id: criterionId, type: criterionType } = criterion;
         const criterionFieldName = `${criterionType}_${criterionId}`;
+        let head;
+        let tagline;
 
         switch (criterionType) {
-            case CRITERIA_TYPES.UP:
+            case CRITERIA_TYPES.UP.type:
                 status.backgroundColor = 'rgb(117, 211, 128)'; // "green-status";
+                head = CRITERIA_TYPES.UP.head;
+                tagline = CRITERIA_TYPES.UP.tagline;
                 break;
-            case CRITERIA_TYPES.DEGRADED:
+            case CRITERIA_TYPES.DEGRADED.type:
                 status.backgroundColor = 'rgb(255, 222, 36)'; // "yellow-status";
+                head = CRITERIA_TYPES.DEGRADED.head;
+                tagline = CRITERIA_TYPES.DEGRADED.tagline;
                 break;
-            case CRITERIA_TYPES.DOWN:
+            case CRITERIA_TYPES.DOWN.type:
                 status.backgroundColor = 'rgb(250, 117, 90)'; // "red-status";
+                head = CRITERIA_TYPES.DOWN.head;
+                tagline = CRITERIA_TYPES.DOWN.tagline;
                 break;
         }
 
@@ -75,11 +75,11 @@ export class ResponseComponent extends Component {
                         <div className="Box-root">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <span style={status}></span>
-                                <span>{criterion.head}</span>
+                                <span>{head}</span>
                             </span>
                             <p>
                                 <span style={{ marginLeft: '18px' }}>
-                                    {criterion.tagline}
+                                    {tagline}
                                 </span>
                             </p>
                         </div>
@@ -109,7 +109,7 @@ export class ResponseComponent extends Component {
                                         <FieldArray
                                             name={criterionFieldName}
                                             component={ResponseParent}
-                                            bodyfield={criterion.bodyField}
+                                            bodyfield={criterionBodyField}
                                             level={1}
                                             type={type}
                                         />
@@ -118,63 +118,21 @@ export class ResponseComponent extends Component {
                             </div>
                         </div>
 
-                        <ShouldRender
-                            if={
-                                this.props.schedules &&
-                                this.props.schedules.length > 0
-                            }
-                        >
-                            <div className="bs-Fieldset-row Flex-alignItems--flexStart">
-                                <label
-                                    className="bs-Fieldset-label"
-                                    style={{
-                                        flex: '0 0 7rem',
-                                        textAlign: 'start',
-                                    }}
-                                    htmlFor={`callSchedule_${criterionFieldName}`}
-                                >
-                                    Call Schedule
+                        <ShouldRender if={schedules && schedules.length > 0}>
+                            <div className="bs-Fieldset-row Flex-alignContent--start">
+                                <label className="Padding-right--12">
+                                    <span>Call Schedules</span>
                                 </label>
-                                <div className="bs-Fieldset-fields">
-                                    <span className="flex">
-                                        <Field
-                                            className="db-select-nw"
-                                            component={RenderSelect}
-                                            name={`callSchedule_${criterionFieldName}`}
-                                            id={`callSchedule_${criterionFieldName}`}
-                                            placeholder="Call Schedule"
-                                            style={{
-                                                height: '28px',
-                                            }}
-                                            onChange={(e, scheduleId) => {
-                                                this.props.handleScheduleChangedForCriterion(
-                                                    criterionId,
-                                                    scheduleId
-                                                );
-                                            }}
-                                            options={[
-                                                {
-                                                    value: '',
-                                                    label:
-                                                        'Select call schedule',
-                                                },
-                                                ...(this.props.schedules &&
-                                                    this.props.schedules
-                                                        .length &&
-                                                    this.props.schedules.map(
-                                                        schedule => ({
-                                                            value: schedule._id,
-                                                            label:
-                                                                schedule.name,
-                                                        })
-                                                    )),
-                                            ]}
-                                        />
-                                    </span>
-                                </div>
+                                <FieldArray
+                                    name={`criterion_${criterionId}_schedules`}
+                                    schedules={schedules}
+                                    currentProject={currentProject}
+                                    component={ScheduleInput}
+                                />
                             </div>
                         </ShouldRender>
-                        {criterion.bodyField && criterion.bodyField.length ? (
+
+                        {criterionBodyField && criterionBodyField.length ? (
                             <div>
                                 <div className="bs-Fieldset-row">
                                     <label
@@ -224,11 +182,6 @@ export class ResponseComponent extends Component {
                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                                     component={RenderField}
                                                     name={`incidentTitle_${criterionFieldName}`}
-                                                    onChange={() => {
-                                                        this.props.handleIncidentTitleChangedForCriterion(
-                                                            criterionId
-                                                        );
-                                                    }}
                                                     id={`incidentTitle_${criterionFieldName}`}
                                                     placeholder="Custom Incident title"
                                                 />
@@ -248,11 +201,6 @@ export class ResponseComponent extends Component {
                                                 <Field
                                                     name={`incidentDescription_${criterionFieldName}`}
                                                     id={`incidentDescription_${criterionFieldName}`}
-                                                    onChange={() => {
-                                                        this.props.handleIncidentDescriptionChangedForCriterion(
-                                                            criterionId
-                                                        );
-                                                    }}
                                                     component={RenderCodeEditor}
                                                     height="100px"
                                                     width="100%"
@@ -373,33 +321,46 @@ ResponseComponent.propTypes = {
     criterion: PropTypes.shape({
         id: PropTypes.string.isRequired,
         type: PropTypes.string.isRequired,
-        head: PropTypes.string.isRequired,
-        tagline: PropTypes.string.isRequired,
-        bodyField: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.any))
-            .isRequired,
     }).isRequired,
     incidentCreatedAlertEnabledForCriterion: PropTypes.bool.isRequired,
-    schedules: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.any)).isRequired,
-    handleIncidentTitleChangedForCriterion: PropTypes.func.isRequired,
-    handleIncidentDescriptionChangedForCriterion: PropTypes.func.isRequired,
-    handleScheduleChangedForCriterion: PropTypes.func.isRequired,
-};
-
-const mapDispatchToProps = {
-    pushArray: arrayPush,
+    schedules: PropTypes.arrayOf(
+        PropTypes.shape({
+            _id: PropTypes.string.isRequired,
+            name: PropTypes.string.isRequired,
+        })
+    ).isRequired,
+    criterionBodyField: PropTypes.objectOf(
+        PropTypes.shape({
+            match: PropTypes.string,
+            responseType: PropTypes.string.isRequired,
+            filter: PropTypes.string.isRequired,
+            field1: PropTypes.string.isRequired,
+            field2: PropTypes.string.isRequired,
+            field3: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
+        })
+    ).isRequired,
+    currentProject: PropTypes.shape({
+        _id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+    }).isRequired,
 };
 
 function mapStateToProps(state, ownProps) {
     return {
-        // defaultBodyField: newSelector(
-        //     state,
-        //     `${ownProps.defaultBodyFieldName}`
-        // ),
         incidentCreatedAlertEnabledForCriterion: newSelector(
             state,
             `createAlert_${ownProps.criterion.type}_${ownProps.criterion.id}`
         ),
+        currentProject: state.project.currentProject,
+        criterionBodyField: newSelector(
+            state,
+            `${ownProps.criterion.type}_${ownProps.criterion.id}`
+        ),
     };
 }
+
+const mapDispatchToProps = {
+    change,
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ResponseComponent);
