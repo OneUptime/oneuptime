@@ -2,6 +2,11 @@ const IncomingRequestModel = require('../models/incomingRequest');
 const IncidentService = require('../services/incidentService');
 const MonitorService = require('../services/monitorService');
 const ErrorService = require('../services/errorService');
+const createDOMPurify = require('dompurify');
+const jsdom = require('jsdom').jsdom;
+const window = jsdom('').defaultView;
+const DOMPurify = createDOMPurify(window);
+const Handlebars = require('handlebars');
 // const RealTimeService = require('./realTimeService');
 
 module.exports = {
@@ -13,7 +18,14 @@ module.exports = {
 
             query.deleted = false;
             const incomingRequest = await IncomingRequestModel.findOne(query)
-                .populate('monitors.monitorId', 'name thirdPartyVariable')
+                .populate({
+                    path: 'monitors.monitorId',
+                    select: 'name thirdPartyVariable componentId',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name',
+                    },
+                })
                 .populate('projectId', 'name')
                 .lean();
 
@@ -66,6 +78,16 @@ module.exports = {
             data.monitors = data.monitors.map(monitor => ({
                 monitorId: monitor,
             }));
+
+            if (data.incidentTitle) {
+                data.incidentTitle = DOMPurify.sanitize(data.incidentTitle);
+            }
+
+            if (data.incidentDescription) {
+                data.incidentDescription = DOMPurify.sanitize(
+                    data.incidentDescription
+                );
+            }
 
             let incomingRequest = await IncomingRequestModel.create({
                 ...data,
@@ -131,6 +153,16 @@ module.exports = {
                 data.monitors = data.monitors.map(monitor => ({
                     monitorId: monitor,
                 }));
+            }
+
+            if (data.incidentTitle) {
+                data.incidentTitle = DOMPurify.sanitize(data.incidentTitle);
+            }
+
+            if (data.incidentDescription) {
+                data.incidentDescription = DOMPurify.sanitize(
+                    data.incidentDescription
+                );
             }
 
             if (data.isDefault) {
@@ -387,6 +419,7 @@ module.exports = {
                 });
             }
 
+            let titleTemplate, descriptionTemplate;
             if (incomingRequest && incomingRequest.createIncident) {
                 data.incidentType = incomingRequest.incidentType;
                 data.incidentPriority = incomingRequest.incidentPriority;
@@ -401,6 +434,10 @@ module.exports = {
                     data.incidentPriority
                 ) {
                     data.manuallyCreated = true;
+
+                    // handle template variables
+                    titleTemplate = Handlebars.compile(data.title);
+                    descriptionTemplate = Handlebars.compile(data.description);
                 }
 
                 const filterCriteria = incomingRequest.filterCriteria,
@@ -418,6 +455,21 @@ module.exports = {
                             projectId: data.projectId,
                         });
                         for (const monitor of monitors) {
+                            const dataConfig = {
+                                monitorName: monitor.name,
+                                projectName: monitor.projectId.name,
+                                componentName: monitor.componentId.name,
+                            };
+
+                            if (titleTemplate) {
+                                data.title = titleTemplate(dataConfig);
+                            }
+                            if (descriptionTemplate) {
+                                data.description = descriptionTemplate(
+                                    dataConfig
+                                );
+                            }
+
                             const filterArray = monitor[filterCriteria];
                             if (
                                 filterCondition === 'equalTo' &&
@@ -473,6 +525,20 @@ module.exports = {
                             monitor => monitor.monitorId
                         );
                         for (const monitor of monitors) {
+                            const dataConfig = {
+                                monitorName: monitor.name,
+                                componentName: monitor.componentId.name,
+                                projectName: incomingRequest.projectId.name,
+                            };
+                            if (titleTemplate) {
+                                data.title = titleTemplate(dataConfig);
+                            }
+                            if (descriptionTemplate) {
+                                data.description = descriptionTemplate(
+                                    dataConfig
+                                );
+                            }
+
                             const filterArray = monitor[filterCriteria];
                             if (
                                 filterCondition === 'equalTo' &&
@@ -529,6 +595,20 @@ module.exports = {
                             projectId: data.projectId,
                         });
                         for (const monitor of monitors) {
+                            const dataConfig = {
+                                monitorName: monitor.name,
+                                projectName: monitor.projectId.name,
+                                componentName: monitor.componentId.name,
+                            };
+
+                            if (titleTemplate) {
+                                data.title = titleTemplate(dataConfig);
+                            }
+                            if (descriptionTemplate) {
+                                data.description = descriptionTemplate(
+                                    dataConfig
+                                );
+                            }
                             data.monitorId = monitor._id;
                             await IncidentService.create(data);
                         }
@@ -538,6 +618,20 @@ module.exports = {
                             monitor => monitor.monitorId
                         );
                         for (const monitor of monitors) {
+                            const dataConfig = {
+                                monitorName: monitor.name,
+                                componentName: monitor.componentId.name,
+                                projectName: incomingRequest.projectId.name,
+                            };
+                            if (titleTemplate) {
+                                data.title = titleTemplate(dataConfig);
+                            }
+                            if (descriptionTemplate) {
+                                data.description = descriptionTemplate(
+                                    dataConfig
+                                );
+                            }
+
                             data.monitorId = monitor._id;
                             await IncidentService.create(data);
                         }
