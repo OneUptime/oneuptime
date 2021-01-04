@@ -30,6 +30,7 @@ const incomingRequestSchema = new Schema(
         },
         filterText: Schema.Types.Mixed, // expected to store both string and number
         incidentTitle: String,
+        incidentType: { type: String, enum: ['offline', 'degraded', 'online'] },
         incidentPriority: {
             type: Schema.Types.ObjectId,
             ref: 'IncidentPriority',
