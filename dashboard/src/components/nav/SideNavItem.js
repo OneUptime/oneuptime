@@ -46,11 +46,12 @@ export class SidebarNavItem extends Component {
     mainRoute = () => {
         const { match, currentProject, route } = this.props;
         return route.path
+
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(
                 ':projectId',
                 match.params.projectId || (currentProject || {})._id
             )
-            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
@@ -61,11 +62,12 @@ export class SidebarNavItem extends Component {
     subRoute = subRoute => {
         const { match, currentProject } = this.props;
         return subRoute.path
+
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(
                 ':projectId',
                 match.params.projectId || (currentProject || {})._id
             )
-            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':componentId', match.params.componentId)
             .replace(/:issueId/, match.params.issueId)
             .replace(/:scheduleId/, match.params.scheduleId)
@@ -90,11 +92,12 @@ export class SidebarNavItem extends Component {
             loadPage,
         } = this.props;
         const path = route.path
+
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(
                 ':projectId',
                 match.params.projectId || (currentProject || {})._id
             )
-            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
