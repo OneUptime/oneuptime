@@ -9,6 +9,13 @@
       "webRoot": "${workspaceFolder}"
     },
       {
+        "name": "Launch Chrome",
+        "request": "launch",
+        "type": "pwa-chrome",
+        "url": "http://localhost:3000",
+        "webRoot": "${workspaceFolder}"
+      },
+      {
         "name": "Debug Jest Tests",
         "type": "node",
         "request": "launch",
