@@ -630,7 +630,7 @@ export const groups = [
             },
             {
                 title: 'Back to Dashboard',
-                path: '/dashboard/project/:projectId/components',
+                path: '/dashboard/project/:slug/components',
                 icon: 'back',
                 component: Component,
                 visible: true,
