@@ -21,6 +21,7 @@ import TutorialBox from '../components/tutorial/TutorialBox';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import { User } from '../config';
 
 export class OnCall extends Component {
     constructor(props) {
@@ -318,7 +319,8 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
+    const projectId = User.getCurrentProjectId();
+
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order

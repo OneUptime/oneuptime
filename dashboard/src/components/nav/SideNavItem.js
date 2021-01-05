@@ -152,10 +152,11 @@ export class SidebarNavItem extends Component {
 
         const isChildLinkActive = route.subRoutes.some(link => {
             let newPath = link.path.replace(
-                /:projectId/,
-                match.params.projectId
+                /:slug/,
+                match.params.slug || (currentProject || {}).slug
             );
-            newPath = newPath.replace(/:slug/, match.params.slug);
+            newPath = newPath.replace(/:projectId/, match.params.projectId);
+
             newPath = newPath.replace(/:issueId/, match.params.issueId);
             newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);

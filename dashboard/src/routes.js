@@ -352,7 +352,7 @@ export const groups = [
                 subRoutes: [
                     {
                         title: 'Alert Log',
-                        path: '/dashboard/project/:slug/alert-log',
+                        path: '/dashboard/project/:projectId/alert-log',
                         icon: 'info',
                         visible: true,
                         subRoutes: [],
@@ -363,7 +363,7 @@ export const groups = [
                     {
                         title: 'Schedule',
                         path:
-                            '/dashboard/project/:slug/sub-project/:subProjectId/schedule/:scheduleId',
+                            '/dashboard/project/:projectId/sub-project/:subProjectId/schedule/:scheduleId',
                         icon: 'call',
                         visible: true,
                         subRoutes: [],
@@ -386,7 +386,7 @@ export const groups = [
                     {
                         title: 'Scheduled Event Detail',
                         path:
-                            '/dashboard/project/:slug/scheduledEvents/:scheduledEventId',
+                            '/dashboard/project/:projectId/scheduledEvents/:scheduledEventId',
                         icon: 'connect',
                         visible: true,
                         component: ScheduledEventDetail,
