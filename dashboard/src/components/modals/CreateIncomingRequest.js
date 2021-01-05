@@ -665,7 +665,7 @@ class CreateIncomingRequest extends Component {
                                                                             true
                                                                         }
                                                                     />
-                                                                    <Tooltip title="Filter for Incoming Request">
+                                                                    <Tooltip title="Incoming Request Filter">
                                                                         <p>
                                                                             Filter
                                                                             exposes
@@ -678,6 +678,20 @@ class CreateIncomingRequest extends Component {
                                                                             an
                                                                             incoming
                                                                             request.
+                                                                            The
+                                                                            value
+                                                                            on
+                                                                            the{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            object
+                                                                            can
+                                                                            either
+                                                                            be a
+                                                                            string
+                                                                            or a
+                                                                            number
                                                                         </p>
                                                                         <p>
                                                                             Example
