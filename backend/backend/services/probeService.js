@@ -412,13 +412,7 @@ module.exports = {
                         }),
                     ];
                 }
-            } else if (
-                data.status === 'offline' &&
-                monitor &&
-                monitor.criteria &&
-                monitor.criteria.down &&
-                monitor.criteria.down.createAlert
-            ) {
+            } else if (data.status === 'offline') {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
                         const newIncident = await IncidentService.updateOneBy(
