@@ -456,7 +456,8 @@ class NewMonitor extends Component {
 
     renderMonitorConfiguration = name => {
         return (
-            <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+            <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                <label className="bs-Fieldset-label" />
                 <div className="Box-root">
                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                         <span>{name} Monitor Configuration</span>
@@ -619,7 +620,8 @@ class NewMonitor extends Component {
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
-                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                                                    <label className="bs-Fieldset-label" />
                                                     <div className="Box-root">
                                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                             <span>
@@ -638,9 +640,13 @@ class NewMonitor extends Component {
                                                     </div>
                                                 </div>
                                                 <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">
-                                                        Name
+                                                    <label className="bs-Fieldset-label" />
+                                                    <label className="new-monitor-label">
+                                                        Monitor Name
                                                     </label>
+                                                </div>
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label" />
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -660,72 +666,6 @@ class NewMonitor extends Component {
                                                         />
                                                     </div>
                                                 </div>
-                                                <ShouldRender
-                                                    if={
-                                                        resourceCategoryList &&
-                                                        resourceCategoryList.length >
-                                                            0
-                                                    }
-                                                >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Resource Category
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <span className="flex">
-                                                                <Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name={`resourceCategory_${this.props.index}`}
-                                                                    id="resourceCategory"
-                                                                    placeholder="Choose Resource Category"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select resource category',
-                                                                        },
-                                                                        ...(resourceCategoryList &&
-                                                                        resourceCategoryList.length >
-                                                                            0
-                                                                            ? resourceCategoryList.map(
-                                                                                  category => ({
-                                                                                      value:
-                                                                                          category._id,
-                                                                                      label:
-                                                                                          category.name,
-                                                                                  })
-                                                                              )
-                                                                            : []),
-                                                                    ]}
-                                                                />
-                                                                <Tooltip title="Resource Category">
-                                                                    <div>
-                                                                        <p>
-                                                                            Resource
-                                                                            Categories
-                                                                            lets
-                                                                            you
-                                                                            group
-                                                                            resources
-                                                                            by
-                                                                            categories
-                                                                            on
-                                                                            Status
-                                                                            Page.
-                                                                        </p>
-                                                                    </div>
-                                                                </Tooltip>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </ShouldRender>
                                                 <ShouldRender
                                                     if={!this.props.edit}
                                                 >
@@ -879,7 +819,6 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-
                                                 <ShouldRender
                                                     if={
                                                         type ===
@@ -1500,11 +1439,104 @@ class NewMonitor extends Component {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
+                                                        resourceCategoryList &&
+                                                        resourceCategoryList.length >
+                                                            0
+                                                    }
+                                                >
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <div className="Box-root">
+                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Resource
+                                                                    Category
+                                                                </span>
+                                                            </span>
+                                                            <p>
+                                                                <span>
+                                                                    Resource
+                                                                    Category
+                                                                    lets you
+                                                                    categorize
+                                                                    monitors on
+                                                                    your status
+                                                                    page.
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
+                                                            Resource Category
+                                                        </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name={`resourceCategory_${this.props.index}`}
+                                                                    id="resourceCategory"
+                                                                    placeholder="Choose Resource Category"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select resource category',
+                                                                        },
+                                                                        ...(resourceCategoryList &&
+                                                                        resourceCategoryList.length >
+                                                                            0
+                                                                            ? resourceCategoryList.map(
+                                                                                  category => ({
+                                                                                      value:
+                                                                                          category._id,
+                                                                                      label:
+                                                                                          category.name,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
+                                                                />
+                                                                <Tooltip title="Resource Category">
+                                                                    <div>
+                                                                        <p>
+                                                                            Resource
+                                                                            Categories
+                                                                            lets
+                                                                            you
+                                                                            group
+                                                                            resources
+                                                                            by
+                                                                            categories
+                                                                            on
+                                                                            Status
+                                                                            Page.
+                                                                        </p>
+                                                                    </div>
+                                                                </Tooltip>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
                                                         schedules &&
                                                         schedules.length > 0
                                                     }
                                                 >
-                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="Box-root">
                                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                                 <span>
