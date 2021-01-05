@@ -49,7 +49,7 @@ class SideNav extends Component {
                                                                 verticalAlign:
                                                                     'middle',
                                                                 height: '100%',
-                                                                width: '80%'
+                                                                width: '80%',
                                                             }}
                                                             alt="warning"
                                                             src={
@@ -117,13 +117,13 @@ class SideNav extends Component {
 
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function (state) {
+const mapStateToProps = function(state) {
     return {
         sidenavopen: state.page.sidenavopen,
     };
 };
 
-const mapDispatchToProps = function (dispatch) {
+const mapDispatchToProps = function(dispatch) {
     return bindActionCreators(
         {
             openModal,

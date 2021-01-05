@@ -68,7 +68,7 @@ class CardForm extends Component {
         cardNumber: '',
         cardCvc: '',
         cardExpiry: '',
-        registerModal : uuid.v4()
+        registerModal: uuid.v4(),
     };
 
     handleChange = event => {
@@ -103,7 +103,7 @@ class CardForm extends Component {
             content: ExtraCharge,
         });
     };
-    
+
     handleSubmit = values => {
         const {
             stripe,
@@ -192,7 +192,7 @@ class CardForm extends Component {
                                 <p>
                                     Your card will be charged $1.00 to check its
                                     billability.{' '}
-                                    <span key={()=> uuid.v4()}></span>
+                                    <span key={() => uuid.v4()}></span>
                                     <span
                                         style={{
                                             color: 'green',
@@ -542,7 +542,7 @@ class CardForm extends Component {
 
 CardForm.displayName = 'CardForm';
 
-const validate = function (values) {
+const validate = function(values) {
     const errors = {};
 
     if (!Validate.text(values.cardName)) {
