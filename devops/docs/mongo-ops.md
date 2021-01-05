@@ -4,6 +4,8 @@
 
 Admin mongodb username is: `root`
 
+## Backup
+
 ## Method 1: Copy data from server to server (recommended)
 
 **Step 1:** Expose Mongodb over the internet on source cluster.

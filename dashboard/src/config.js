@@ -1053,3 +1053,21 @@ export const logLibraries = {
         ];
     },
 };
+
+export const incomingRequestVariables = [
+    {
+        variable: '{{monitorName}}',
+        description:
+            '{{monitorName}} : Name of the monitor on which the incident has occured',
+    },
+    {
+        variable: '{{projectName}}',
+        description:
+            '{{projectName}} : Name of the project on which the incident has occured',
+    },
+    {
+        variable: '{{componentName}}',
+        description:
+            '{{componentName}} : Name of the component the monitor belongs to',
+    },
+];

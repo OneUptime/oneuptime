@@ -88,7 +88,7 @@ module.exports = {
                     monitor.incidentCommunicationSla =
                         data.incidentCommunicationSla;
                     monitor.createdById = data.createdById;
-                    monitor.variables = data.variables;
+                    monitor.thirdPartyVariable = data.thirdPartyVariable;
                     if (data.type === 'url' || data.type === 'api') {
                         monitor.data = {};
                         monitor.data.url = data.data.url;
@@ -180,10 +180,13 @@ module.exports = {
                 const monitor = await this.findOneBy(query);
 
                 if (data.name !== monitor.name) {
-                    const initialVariables = monitor.variables
-                        ? monitor.variables
+                    const initialThirdPartyVariables = monitor.thirdPartyVariable
+                        ? monitor.thirdPartyVariable
                         : [];
-                    data.variables = [...initialVariables, data.name];
+                    data.thirdPartyVariable = [
+                        ...initialThirdPartyVariables,
+                        data.name,
+                    ];
                 }
             }
 

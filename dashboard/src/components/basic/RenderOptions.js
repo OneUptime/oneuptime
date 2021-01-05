@@ -26,7 +26,7 @@ const firstField = [
     'lessThan',
     'inBetween',
     'equalTo',
-    'notEqualto',
+    'notEqualTo',
     'gtEqualTo',
     'ltEqualTo',
     'contains',
@@ -627,7 +627,10 @@ export class RenderOption extends Component {
                                         filterval !== '' &&
                                         firstField.indexOf(filterval) > -1
                                             ? filterval === 'jsExpression' ||
-                                              filterval === 'evaluateResponse'
+                                              filterval ===
+                                                  'evaluateResponse' ||
+                                              filterval === 'contains' ||
+                                              filterval === 'doesNotContain'
                                                 ? ValidateField.required
                                                 : [
                                                       ValidateField.required,

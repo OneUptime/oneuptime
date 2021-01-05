@@ -142,15 +142,13 @@ router.delete(
 
 router.post('/:projectId/request/:requestId', async function(req, res) {
     try {
-        //TODO
-        // when the payload is available from external service
-        // perform the action specified on the incoming request collection
-
-        // req.body
-        // req.body.fields
+        // target value key on request body, request query or request headers
+        // more may be added in the future
+        const externalFilter =
+            req.body.value || req.query.value || req.headers.value;
 
         const { projectId, requestId } = req.params;
-        const data = { projectId, requestId };
+        const data = { projectId, requestId, filter: externalFilter };
         await IncomingRequestService.handleIncomingRequestAction(data);
 
         return sendItemResponse(
