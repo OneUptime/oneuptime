@@ -736,7 +736,13 @@ class NewMonitor extends Component {
                                                         }}
                                                     >
                                                         <label className="bs-Fieldset-label" />
-                                                        <label className="bs-Fieldset-label">
+                                                        <label
+                                                            className="new-monitor-label"
+                                                            style={{
+                                                                paddingLeft:
+                                                                    '5px',
+                                                            }}
+                                                        >
                                                             What would you like
                                                             to monitor?
                                                         </label>
@@ -855,7 +861,7 @@ class NewMonitor extends Component {
                                                                         .showAllMonitors ? null : (
                                                                         <div className="bs-Fieldset-fields">
                                                                             <button
-                                                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--more"
+                                                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--moreMonitorTypes"
                                                                                 type="button"
                                                                                 onClick={() => {
                                                                                     this.setState(
@@ -866,7 +872,10 @@ class NewMonitor extends Component {
                                                                                 }}
                                                                             >
                                                                                 <span>
-                                                                                    More
+                                                                                    Show
+                                                                                    more
+                                                                                    monitor
+                                                                                    types
                                                                                 </span>
                                                                             </button>
                                                                         </div>
