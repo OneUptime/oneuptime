@@ -15,6 +15,8 @@ import { openModal } from '../../actions/modal';
 import EditIncomingRequest from '../modals/EditIncomingRequest';
 import DeleteIncomingRequest from '../modals/DeleteIncomingRequest';
 import copyToClipboard from '../../utils/copyToClipboard';
+import { fetchIncidentPriorities } from '../../actions/incidentPriorities';
+import { fetchBasicIncidentSettings } from '../../actions/incidentBasicsSettings';
 
 class IncomingRequestList extends React.Component {
     state = {
@@ -33,7 +35,11 @@ class IncomingRequestList extends React.Component {
     };
 
     ready() {
-        const { fetchAllIncomingRequest } = this.props;
+        const {
+            fetchAllIncomingRequest,
+            fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
+        } = this.props;
         let { projectId } = this.props;
 
         if (!projectId) {
@@ -42,6 +48,8 @@ class IncomingRequestList extends React.Component {
                 .split('/')[0];
         }
         fetchAllIncomingRequest(projectId, 0, 10);
+        fetchIncidentPriorities(projectId, 0, 0);
+        fetchBasicIncidentSettings(projectId);
 
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCOMING REQUEST');
@@ -465,7 +473,13 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { fetchAllIncomingRequest, openModal, setActiveIncomingRequest },
+        {
+            fetchAllIncomingRequest,
+            openModal,
+            setActiveIncomingRequest,
+            fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
+        },
         dispatch
     );
 
@@ -484,6 +498,8 @@ IncomingRequestList.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     activeIncomingRequest: PropTypes.string,
+    fetchIncidentPriorities: PropTypes.func,
+    fetchBasicIncidentSettings: PropTypes.func,
 };
 
 export default connect(

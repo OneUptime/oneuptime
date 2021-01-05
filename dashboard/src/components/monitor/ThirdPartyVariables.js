@@ -17,18 +17,24 @@ class ThirdPartyVariables extends Component {
         values._id = monitor._id;
         values.projectId = currentProject._id;
 
-        if (values.variables && values.variables.length > 0) {
-            const variables = values.variables.filter(
-                variable => typeof variable === 'string'
+        if (values.thirdPartyVariable && values.thirdPartyVariable.length > 0) {
+            const thirdPartyVariable = values.thirdPartyVariable.filter(
+                variable =>
+                    typeof variable === 'string' || typeof variable === 'number'
             );
-            values.variables = variables;
+            values.thirdPartyVariable = thirdPartyVariable.map(variable => {
+                if (!isNaN(variable)) {
+                    variable = Number(variable);
+                }
+                return variable;
+            });
         }
 
         this.props.editMonitor(currentProject._id, values);
 
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > PRIVATE STATUS PAGE UPDATED'
+                'EVENT: DASHBOARD > PROJECT > MONITOR > INTEGRATION > THIRD PARTY VARIABLE'
             );
         }
     };
@@ -52,8 +58,8 @@ class ThirdPartyVariables extends Component {
                         }}
                     ></button>
                     {formValues &&
-                        (!formValues.variables ||
-                            formValues.variables.length === 0) && (
+                        (!formValues.thirdPartyVariable ||
+                            formValues.thirdPartyVariable.length === 0) && (
                             <span
                                 style={{
                                     display: 'block',
@@ -108,12 +114,7 @@ class ThirdPartyVariables extends Component {
     };
 
     render() {
-        const {
-            handleSubmit,
-            formValues,
-            editingMonitor,
-            editError,
-        } = this.props;
+        const { handleSubmit, editingMonitor, editError } = this.props;
 
         return (
             <div className="Box-root Margin-vertical--12">
@@ -218,7 +219,7 @@ class ThirdPartyVariables extends Component {
                                                                                     }}
                                                                                 >
                                                                                     <FieldArray
-                                                                                        name="variables"
+                                                                                        name="thirdPartyVariable"
                                                                                         component={
                                                                                             this
                                                                                                 .renderVariables
@@ -271,13 +272,7 @@ class ThirdPartyVariables extends Component {
                                                     <button
                                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                                         disabled={
-                                                            formValues &&
-                                                            (!formValues.variables ||
-                                                                formValues
-                                                                    .variables
-                                                                    .length ===
-                                                                    0 ||
-                                                                editingMonitor)
+                                                            editingMonitor
                                                         }
                                                         type="submit"
                                                         id="saveMonitorVariables"
@@ -326,6 +321,7 @@ ThirdPartyVariables.propTypes = {
 const ThirdPartyVariableForm = reduxForm({
     form: 'ThirdPartyVariableForm', // a unique identifier for this form
     enableReinitialize: true,
+    destroyOnUnmount: true,
 })(ThirdPartyVariables);
 
 const mapDispatchToProps = dispatch =>
@@ -339,8 +335,12 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = (state, ownProps) => {
     const { monitor } = ownProps;
     const initialValues = {};
-    if (monitor && monitor.variables && monitor.variables.length > 0) {
-        initialValues.variables = monitor.variables;
+    if (
+        monitor &&
+        monitor.thirdPartyVariable &&
+        monitor.thirdPartyVariable.length > 0
+    ) {
+        initialValues.thirdPartyVariable = monitor.thirdPartyVariable;
     }
 
     return {

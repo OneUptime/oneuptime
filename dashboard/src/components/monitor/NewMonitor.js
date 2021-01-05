@@ -2058,24 +2058,13 @@ class NewMonitor extends Component {
                                                         index={this.props.index}
                                                         type={this.state.type}
                                                     />
-                                                    <div className="Box-root">
-                                                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                                                            <div className="Box-root">
-                                                                <div className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                                    When the
-                                                                    monitor is
-                                                                    not
-                                                                    considered
-                                                                    online or
-                                                                    degraded, it
-                                                                    is
-                                                                    considered
-                                                                    down by
-                                                                    default
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                    <ResponseComponent
+                                                        head="Monitor down criteria"
+                                                        tagline="This is where you describe when your monitor is considered down"
+                                                        fieldname={`down_${this.props.index}`}
+                                                        index={this.props.index}
+                                                        type={this.state.type}
+                                                    />
                                                 </ShouldRender>
                                             </div>
                                         </fieldset>

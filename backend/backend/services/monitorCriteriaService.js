@@ -378,7 +378,10 @@ const MonitorCriteriaService = {
                     criteriaObj.up.autoResolve = criteria.up_1000_autoResolve
                         ? true
                         : false;
-                }else if (criteria.degraded_1000 && criteria.degraded_1000.length) {
+                } else if (
+                    criteria.degraded_1000 &&
+                    criteria.degraded_1000.length
+                ) {
                     criteriaObj.degraded = this.makeCriteria(
                         criteria.degraded_1000
                     );
@@ -391,7 +394,7 @@ const MonitorCriteriaService = {
                     criteriaObj.degraded.autoResolve = criteria.degraded_1000_autoResolve
                         ? true
                         : false;
-                }else {
+                } else {
                     criteriaObj.down = this.makeCriteria(criteria.down_1000);
                     criteriaObj.down.createAlert = criteria.down_1000_createAlert
                         ? true
