@@ -20,6 +20,8 @@ import {
 import DataPathHoC from '../components/DataPathHoC';
 import IncidentBasicSettings from '../components/incident/IncidentBasicSettings';
 import IncidentCommunicationSla from '../components/incidentCommunicationSla/IncidentCommunicationSla';
+import IncidentCustomFields from '../components/incident/IncidentCustomFields';
+import { fetchCustomFields } from '../actions/customField';
 
 class IncidentSettings extends React.Component {
     state = {
@@ -83,6 +85,7 @@ class IncidentSettings extends React.Component {
             this.props.currentProject._id
         );
         await this.props.fetchBasicIncidentSettingsVariables();
+        this.props.fetchCustomFields(this.props.currentProject._id, 0, 10);
     }
 
     prevClicked() {
@@ -153,9 +156,12 @@ class IncidentSettings extends React.Component {
                                     <Tab className={'custom-tab custom-tab-3'}>
                                         Communication SLA
                                     </Tab>
+                                    <Tab className={'custom-tab custom-tab-3'}>
+                                        Advanced
+                                    </Tab>
                                     <div
                                         id="tab-slider"
-                                        className="custom-tab-3"
+                                        className="custom-tab-4"
                                     ></div>
                                 </TabList>
                             </div>
@@ -347,6 +353,13 @@ class IncidentSettings extends React.Component {
                                     />
                                 </Fade>
                             </TabPanel>
+                            <TabPanel>
+                                <Fade>
+                                    <IncidentCustomFields
+                                        projectId={match.params.projectId}
+                                    />
+                                </Fade>
+                            </TabPanel>
                         </Tabs>
                     </div>
                 </Fade>
@@ -371,6 +384,7 @@ IncidentSettings.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     match: PropTypes.object,
+    fetchCustomFields: PropTypes.func,
 };
 const mapStateToProps = state => {
     return {
@@ -391,6 +405,7 @@ const mapDispatchToProps = dispatch =>
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
             fetchBasicIncidentSettingsVariables,
+            fetchCustomFields,
         },
         dispatch
     );
