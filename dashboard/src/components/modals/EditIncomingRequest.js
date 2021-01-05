@@ -11,6 +11,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { editIncomingRequest } from '../../actions/incomingRequest';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import Tooltip from '../basic/Tooltip';
+import { incomingRequestVariables } from '../../config';
 
 function validate(values) {
     const errors = {};
@@ -21,6 +22,12 @@ function validate(values) {
 
     return errors;
 }
+
+const bulletpoints = {
+    display: 'listItem',
+    listStyleType: 'disc',
+    listStylePosition: 'inside',
+};
 
 class EditIncomingRequest extends Component {
     state = {
@@ -229,6 +236,12 @@ class EditIncomingRequest extends Component {
         this.props.change(
             'showAdvancedOptions',
             !this.props.formValues.showAdvancedOptions
+        );
+
+    toggleShowAvailableVariables = () =>
+        this.props.change(
+            'showAvailableVariables',
+            !this.props.formValues.showAvailableVariables
         );
 
     render() {
@@ -1076,6 +1089,128 @@ class EditIncomingRequest extends Component {
                                                         </div>
                                                     </div>
                                                 </fieldset>
+                                                <fieldset
+                                                    style={{ paddingTop: 0 }}
+                                                >
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            <label
+                                                                className="bs-Fieldset-label Text-align--left"
+                                                                htmlFor="name"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '20%',
+                                                                }}
+                                                            ></label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '80%',
+                                                                    maxWidth:
+                                                                        '80%',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                        display:
+                                                                            'block',
+                                                                    }}
+                                                                >
+                                                                    {formValues &&
+                                                                        !formValues.showAvailableVariables && (
+                                                                            <div
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                    paddingBottom: 10,
+                                                                                    textDecoration:
+                                                                                        'underline',
+                                                                                    cursor:
+                                                                                        'pointer',
+                                                                                }}
+                                                                                onClick={
+                                                                                    this
+                                                                                        .toggleShowAvailableVariables
+                                                                                }
+                                                                            >
+                                                                                Click
+                                                                                to
+                                                                                show
+                                                                                available
+                                                                                variables
+                                                                            </div>
+                                                                        )}
+                                                                    {formValues &&
+                                                                        formValues.showAvailableVariables && (
+                                                                            <div>
+                                                                                <span
+                                                                                    className="template-variable-2"
+                                                                                    style={{
+                                                                                        display:
+                                                                                            'block',
+                                                                                        paddingBottom:
+                                                                                            '10px',
+                                                                                    }}
+                                                                                >
+                                                                                    You
+                                                                                    can
+                                                                                    use
+                                                                                    these
+                                                                                    available
+                                                                                    variables
+                                                                                    in
+                                                                                    incident
+                                                                                    title
+                                                                                    or
+                                                                                    description.
+                                                                                </span>
+                                                                                <span
+                                                                                    className="template-variable-1"
+                                                                                    style={{
+                                                                                        display:
+                                                                                            'block',
+                                                                                    }}
+                                                                                >
+                                                                                    {incomingRequestVariables.map(
+                                                                                        (
+                                                                                            item,
+                                                                                            index
+                                                                                        ) => {
+                                                                                            return (
+                                                                                                <span
+                                                                                                    key={
+                                                                                                        index
+                                                                                                    }
+                                                                                                    className="template-variables"
+                                                                                                    style={
+                                                                                                        bulletpoints
+                                                                                                    }
+                                                                                                >
+                                                                                                    {
+                                                                                                        item.description
+                                                                                                    }
+                                                                                                    <br />
+                                                                                                </span>
+                                                                                            );
+                                                                                        }
+                                                                                    )}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
                                             </>
                                         )}
                                 </div>
@@ -1207,6 +1342,7 @@ const mapStateToProps = state => {
         initialValues.incidentDescription =
             incomingRequestToBeUpdated.incidentDescription;
         initialValues.showAdvancedOptions = false;
+        initialValues.showAvailableVariables = false;
     }
 
     const monitorData = state.monitor.monitorsList.monitors.find(
