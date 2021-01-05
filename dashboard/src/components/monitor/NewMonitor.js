@@ -639,7 +639,7 @@ class NewMonitor extends Component {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="bs-Fieldset-row">
+                                                <div className="nm-Fieldset-row">
                                                     <label className="bs-Fieldset-label" />
                                                     <label className="new-monitor-label">
                                                         Monitor Name
@@ -835,7 +835,7 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Server'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             Mode
@@ -898,7 +898,7 @@ class NewMonitor extends Component {
                                                             mode === 'agentless'
                                                         }
                                                     >
-                                                        <div className="bs-Fieldset-row">
+                                                        <div className="nm-Fieldset-row">
                                                             <label className="bs-Fieldset-label" />
                                                             <label className="new-monitor-label">
                                                                 Host
@@ -926,7 +926,7 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
 
-                                                        <div className="bs-Fieldset-row">
+                                                        <div className="nm-Fieldset-row">
                                                             <label className="bs-Fieldset-label" />
                                                             <label className="new-monitor-label">
                                                                 Port
@@ -954,7 +954,7 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
 
-                                                        <div className="bs-Fieldset-row">
+                                                        <div className="nm-Fieldset-row">
                                                             <label className="bs-Fieldset-label" />
                                                             <label className="new-monitor-label">
                                                                 Username
@@ -982,7 +982,7 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
 
-                                                        <div className="bs-Fieldset-row">
+                                                        <div className="nm-Fieldset-row">
                                                             <label className="bs-Fieldset-label" />
                                                             <label className="new-monitor-label">
                                                                 Authentication
@@ -1048,7 +1048,7 @@ class NewMonitor extends Component {
                                                                 'password'
                                                             }
                                                         >
-                                                            <div className="bs-Fieldset-row">
+                                                            <div className="nm-Fieldset-row">
                                                                 <label className="bs-Fieldset-label" />
                                                                 <label className="new-monitor-label">
                                                                     Password
@@ -1083,7 +1083,7 @@ class NewMonitor extends Component {
                                                                 'identityFile'
                                                             }
                                                         >
-                                                            <div className="bs-Fieldset-row">
+                                                            <div className="nm-Fieldset-row">
                                                                 <label className="bs-Fieldset-label" />
                                                                 <label className="new-monitor-label">
                                                                     Identity
@@ -1201,7 +1201,7 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'API'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             HTTP Method
@@ -1263,7 +1263,7 @@ class NewMonitor extends Component {
                                                             />
                                                         </div>
                                                     </div>
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             URL
@@ -1303,7 +1303,7 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Website'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             URL
@@ -1346,7 +1346,7 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Incoming HTTP Request'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             Incoming URL
@@ -1379,7 +1379,7 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Manual'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             Description
@@ -1410,7 +1410,7 @@ class NewMonitor extends Component {
                                                         {this.renderMonitorConfiguration(
                                                             'IOT Device'
                                                         )}
-                                                        <div className="bs-Fieldset-row">
+                                                        <div className="nm-Fieldset-row">
                                                             <label className="bs-Fieldset-label" />
                                                             <label className="new-monitor-label">
                                                                 Device ID
@@ -1445,7 +1445,7 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Script'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             Script
@@ -1527,7 +1527,7 @@ class NewMonitor extends Component {
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             Resource Category
@@ -1615,7 +1615,7 @@ class NewMonitor extends Component {
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             Call Schedule
@@ -1734,7 +1734,7 @@ class NewMonitor extends Component {
                                                             .length > 0
                                                     }
                                                 >
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             Monitor SLA
@@ -1844,7 +1844,7 @@ class NewMonitor extends Component {
                                                             .length > 0
                                                     }
                                                 >
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
                                                             Incident

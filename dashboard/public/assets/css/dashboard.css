@@ -5877,6 +5877,11 @@ pre.bs-PropertyList-definition, pre.bs-PropertyList-property {
   padding: 10px 20px;
 }
 
+.nm-Fieldset-row {
+  display: flex;
+  padding: 0px 20px;
+}
+
 .bs-Fieldset-row:first-child {
   padding-top: 20px;
 }
