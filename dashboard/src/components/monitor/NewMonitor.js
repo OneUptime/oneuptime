@@ -736,13 +736,7 @@ class NewMonitor extends Component {
                                                         }}
                                                     >
                                                         <label className="bs-Fieldset-label" />
-                                                        <label
-                                                            className="new-monitor-label"
-                                                            style={{
-                                                                paddingLeft:
-                                                                    '5px',
-                                                            }}
-                                                        >
+                                                        <label className="new-monitor-label">
                                                             What would you like
                                                             to monitor?
                                                         </label>
