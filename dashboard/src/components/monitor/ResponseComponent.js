@@ -248,18 +248,14 @@ export class ResponseComponent extends Component {
                                 this.props.fieldname ===
                                 `down_${this.props.index}`
                             }
-                        >
-                            <div className="Box-root">
-                                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                                    <div className="Box-root">
-                                        <div className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                        >                   
+                                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1  Padding-horizontal--20 Padding-vertical--16">
+                                        <div style={{textAlign:'center'}} className="Text-fontSize--15">
                                             When the monitor is not considered
                                             online or degraded, it is considered
                                             down by default.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                        </div>                                    
+                                </div>                            
                         </ShouldRender>
                     </div>
                 </div>
