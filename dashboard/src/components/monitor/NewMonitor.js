@@ -525,7 +525,7 @@ class NewMonitor extends Component {
                 description:
                     'Manual monitors do not monitor any resource. You can change monitor status by using Fyipe’s API. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.',
                 icon:
-                    'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjQxNHB0IiB2aWV3Qm94PSIwIC0yNCA0MTQgNDE0IiB3aWR0aD0iNDE0cHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTM2NyAzNjUuMzA0Njg4aC0zMjBjLTI1LjkxNDA2MiAwLTQ3LTIxLjA4NTkzOC00Ny00N3YtMjcxLjMwNDY4OGMwLTI1LjkxNDA2MiAyMS4wODU5MzgtNDcgNDctNDdoMzIwYzI1LjkxNDA2MiAwIDQ3IDIxLjA4NTkzOCA0NyA0N3YyNzEuMzA0Njg4YzAgMjUuOTE0MDYyLTIxLjA4NTkzOCA0Ny00NyA0N3ptLTMyMC0zNTEuMzA0Njg4Yy0xOC4xOTUzMTIgMC0zMyAxNC44MDQ2ODgtMzMgMzN2MjcxLjMwNDY4OGMwIDE4LjE5NTMxMiAxNC44MDQ2ODggMzMgMzMgMzNoMzIwYzE4LjE5NTMxMiAwIDMzLTE0LjgwNDY4OCAzMy0zM3YtMjcxLjMwNDY4OGMwLTE4LjE5NTMxMi0xNC44MDQ2ODgtMzMtMzMtMzN6bTAgMCIvPjxwYXRoIGQ9Im0zNTAuODIwMzEyIDI1OC40MzM1OTRoLTEwOS45OTYwOTNjLTMuODY3MTg4IDAtNy0zLjEzMjgxMy03LTcgMC0zLjg2MzI4MiAzLjEzMjgxMi03IDctN2gxMDkuOTk2MDkzYzMuODYzMjgyIDAgNyAzLjEzNjcxOCA3IDcgMCAzLjg2NzE4Ny0zLjEzMjgxMiA3LTcgN3ptMCAwIi8+PHBhdGggZD0ibTM1MC44MjAzMTIgMzA5LjA0Mjk2OWgtMTA5Ljk5NjA5M2MtMy44NjcxODggMC03LTMuMTMyODEzLTctNyAwLTMuODYzMjgxIDMuMTMyODEyLTcgNy03aDEwOS45OTYwOTNjMy44NjMyODIgMCA3IDMuMTM2NzE5IDcgNyAwIDMuODY3MTg3LTMuMTMyODEyIDctNyA3em0wIDAiLz48cGF0aCBkPSJtMzUwLjgyMDMxMiAxNTcuMjE0ODQ0aC0xMDkuOTk2MDkzYy0zLjg2NzE4OCAwLTctMy4xMzI4MTMtNy03IDAtMy44NjMyODIgMy4xMzI4MTItNyA3LTdoMTA5Ljk5NjA5M2MzLjg2MzI4MiAwIDcgMy4xMzY3MTggNyA3IDAgMy44NjcxODctMy4xMzI4MTIgNy03IDd6bTAgMCIvPjxwYXRoIGQ9Im0zNTAuODIwMzEyIDIwNy44MjQyMTloLTEwOS45OTYwOTNjLTMuODY3MTg4IDAtNy0zLjEzMjgxMy03LTcgMC0zLjg2MzI4MSAzLjEzMjgxMi03IDctN2gxMDkuOTk2MDkzYzMuODYzMjgyIDAgNyAzLjEzNjcxOSA3IDcgMCAzLjg2NzE4Ny0zLjEzMjgxMiA3LTcgN3ptMCAwIi8+PHBhdGggZD0ibTQwNyA5My43MzA0NjloLTQwMGMtMy44NjcxODggMC03LTMuMTMyODEzLTctNyAwLTMuODY3MTg4IDMuMTMyODEyLTcgNy03aDQwMGMzLjg2NzE4OCAwIDcgMy4xMzI4MTIgNyA3IDAgMy44NjcxODctMy4xMzI4MTIgNy03IDd6bTAgMCIvPjxwYXRoIGQ9Im0xMDAuOTE0MDYyIDY4Ljc4MTI1Yy0xMi4wMTE3MTggMC0yMS43ODUxNTYtOS43Njk1MzEtMjEuNzg1MTU2LTIxLjc4MTI1czkuNzczNDM4LTIxLjc4MTI1IDIxLjc4NTE1Ni0yMS43ODEyNWMxMi4wMTE3MTkgMCAyMS43ODEyNSA5Ljc2OTUzMSAyMS43ODEyNSAyMS43ODEyNXMtOS43Njk1MzEgMjEuNzgxMjUtMjEuNzgxMjUgMjEuNzgxMjV6bTAtMjkuNTYyNWMtNC4yOTI5NjggMC03Ljc4NTE1NiAzLjQ5MjE4OC03Ljc4NTE1NiA3Ljc4MTI1czMuNDkyMTg4IDcuNzgxMjUgNy43ODUxNTYgNy43ODEyNWM0LjI4OTA2MyAwIDcuNzgxMjUtMy40OTIxODggNy43ODEyNS03Ljc4MTI1cy0zLjQ5MjE4Ny03Ljc4MTI1LTcuNzgxMjUtNy43ODEyNXptMCAwIi8+PHBhdGggZD0ibTUwLjQ3NjU2MiA2OC43ODEyNWMtMTIuMDA3ODEyIDAtMjEuNzgxMjUtOS43Njk1MzEtMjEuNzgxMjUtMjEuNzgxMjVzOS43NzM0MzgtMjEuNzgxMjUgMjEuNzgxMjUtMjEuNzgxMjVjMTIuMDExNzE5IDAgMjEuNzg1MTU3IDkuNzY5NTMxIDIxLjc4NTE1NyAyMS43ODEyNXMtOS43NzM0MzggMjEuNzgxMjUtMjEuNzg1MTU3IDIxLjc4MTI1em0wLTI5LjU2MjVjLTQuMjg5MDYyIDAtNy43ODEyNSAzLjQ5MjE4OC03Ljc4MTI1IDcuNzgxMjVzMy40OTIxODggNy43ODEyNSA3Ljc4MTI1IDcuNzgxMjVjNC4yOTI5NjkgMCA3Ljc4NTE1Ny0zLjQ5MjE4OCA3Ljc4NTE1Ny03Ljc4MTI1cy0zLjQ5MjE4OC03Ljc4MTI1LTcuNzg1MTU3LTcuNzgxMjV6bTAgMCIvPjxwYXRoIGQ9Im0xNTEuMzQ3NjU2IDY4Ljc4MTI1Yy0xMi4wMTE3MTggMC0yMS43ODEyNS05Ljc2OTUzMS0yMS43ODEyNS0yMS43ODEyNXM5Ljc2OTUzMi0yMS43ODEyNSAyMS43ODEyNS0yMS43ODEyNWMxMi4wMTE3MTkgMCAyMS43ODUxNTYgOS43Njk1MzEgMjEuNzg1MTU2IDIxLjc4MTI1cy05Ljc3MzQzNyAyMS43ODEyNS0yMS43ODUxNTYgMjEuNzgxMjV6bTAtMjkuNTYyNWMtNC4yOTI5NjggMC03Ljc4MTI1IDMuNDkyMTg4LTcuNzgxMjUgNy43ODEyNXMzLjQ5MjE4OCA3Ljc4MTI1IDcuNzgxMjUgNy43ODEyNWM0LjI5Mjk2OSAwIDcuNzg1MTU2LTMuNDkyMTg4IDcuNzg1MTU2LTcuNzgxMjVzLTMuNDkyMTg3LTcuNzgxMjUtNy43ODUxNTYtNy43ODEyNXptMCAwIi8+PHBhdGggZD0ibTE4OCAzMDkuMDQyOTY5aC0xMjdjLTMuODY3MTg4IDAtNy0zLjEzMjgxMy03LTd2LTE1MS44MjgxMjVjMC0zLjg2MzI4MiAzLjEzMjgxMi03IDctN2gxMjdjMy44NjcxODggMCA3IDMuMTM2NzE4IDcgN3YxNTEuODI4MTI1YzAgMy44NjcxODctMy4xMzI4MTIgNy03IDd6bS0xMjAtMTRoMTEzdi0xMzcuODI4MTI1aC0xMTN6bTAgMCIvPjwvc3ZnPg==',
+                    'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNDI2LjY2NyA0MjYuNjY3IiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA0MjYuNjY3IDQyNi42Njc7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNMjEzLjMzMywwQzk1LjQ2NywwLDAsOTUuNDY3LDAsMjEzLjMzM3M5NS40NjcsMjEzLjMzMywyMTMuMzMzLDIxMy4zMzNTNDI2LjY2NywzMzEuMiw0MjYuNjY3LDIxMy4zMzNTMzMxLjIsMCwyMTMuMzMzLDANCgkJCXogTTIxMy4zMzMsMzg0Yy05NC4yOTMsMC0xNzAuNjY3LTc2LjM3My0xNzAuNjY3LTE3MC42NjdTMTE5LjA0LDQyLjY2NywyMTMuMzMzLDQyLjY2N1MzODQsMTE5LjA0LDM4NCwyMTMuMzMzDQoJCQlTMzA3LjYyNywzODQsMjEzLjMzMywzODR6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPC9zdmc+DQo=',
             },
             {
                 value: 'server-monitor',
@@ -681,7 +681,13 @@ class NewMonitor extends Component {
                                                             to monitor?
                                                         </label>
                                                     </div>
-                                                    <div className="bs-Fieldset-row">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            marginBottom:
+                                                                '30px',
+                                                        }}
+                                                    >
                                                         <label className="bs-Fieldset-label" />
 
                                                         <div className="radio-field">
@@ -830,10 +836,13 @@ class NewMonitor extends Component {
                                                         'Server'
                                                     )}
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Mode
                                                         </label>
-
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
                                                                 <Field
@@ -890,9 +899,13 @@ class NewMonitor extends Component {
                                                         }
                                                     >
                                                         <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <label className="new-monitor-label">
                                                                 Host
                                                             </label>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -914,9 +927,13 @@ class NewMonitor extends Component {
                                                         </div>
 
                                                         <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <label className="new-monitor-label">
                                                                 Port
                                                             </label>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -938,9 +955,13 @@ class NewMonitor extends Component {
                                                         </div>
 
                                                         <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <label className="new-monitor-label">
                                                                 Username
                                                             </label>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -962,10 +983,14 @@ class NewMonitor extends Component {
                                                         </div>
 
                                                         <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <label className="new-monitor-label">
                                                                 Authentication
                                                                 Method
                                                             </label>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
 
                                                             <div className="bs-Fieldset-fields">
                                                                 <span className="flex">
@@ -1024,9 +1049,13 @@ class NewMonitor extends Component {
                                                             }
                                                         >
                                                             <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
+                                                                <label className="bs-Fieldset-label" />
+                                                                <label className="new-monitor-label">
                                                                     Password
                                                                 </label>
+                                                            </div>
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label" />
                                                                 <div className="bs-Fieldset-fields">
                                                                     <Field
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1055,10 +1084,14 @@ class NewMonitor extends Component {
                                                             }
                                                         >
                                                             <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
+                                                                <label className="bs-Fieldset-label" />
+                                                                <label className="new-monitor-label">
                                                                     Identity
                                                                     File
                                                                 </label>
+                                                            </div>
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label" />
                                                                 <div className="bs-Fieldset-fields">
                                                                     <div
                                                                         className="Box-root Flex-flex Flex-alignItems--center"
@@ -1169,9 +1202,13 @@ class NewMonitor extends Component {
                                                         'API'
                                                     )}
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             HTTP Method
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
                                                                 className="db-select-nw"
@@ -1227,9 +1264,13 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             URL
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1263,9 +1304,13 @@ class NewMonitor extends Component {
                                                         'Website'
                                                     )}
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             URL
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1302,9 +1347,13 @@ class NewMonitor extends Component {
                                                         'Incoming HTTP Request'
                                                     )}
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Incoming URL
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div
                                                             className="bs-Fieldset-fields"
                                                             style={{
@@ -1331,10 +1380,14 @@ class NewMonitor extends Component {
                                                         'Manual'
                                                     )}
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Description
                                                             (optional)
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1358,9 +1411,13 @@ class NewMonitor extends Component {
                                                             'IOT Device'
                                                         )}
                                                         <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <label className="new-monitor-label">
                                                                 Device ID
                                                             </label>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1389,9 +1446,13 @@ class NewMonitor extends Component {
                                                         'Script'
                                                     )}
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Script
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <span>
                                                                 <span>
@@ -1555,9 +1616,13 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Call Schedule
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
                                                                 <Field
@@ -1642,7 +1707,8 @@ class NewMonitor extends Component {
                                                             .length > 0
                                                     }
                                                 >
-                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="Box-root">
                                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                                 <span>
@@ -1656,7 +1722,7 @@ class NewMonitor extends Component {
                                                                     Select the
                                                                     SLAs for
                                                                     your new
-                                                                    Monitor.
+                                                                    monitor.
                                                                 </span>
                                                             </p>
                                                         </div>
@@ -1669,9 +1735,13 @@ class NewMonitor extends Component {
                                                     }
                                                 >
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Monitor SLA
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
@@ -1775,10 +1845,14 @@ class NewMonitor extends Component {
                                                     }
                                                 >
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Incident
                                                             Communication SLA
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
@@ -1910,7 +1984,8 @@ class NewMonitor extends Component {
                                                         !this.state.advance
                                                     }
                                                 >
-                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="Box-root">
                                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                                 <span>
@@ -1923,7 +1998,7 @@ class NewMonitor extends Component {
                                                                     Configuration
                                                                     settings for
                                                                     your new
-                                                                    Monitor.
+                                                                    monitor.
                                                                 </span>
                                                             </p>
                                                         </div>
