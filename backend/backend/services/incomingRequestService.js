@@ -405,6 +405,11 @@ module.exports = {
                         projectId: data.projectId,
                         filterText: filter,
                     });
+                } else {
+                    incomingRequest = await _this.findOneBy({
+                        _id: data.requestId,
+                        projectId: data.projectId,
+                    });
                 }
             } else {
                 incomingRequest = await _this.findOneBy({
@@ -418,6 +423,10 @@ module.exports = {
                 incomingRequest = await _this.findOneBy({
                     _id: data.requestId,
                     projectId: data.projectId,
+                    $or: [
+                        { filterText: { $exists: false } },
+                        { filterText: '' },
+                    ],
                 });
             }
 
@@ -461,7 +470,6 @@ module.exports = {
                                 monitorName: monitor.name,
                                 projectName: monitor.projectId.name,
                                 componentName: monitor.componentId.name,
-                                request: data.request,
                             };
 
                             if (titleTemplate) {
@@ -532,7 +540,6 @@ module.exports = {
                                 monitorName: monitor.name,
                                 componentName: monitor.componentId.name,
                                 projectName: incomingRequest.projectId.name,
-                                request: data.request,
                             };
                             if (titleTemplate) {
                                 data.title = titleTemplate(dataConfig);
@@ -603,7 +610,6 @@ module.exports = {
                                 monitorName: monitor.name,
                                 projectName: monitor.projectId.name,
                                 componentName: monitor.componentId.name,
-                                request: data.request,
                             };
 
                             if (titleTemplate) {
@@ -627,7 +633,6 @@ module.exports = {
                                 monitorName: monitor.name,
                                 componentName: monitor.componentId.name,
                                 projectName: incomingRequest.projectId.name,
-                                request: data.request,
                             };
                             if (titleTemplate) {
                                 data.title = titleTemplate(dataConfig);
