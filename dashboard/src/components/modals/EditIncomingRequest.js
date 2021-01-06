@@ -1087,6 +1087,8 @@ class EditIncomingRequest extends Component {
                                                                                 '100%',
                                                                             padding:
                                                                                 '3px 5px',
+                                                                            whiteSpace:
+                                                                                'normal',
                                                                         }}
                                                                     />
                                                                 </div>

@@ -1075,7 +1075,7 @@ class CreateIncomingRequest extends Component {
                                                                             RenderTextArea
                                                                         }
                                                                         name="incidentDescription"
-                                                                        type="text"
+                                                                        type="textarea"
                                                                         rows="5"
                                                                         placeholder="Description of the incident"
                                                                         id="incidentDescription"
@@ -1085,6 +1085,8 @@ class CreateIncomingRequest extends Component {
                                                                                 '100%',
                                                                             padding:
                                                                                 '3px 5px',
+                                                                            whiteSpace:
+                                                                                'normal',
                                                                         }}
                                                                     />
                                                                 </div>
