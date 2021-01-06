@@ -405,13 +405,16 @@ module.exports = {
                         projectId: data.projectId,
                         filterText: filter,
                     });
-                } else {
-                    incomingRequest = await _this.findOneBy({
-                        _id: data.requestId,
-                        projectId: data.projectId,
-                    });
                 }
             } else {
+                incomingRequest = await _this.findOneBy({
+                    _id: data.requestId,
+                    projectId: data.projectId,
+                    filterText: Number(filter),
+                });
+            }
+
+            if (!incomingRequest) {
                 incomingRequest = await _this.findOneBy({
                     _id: data.requestId,
                     projectId: data.projectId,
