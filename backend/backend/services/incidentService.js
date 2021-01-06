@@ -831,7 +831,7 @@ module.exports = {
             );
         }
 
-        if (incidentCommunicationSla) {
+        if (incidentCommunicationSla && !incidentCommunicationSla.deleted) {
             let countDown = incidentCommunicationSla.duration * 60;
             const alertTime = incidentCommunicationSla.alertTime * 60;
 
