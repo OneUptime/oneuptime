@@ -1174,9 +1174,12 @@ class CreateIncomingRequest extends Component {
                                                                                     variables
                                                                                     in
                                                                                     incident
-                                                                                    title
+                                                                                    title,
+                                                                                    incident
+                                                                                    description
                                                                                     or
-                                                                                    description.
+                                                                                    custom
+                                                                                    field.
                                                                                 </span>
                                                                                 <span
                                                                                     className="template-variable-1"
