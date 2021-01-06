@@ -577,6 +577,31 @@ export class IncidentStatus extends Component {
                                                             Monitor
                                                         </label>
                                                         <div className="bs-content-inside">
+                                                        <span className="value">
+                                                                <Link
+                                                                    style={{
+                                                                        textDecoration:
+                                                                            'underline',
+                                                                    }}
+                                                                    to={
+                                                                        '/dashboard/project/' +
+                                                                        projectId +
+                                                                        '/' +
+                                                                        componentId +
+                                                                        '/monitoring'
+                                                                    }
+                                                                    id="backToComponentView"
+                                                                >
+                                                                    {
+                                                                        this
+                                                                            .props
+                                                                            .incident
+                                                                            .monitorId
+                                                                            .componentId
+                                                                            .name
+                                                                    }
+                                                                </Link>
+                                                            </span>{' / '}
                                                             <span className="value">
                                                                 <Link
                                                                     style={{

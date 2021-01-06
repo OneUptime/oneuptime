@@ -112,7 +112,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             type,
             retryCount,
         } = req.body;
-        let status, log, reason, data;
+        let status,
+            log,
+            reason,
+            data = {};
 
         if (type === 'incomingHttpRequest') {
             const newMonitor = await MonitorService.findOneBy({
@@ -177,6 +180,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         ...upFailedReasons,
                     ];
                 }
+
+                data.status = status;
+                data.reason = reason;
             }
             if (type === 'script') {
                 const {
@@ -226,6 +232,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     reason = upFailedReasons;
                 }
                 resp.status = null;
+
+                data.status = status;
+                data.reason = reason;
             }
             if (type === 'device') {
                 if (res) {

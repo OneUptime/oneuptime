@@ -42,6 +42,7 @@ import animateSidebar from './animateSidebar';
 import incidentCommunicationSla from './incidentCommunicationSla';
 import monitorSla from './monitorSla';
 import incomingRequest from './incomingRequest';
+import customField from './customField';
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -86,6 +87,7 @@ const appReducer = combineReducers({
     incidentSla: incidentCommunicationSla,
     monitorSla,
     incomingRequest,
+    customField,
 });
 
 export default (state, action) => {
