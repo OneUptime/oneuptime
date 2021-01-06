@@ -226,7 +226,12 @@ class EditIncomingRequest extends Component {
                     id: projectId,
                 });
             case 'Enter':
-                return document.getElementById('editIncomingRequest').click();
+                if (e.target.localName !== 'textarea') {
+                    return document
+                        .getElementById('editIncomingRequest')
+                        .click();
+                }
+                break;
             default:
                 return false;
         }

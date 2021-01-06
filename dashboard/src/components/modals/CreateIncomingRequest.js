@@ -227,7 +227,12 @@ class CreateIncomingRequest extends Component {
                     id: projectId,
                 });
             case 'Enter':
-                return document.getElementById('createIncomingRequest').click();
+                if (e.target.localName !== 'textarea') {
+                    return document
+                        .getElementById('createIncomingRequest')
+                        .click();
+                }
+                break;
             default:
                 return false;
         }
