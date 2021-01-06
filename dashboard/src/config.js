@@ -1062,4 +1062,19 @@ export const incomingRequestVariables = [
         description:
             '{{componentName}} : Name of the component the monitor belongs to',
     },
+    {
+        variable: '{{request.body.value}}',
+        description:
+            '{{request.body.value}} : Value attached to the request body',
+    },
+    {
+        variable: '{{request.query.value}}',
+        description:
+            '{{request.query.value}} : Value attached to the request query',
+    },
+    {
+        variable: '{{request.headers.value}}',
+        description:
+            '{{request.headers.value}} : Value attached to the request headers',
+    },
 ];
