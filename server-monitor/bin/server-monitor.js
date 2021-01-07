@@ -16,6 +16,7 @@ const program = require('commander');
 const Promise = require('promise');
 const { version } = require('../package.json');
 const { prompt } = require('inquirer');
+const fs = require('fs');
 const logger = require('../lib/logger');
 const { API_URL, LOG_PATH } = require('../lib/config');
 const serverMonitor = require('../lib/api');
@@ -186,8 +187,8 @@ checkParams(questions).then(values => {
         svc.on('start', function() {
             logger.info('Fyipe Server Monitor daemon started');
             logger.info('A complete log of this daemon can be found in:');
-            logger.info(`${LOG_PATH[os].log}`);
-            logger.info(`${LOG_PATH[os].error}`);
+            logger.info(LOG_PATH[os].log);
+            logger.info(LOG_PATH[os].error);
         });
 
         svc.on('stop', function() {
@@ -198,7 +199,21 @@ checkParams(questions).then(values => {
             logger.info('Fyipe Server Monitor uninstalled');
         });
 
-        if (daemon === 'uninstall') {
+        if (daemon === 'errors') {
+            logger.error(
+                fs.readFileSync(LOG_PATH[os].error, {
+                    encoding: 'utf8',
+                    flag: 'r',
+                })
+            );
+        } else if (daemon === 'logs') {
+            logger.info(
+                fs.readFileSync(LOG_PATH[os].log, {
+                    encoding: 'utf8',
+                    flag: 'r',
+                })
+            );
+        } else if (daemon === 'uninstall') {
             svc.uninstall();
         } else if (daemon === 'stop') {
             svc.stop();
