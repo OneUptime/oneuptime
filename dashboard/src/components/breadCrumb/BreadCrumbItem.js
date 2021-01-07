@@ -24,9 +24,11 @@ function BreadCrumbItem({
     };
 
     const getRoute = (route, projectId) => {
-        console.log(User.getCurrentProjectSlug());
+        const projectSlug = User.getCurrentProjectSlug()
+            ? User.getCurrentProjectSlug()
+            : '';
         if (route === '/') {
-            return `/dashboard/project/${User.getCurrentProjectSlug()}`;
+            return `/dashboard/project/${projectSlug}`;
         }
         return route;
     };

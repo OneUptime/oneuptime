@@ -11,7 +11,7 @@ import { openModal } from '../actions/modal';
 import DeleteComponent from '../components/modals/DeleteComponent';
 import { deleteComponent } from '../actions/component';
 import { logEvent } from '../analytics';
-import { IS_SAAS_SERVICE } from '../config';
+import { IS_SAAS_SERVICE, User } from '../config';
 import { history } from '../store';
 import DataPathHoC from '../components/DataPathHoC';
 import uuid from 'uuid';
@@ -34,7 +34,7 @@ class ComponentSettingsAdvanced extends Component {
             this.props.component.projectId;
         const promise = this.props.deleteComponent(componentId, projectId);
         history.push(
-            `/dashboard/project/${this.props.component.projectId._id}/components`
+            `/dashboard/project/${User.getCurrentProjectSlug()}/components`
         );
         if (IS_SAAS_SERVICE) {
             logEvent('EVENT: DASHBOARD > COMPONENT > COMPONENT DELETED', {

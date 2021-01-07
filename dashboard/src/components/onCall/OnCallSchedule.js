@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import { history } from '../../store';
 
-const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
+const OnCallSchedule = ({ status, schedules, projectSlug }) => {
     let color;
     switch (status) {
         case 'active':
@@ -63,7 +63,7 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                     <b
                                                         onClick={() =>
                                                             history.push(
-                                                                `/dashboard/project/${currentProjectId}/sub-project/${schedule.projectId &&
+                                                                `/dashboard/project/${projectSlug}/sub-project/${schedule.projectId &&
                                                                     schedule
                                                                         .projectId
                                                                         ._id}/schedule/${schedule.scheduleId &&

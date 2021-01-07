@@ -7,6 +7,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
 import { history } from '../../store';
 import { deleteContainerSecurity } from '../../actions/security';
+import { User } from '../../config';
 
 class DeleteContainerSecurity extends Component {
     componentDidMount() {
@@ -40,8 +41,11 @@ class DeleteContainerSecurity extends Component {
         const data = { projectId, componentId, containerSecurityId };
 
         deleteContainerSecurity(data).then(() => {
+            const projectSlug = User.getCurrentProjectSlug()
+                ? User.getCurrentProjectSlug()
+                : '';
             history.push(
-                `/dashboard/project/${data.projectId}/${data.componentId}/security/container`
+                `/dashboard/project/${projectSlug}/${data.componentId}/security/container`
             );
 
             if (!deleteContainerError) {

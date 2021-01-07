@@ -46,6 +46,7 @@ export class AlertChargesList extends Component {
             skip,
             limit,
             projectId,
+            projectSlug,
         } = this.props;
         const canNext = count > parseInt(skip) + parseInt(limit) ? true : false;
         const canPrev = parseInt(skip) <= 0 ? false : true;
@@ -151,7 +152,7 @@ export class AlertChargesList extends Component {
                                                         onClick={() => {
                                                             history.push(
                                                                 '/dashboard/project/' +
-                                                                    projectId +
+                                                                    projectSlug +
                                                                     '/' +
                                                                     alertCharge
                                                                         .monitorId
@@ -188,7 +189,7 @@ export class AlertChargesList extends Component {
                                                         onClick={() => {
                                                             history.push(
                                                                 '/dashboard/project/' +
-                                                                    projectId +
+                                                                    projectSlug +
                                                                     '/incidents/' +
                                                                     alertCharge.incidentId
                                                             );
@@ -419,6 +420,9 @@ const mapStateToProps = state => {
             state.alert.alertCharges !== null && state.alert.alertCharges.error,
         count:
             state.alert.alertCharges !== null && state.alert.alertCharges.count,
+        projectSlug:
+            state.project.currentProject !== null &&
+            state.project.currentProject.slug,
     };
 };
 

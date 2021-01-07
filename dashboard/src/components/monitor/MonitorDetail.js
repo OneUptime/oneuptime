@@ -533,7 +533,7 @@ export class MonitorDetail extends Component {
                                 onClick={() => {
                                     history.push(
                                         '/dashboard/project/' +
-                                            currentProject._id +
+                                            currentProject.slug +
                                             '/' +
                                             componentId +
                                             '/monitoring/' +

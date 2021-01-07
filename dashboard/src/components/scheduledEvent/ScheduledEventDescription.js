@@ -56,8 +56,11 @@ function ScheduledEventDescription({
 
     const handleResolve = () => {
         const { _id } = scheduledEvent;
+        const projectId = User.getCurrentProjectId()
+            ? User.getCurrentProjectId()
+            : '';
 
-        resolveScheduledEvent(User.getCurrentProjectId(), _id);
+        resolveScheduledEvent(projectId, _id);
     };
 
     const startDate = moment(scheduledEvent.startDate).format();

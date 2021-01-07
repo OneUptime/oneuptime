@@ -433,7 +433,7 @@ class CreateIncident extends Component {
                                                                 '/dashboard/project/' +
                                                                     this.props
                                                                         .currentProject
-                                                                        ._id +
+                                                                        .slug +
                                                                     '/components'
                                                             );
                                                         }}

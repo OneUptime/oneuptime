@@ -7,6 +7,7 @@ import formatNumber from '../../utils/formatNumber';
 import { history } from '../../store';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import ShouldRender from '../basic/ShouldRender';
+import { User } from '../../config';
 
 function getComponentBadge(componentName) {
     return (
@@ -19,9 +20,12 @@ function getComponentBadge(componentName) {
 getComponentBadge.displayName = 'getComponentBadge';
 
 function viewMore(projectId, componentId, errorTrackerId, errorEventId) {
+    const projectSlug = User.getCurrentProjectSlug()
+        ? User.getCurrentProjectSlug()
+        : '';
     return history.push(
         '/dashboard/project/' +
-            projectId +
+            projectSlug +
             '/' +
             componentId +
             '/error-trackers/' +

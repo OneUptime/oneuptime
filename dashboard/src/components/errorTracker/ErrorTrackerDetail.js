@@ -38,7 +38,7 @@ class ErrorTrackerDetail extends Component {
         const { currentProject, componentId, errorTracker } = this.props;
         history.push(
             '/dashboard/project/' +
-                currentProject._id +
+                currentProject.slug +
                 '/' +
                 componentId +
                 '/error-trackers/' +
@@ -85,7 +85,7 @@ class ErrorTrackerDetail extends Component {
         );
         history.push(
             '/dashboard/project/' +
-                currentProject._id +
+                currentProject.slug +
                 '/' +
                 componentId +
                 '/error-tracker'
