@@ -577,7 +577,7 @@ export class IncidentStatus extends Component {
                                                             Monitor
                                                         </label>
                                                         <div className="bs-content-inside">
-                                                        <span className="value">
+                                                            <span className="value">
                                                                 <Link
                                                                     style={{
                                                                         textDecoration:
@@ -601,7 +601,8 @@ export class IncidentStatus extends Component {
                                                                             .name
                                                                     }
                                                                 </Link>
-                                                            </span>{' / '}
+                                                            </span>
+                                                            {' / '}
                                                             <span className="value">
                                                                 <Link
                                                                     style={{
@@ -1554,7 +1555,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                                    `/dashboard/project/${User.getCurrentProjectSlug()}/${componentId}/incidents/${incidentId}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false

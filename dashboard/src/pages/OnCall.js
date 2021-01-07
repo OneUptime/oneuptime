@@ -319,7 +319,9 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    const projectId = User.getCurrentProjectId();
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
 
     let subProjects = state.subProject.subProjects.subProjects;
 

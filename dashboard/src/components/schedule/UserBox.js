@@ -12,10 +12,11 @@ import { reduxForm } from 'redux-form';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import RenderIfMember from '../basic/RenderIfMember';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
 
 function submitUserForm(values, dispatch, props) {
-    const { projectId, scheduleId } = props.match.params;
+    const { scheduleId } = props.match.params;
+    const { projectId } = this.props;
     const users = [];
     /* eslint-disable no-unused-vars */
     for (const id in values) {
@@ -225,7 +226,11 @@ const mapStateToProps = (state, props) => {
     const users =
         state.teams.teamMembers.filter(user => user.name && user.name !== '') ||
         [];
-    const { projectId } = props.match.params;
+    // const { projectId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
+
     const isRequesting = state.teams.teamLoading.requesting;
     const addUserRequesting = state.schedule.addUser.requesting;
     const currentProject = state.project.currentProject;

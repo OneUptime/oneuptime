@@ -7,7 +7,7 @@ import Dashboard from '../components/Dashboard';
 import ApplicationSecurityForm from '../components/security/ApplicationSecurityForm';
 import ApplicationSecurity from '../components/security/ApplicationSecurity';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, API_URL } from '../config';
+import { SHOULD_LOG_ANALYTICS, API_URL, User } from '../config';
 import {
     getApplicationSecurities,
     getApplicationSecurityLogs,
@@ -69,7 +69,9 @@ class Application extends Component {
 
         socket.on(`createApplicationSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${projectId}/${componentId}/security/application/${data._id}`
+                `/dashboard/project/${User.getCurrentProjectSlug()}/${componentId}/security/application/${
+                    data._id
+                }`
             );
         });
         const applicationSecurities = appSecurities

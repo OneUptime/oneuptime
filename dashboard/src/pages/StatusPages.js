@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class StatusPage extends Component {
@@ -47,7 +47,11 @@ const mapDispatchToProps = dispatch => {
 };
 
 function mapStateToProps(state, props) {
-    const { projectId } = props.match.params;
+    // const { projectId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
+
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
 

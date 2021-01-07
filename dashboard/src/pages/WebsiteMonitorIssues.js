@@ -6,7 +6,7 @@ import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { fetchMonitorIssue } from '../actions/monitor';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import WebsiteIssuesList from '../components/monitor/WebsiteIssuesList';
@@ -63,7 +63,7 @@ class WebsiteMonitorIssues extends React.Component {
 
     ready = () => {
         this.props.fetchMonitorIssue(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.issueId
         );
     };
@@ -439,6 +439,9 @@ class WebsiteMonitorIssues extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const { componentId, monitorId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
     const component = state.component.componentList.components.map(item => {
         return item.components.find(component => component._id === componentId);
     });
@@ -452,6 +455,7 @@ const mapStateToProps = (state, props) => {
         component,
         monitor,
         monitorState: state.monitor,
+        projectId,
     };
 };
 
@@ -477,6 +481,7 @@ WebsiteMonitorIssues.propTypes = {
     ),
     monitor: PropTypes.object,
     monitorState: PropTypes.object,
+    projectId: PropTypes.string,
 };
 
 WebsiteMonitorIssues.displayName = 'WebsiteMonitorIssues';

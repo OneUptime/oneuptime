@@ -7,7 +7,7 @@ import Dashboard from '../components/Dashboard';
 import ContainerSecurityForm from '../components/security/ContainerSecurityForm';
 import ContainerSecurity from '../components/security/ContainerSecurity';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, API_URL } from '../config';
+import { SHOULD_LOG_ANALYTICS, API_URL, User } from '../config';
 import {
     getContainerSecurities,
     getContainerSecurityLogs,
@@ -68,7 +68,9 @@ class Container extends Component {
 
         socket.on(`createContainerSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${projectId}/${componentId}/security/container/${data._id}`
+                `/dashboard/project/${User.getCurrentProjectSlug()}/${componentId}/security/container/${
+                    data._id
+                }`
             );
         });
 

@@ -10,7 +10,7 @@ import { deleteStatusPage } from '../../actions/statusPage';
 import DeleteStatusPageModal from './DeleteStatusPageModal';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
 
 export class DeleteStatusPageBox extends Component {
     constructor(props) {
@@ -32,7 +32,7 @@ export class DeleteStatusPageBox extends Component {
                         );
                     }
                     history.push(
-                        `/dashboard/project/${projectId}/status-pages`
+                        `/dashboard/project/${User.getCurrentProjectSlug()}/status-pages`
                     );
                 });
             },
@@ -103,7 +103,10 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators({ deleteStatusPage, openModal, closeModal }, dispatch);
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId, projectId } = props.match.params;
+    const { scheduleId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
 
     //  const status = state.statusPage.statusPages.find(
     //   statusPage => statusPage._id === scheduleId

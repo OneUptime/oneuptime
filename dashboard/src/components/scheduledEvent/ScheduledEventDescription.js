@@ -10,6 +10,7 @@ import ShouldRender from '../basic/ShouldRender';
 import EditSchedule from '../modals/EditSchedule';
 import { Spinner } from '../basic/Loader';
 import { resolveScheduledEvent } from '../../actions/scheduledEvent';
+import { User } from '../../config';
 
 function ScheduledEventDescription({
     scheduledEvent,
@@ -55,8 +56,8 @@ function ScheduledEventDescription({
 
     const handleResolve = () => {
         const { _id } = scheduledEvent;
-        const { params } = match;
-        resolveScheduledEvent(params.projectId, _id);
+
+        resolveScheduledEvent(User.getCurrentProjectId(), _id);
     };
 
     const startDate = moment(scheduledEvent.startDate).format();

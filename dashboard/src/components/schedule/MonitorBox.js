@@ -12,7 +12,7 @@ import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
 
 function submitMonitorForm(values, dispatch, props) {
     const { subProjectId, scheduleId } = props.match.params;
@@ -309,7 +309,10 @@ const AddMonitorsForm = new reduxForm({
 })(MonitorBox);
 
 const mapStateToProps = (state, props) => {
-    const { projectId, subProjectId, scheduleId } = props.match.params;
+    const { subProjectId, scheduleId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
     const initialValues = {};
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {

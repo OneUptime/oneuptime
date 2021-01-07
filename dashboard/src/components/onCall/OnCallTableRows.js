@@ -3,11 +3,16 @@ import PropTypes from 'prop-types';
 import { withRouter } from 'react-router-dom';
 import { OnCallTableBody } from './OnCallData';
 import { history } from '../../store';
+import { User } from '../../config';
 
 function Row(props) {
-    const { projectId } = props.match.params;
+    const { slug } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
+
     const { subProjectId } = props;
-    const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/schedule/${props.id}`;
+    const path = `/dashboard/project/${slug}/sub-project/${subProjectId}/schedule/${props.id}`;
     return (
         <tr
             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink scheduleListItem"

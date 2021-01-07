@@ -21,7 +21,7 @@ import { loadPage } from '../actions/page';
 import { getSmtpConfig } from '../actions/smsTemplates';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
-import { IS_SAAS_SERVICE } from '../config';
+import { IS_SAAS_SERVICE, User } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
@@ -373,7 +373,10 @@ const mapStateToProps = (state, props) => {
         return monitor;
     });
 
-    const { projectId } = props.match.params;
+    // const { projectId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
 
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];

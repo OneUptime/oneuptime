@@ -13,6 +13,7 @@ import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { User } from '../../config';
 
 export class IncidentDeleteBox extends Component {
     constructor(props) {
@@ -39,7 +40,7 @@ export class IncidentDeleteBox extends Component {
                 );
             }
             history.push(
-                `/dashboard/project/${projectId}/${componentId}/monitoring/${monitorId}`
+                `/dashboard/project/${User.getCurrentProjectSlug()}/${componentId}/monitoring/${monitorId}`
             );
         });
         return promise;

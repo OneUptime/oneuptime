@@ -14,6 +14,7 @@ import {
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import threatLevel from '../../utils/threatLevel';
+import { User } from '../../config';
 
 const SecurityInfo = ({
     name,
@@ -56,7 +57,7 @@ const SecurityInfo = ({
             (type === 'application' && 'application');
 
         history.push(
-            `/dashboard/project/${projectId}/${componentId}/security/${type}/${securityId}`
+            `/dashboard/project/${User.getCurrentProjectSlug()}/${componentId}/security/${type}/${securityId}`
         );
     };
 

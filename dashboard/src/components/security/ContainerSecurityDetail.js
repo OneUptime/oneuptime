@@ -17,7 +17,7 @@ import SecurityLog from './SecurityLog';
 import { getDockerCredentials } from '../../actions/credential';
 import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
 import getParentRoute from '../../utils/getParentRoute';
-import { API_URL } from '../../config';
+import { API_URL, User } from '../../config';
 import io from 'socket.io-client';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
@@ -220,11 +220,11 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, ownProps) => {
-    const {
-        projectId,
-        componentId,
-        containerSecurityId,
-    } = ownProps.match.params;
+    const { componentId, containerSecurityId } = ownProps.match.params;
+
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
 
     const components = [];
     // filter to get the actual component

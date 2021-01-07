@@ -8,7 +8,7 @@ import { loadPage } from '../actions/page';
 import { closeIncident } from '../actions/incident';
 import { logEvent } from '../analytics';
 import { userScheduleRequest, fetchUserSchedule } from '../actions/schedule';
-import { IS_SAAS_SERVICE } from '../config';
+import { IS_SAAS_SERVICE, User } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -672,7 +672,10 @@ Home.propTypes = {
 };
 
 const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
+    // const { projectId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
     let monitors = [],
         components = [],
         projectTeamMembers = [];
