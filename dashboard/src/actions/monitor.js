@@ -200,7 +200,6 @@ export function editMonitor(projectId, values) {
         ) {
             dispatch(editMonitorRequest());
         }
-
         promise.then(
             function(monitor) {
                 dispatch(editMonitorSuccess(monitor.data));
