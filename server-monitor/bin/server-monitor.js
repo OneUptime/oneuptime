@@ -186,9 +186,6 @@ checkParams(questions).then(values => {
 
         svc.on('start', function() {
             logger.info('Fyipe Server Monitor daemon started');
-            logger.info('A complete log of this daemon can be found in:');
-            logger.info(LOG_PATH[os].log);
-            logger.info(LOG_PATH[os].error);
         });
 
         svc.on('stop', function() {
