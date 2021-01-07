@@ -10,7 +10,7 @@ import Incidents from '../components/reports/Incidents';
 import ResolveTime from '../components/reports/ResolveTime';
 import Select from '../components/basic/react-select-fyipe';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import DateTimeRangePicker from '../components/basic/DateTimeRangePicker';
 
@@ -562,9 +562,7 @@ export class Reports extends Component {
                                                                 .membersEnd
                                                         }
                                                         currentProject={
-                                                            this.props.match
-                                                                .params
-                                                                .projectId
+                                                            this.props.projectId
                                                         }
                                                         styles={styles.number}
                                                     />
@@ -638,9 +636,7 @@ export class Reports extends Component {
                                                                 .monitorEnd
                                                         }
                                                         currentProject={
-                                                            this.props.match
-                                                                .params
-                                                                .projectId
+                                                            this.props.projectId
                                                         }
                                                         styles={styles.number}
                                                     />
@@ -659,8 +655,13 @@ export class Reports extends Component {
 }
 
 const mapStateToProps = state => {
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : '';
+
     return {
         currentProject: state.project.currentProject,
+        projectId,
     };
 };
 

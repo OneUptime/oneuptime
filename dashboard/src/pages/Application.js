@@ -198,7 +198,10 @@ Application.propTypes = {
 };
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, projectId } = ownProps.match.params;
+    const { componentId } = ownProps.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : '';
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
