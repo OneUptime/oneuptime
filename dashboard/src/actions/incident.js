@@ -168,7 +168,8 @@ export function createNewIncident(
     incidentType,
     title,
     description,
-    incidentPriority
+    incidentPriority,
+    customFields
 ) {
     return function(dispatch) {
         const promise = postApi(`incident/${projectId}/${monitorId}`, {
@@ -178,6 +179,7 @@ export function createNewIncident(
             title,
             description,
             incidentPriority,
+            customFields,
         });
 
         dispatch(createIncidentRequest(monitorId));
