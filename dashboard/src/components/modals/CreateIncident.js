@@ -13,6 +13,7 @@ import { history } from '../../store';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
+import { fetchCustomFields } from '../../actions/customField';
 
 class CreateIncident extends Component {
     constructor() {
@@ -25,6 +26,9 @@ class CreateIncident extends Component {
     }
 
     componentDidMount() {
+        const { currentProject, fetchCustomFields } = this.props;
+        fetchCustomFields(currentProject._id);
+
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -55,13 +59,23 @@ class CreateIncident extends Component {
             if (monitor._id === values)
                 projectId = monitor.projectId._id || monitor.projectId;
         });
+
+        const customFields = this.props.customFields.map(field => ({
+            fieldName: field.fieldName,
+            fieldValue:
+                field.fieldType === 'number'
+                    ? parseFloat(values[field.fieldName])
+                    : values[field.fieldName],
+        }));
+
         createNewIncident(
             projectId,
             monitorId,
             incidentType,
             title,
             description,
-            incidentPriority === '' ? null : incidentPriority
+            incidentPriority === '' ? null : incidentPriority,
+            customFields
         ).then(
             function() {
                 closeThisDialog();
@@ -153,6 +167,7 @@ class CreateIncident extends Component {
             data,
             monitors,
             incidentPriorities,
+            customFields,
         } = this.props;
         const subProjectMonitor = monitors.find(
             subProjectMonitor => subProjectMonitor._id === data.subProjectId
@@ -413,6 +428,54 @@ class CreateIncident extends Component {
                                                             />
                                                         </div>
                                                     </div>
+                                                    {customFields &&
+                                                        customFields.length >
+                                                            0 && (
+                                                            <>
+                                                                {customFields.map(
+                                                                    (
+                                                                        field,
+                                                                        index
+                                                                    ) => (
+                                                                        <div
+                                                                            key={
+                                                                                index
+                                                                            }
+                                                                            className="bs-Fieldset-row Margin-bottom--12"
+                                                                        >
+                                                                            <label className="bs-Fieldset-label">
+                                                                                {
+                                                                                    field.fieldName
+                                                                                }
+                                                                            </label>
+                                                                            <div className="bs-Fieldset-fields">
+                                                                                <Field
+                                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                                    component={
+                                                                                        RenderField
+                                                                                    }
+                                                                                    name={
+                                                                                        field.fieldName
+                                                                                    }
+                                                                                    id={
+                                                                                        field.fieldName
+                                                                                    }
+                                                                                    type={
+                                                                                        field.fieldType
+                                                                                    }
+                                                                                    disabled={
+                                                                                        this
+                                                                                            .props
+                                                                                            .newIncident
+                                                                                            .requesting
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    )
+                                                                )}
+                                                            </>
+                                                        )}
                                                 </div>
                                             ) : (
                                                 <label className="bs-Fieldset-label">
@@ -550,6 +613,8 @@ CreateIncident.propTypes = {
     selectedIncidentType: PropTypes.string.isRequired,
     projectName: PropTypes.string.isRequired,
     incidentBasicSettings: PropTypes.object.isRequired,
+    fetchCustomFields: PropTypes.func,
+    customFields: PropTypes.array,
 };
 
 const formName = 'CreateNewIncident';
@@ -609,6 +674,7 @@ function mapStateToProps(state, props) {
         selectedIncidentType,
         initialValues,
         projectName,
+        customFields: state.customField.customFields.fields,
     };
 }
 
@@ -617,6 +683,7 @@ const mapDispatchToProps = dispatch => {
         {
             createNewIncident,
             change,
+            fetchCustomFields,
         },
         dispatch
     );
