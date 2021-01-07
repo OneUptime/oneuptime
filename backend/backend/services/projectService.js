@@ -46,7 +46,7 @@ module.exports = {
 
             let name = data.name;
             name = slugify(name);
-            name = `${name}-${generate('1234567890', 8)}`;
+            name = `${name}-${generate('1234567890', 5)}`;
             projectModel.slug = name.toLowerCase();
             projectModel.apiKey = uuidv1();
             projectModel.stripePlanId = data.stripePlanId || null;
