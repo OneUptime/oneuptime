@@ -49,30 +49,17 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
                 });
             }
 
-            if (!value && name !== 'auditLogMonitoringStatus') {
+            if (
+                !value &&
+                name !== 'auditLogMonitoringStatus' &&
+                name !== 'emailLogMonitoringStatus'
+            ) {
                 // Audit Log Status can be 'false'
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Value must be present.',
                 });
             }
-
-            if (!value && name !== 'emailLogMonitoringStatus') {
-                // Email Log Status can be 'false'
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Value must be present.',
-                });
-            }
-
-            if (!value && name !== 'smsLogMonitoringStatus') {
-                // SMS Log Status can be 'false'
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Value must be present.',
-                });
-            }
-
             if (name === 'twilio') {
                 const data = {
                     accountSid: value['account-sid'],
