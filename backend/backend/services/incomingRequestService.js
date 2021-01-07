@@ -452,12 +452,15 @@ module.exports = {
                 });
             }
 
-            let titleTemplate, descriptionTemplate;
+            let titleTemplate,
+                descriptionTemplate,
+                customFieldTemplates = [];
             if (incomingRequest && incomingRequest.createIncident) {
                 data.incidentType = incomingRequest.incidentType;
                 data.incidentPriority = incomingRequest.incidentPriority;
                 data.title = incomingRequest.incidentTitle;
                 data.description = incomingRequest.incidentDescription;
+                data.customFields = incomingRequest.customFields;
 
                 if (
                     data.title &&
@@ -471,6 +474,15 @@ module.exports = {
                     // handle template variables
                     titleTemplate = Handlebars.compile(data.title);
                     descriptionTemplate = Handlebars.compile(data.description);
+                }
+
+                if (data.customFields && data.customFields.length > 0) {
+                    customFieldTemplates = data.customFields.map(field => ({
+                        ...field,
+                        fieldValue: Handlebars.compile(
+                            String(field.fieldValue)
+                        ),
+                    }));
                 }
 
                 const filterCriteria = incomingRequest.filterCriteria,
@@ -501,6 +513,19 @@ module.exports = {
                             if (descriptionTemplate) {
                                 data.description = descriptionTemplate(
                                     dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
                                 );
                             }
 
@@ -571,6 +596,19 @@ module.exports = {
                             if (descriptionTemplate) {
                                 data.description = descriptionTemplate(
                                     dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
                                 );
                             }
 
@@ -645,6 +683,19 @@ module.exports = {
                                     dataConfig
                                 );
                             }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
+                                );
+                            }
                             data.monitorId = monitor._id;
                             await IncidentService.create(data);
                         }
@@ -666,6 +717,19 @@ module.exports = {
                             if (descriptionTemplate) {
                                 data.description = descriptionTemplate(
                                     dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
                                 );
                             }
 
