@@ -29,7 +29,15 @@ module.exports = {
         }
     },
 
-    create: async function({ from, to, status, subject, body, template }) {
+    create: async function({
+        from,
+        to,
+        status,
+        subject,
+        body,
+        template,
+        content,
+    }) {
         try {
             let item = new EmailStatusModel();
 
@@ -39,7 +47,7 @@ module.exports = {
             item.subject = subject;
             item.body = body;
             item.template = template;
-
+            item.content = content;
             item = await item.save();
 
             return item;

@@ -43,11 +43,17 @@ class EmailLogsContentViewModal extends Component {
                                 <div className="jsonViwer Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <div className="db-EmailLogsContentViewModal-ContentViewerWrapper">
                                         <div className="db-EmailLogsContentViewModal-ContentViewerContainer">
-                                            <div
-                                                dangerouslySetInnerHTML={{
-                                                    __html: content,
-                                                }}
-                                            ></div>
+                                            {content ? (
+                                                <div
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: content,
+                                                    }}
+                                                ></div>
+                                            ) : (
+                                                <span>
+                                                    The Email Body is Empty.
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

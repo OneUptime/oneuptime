@@ -30,6 +30,132 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
+router.post('/', getUser, isUserMasterAdmin, async (req, res) => {
+    try {
+        const data = req.body;
+
+        if (!data) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Values should not be null',
+            });
+        }
+
+        if (!data.status || !data.status.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Status is required',
+            });
+        }
+
+        if (!data.from || !data.from.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Sender name is required',
+            });
+        }
+
+        if (!data.to || !data.to.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Recipient is required',
+            });
+        }
+
+        if (!data.subject || !data.subject.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Subject is required',
+            });
+        }
+
+        if (!data.body || !data.body.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Body is required',
+            });
+        }
+
+        if (!data.template || !data.template.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Template is required',
+            });
+        }
+        const emailLog = await EmailLogsService.create(data);
+        return sendItemResponse(req, res, emailLog);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put('/:emailLogsId', getUser, isUserMasterAdmin, async function(
+    req,
+    res
+) {
+    try {
+        const data = req.body;
+        const emailLogsId = req.params.emailLogsId;
+
+        if (!data) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Values should not be null',
+            });
+        }
+
+        if (!data.status || !data.status.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Status is required',
+            });
+        }
+
+        if (!data.from || !data.from.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Sender name is required',
+            });
+        }
+
+        if (!data.to || !data.to.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Recipient is required',
+            });
+        }
+
+        if (!data.subject || !data.subject.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Subject is required',
+            });
+        }
+
+        if (!data.body || !data.body.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Body is required',
+            });
+        }
+
+        if (!data.template || !data.template.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Template is required',
+            });
+        }
+
+        const emailLog = await EmailLogsService.updateOneBy(
+            { _id: emailLogsId },
+            data
+        );
+        return sendItemResponse(req, res, emailLog);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.post('/search', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const filter = req.body.filter;
