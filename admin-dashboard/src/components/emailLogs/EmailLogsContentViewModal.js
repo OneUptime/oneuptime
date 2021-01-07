@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-
+import ReactMarkdown from 'react-markdown';
 class EmailLogsContentViewModal extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
@@ -22,13 +22,7 @@ class EmailLogsContentViewModal extends Component {
     };
 
     render() {
-        const {
-            isRequesting,
-            error,
-            closeThisDialog,
-            reqLog,
-            resLog,
-        } = this.props;
+        const { isRequesting, error, closeThisDialog, content } = this.props;
 
         return (
             <div className="db-EmailLogsContentViewModal ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -48,7 +42,15 @@ class EmailLogsContentViewModal extends Component {
                             </div>
                             <div className="bs-Modal-content">
                                 <div className="jsonViwer Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <div className="db-EmailLogsContentViewModal-JsonViewerWrapper"></div>
+                                    <div className="db-EmailLogsContentViewModal-ContentViewerWrapper">
+                                        <div className="db-EmailLogsContentViewModal-ContentViewerContainer">
+                                            <div className="db-EmailLogsContentViewModal-ContentViewer">
+                                                <ReactMarkdown
+                                                    source={content}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div className="bs-Modal-footer">
@@ -125,8 +127,7 @@ EmailLogsContentViewModal.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
-    reqLog: PropTypes.object,
-    resLog: PropTypes.object,
+    content: PropTypes.string,
 };
 
 export default connect(mapStateToProps)(EmailLogsContentViewModal);

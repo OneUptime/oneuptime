@@ -270,11 +270,8 @@ export class EmailLogsList extends Component {
                                                                                     content: props => (
                                                                                         <EmailLogsContentViewModal
                                                                                             {...props}
-                                                                                            reqLog={
-                                                                                                emailLog.request
-                                                                                            }
-                                                                                            resLog={
-                                                                                                emailLog.response
+                                                                                            content={
+                                                                                                emailLog.content
                                                                                             }
                                                                                         />
                                                                                     ),

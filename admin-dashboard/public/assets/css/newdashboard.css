@@ -10560,20 +10560,20 @@ table {
 }
 
 /********************** EmailLogsContentViewModal ***********************/
-.db-EmailLogsContentViewModal-JsonViewerWrapper {
+.db-EmailLogsContentViewModal-ContentViewerWrapper {
   display: flex;
 }
 
-.db-EmailLogsContentViewModal-JsonViewerWrapper > div {
+.db-EmailLogsContentViewModal-ContentViewerWrapper > div {
   flex: 1;
   overflow: hidden;
 }
 
-.db-EmailLogsContentViewModal-JsonViewerContainer:first-child {
+.db-EmailLogsContentViewModal-ContentViewerContainer:first-child {
   margin: 0 10px;
 }
 
-.db-EmailLogsContentViewModal-JsonViewer {
+.db-EmailLogsContentViewModal-ContentViewer {
   min-height: 300px;
   max-height: 400px;
   overflow: auto;
