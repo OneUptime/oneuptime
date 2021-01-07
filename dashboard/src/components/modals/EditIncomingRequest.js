@@ -53,6 +53,7 @@ class EditIncomingRequest extends Component {
             projectId,
             initialValues,
             destroy,
+            customFields,
         } = this.props;
         const requestId = initialValues._id;
         const postObj = {};
@@ -76,6 +77,14 @@ class EditIncomingRequest extends Component {
         postObj.incidentType = values.incidentType;
         postObj.incidentPriority = values.incidentPriority;
         postObj.incidentDescription = values.incidentDescription;
+
+        postObj.customFields = customFields.map(field => ({
+            fieldName: field.fieldName,
+            fieldValue:
+                field.fieldType === 'number'
+                    ? parseFloat(values[field.fieldName])
+                    : values[field.fieldName],
+        }));
 
         postObj.monitors = [];
         if (!postObj.isDefault) {
@@ -365,6 +374,7 @@ class EditIncomingRequest extends Component {
             closeModal,
             incidentPriorities,
             destroy,
+            customFields,
         } = this.props;
 
         return (
@@ -1204,118 +1214,81 @@ class EditIncomingRequest extends Component {
                                                         </div>
                                                     </div>
                                                 </fieldset>
-                                                <fieldset>
-                                                    <div className="bs-Fieldset-rows">
-                                                        <div
-                                                            className="bs-Fieldset-row"
-                                                            style={{
-                                                                padding: 0,
-                                                            }}
-                                                        >
-                                                            <label
-                                                                className="bs-Fieldset-label Text-align--left"
-                                                                htmlFor="name"
-                                                                style={{
-                                                                    flexBasis:
-                                                                        '20%',
-                                                                }}
-                                                            ></label>
-                                                            <div
-                                                                className="bs-Fieldset-fields"
-                                                                style={{
-                                                                    flexBasis:
-                                                                        '80%',
-                                                                    maxWidth:
-                                                                        '80%',
-                                                                }}
+                                                {customFields &&
+                                                    customFields.length > 0 &&
+                                                    customFields.map(
+                                                        (field, index) => (
+                                                            <fieldset
+                                                                key={index}
+                                                                className="Margin-bottom--16"
                                                             >
-                                                                <div
-                                                                    className="bs-Fieldset-field Flex-flex Flex-justifyContent--spaceBetween"
-                                                                    style={{
-                                                                        width:
-                                                                            '100%',
-                                                                    }}
-                                                                >
+                                                                <div className="bs-Fieldset-rows">
                                                                     <div
+                                                                        className="bs-Fieldset-row"
                                                                         style={{
-                                                                            width:
-                                                                                '100%',
-                                                                            paddingBottom: 10,
-                                                                            fontWeight: 500,
-                                                                            fontSize: 14,
+                                                                            padding: 0,
                                                                         }}
                                                                     >
-                                                                        Custom
-                                                                        Fields
-                                                                    </div>
-                                                                    <button
-                                                                        className="Button bs-ButtonLegacy ActionIconParent"
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            document
-                                                                                .querySelector(
-                                                                                    '#addCustomField'
-                                                                                )
-                                                                                .click();
-                                                                        }}
-                                                                    >
-                                                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                        <label
+                                                                            className="bs-Fieldset-label Text-align--left"
+                                                                            htmlFor="incidentDescription"
+                                                                            style={{
+                                                                                flexBasis:
+                                                                                    '20%',
+                                                                            }}
+                                                                        >
                                                                             <span>
-                                                                                Add
-                                                                                Field
+                                                                                {
+                                                                                    field.fieldName
+                                                                                }
                                                                             </span>
-                                                                        </span>
-                                                                    </button>
+                                                                        </label>
+                                                                        <div
+                                                                            className="bs-Fieldset-fields"
+                                                                            style={{
+                                                                                flexBasis:
+                                                                                    '80%',
+                                                                                maxWidth:
+                                                                                    '80%',
+                                                                            }}
+                                                                        >
+                                                                            <div
+                                                                                className="bs-Fieldset-field"
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                }}
+                                                                            >
+                                                                                <Field
+                                                                                    component={
+                                                                                        RenderField
+                                                                                    }
+                                                                                    name={
+                                                                                        field.fieldName
+                                                                                    }
+                                                                                    id={
+                                                                                        field.fieldName
+                                                                                    }
+                                                                                    type={
+                                                                                        field.fieldType
+                                                                                    }
+                                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                                    style={{
+                                                                                        width:
+                                                                                            '100%',
+                                                                                        padding:
+                                                                                            '3px 5px',
+                                                                                        whiteSpace:
+                                                                                            'normal',
+                                                                                    }}
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </fieldset>
-                                                <fieldset className="Margin-bottom--16">
-                                                    <div className="bs-Fieldset-rows">
-                                                        <div
-                                                            className="bs-Fieldset-row"
-                                                            style={{
-                                                                padding: 0,
-                                                            }}
-                                                        >
-                                                            <label
-                                                                className="bs-Fieldset-label Text-align--left"
-                                                                style={{
-                                                                    flexBasis:
-                                                                        '20%',
-                                                                }}
-                                                            >
-                                                                <span></span>
-                                                            </label>
-                                                            <div
-                                                                className="bs-Fieldset-fields"
-                                                                style={{
-                                                                    flexBasis:
-                                                                        '80%',
-                                                                    maxWidth:
-                                                                        '80%',
-                                                                }}
-                                                            >
-                                                                <div
-                                                                    className="bs-Fieldset-field"
-                                                                    style={{
-                                                                        width:
-                                                                            '100%',
-                                                                    }}
-                                                                >
-                                                                    <FieldArray
-                                                                        name="customFields"
-                                                                        component={
-                                                                            this
-                                                                                .renderCustomFields
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </fieldset>
+                                                            </fieldset>
+                                                        )
+                                                    )}
                                                 <fieldset
                                                     style={{ paddingTop: 0 }}
                                                 >
@@ -1576,6 +1549,14 @@ const mapStateToProps = state => {
         initialValues.incidentType = incomingRequestToBeUpdated.incidentType;
         initialValues.incidentDescription =
             incomingRequestToBeUpdated.incidentDescription;
+        if (
+            incomingRequestToBeUpdated.customFields &&
+            incomingRequestToBeUpdated.customFields.length > 0
+        ) {
+            incomingRequestToBeUpdated.customFields.forEach(
+                field => (initialValues[field.fieldName] = field.fieldValue)
+            );
+        }
         initialValues.showAdvancedOptions = false;
         initialValues.showAvailableVariables = false;
     }

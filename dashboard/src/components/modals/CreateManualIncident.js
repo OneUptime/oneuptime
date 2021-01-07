@@ -49,7 +49,10 @@ class CreateManualIncident extends Component {
 
         const customFields = this.props.customFields.map(field => ({
             fieldName: field.fieldName,
-            fieldValue: values[field.fieldName],
+            fieldValue:
+                field.fieldType === 'number'
+                    ? parseFloat(values[field.fieldName])
+                    : values[field.fieldName],
         }));
 
         createNewIncident(
@@ -316,17 +319,6 @@ class CreateManualIncident extends Component {
                                             {customFields &&
                                                 customFields.length > 0 && (
                                                     <>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label script-label"></label>
-                                                            <div
-                                                                className="bs-Fieldset-fields"
-                                                                style={{
-                                                                    fontWeight: 500,
-                                                                }}
-                                                            >
-                                                                Custom Fields
-                                                            </div>
-                                                        </div>
                                                         {customFields.map(
                                                             (field, index) => (
                                                                 <div
@@ -353,7 +345,6 @@ class CreateManualIncident extends Component {
                                                                             type={
                                                                                 field.fieldType
                                                                             }
-                                                                            placeholder="Field value"
                                                                             disabled={
                                                                                 this
                                                                                     .props
