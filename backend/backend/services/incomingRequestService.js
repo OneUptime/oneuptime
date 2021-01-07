@@ -89,6 +89,17 @@ module.exports = {
                 );
             }
 
+            if (data.customFields && data.customFields.length > 0) {
+                const customFields = [...data.customFields];
+                data.customFields = customFields.map(field => ({
+                    fieldName: field.fieldName,
+                    fieldValue:
+                        typeof field.fieldValue === 'number'
+                            ? field.fieldValue
+                            : DOMPurify.sanitize(field.fieldValue),
+                }));
+            }
+
             let incomingRequest = await IncomingRequestModel.create({
                 ...data,
             });
@@ -163,6 +174,17 @@ module.exports = {
                 data.incidentDescription = DOMPurify.sanitize(
                     data.incidentDescription
                 );
+            }
+
+            if (data.customFields && data.customFields.length > 0) {
+                const customFields = [...data.customFields];
+                data.customFields = customFields.map(field => ({
+                    fieldName: field.fieldName,
+                    fieldValue:
+                        typeof field.fieldValue === 'number'
+                            ? field.fieldValue
+                            : DOMPurify.sanitize(field.fieldValue),
+                }));
             }
 
             if (data.isDefault) {
