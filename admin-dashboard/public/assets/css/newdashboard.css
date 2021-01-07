@@ -10559,21 +10559,21 @@ table {
   overflow: auto;
 }
 
-/********************** EmailLogsJsonViewModal ***********************/
-.db-EmailLogsJsonViewModal-JsonViewerWrapper {
+/********************** EmailLogsContentViewModal ***********************/
+.db-EmailLogsContentViewModal-JsonViewerWrapper {
   display: flex;
 }
 
-.db-EmailLogsJsonViewModal-JsonViewerWrapper > div {
+.db-EmailLogsContentViewModal-JsonViewerWrapper > div {
   flex: 1;
   overflow: hidden;
 }
 
-.db-EmailLogsJsonViewModal-JsonViewerContainer:first-child {
+.db-EmailLogsContentViewModal-JsonViewerContainer:first-child {
   margin: 0 10px;
 }
 
-.db-EmailLogsJsonViewModal-JsonViewer {
+.db-EmailLogsContentViewModal-JsonViewer {
   min-height: 300px;
   max-height: 400px;
   overflow: auto;
