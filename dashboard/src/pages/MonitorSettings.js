@@ -23,8 +23,11 @@ class MonitorSettings extends React.Component {
                         route={getParentRoute(pathname)}
                         name="Project Settings"
                     />
-                    <BreadCrumbItem route={pathname} name="Monitors" />
-                    <MonitorSla projectId={match.params.projectId} />
+                    <div id="monitorSettingsPage">
+                        <BreadCrumbItem route={pathname} name="Monitors" />
+
+                        <MonitorSla projectId={match.params.projectId} />
+                    </div>
                 </Fade>
             </Dashboard>
         );

@@ -1,6 +1,47 @@
 const express = require('express');
 const app = express();
 const path = require('path');
+const version = require('./api/version');
+const cors = require('cors');
+
+process.on('exit', () => {
+    /* eslint-disable no-console */
+    console.log('Server Shutting Shutdown');
+});
+
+process.on('unhandledRejection', err => {
+    /* eslint-disable no-console */
+    console.error('Unhandled rejection in server process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
+process.on('uncaughtException', err => {
+    /* eslint-disable no-console */
+    console.error('Uncaught exception in server process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
+app.use(cors());
+
+app.use(function(req, res, next) {
+    if (typeof req.body === 'string') {
+        req.body = JSON.parse(req.body);
+    }
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header(
+        'Access-Control-Allow-Headers',
+        'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
+    );
+    if (req.get('host').includes('cluster.local')) {
+        return next();
+    }
+
+    next();
+});
 
 // set the server port
 app.set('port', process.env.PORT || 3423);
@@ -15,7 +56,12 @@ app.use(
     express.static(path.join(__dirname, 'public'), { maxAge: 2592000 })
 );
 
+//Application version
+app.get(['/chart/version', '/version'], version);
+
 app.listen(app.get('port'), function() {
     // eslint-disable-next-line no-console
     console.log('API Reference started on PORT:' + app.get('port'));
 });
+
+module.exports = app;

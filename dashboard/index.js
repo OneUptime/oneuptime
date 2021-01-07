@@ -2,6 +2,26 @@ const express = require('express');
 const path = require('path');
 const app = express();
 const child_process = require('child_process');
+const cors = require('cors');
+
+app.use(cors());
+
+app.use(function(req, res, next) {
+    if (typeof req.body === 'string') {
+        req.body = JSON.parse(req.body);
+    }
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header(
+        'Access-Control-Allow-Headers',
+        'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
+    );
+    if (req.get('host').includes('cluster.local')) {
+        return next();
+    }
+    next();
+});
 
 child_process.execSync('react-env', {
     stdio: [0, 1, 2],
@@ -40,10 +60,17 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
         REACT_APP_DOMAIN: req.host,
         REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
         REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
+        REACT_APP_VERSION: process.env.REACT_APP_VERSION,
     };
 
     res.contentType('application/javascript');
     res.send('window._env = ' + JSON.stringify(env));
+});
+
+//APP VERSION
+app.use(['/dashboard/api/version', '/dashboard/version'], function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ dashboardVersion: process.env.npm_package_version });
 });
 
 app.use(express.static(path.join(__dirname, 'build')));

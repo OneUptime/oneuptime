@@ -114,6 +114,21 @@ function HTD7() {
     );
 }
 
+function HTD9() {
+    return (
+        <td
+            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+            style={{ height: '1px' }}
+        >
+            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                    <span>Event Type</span>
+                </span>
+            </div>
+        </td>
+    );
+}
+
 function HTD8() {
     return (
         <td
@@ -183,10 +198,7 @@ function TD2({ text }) {
             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
         >
-            <a
-                className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root">
@@ -194,7 +206,7 @@ function TD2({ text }) {
                         </div>
                     </span>
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
@@ -215,14 +227,11 @@ function TD3() {
                 width: '48px',
             }}
         >
-            <a
-                className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     ⁣
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
@@ -232,10 +241,7 @@ function TD4({ text }) {
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
         >
-            <a
-                className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root Flex-flex">
@@ -256,7 +262,7 @@ function TD4({ text }) {
                         </div>
                     </span>
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
@@ -277,14 +283,11 @@ function TD5() {
                 width: '48px',
             }}
         >
-            <a
-                className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     ⁣
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
@@ -295,16 +298,13 @@ function TD6({ text }) {
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
         >
-            <a
-                className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <span>{moment(text).format('lll')}</span>
                     </span>
                 </div>
-            </a>
+            </span>
         </td>
     );
 }
@@ -319,10 +319,7 @@ function TD7({ text }) {
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
         >
-            <span
-                className="db-ListViewItem-link"
-                href="/radar/lists/rsl_1C6makKGKS4tO8UaygcziemN"
-            >
+            <span className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <div className="Box-root Flex-flex">
@@ -364,6 +361,52 @@ TD7.propTypes = {
     text: PropTypes.any,
 };
 
+function TD8({ text }) {
+    console.log('checking text: ', text)
+    const incidentStatusColor = {
+        identified: 'green',
+        acknowledged: 'yellow',
+        resolved: 'red',
+    };
+    const isIncidentStatus = Object.keys(incidentStatusColor).includes(text);
+
+    return (
+        <td
+            aria-hidden="true"
+            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+            style={{
+                height: '1px',
+            }}
+        >
+            <div className="db-ListViewItem-link">
+                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                        {isIncidentStatus ? (
+                            <div
+                                className={`Badge Badge--color--${incidentStatusColor[text]} Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                            >
+                                <span
+                                    className={`Badge-text Text-color--${incidentStatusColor[text]} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                >
+                                    {text}
+                                </span>
+                            </div>
+                        ) : (
+                            <span className="Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                {text}
+                            </span>
+                        )}
+                    </span>
+                </div>
+            </div>
+        </td>
+    );
+}
+
+TD8.propTypes = {
+    text: PropTypes.string,
+};
+
 function AlertTableHeader() {
     return (
         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
@@ -373,6 +416,7 @@ function AlertTableHeader() {
             <HTD4 />
             <HTD5 />
             <HTD6 />
+            <HTD9 />
             <HTD8 />
         </tr>
     );
@@ -398,6 +442,7 @@ function AlertTableRows({ alerts }) {
                   <TD4 text={alert.alertVia} />
                   <TD5 />
                   <TD6 text={alert.createdAt} />
+                  <TD8 text={alert.eventType} />
                   <TD7 text={alert.alertStatus || alert.errorMessage} />
               </tr>
           ))
@@ -412,6 +457,7 @@ HTD5.displayName = 'HTD5';
 HTD6.displayName = 'HTD6';
 HTD7.displayName = 'HTD7';
 HTD8.displayName = 'HTD8';
+HTD9.displayName = 'HTD8';
 TD1.displayName = 'TD1';
 TD2.displayName = 'TD2';
 TD3.displayName = 'TD3';
@@ -429,12 +475,14 @@ export {
     HTD5,
     HTD6,
     HTD7,
+    HTD9,
     TD1,
     TD2,
     TD3,
     TD4,
     TD5,
     TD6,
+    TD8,
     AlertTableHeader,
     AlertTableRows,
 };

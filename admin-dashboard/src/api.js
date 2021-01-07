@@ -1,6 +1,13 @@
 import axios from 'axios';
 import Cookies from 'universal-cookie';
-import { API_URL, LICENSING_URL, ACCOUNTS_URL } from './config';
+import {
+    API_URL,
+    LICENSING_URL,
+    ACCOUNTS_URL,
+    HELM_CHART_URL,
+    API_DOCS_URL,
+    DASHBOARD_URL,
+} from './config';
 import { User } from './config';
 const baseURL = API_URL;
 const licensingURL = LICENSING_URL;
@@ -117,6 +124,99 @@ export function deleteApi(url, data) {
         url: `${baseURL}/${url}`,
         headers,
         data,
+    })
+        .then(function(response) {
+            deffered.resolve(response);
+        })
+        .catch(function(error) {
+            if (error && error.response && error.response.status === 401) {
+                const cookies = new Cookies();
+                cookies.remove('admin-data', { path: '/' });
+                cookies.remove('data', { path: '/' });
+                User.clear();
+                window.location = ACCOUNTS_URL + '/login';
+            }
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            deffered.reject(error);
+        });
+
+    return deffered.promise;
+}
+
+export function getApiDocs(url) {
+    if (User.isLoggedIn())
+        headers['Authorization'] = 'Basic ' + User.getAccessToken();
+    const deffered = Q.defer();
+    axios({
+        method: 'GET',
+        url: `${API_DOCS_URL}/${url}`,
+        headers,
+    })
+        .then(function(response) {
+            deffered.resolve(response);
+        })
+        .catch(function(error) {
+            if (error && error.response && error.response.status === 401) {
+                const cookies = new Cookies();
+                cookies.remove('admin-data', { path: '/' });
+                cookies.remove('data', { path: '/' });
+                User.clear();
+                window.location = ACCOUNTS_URL + '/login';
+            }
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            deffered.reject(error);
+        });
+
+    return deffered.promise;
+}
+
+export function getApiHelm(url) {
+    if (User.isLoggedIn())
+        headers['Authorization'] = 'Basic ' + User.getAccessToken();
+    const deffered = Q.defer();
+    axios({
+        method: 'GET',
+        url: `${HELM_CHART_URL}/${url}`,
+        headers,
+    })
+        .then(function(response) {
+            deffered.resolve(response);
+        })
+        .catch(function(error) {
+            if (error && error.response && error.response.status === 401) {
+                const cookies = new Cookies();
+                cookies.remove('admin-data', { path: '/' });
+                cookies.remove('data', { path: '/' });
+                User.clear();
+                window.location = ACCOUNTS_URL + '/login';
+            }
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            deffered.reject(error);
+        });
+
+    return deffered.promise;
+}
+
+export function getApiDashboard(url) {
+    if (User.isLoggedIn())
+        headers['Authorization'] = 'Basic ' + User.getAccessToken();
+    const deffered = Q.defer();
+    axios({
+        method: 'GET',
+        url: `${DASHBOARD_URL}/api/${url}`,
+        headers,
     })
         .then(function(response) {
             deffered.resolve(response);

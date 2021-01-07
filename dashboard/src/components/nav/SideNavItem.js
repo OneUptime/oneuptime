@@ -106,7 +106,7 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
             ) &&
-                route.title === 'On-Call Schedules') ||
+                route.title === 'On-Call Duty') ||
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/monitors\/([0-9]|[a-z])*/
             ) &&
@@ -136,7 +136,7 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/settings\/basic/
             ) &&
-                route.title === 'Scheduled Events') ||
+                route.title === 'Scheduled Maintenance') ||
             (location.pathname.match(/project\/([0-9]|[a-z])*\/consulting/) &&
                 route.title === 'Consulting & Services') ||
             (location.pathname.match(

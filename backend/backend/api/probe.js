@@ -112,206 +112,254 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             type,
             retryCount,
         } = req.body;
-        let status, log, reason, data;
+        let status,
+            log,
+            reason,
+            data = {};
 
-        if (type === 'api' || type === 'url') {
-            const {
-                stat: validUp,
-                reasons: upFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.up
-                ? ProbeService.conditions(
-                      res,
-                      resp,
-                      monitor.criteria.up,
-                      rawResp
-                  )
-                : { stat: false, reasons: [] });
-            const {
-                stat: validDegraded,
-                reasons: degradedFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.degraded
-                ? ProbeService.conditions(
-                      res,
-                      resp,
-                      monitor.criteria.degraded,
-                      rawResp
-                  )
-                : { stat: false, reasons: [] });
-            const {
-                stat: validDown,
-                reasons: downFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.down
-                ? ProbeService.conditions(
-                      res,
-                      resp,
-                      monitor.criteria.down,
-                      rawResp
-                  )
-                : { stat: false, reasons: [] });
-
-            if (validDown) {
-                status = 'offline';
-                reason = upFailedReasons;
-            } else if (validDegraded) {
-                status = 'degraded';
-                reason = upFailedReasons;
-            } else if (validUp) {
-                status = 'online';
-                reason = [...degradedFailedReasons, ...downFailedReasons];
-            } else {
-                status = 'offline';
-                reason = upFailedReasons;
-            }
-        }
-        if (type === 'script') {
-            const {
-                stat: validUp,
-                reasons: upFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.up
-                ? ProbeService.scriptConditions(res, resp, monitor.criteria.up)
-                : { stat: false, reasons: [] });
-            const {
-                stat: validDegraded,
-                reasons: degradedFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.degraded
-                ? ProbeService.scriptConditions(
-                      res,
-                      resp,
-                      monitor.criteria.degraded
-                  )
-                : { stat: false, reasons: [] });
-            const {
-                stat: validDown,
-                reasons: downFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.down
-                ? ProbeService.scriptConditions(
-                      res,
-                      resp,
-                      monitor.criteria.down
-                  )
-                : { stat: false, reasons: [] });
-
-            if (validDown) {
-                status = 'failed';
-                reason = upFailedReasons;
-            } else if (validDegraded) {
-                status = 'degraded';
-                reason = upFailedReasons;
-            } else if (validUp) {
-                status = 'success';
-                reason = [...degradedFailedReasons, ...downFailedReasons];
-            } else {
-                status = 'failed';
-                reason = upFailedReasons;
-            }
-            resp.status = null;
-        }
-        if (type === 'device') {
-            if (res) {
-                status = 'online';
-            } else {
-                status = 'offline';
-            }
-        }
-        if (type === 'server-monitor') {
-            data = serverData;
-
-            const {
-                stat: validUp,
-                reasons: upFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.up
-                ? ProbeService.conditions(data, null, monitor.criteria.up)
-                : { stat: false, reasons: [] });
-            const {
-                stat: validDegraded,
-                reasons: degradedFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.degraded
-                ? ProbeService.conditions(data, null, monitor.criteria.degraded)
-                : { stat: false, reasons: [] });
-            const {
-                stat: validDown,
-                reasons: downFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.down
-                ? ProbeService.conditions(data, null, monitor.criteria.down)
-                : { stat: false, reasons: [] });
-
-            if (validDown) {
-                data.status = 'offline';
-                data.reason = upFailedReasons;
-            } else if (validDegraded) {
-                data.status = 'degraded';
-                data.reason = upFailedReasons;
-            } else if (validUp) {
-                data.status = 'online';
-                data.reason = [...degradedFailedReasons, ...downFailedReasons];
-            } else {
-                data.status = 'offline';
-                data.reason = upFailedReasons;
-            }
+        if (type === 'incomingHttpRequest') {
+            const newMonitor = await MonitorService.findOneBy({
+                _id: monitor._id,
+            });
+            log = await ProbeService.probeHttpRequest(newMonitor);
         } else {
-            data = req.body;
-            data.responseTime = res || 0;
-            data.responseStatus = resp && resp.status ? resp.status : null;
-            data.status = status;
-            data.sslCertificate =
-                resp && resp.sslCertificate ? resp.sslCertificate : null;
-            data.lighthouseScanStatus =
-                resp && resp.lighthouseScanStatus
-                    ? resp.lighthouseScanStatus
-                    : null;
-            data.performance =
-                resp && resp.performance ? resp.performance : null;
-            data.accessibility =
-                resp && resp.accessibility ? resp.accessibility : null;
-            data.bestPractices =
-                resp && resp.bestPractices ? resp.bestPractices : null;
-            data.seo = resp && resp.seo ? resp.seo : null;
-            data.pwa = resp && resp.pwa ? resp.pwa : null;
-            data.lighthouseData =
-                resp && resp.lighthouseData ? resp.lighthouseData : null;
-            data.retryCount = retryCount || 0;
-            data.reason = reason;
-            data.response = rawResp;
-        }
+            if (type === 'api' || type === 'url') {
+                const {
+                    stat: validUp,
+                    reasons: upFailedReasons,
+                } = await (monitor && monitor.criteria && monitor.criteria.up
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.up,
+                          res,
+                          resp,
+                          rawResp
+                      )
+                    : { stat: false, reasons: [] });
+                const {
+                    stat: validDegraded,
+                    reasons: degradedFailedReasons,
+                } = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.degraded
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.degraded,
+                          res,
+                          resp,
+                          rawResp
+                      )
+                    : { stat: false, reasons: [] });
+                const {
+                    stat: validDown,
+                    reasons: downFailedReasons,
+                } = await (monitor && monitor.criteria && monitor.criteria.down
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.down,
+                          res,
+                          resp,
+                          rawResp
+                      )
+                    : { stat: false, reasons: [] });
 
-        data.monitorId = req.params.monitorId || monitor._id;
-        data.probeId = req.probe && req.probe.id ? req.probe.id : null;
+                if (validDown) {
+                    status = 'offline';
+                    reason = downFailedReasons;
+                } else if (validDegraded) {
+                    status = 'degraded';
+                    reason = degradedFailedReasons;
+                } else if (validUp) {
+                    status = 'online';
+                    reason = upFailedReasons;
+                } else {
+                    status = 'offline';
+                    reason = [
+                        ...degradedFailedReasons,
+                        ...downFailedReasons,
+                        ...upFailedReasons,
+                    ];
+                }
 
-        if (data.lighthouseScanStatus) {
-            if (data.lighthouseScanStatus === 'scanning') {
-                await MonitorService.updateOneBy(
-                    { _id: data.monitorId },
-                    {
-                        lighthouseScanStatus: data.lighthouseScanStatus,
-                    }
-                );
-            } else {
-                await MonitorService.updateOneBy(
-                    { _id: data.monitorId },
-                    {
-                        lighthouseScannedAt: Date.now(),
-                        lighthouseScanStatus: data.lighthouseScanStatus, // scanned || failed
-                        lighthouseScannedBy: data.probeId,
-                    }
-                );
+                data.status = status;
+                data.reason = reason;
             }
-        } else {
-            if (data.lighthouseData) {
-                log = await ProbeService.saveLighthouseLog(data);
+            if (type === 'script') {
+                const {
+                    stat: validUp,
+                    reasons: upFailedReasons,
+                } = await (monitor && monitor.criteria && monitor.criteria.up
+                    ? ProbeService.scriptConditions(
+                          res,
+                          resp,
+                          monitor.criteria.up
+                      )
+                    : { stat: false, reasons: [] });
+                const {
+                    stat: validDegraded,
+                    reasons: degradedFailedReasons,
+                } = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.degraded
+                    ? ProbeService.scriptConditions(
+                          res,
+                          resp,
+                          monitor.criteria.degraded
+                      )
+                    : { stat: false, reasons: [] });
+                const {
+                    stat: validDown,
+                    reasons: downFailedReasons,
+                } = await (monitor && monitor.criteria && monitor.criteria.down
+                    ? ProbeService.scriptConditions(
+                          res,
+                          resp,
+                          monitor.criteria.down
+                      )
+                    : { stat: false, reasons: [] });
+
+                if (validDown) {
+                    status = 'failed';
+                    reason = upFailedReasons;
+                } else if (validDegraded) {
+                    status = 'degraded';
+                    reason = upFailedReasons;
+                } else if (validUp) {
+                    status = 'success';
+                    reason = [...degradedFailedReasons, ...downFailedReasons];
+                } else {
+                    status = 'failed';
+                    reason = upFailedReasons;
+                }
+                resp.status = null;
+
+                data.status = status;
+                data.reason = reason;
+            }
+            if (type === 'device') {
+                if (res) {
+                    status = 'online';
+                } else {
+                    status = 'offline';
+                }
+            }
+            if (type === 'server-monitor') {
+                data = serverData;
+
+                const {
+                    stat: validUp,
+                    reasons: upFailedReasons,
+                } = await (monitor && monitor.criteria && monitor.criteria.up
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.up,
+                          data
+                      )
+                    : { stat: false, reasons: [] });
+                const {
+                    stat: validDegraded,
+                    reasons: degradedFailedReasons,
+                } = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.degraded
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.degraded,
+                          data
+                      )
+                    : { stat: false, reasons: [] });
+                const {
+                    stat: validDown,
+                    reasons: downFailedReasons,
+                } = await (monitor && monitor.criteria && monitor.criteria.down
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.down,
+                          data
+                      )
+                    : { stat: false, reasons: [] });
+
+                if (validDown) {
+                    data.status = 'offline';
+                    data.reason = downFailedReasons;
+                } else if (validDegraded) {
+                    data.status = 'degraded';
+                    data.reason = degradedFailedReasons;
+                } else if (validUp) {
+                    data.status = 'online';
+                    data.reason = upFailedReasons;
+                } else {
+                    data.status = 'offline';
+                    data.reason = [
+                        ...degradedFailedReasons,
+                        ...downFailedReasons,
+                        ...upFailedReasons,
+                    ];
+                }
             } else {
-                log = await ProbeService.saveMonitorLog(data);
-                if (type === 'script') {
-                    await MonitorService.updateBy(
-                        { _id: req.params.monitorId },
+                data = req.body;
+                data.responseTime = res || 0;
+                data.responseStatus = resp && resp.status ? resp.status : null;
+                data.status = status;
+                data.sslCertificate =
+                    resp && resp.sslCertificate ? resp.sslCertificate : null;
+                data.lighthouseScanStatus =
+                    resp && resp.lighthouseScanStatus
+                        ? resp.lighthouseScanStatus
+                        : null;
+                data.performance =
+                    resp && resp.performance ? resp.performance : null;
+                data.accessibility =
+                    resp && resp.accessibility ? resp.accessibility : null;
+                data.bestPractices =
+                    resp && resp.bestPractices ? resp.bestPractices : null;
+                data.seo = resp && resp.seo ? resp.seo : null;
+                data.pwa = resp && resp.pwa ? resp.pwa : null;
+                data.lighthouseData =
+                    resp && resp.lighthouseData ? resp.lighthouseData : null;
+                data.retryCount = retryCount || 0;
+                data.reason = reason;
+                data.response = rawResp;
+            }
+
+            data.monitorId = req.params.monitorId || monitor._id;
+            data.probeId = req.probe && req.probe.id ? req.probe.id : null;
+
+            if (data.lighthouseScanStatus) {
+                if (data.lighthouseScanStatus === 'scanning') {
+                    await MonitorService.updateOneBy(
+                        { _id: data.monitorId },
                         {
-                            scriptRunStatus: 'completed',
-                            scriptRunBy: req.probe.id,
+                            lighthouseScanStatus: data.lighthouseScanStatus,
+                        }
+                    );
+                } else {
+                    await MonitorService.updateOneBy(
+                        { _id: data.monitorId },
+                        {
+                            lighthouseScannedAt: Date.now(),
+                            lighthouseScanStatus: data.lighthouseScanStatus, // scanned || failed
+                            lighthouseScannedBy: data.probeId,
                         }
                     );
                 }
+            } else {
+                if (data.lighthouseData) {
+                    log = await ProbeService.saveLighthouseLog(data);
+                } else {
+                    log = await ProbeService.saveMonitorLog(data);
+                    if (type === 'script') {
+                        await MonitorService.updateBy(
+                            { _id: req.params.monitorId },
+                            {
+                                scriptRunStatus: 'completed',
+                                scriptRunBy: req.probe.id,
+                            }
+                        );
+                    }
+                }
             }
         }
-
         return sendItemResponse(req, response, log);
     } catch (error) {
         return sendErrorResponse(req, response, error);

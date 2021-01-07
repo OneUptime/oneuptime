@@ -24,7 +24,6 @@ import { getSmtpConfig } from '../actions/smsTemplates';
 import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
 import flattenArray from '../utils/flattenArray';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
-import ComponentIssue from '../components/component/ComponentIssue';
 import {
     fetchBreachedMonitorSla,
     closeBreachedMonitorSla,
@@ -32,6 +31,8 @@ import {
 import { fetchDefaultMonitorSla } from '../actions/monitorSla';
 import BreachedMonitorSla from '../components/monitorSla/BreachedMonitorSla';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
+import { fetchErrorTrackersByProject } from '../actions/errorTracker';
+import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
 
 class Home extends Component {
     constructor(props) {
@@ -58,6 +59,7 @@ class Home extends Component {
         }
         this.props.userScheduleRequest();
         this.props.getSmtpConfig(this.props.currentProjectId);
+        this.props.fetchErrorTrackersByProject(this.props.currentProjectId);
         if (this.props.currentProjectId && this.props.user.id) {
             this.props.fetchUserSchedule(
                 this.props.currentProjectId,
@@ -96,21 +98,6 @@ class Home extends Component {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
         }
     }
-    renderComponentIssues = () => {
-        const { components, currentProjectId } = this.props;
-        return components
-            ? components.map((component, i) => {
-                  return (
-                      <div key={i}>
-                          <ComponentIssue
-                              component={component}
-                              currentProjectId={currentProjectId}
-                          />
-                      </div>
-                  );
-              })
-            : null;
-    };
 
     closeAllIncidents = async () => {
         const incidents = this.props.incidents;
@@ -159,79 +146,82 @@ class Home extends Component {
 
         if (userSchedules && userSchedules.length > 0) {
             userSchedules.forEach(userSchedule => {
-                const now = (userSchedule && userSchedule.timezone
-                    ? moment().tz(userSchedule.timezone)
-                    : moment()
-                ).format('HH:mm');
+                const now = (userSchedule && moment()).format('HH:mm');
+                const oncallstart = moment(userSchedule.startTime).format(
+                    'HH:mm'
+                );
+                const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
 
                 const startTime = moment(
-                    (userSchedule &&
-                        userSchedule.timezone &&
-                        userSchedule.startTime) ||
-                        dayStart
+                    (userSchedule && userSchedule.startTime) || dayStart
                 ).format('HH:mm');
 
                 const endTime = moment(
-                    (userSchedule &&
-                        userSchedule.timezone &&
-                        userSchedule.endTime) ||
-                        dayEnd
+                    (userSchedule && userSchedule.endTime) || dayEnd
                 ).format('HH:mm');
 
-                let hours = Math.ceil(
-                    moment(endTime, 'HH:mm').diff(
-                        moment(startTime, 'HH:mm'),
-                        'minutes'
-                    ) / 60
-                );
-                hours = hours < 0 ? hours + 24 : hours;
+                const compareDate = (oncallstart, oncallend, now) => {
+                    const isDifferentDay = oncallstart >= oncallend;
+                    const [startHour, startMin] = oncallstart.split(':');
+                    const [endHour, endMin] = oncallend.split(':');
+                    const [nowHour, nowMin] = now.split(':');
+                    const addDay = 86400000;
 
-                let hoursToStart = Math.ceil(
-                    moment(startTime, 'HH:mm').diff(
-                        moment(now, 'HH:mm'),
-                        'minutes'
-                    ) / 60
-                );
-                hoursToStart =
-                    hoursToStart < 0 ? hoursToStart + 24 : hoursToStart;
+                    const start = new Date(
+                        new Date().setHours(startHour, startMin)
+                    ).getTime();
+                    const end = isDifferentDay
+                        ? new Date(
+                              new Date(new Date().getTime() + addDay).setHours(
+                                  endHour,
+                                  endMin
+                              )
+                          ).getTime()
+                        : new Date(
+                              new Date(new Date().getTime()).setHours(
+                                  endHour,
+                                  endMin
+                              )
+                          ).getTime();
+                    let current = new Date(
+                        new Date().setHours(nowHour, nowMin)
+                    ).getTime();
 
-                const hoursToEnd = hours + hoursToStart;
+                    current =
+                        current < start && isDifferentDay
+                            ? new Date(
+                                  new Date(
+                                      new Date().getTime() + addDay
+                                  ).setHours(nowHour, nowMin)
+                              ).getTime()
+                            : current;
 
-                let nowToEnd = Math.ceil(
-                    moment(endTime, 'HH:mm').diff(
-                        moment(now, 'HH:mm'),
-                        'minutes'
-                    ) / 60
-                );
-                nowToEnd = nowToEnd < 0 ? nowToEnd + 24 : nowToEnd;
+                    if (current >= start && current <= end) return true;
+                    return false;
+                };
 
                 const isUserActive =
-                    (hoursToEnd !== nowToEnd || hoursToStart <= 0) &&
-                    nowToEnd > 0;
+                    compareDate(oncallstart, oncallend, now) ||
+                    oncallstart === oncallend;
 
-                const timezone = (userSchedule && userSchedule.timezone
-                    ? moment(userSchedule.startTime || dayStart).tz(
-                          userSchedule.timezone
-                      )
-                    : moment(userSchedule.startTime || dayStart)
-                ).zoneAbbr();
+                const isUpcoming = moment(startTime, 'HH:mm').diff(
+                    moment(now, 'HH:mm'),
+                    'minutes'
+                );
 
                 const isOnDutyAllTheTime =
-                    userSchedule.startTime >= userSchedule.endTime;
+                    userSchedule.startTime === userSchedule.endTime;
 
                 const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
-                tempObj.timezone = timezone;
 
                 if (isUserActive) {
                     activeSchedules.push(tempObj);
                 } else {
-                    hoursToStart =
-                        hoursToStart <= 0 ? hoursToStart + 24 : hoursToStart;
-                    if (hoursToStart < 24) {
+                    if (isUpcoming) {
                         upcomingSchedules.push(tempObj);
                     } else {
                         inactiveSchedules.push(tempObj);
@@ -262,6 +252,59 @@ class Home extends Component {
                     </RenderIfUserInSubProject>
                 );
             });
+        }
+        let errorEventList;
+        if (this.props.errorTrackers) {
+            this.props.errorTrackers && this.props.errorTrackers.length > 0
+                ? (errorEventList = (
+                      <div className="Box-root Margin-vertical--12">
+                          <div
+                              className="db-Trends Card-root"
+                              style={{ overflow: 'visible' }}
+                          >
+                              <ErrorTrackerList
+                                  errorTrackers={this.props.errorTrackers}
+                                  showComponentWithIssue={true}
+                              />
+                          </div>
+                      </div>
+                  ))
+                : (errorEventList = (
+                      <div>
+                          <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
+                              <div className="db-Trends-header Padding-vertical--48">
+                                  <div className="db-Trends-controls">
+                                      <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                          <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                              <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                  <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
+                                                      <span
+                                                          className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                          style={{
+                                                              filter:
+                                                                  'brightness(0) invert(1)',
+                                                              marginTop: '1px',
+                                                              marginRight:
+                                                                  '5px',
+                                                          }}
+                                                      />
+                                                      <span
+                                                          id="component-content-header"
+                                                          className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
+                                                      >
+                                                          You currently
+                                                          don&apos;t have any
+                                                          error events.
+                                                      </span>
+                                                  </span>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  ));
         }
 
         let ongoingEventList;
@@ -405,26 +448,6 @@ class Home extends Component {
                                                                 >
                                                                     {userSchedules ? (
                                                                         <>
-                                                                            <ShouldRender
-                                                                                if={
-                                                                                    activeSchedules &&
-                                                                                    activeSchedules.length >
-                                                                                        0
-                                                                                }
-                                                                            >
-                                                                                <OnCallSchedule
-                                                                                    status="active"
-                                                                                    schedules={
-                                                                                        activeSchedules
-                                                                                    }
-                                                                                    currentProjectId={
-                                                                                        this
-                                                                                            .props
-                                                                                            .currentProjectId
-                                                                                    }
-                                                                                />
-                                                                            </ShouldRender>
-
                                                                             <ShouldRender
                                                                                 if={
                                                                                     upcomingSchedules &&
@@ -589,11 +612,9 @@ class Home extends Component {
                                                         </Fade>
                                                     </TabPanel>
                                                     <TabPanel>
-                                                        <Fade>
-                                                            <div>
-                                                                {this.renderComponentIssues()}
-                                                            </div>
-                                                        </Fade>
+                                                        <div>
+                                                            {errorEventList}
+                                                        </div>
                                                     </TabPanel>
                                                 </Tabs>
                                             </div>
@@ -646,6 +667,8 @@ Home.propTypes = {
         PropTypes.oneOf([null]),
     ]),
     closingSla: PropTypes.bool,
+    fetchErrorTrackersByProject: PropTypes.func,
+    errorTrackers: PropTypes.array,
 };
 
 const mapStateToProps = (state, props) => {
@@ -699,6 +722,7 @@ const mapStateToProps = (state, props) => {
         monitorSlaBreaches: state.monitor.monitorSlaBreaches.slaBreaches,
         defaultMonitorSla: state.monitorSla.defaultMonitorSla.sla,
         closingSla: state.monitor.closeBreachedMonitorSla.requesting,
+        errorTrackers: state.errorTracker.errorTrackersList.errorTrackers,
     };
 };
 
@@ -715,6 +739,7 @@ const mapDispatchToProps = dispatch => {
             fetchBreachedMonitorSla,
             closeBreachedMonitorSla,
             fetchDefaultMonitorSla,
+            fetchErrorTrackersByProject,
         },
         dispatch
     );

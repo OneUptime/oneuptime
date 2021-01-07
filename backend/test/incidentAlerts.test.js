@@ -54,6 +54,7 @@ const GlobalConfigModel = require('../backend/models/globalConfig');
 const GlobalConfigService = require('../backend/services/globalConfigService');
 const EmailSmtpService = require('../backend/services/emailSmtpService');
 const AlertChargeService = require('../backend/services/alertChargeService');
+const { formatBalance } = require('../backend/utils/number');
 
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -917,19 +918,19 @@ describe('SMS/Calls Incident Alerts', function() {
 
             await sleep(10 * 1000);
 
-            const chargeResonse = await getChargedAlerts({
+            const chargeResponse = await getChargedAlerts({
                 request,
                 authorization,
                 projectId,
             });
-            expect(chargeResonse).to.have.status(200);
-            expect(chargeResonse.body).to.an('object');
+            expect(chargeResponse).to.have.status(200);
+            expect(chargeResponse.body).to.an('object');
             // on the before hook, a subscriber is added, and the user
             // is also added to duty for sms and call. So we expect
             // a total of 3 alert charges
-            expect(chargeResonse.body.count).to.equal(3);
-            expect(chargeResonse.body.data).to.an('array');
-            expect(chargeResonse.body.data.length).to.equal(3);
+            expect(chargeResponse.body.count).to.equal(3);
+            expect(chargeResponse.body.data).to.an('array');
+            expect(chargeResponse.body.data.length).to.equal(3);
 
             const { _id: incidentId } = newIncident.body;
             const incidentResolved = await markIncidentAsResolved({
@@ -941,19 +942,21 @@ describe('SMS/Calls Incident Alerts', function() {
 
             expect(incidentResolved).to.have.status(200);
             await sleep(10 * 1000);
-            const chargeResonseAfterResolvedIncident = await getChargedAlerts({
+            const chargeResponseAfterResolvedIncident = await getChargedAlerts({
                 request,
                 authorization,
                 projectId,
             });
-            expect(chargeResonseAfterResolvedIncident).to.have.status(200);
-            expect(chargeResonseAfterResolvedIncident.body).to.an('object');
+            expect(chargeResponseAfterResolvedIncident).to.have.status(200);
+            expect(chargeResponseAfterResolvedIncident.body).to.an('object');
             // on the before hook, the call-duty limit is 1 SMS and 1 Call,
             // so now, no SMS and Call alerts are sent to the duty memeber
-            expect(chargeResonseAfterResolvedIncident.body.count).to.equal(4);
-            expect(chargeResonseAfterResolvedIncident.body.data).to.an('array');
+            expect(chargeResponseAfterResolvedIncident.body.count).to.equal(4);
+            expect(chargeResponseAfterResolvedIncident.body.data).to.an(
+                'array'
+            );
             expect(
-                chargeResonseAfterResolvedIncident.body.data.length
+                chargeResponseAfterResolvedIncident.body.data.length
             ).to.equal(4);
         });
         it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function() {
@@ -1594,6 +1597,133 @@ describe('SMS/Calls Incident Alerts', function() {
             });
 
             expect(incidentResolved).to.have.status(200);
+        });
+
+        /**
+         * Global twilio settings: set
+         * Custom twilio settings: not set
+         * Global twilio settings SMS enable : true
+         * Global twilio settings Call enable : true
+         * SMS/Call alerts enabled for the project (billing): true
+         */
+        it('should correctly register closing balance for alert charges', async function() {
+            this.timeout(60 * 1000);
+
+            // update global setting to enable call and sms
+            const globalSettings = await GlobalConfigModel.findOne({
+                name: 'twilio',
+            });
+            const { value } = globalSettings;
+            value['sms-enabled'] = true;
+            value['call-enabled'] = true;
+
+            await GlobalConfigModel.findOneAndUpdate(
+                { name: 'twilio' },
+                { value }
+            );
+
+            // enable billing for the project
+            const billingEndpointResponse = await request
+                .put(`/project/${projectId}/alertOptions`)
+                .set('Authorization', authorization)
+                .send({
+                    alertEnable: true,
+                    billingNonUSCountries: true,
+                    billingRiskCountries: true,
+                    billingUS: true,
+                    minimumBalance: '100',
+                    rechargeToBalance: '200',
+                    _id: projectId,
+                });
+
+            expect(billingEndpointResponse).to.have.status(200);
+
+            // create multiple subscribers
+            for (let i = 0; i < 10; i++) {
+                const newSubscriber = await addSubscriberToMonitor({
+                    request,
+                    authorization,
+                    monitorId,
+                    projectId,
+                    payload: {
+                        alertVia: 'sms',
+                        contactPhone: `92161522${i}`,
+                        countryCode: 'et',
+                    },
+                });
+                expect(newSubscriber).to.have.status(200);
+            }
+
+            await sleep(10 * 1000);
+
+            // clean up alert charges
+            await AlertChargeService.hardDeleteBy({});
+            // get original project balance
+            const {
+                balance: originalProjectBalance,
+            } = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+
+            // send notification
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
+                    monitorId,
+                    projectId,
+                    title: 'test monitor  is offline.',
+                    incidentType: 'offline',
+                    description: 'Incident description',
+                },
+            });
+
+            expect(newIncident).to.have.status(200);
+
+            await sleep(25 * 1000);
+
+            // get all alert charges sorted by date in descending order
+            const alertCharges = await AlertChargeService.findBy(
+                {
+                    incidentId: newIncident.body._id,
+                    projectId,
+                },
+                null,
+                null,
+                1
+            );
+            expect(alertCharges).to.be.an('array');
+
+            let calculatedBalance = originalProjectBalance;
+            // calculate balance for each alert charge amount and compare it with
+            // alert charge's closing balance
+            const allAlertChargesCorrect = alertCharges.every(alertCharge => {
+                calculatedBalance = formatBalance(
+                    calculatedBalance - alertCharge.chargeAmount
+                );
+
+                return calculatedBalance === alertCharge.closingAccountBalance;
+            });
+
+            expect(allAlertChargesCorrect).to.be.true;
+
+            // resolve the incident
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId: newIncident.body._id,
+            });
+
+            expect(incidentResolved).to.have.status(200);
+
+            // clean up subscribers
+            await SubscriberService.hardDeleteBy({
+                contactPhone: /92161522/,
+                countryCode: 'et',
+            });
         });
     });
     describe('Custom twilio settings are set', async () => {
