@@ -13,6 +13,7 @@ import { ValidateField } from '../../config';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
+import { fetchCustomFields } from '../../actions/customField';
 
 class CreateManualIncident extends Component {
     constructor(props) {
@@ -25,6 +26,10 @@ class CreateManualIncident extends Component {
     }
 
     componentDidMount() {
+        const { fetchCustomFields } = this.props;
+        const { projectId } = this.props.data;
+        fetchCustomFields(projectId);
+
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -41,13 +46,20 @@ class CreateManualIncident extends Component {
         } = this.props;
         const { projectId, monitorId } = this.props.data;
         this.setState({ incidentType: values.incidentType });
+
+        const customFields = this.props.customFields.map(field => ({
+            fieldName: field.fieldName,
+            fieldValue: values[field.fieldName],
+        }));
+
         createNewIncident(
             projectId,
             monitorId,
             values.incidentType,
             values.title,
             values.description,
-            values.incidentPriority === '' ? null : values.incidentPriority
+            values.incidentPriority === '' ? null : values.incidentPriority,
+            customFields
         ).then(() => {
             createIncidentReset();
             closeModal({
@@ -107,7 +119,12 @@ class CreateManualIncident extends Component {
     };
 
     render() {
-        const { handleSubmit, newIncident, incidentPriorities } = this.props;
+        const {
+            handleSubmit,
+            newIncident,
+            incidentPriorities,
+            customFields,
+        } = this.props;
         const sameError =
             newIncident &&
             newIncident.error &&
@@ -296,6 +313,60 @@ class CreateManualIncident extends Component {
                                                     />
                                                 </div>
                                             </div>
+                                            {customFields &&
+                                                customFields.length > 0 && (
+                                                    <>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label script-label"></label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    fontWeight: 500,
+                                                                }}
+                                                            >
+                                                                Custom Fields
+                                                            </div>
+                                                        </div>
+                                                        {customFields.map(
+                                                            (field, index) => (
+                                                                <div
+                                                                    key={index}
+                                                                    className="bs-Fieldset-row Margin-bottom--12"
+                                                                >
+                                                                    <label className="bs-Fieldset-label">
+                                                                        {
+                                                                            field.fieldName
+                                                                        }
+                                                                    </label>
+                                                                    <div className="bs-Fieldset-fields">
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderField
+                                                                            }
+                                                                            name={
+                                                                                field.fieldName
+                                                                            }
+                                                                            id={
+                                                                                field.fieldName
+                                                                            }
+                                                                            type={
+                                                                                field.fieldType
+                                                                            }
+                                                                            placeholder="Field value"
+                                                                            disabled={
+                                                                                this
+                                                                                    .props
+                                                                                    .newIncident
+                                                                                    .requesting
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </>
+                                                )}
                                         </ShouldRender>
                                         <ShouldRender if={sameError}>
                                             <span>
@@ -414,6 +485,8 @@ CreateManualIncident.propTypes = {
     incidentBasicSettings: PropTypes.object.isRequired,
     selectedIncidentType: PropTypes.string.isRequired,
     currentProject: PropTypes.object.isRequired,
+    fetchCustomFields: PropTypes.func,
+    customFields: PropTypes.array,
 };
 
 const formName = 'CreateManualIncident';
@@ -455,6 +528,7 @@ function mapStateToProps(state, props) {
         initialValues,
         currentProject,
         selectedIncidentType,
+        customFields: state.customField.customFields.fields,
     };
 }
 
@@ -465,6 +539,7 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             createIncidentReset,
             change,
+            fetchCustomFields,
         },
         dispatch
     );

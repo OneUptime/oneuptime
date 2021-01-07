@@ -80,6 +80,7 @@ module.exports = {
                         incidentsCountInProject +
                         deletedIncidentsCountInProject +
                         1;
+                    incident.customFields = data.customFields;
 
                     if (!incident.manuallyCreated) {
                         const incidentSettings = await IncidentSettingsService.findOne(

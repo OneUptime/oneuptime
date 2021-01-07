@@ -1508,6 +1508,54 @@ export class IncidentStatus extends Component {
                                                             </div>
                                                         </div>
                                                     )}
+                                                    {this.props.incident
+                                                        .customFields &&
+                                                        this.props.incident
+                                                            .customFields
+                                                            .length > 0 && (
+                                                            <div className="bs-content">
+                                                                <label className="">
+                                                                    Custom
+                                                                    Fields
+                                                                </label>
+                                                                <div className="bs-content-inside">
+                                                                    {this.props.incident.customFields.map(
+                                                                        (
+                                                                            field,
+                                                                            index
+                                                                        ) => (
+                                                                            <div
+                                                                                key={
+                                                                                    index
+                                                                                }
+                                                                                style={{
+                                                                                    display:
+                                                                                        'grid',
+                                                                                    gridTemplateColumns:
+                                                                                        '1fr 1fr',
+                                                                                }}
+                                                                            >
+                                                                                <span className="value">
+                                                                                    {
+                                                                                        field.fieldName
+                                                                                    }
+
+                                                                                    :
+                                                                                </span>
+                                                                                <span className="value">
+                                                                                    {field.fieldValue ||
+                                                                                    (typeof field.fieldValue ===
+                                                                                        'string' &&
+                                                                                        !!field.fieldValue.trim())
+                                                                                        ? field.fieldValue
+                                                                                        : '-'}
+                                                                                </span>
+                                                                            </div>
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                 </div>
                                             </div>
                                         </fieldset>
