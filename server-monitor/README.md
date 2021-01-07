@@ -99,11 +99,11 @@ NB:- In most cases, `sudo` or admin privileges are required to run the shell as 
 
 #### Linux
 
-Services created by the daemon are like other services running on Linux. It can be started/stopped using `service fyipeservermonitor start` or `service fyipeservermonitor stop` and logs are available. This file is created in /etc/init.d by default. Additionally, log files are generated in /var/log/fyipeservermonitor/ for general output and error logging.
+Services created by the daemon are like other services running on Linux. It can be started/stopped using `service fyipeservermonitor start` or `service fyipeservermonitor stop` and logs are available. This file is created in /etc/init.d by default. Additionally, log files are generated in /var/log/Fyipe Server Monitor/ for general output and error logging.
 
 #### Mac
 
-Services created by the daemon are similar to most other services running on OSX. It can be stopped from the Activity Monitor and make logs available in the Console app. A plist file is created in /Library/LaunchDaemons by default. Additionally, two log files are generated in /Library/Logs/fyipeservermonitor/ for general output and error logging.
+Services created by the daemon are similar to most other services running on OSX. It can be stopped from the Activity Monitor and make logs available in the Console app. A plist file is created in /Library/LaunchDaemons by default. Additionally, two log files are generated in /Library/Logs/Fyipe Server Monitor/ for general output and error logging.
 
 #### Windows
 
