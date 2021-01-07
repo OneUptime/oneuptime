@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import ReactJson from 'react-json-view';
 
 class EmailLogsContentViewModal extends Component {
     componentDidMount() {
@@ -43,52 +42,13 @@ class EmailLogsContentViewModal extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>API Request and Response</span>
+                                        <span>Content</span>
                                     </span>
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
                                 <div className="jsonViwer Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <div className="db-EmailLogsContentViewModal-JsonViewerWrapper">
-                                        <div className="db-EmailLogsContentViewModal-JsonViewerContainer">
-                                            <div className="Text-fontWeight--medium">
-                                                Request
-                                            </div>
-                                            <div className="db-EmailLogsContentViewModal-JsonViewer">
-                                                <ReactJson
-                                                    src={reqLog}
-                                                    name="Request"
-                                                    enableClipboard={false}
-                                                    displayObjectSize={false}
-                                                    displayDataTypes={false}
-                                                    indentWidth={2}
-                                                    collapsed={1}
-                                                    style={{
-                                                        fontSize: '12px',
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="EmailLogsContentViewModal-JsonViewerContainer">
-                                            <div className="Text-fontWeight--medium">
-                                                Response
-                                            </div>
-                                            <div className="db-EmailLogsContentViewModal-JsonViewer">
-                                                <ReactJson
-                                                    src={resLog}
-                                                    name="Response"
-                                                    enableClipboard={false}
-                                                    displayObjectSize={false}
-                                                    displayDataTypes={false}
-                                                    indentWidth={2}
-                                                    collapsed={1}
-                                                    style={{
-                                                        fontSize: '12px',
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <div className="db-EmailLogsContentViewModal-JsonViewerWrapper"></div>
                                 </div>
                             </div>
                             <div className="bs-Modal-footer">
