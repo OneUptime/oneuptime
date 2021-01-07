@@ -100,7 +100,7 @@ export class EmailLogsList extends Component {
                                 </td>
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px', minWidth: '200px' }}
+                                    style={{ height: '1px'}}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -109,12 +109,22 @@ export class EmailLogsList extends Component {
                                     </div>
                                 </td>
                                 <td
-                                    className="Table-cell Table-cell--align--center Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Subject</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px'}}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Actions</span>
                                         </span>
                                     </div>
                                 </td>
@@ -222,7 +232,7 @@ export class EmailLogsList extends Component {
                                             </td>
 
                                             <td
-                                                className="Table-cell Table-cell--align--center Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                 style={{ height: '1px' }}
                                             >
                                                 <div className="db-ListViewItem-link">
@@ -333,7 +343,7 @@ export class EmailLogsList extends Component {
                                     </div>
                                 </button>
                             </div>
-                            <div className="Box-root">
+                            {/* <div className="Box-root">
                                 <button
                                     id="deleteLog"
                                     onClick={this.handleDelete}
@@ -348,7 +358,7 @@ export class EmailLogsList extends Component {
                                         </span>
                                     </div>
                                 </button>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                 </div>
