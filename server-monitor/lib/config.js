@@ -56,14 +56,18 @@ const offlineTestData = {
 };
 
 const LOG_PATH = {
-    linux: { log: '/var/log/fsmd.log', error: '/var/log/fsmd_error.log' },
+    linux: {
+        log: '/var/log/Fyipe Server Monitor/fyipeservermonitor.log',
+        error: '/var/log/Fyipe Server Monitor/fyipeservermonitor_error.log',
+    },
     darwin: {
-        log: '/Library/Logs/fsmd.log',
-        error: '/Library/Logs/fsmd_error.log',
+        log: '/Library/Logs/Fyipe Server Monitor/fyipeservermonitor.log',
+        error:
+            '/Library/Logs/Fyipe Server Monitor/fyipeservermonitor_error.log',
     },
     win32: {
-        log: path.join(__dirname, 'fsmd.out.log'),
-        error: path.join(__dirname, 'fsmd.err.log'),
+        log: path.join(__dirname, 'fyipeservermonitor.out.log'),
+        error: path.join(__dirname, 'fyipeservermonitor.err.log'),
     },
 };
 

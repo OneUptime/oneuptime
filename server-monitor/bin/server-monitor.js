@@ -149,7 +149,7 @@ checkParams(questions).then(values => {
         }
 
         const svc = new Service({
-            name: 'fsmd',
+            name: 'Fyipe Server Monitor',
             description: 'Fyipe Monitoring Shell',
             script: require('path').join(__dirname, 'server-monitor.js'),
             env: [
