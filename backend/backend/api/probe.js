@@ -245,7 +245,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             }
             if (type === 'server-monitor') {
                 data = serverData;
-
                 const {
                     stat: validUp,
                     reasons: upFailedReasons,
