@@ -1533,6 +1533,35 @@ export class IncidentStatus extends Component {
                                                             </div>
                                                         </div>
                                                     )}
+                                                    {this.props.incident
+                                                        .customFields &&
+                                                        this.props.incident
+                                                            .customFields
+                                                            .length > 0 &&
+                                                        this.props.incident.customFields.map(
+                                                            (field, index) => (
+                                                                <div
+                                                                    className="bs-content"
+                                                                    key={index}
+                                                                >
+                                                                    <label>
+                                                                        {
+                                                                            field.fieldName
+                                                                        }
+                                                                    </label>
+                                                                    <div className="bs-content-inside">
+                                                                        <span className="value">
+                                                                            {field.fieldValue ||
+                                                                            (typeof field.fieldValue ===
+                                                                                'string' &&
+                                                                                !!field.fieldValue.trim())
+                                                                                ? field.fieldValue
+                                                                                : '-'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        )}
                                                 </div>
                                             </div>
                                         </fieldset>

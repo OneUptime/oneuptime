@@ -13,6 +13,7 @@ import IncomingRequestUrl from './IncomingRequestUrl';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import Tooltip from '../basic/Tooltip';
 import { incomingRequestVariables } from '../../config';
+import { fetchCustomFields } from '../../actions/customField';
 
 function validate(values) {
     const errors = {};
@@ -36,6 +37,10 @@ class CreateIncomingRequest extends Component {
     };
 
     componentDidMount() {
+        const { fetchCustomFields, data } = this.props;
+        const { projectId } = data;
+        fetchCustomFields(projectId);
+
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -49,6 +54,7 @@ class CreateIncomingRequest extends Component {
             createIncomingRequest,
             data,
             openModal,
+            customFields,
         } = this.props;
         const { projectId } = data;
         const postObj = {};
@@ -68,6 +74,14 @@ class CreateIncomingRequest extends Component {
         postObj.incidentTitle = values.incidentTitle;
         postObj.incidentPriority = values.incidentPriority;
         postObj.incidentDescription = values.incidentDescription;
+
+        postObj.customFields = customFields.map(field => ({
+            fieldName: field.fieldName,
+            fieldValue:
+                field.fieldType === 'number'
+                    ? parseFloat(values[field.fieldName])
+                    : values[field.fieldName],
+        }));
 
         postObj.monitors = [];
         if (!postObj.isDefault) {
@@ -227,7 +241,12 @@ class CreateIncomingRequest extends Component {
                     id: projectId,
                 });
             case 'Enter':
-                return document.getElementById('createIncomingRequest').click();
+                if (e.target.localName !== 'textarea') {
+                    return document
+                        .getElementById('createIncomingRequest')
+                        .click();
+                }
+                break;
             default:
                 return false;
         }
@@ -252,6 +271,7 @@ class CreateIncomingRequest extends Component {
             formValues,
             closeModal,
             incidentPriorities,
+            customFields,
         } = this.props;
         const { projectId } = data;
 
@@ -1070,7 +1090,7 @@ class CreateIncomingRequest extends Component {
                                                                             RenderTextArea
                                                                         }
                                                                         name="incidentDescription"
-                                                                        type="text"
+                                                                        type="textarea"
                                                                         rows="5"
                                                                         placeholder="Description of the incident"
                                                                         id="incidentDescription"
@@ -1080,6 +1100,8 @@ class CreateIncomingRequest extends Component {
                                                                                 '100%',
                                                                             padding:
                                                                                 '3px 5px',
+                                                                            whiteSpace:
+                                                                                'normal',
                                                                         }}
                                                                     />
                                                                 </div>
@@ -1087,6 +1109,81 @@ class CreateIncomingRequest extends Component {
                                                         </div>
                                                     </div>
                                                 </fieldset>
+                                                {customFields &&
+                                                    customFields.length > 0 &&
+                                                    customFields.map(
+                                                        (field, index) => (
+                                                            <fieldset
+                                                                key={index}
+                                                                className="Margin-bottom--16"
+                                                            >
+                                                                <div className="bs-Fieldset-rows">
+                                                                    <div
+                                                                        className="bs-Fieldset-row"
+                                                                        style={{
+                                                                            padding: 0,
+                                                                        }}
+                                                                    >
+                                                                        <label
+                                                                            className="bs-Fieldset-label Text-align--left"
+                                                                            htmlFor="incidentDescription"
+                                                                            style={{
+                                                                                flexBasis:
+                                                                                    '20%',
+                                                                            }}
+                                                                        >
+                                                                            <span>
+                                                                                {
+                                                                                    field.fieldName
+                                                                                }
+                                                                            </span>
+                                                                        </label>
+                                                                        <div
+                                                                            className="bs-Fieldset-fields"
+                                                                            style={{
+                                                                                flexBasis:
+                                                                                    '80%',
+                                                                                maxWidth:
+                                                                                    '80%',
+                                                                            }}
+                                                                        >
+                                                                            <div
+                                                                                className="bs-Fieldset-field"
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                }}
+                                                                            >
+                                                                                <Field
+                                                                                    component={
+                                                                                        RenderField
+                                                                                    }
+                                                                                    name={
+                                                                                        field.fieldName
+                                                                                    }
+                                                                                    id={
+                                                                                        field.fieldName
+                                                                                    }
+                                                                                    type={
+                                                                                        field.fieldType
+                                                                                    }
+                                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                                    style={{
+                                                                                        width:
+                                                                                            '100%',
+                                                                                        padding:
+                                                                                            '3px 5px',
+                                                                                        whiteSpace:
+                                                                                            'normal',
+                                                                                    }}
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </fieldset>
+                                                        )
+                                                    )}
                                                 <fieldset
                                                     style={{ paddingTop: 0 }}
                                                 >
@@ -1167,9 +1264,12 @@ class CreateIncomingRequest extends Component {
                                                                                     variables
                                                                                     in
                                                                                     incident
-                                                                                    title
+                                                                                    title,
+                                                                                    incident
+                                                                                    description
                                                                                     or
-                                                                                    description.
+                                                                                    custom
+                                                                                    field.
                                                                                 </span>
                                                                                 <span
                                                                                     className="template-variable-1"
@@ -1304,6 +1404,8 @@ CreateIncomingRequest.propTypes = {
     incidentPriorities: PropTypes.array,
     destroy: PropTypes.func.isRequired, // to manually destroy the form state
     change: PropTypes.func.isRequired, // to manually change redux form state
+    fetchCustomFields: PropTypes.func,
+    customFields: PropTypes.array,
 };
 
 const CreateIncomingRequestForm = reduxForm({
@@ -1315,7 +1417,7 @@ const CreateIncomingRequestForm = reduxForm({
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { createIncomingRequest, closeModal, openModal },
+        { createIncomingRequest, closeModal, openModal, fetchCustomFields },
         dispatch
     );
 
@@ -1343,6 +1445,7 @@ const mapStateToProps = (state, ownProps) => {
         },
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        customFields: state.customField.customFields.fields,
     };
 };
 
