@@ -5,6 +5,7 @@
 ###
 
 # Variables, please check these before you run the script. 
+
 HELM_RELEASE_NAME='fi'
 FYIPE_DB_USERNAME='fyipe'
 FYIPE_DB_PASSWORD='password'

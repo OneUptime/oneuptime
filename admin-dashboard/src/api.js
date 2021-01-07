@@ -178,7 +178,7 @@ export function getApiDocs(url) {
     return deffered.promise;
 }
 
-export function getApiHelm(url, licensing) {
+export function getApiHelm(url) {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -209,7 +209,7 @@ export function getApiHelm(url, licensing) {
     return deffered.promise;
 }
 
-export function getApiDashboard(url, licensing) {
+export function getApiDashboard(url) {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();

@@ -13,8 +13,9 @@ const RenderField = ({
     style,
     required,
     autoFocus,
+    parentStyle = {},
 }) => (
-    <span style={{ width: '100%' }}>
+    <span style={{ width: '100%', ...parentStyle }}>
         <span>
             <input
                 {...input}
@@ -68,6 +69,7 @@ RenderField.propTypes = {
     style: PropTypes.object,
     required: PropTypes.bool,
     autoFocus: PropTypes.bool,
+    parentStyle: PropTypes.object,
 };
 
 RenderField.defaultProps = {

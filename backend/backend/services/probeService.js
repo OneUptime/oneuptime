@@ -229,18 +229,15 @@ module.exports = {
                     const monitor = await MonitorService.findOneBy({
                         _id: data.monitorId,
                     });
+
                     const autoAcknowledge =
                         lastStatus && lastStatus === 'degraded'
                             ? monitor.criteria.degraded.autoAcknowledge
-                            : lastStatus === 'offline'
-                            ? monitor.criteria.down.autoAcknowledge
-                            : false;
+                            : lastStatus === 'offline' && true; // automatically acknowledge offline monitors
                     const autoResolve =
                         lastStatus === 'degraded'
                             ? monitor.criteria.degraded.autoResolve
-                            : lastStatus === 'offline'
-                            ? monitor.criteria.down.autoResolve
-                            : false;
+                            : lastStatus === 'offline' && true; // automatically resolve offline monitors
                     await _this.incidentResolveOrAcknowledge(
                         data,
                         lastStatus,
@@ -412,13 +409,7 @@ module.exports = {
                         }),
                     ];
                 }
-            } else if (
-                data.status === 'offline' &&
-                monitor &&
-                monitor.criteria &&
-                monitor.criteria.down &&
-                monitor.criteria.down.createAlert
-            ) {
+            } else if (data.status === 'offline') {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
                         const newIncident = await IncidentService.updateOneBy(

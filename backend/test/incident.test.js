@@ -496,7 +496,7 @@ describe('Incident API', function() {
         expect(res.body.data[0].type).to.be.equal(type);
     });
 
-    it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function () {
+    it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function() {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
             $set: {
@@ -510,12 +510,16 @@ describe('Incident API', function() {
                 },
             },
         });
-        const user = await UserService.findOneBy({_id:userId});
-        const stripeCustomerId= user.stripeCustomerId;
-        await UserService.updateOneBy({
-            _id:userId},{
-            stripeCustomerId:'wrong_customer_id'
-        });
+        const user = await UserService.findOneBy({ _id: userId });
+        const stripeCustomerId = user.stripeCustomerId;
+        await UserService.updateOneBy(
+            {
+                _id: userId,
+            },
+            {
+                stripeCustomerId: 'wrong_customer_id',
+            }
+        );
         await sleep(10000);
         await UserModel.findByIdAndUpdate(userId, {
             $set: {
@@ -538,19 +542,25 @@ describe('Incident API', function() {
         const createEscalation = await request
             .post(`/schedule/${projectId}/${schedule.body._id}/addescalation`)
             .set('Authorization', authorization)
-            .send([{
-                emailReminders: 1,
-                callReminders: 1,
-                smsReminders: 1,
-                call: true,
-                sms: true,
-                email: true,
-                teams: [{
-                    teamMembers: [{
-                        userId
-                    }, ],
-                }, ],
-            }, ]);
+            .send([
+                {
+                    emailReminders: 1,
+                    callReminders: 1,
+                    smsReminders: 1,
+                    call: true,
+                    sms: true,
+                    email: true,
+                    teams: [
+                        {
+                            teamMembers: [
+                                {
+                                    userId,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ]);
         expect(createEscalation).to.have.status(200);
         const createdIncident = await request
             .post(`/incident/${projectId}/${monitorId}`)
@@ -571,19 +581,20 @@ describe('Incident API', function() {
         expect(smsAlert).to.be.an('object');
         expect(smsAlert.alertStatus).to.equal(null);
         expect(smsAlert.error).to.equal(true);
-        expect(smsAlert.errorMessage).to.equal("Low Balance");
+        expect(smsAlert.errorMessage).to.equal('Low Balance');
         expect(callAlert).to.be.an('object');
         expect(callAlert.alertStatus).to.equal(null);
         expect(callAlert.error).to.equal(true);
-        expect(callAlert.errorMessage).to.equal("Low Balance");
+        expect(callAlert.errorMessage).to.equal('Low Balance');
 
-        await UserService.updateOneBy({
-            _id:userId,
-        },{    
-            stripeCustomerId
-        },
+        await UserService.updateOneBy(
+            {
+                _id: userId,
+            },
+            {
+                stripeCustomerId,
+            }
         );
-
     });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
@@ -622,7 +633,7 @@ describe('Incident API', function() {
             alertVia: 'call',
         });
         expect(callAlert).to.be.an('object');
-        expect(callAlert.alertStatus).to.be.equal("Success");
+        expect(callAlert.alertStatus).to.be.equal('Success');
         expect(callAlert.error).to.be.equal(false);
     });
     it('should create an alert charge when an alert is sent to a user.', async function() {
