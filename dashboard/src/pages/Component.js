@@ -81,8 +81,9 @@ class DashboardView extends Component {
             subProjects,
             currentProject,
             location: { pathname },
+            projectId,
         } = this.props;
-        const currentProjectId = currentProject ? currentProject._id : null;
+        const currentProjectId = projectId;
         let allComponents = this.props.component.componentList.components
             .map(component => component.components)
             .flat();
@@ -404,6 +405,7 @@ const mapStateToProps = (state, props) => {
         endDate: state.monitor.monitorsList.endDate,
         monitors,
         tutorialStat,
+        projectId,
     };
 };
 
@@ -435,6 +437,7 @@ DashboardView.propTypes = {
     monitors: PropTypes.array,
     tutorialStat: PropTypes.object,
     getSmtpConfig: PropTypes.func.isRequired,
+    projectId: PropTypes.string,
 };
 
 DashboardView.displayName = 'DashboardView';

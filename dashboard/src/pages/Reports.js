@@ -327,8 +327,7 @@ export class Reports extends Component {
                                                                     .resolveTimeEnd
                                                             }
                                                             currentProject={
-                                                                this.props.match
-                                                                    .params
+                                                                this.props
                                                                     .projectId
                                                             }
                                                         />
@@ -483,8 +482,7 @@ export class Reports extends Component {
                                                                     .incidentEnd
                                                             }
                                                             currentProject={
-                                                                this.props.match
-                                                                    .params
+                                                                this.props
                                                                     .projectId
                                                             }
                                                         />
@@ -670,6 +668,7 @@ Reports.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    projectId: PropTypes.string,
 };
 
 Reports.displayName = 'Reports';
