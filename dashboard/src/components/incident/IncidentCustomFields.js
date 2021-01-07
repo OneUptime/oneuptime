@@ -150,7 +150,13 @@ class IncidentCustomFields extends Component {
                                                 </div>
                                             </div>
                                             <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
+                                                <div
+                                                    className="bs-ObjectList-cell-row"
+                                                    style={{
+                                                        textTransform:
+                                                            'capitalize',
+                                                    }}
+                                                >
                                                     {field.fieldType}
                                                 </div>
                                             </div>

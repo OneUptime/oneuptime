@@ -43,6 +43,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
         const incidentPriority = req.body.incidentPriority;
         const title = req.body.title;
         const description = req.body.description;
+        const customFields = req.body.customFields;
         const userId = req.user ? req.user.id : null;
         let oldIncidentsCount = null;
 
@@ -119,6 +120,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
             title,
             description,
             incidentPriority,
+            customFields,
         });
         await MonitorStatusService.create({
             monitorId,

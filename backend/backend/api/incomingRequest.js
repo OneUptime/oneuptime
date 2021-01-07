@@ -147,8 +147,15 @@ router.post('/:projectId/request/:requestId', async function(req, res) {
         const externalFilter =
             req.body.value || req.query.value || req.headers.value;
 
+        // request object for use in variables
+        const request = {
+            body: { value: req.body.value },
+            query: { value: req.query.value },
+            headers: { value: req.headers.value },
+        };
+
         const { projectId, requestId } = req.params;
-        const data = { projectId, requestId, filter: externalFilter };
+        const data = { projectId, requestId, filter: externalFilter, request };
         await IncomingRequestService.handleIncomingRequestAction(data);
 
         return sendItemResponse(

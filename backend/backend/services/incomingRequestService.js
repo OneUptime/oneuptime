@@ -89,6 +89,17 @@ module.exports = {
                 );
             }
 
+            if (data.customFields && data.customFields.length > 0) {
+                const customFields = [...data.customFields];
+                data.customFields = customFields.map(field => ({
+                    fieldName: field.fieldName,
+                    fieldValue:
+                        typeof field.fieldValue === 'number'
+                            ? field.fieldValue
+                            : DOMPurify.sanitize(field.fieldValue),
+                }));
+            }
+
             let incomingRequest = await IncomingRequestModel.create({
                 ...data,
             });
@@ -163,6 +174,17 @@ module.exports = {
                 data.incidentDescription = DOMPurify.sanitize(
                     data.incidentDescription
                 );
+            }
+
+            if (data.customFields && data.customFields.length > 0) {
+                const customFields = [...data.customFields];
+                data.customFields = customFields.map(field => ({
+                    fieldName: field.fieldName,
+                    fieldValue:
+                        typeof field.fieldValue === 'number'
+                            ? field.fieldValue
+                            : DOMPurify.sanitize(field.fieldValue),
+                }));
             }
 
             if (data.isDefault) {
@@ -419,12 +441,26 @@ module.exports = {
                 });
             }
 
-            let titleTemplate, descriptionTemplate;
+            if (!incomingRequest) {
+                incomingRequest = await _this.findOneBy({
+                    _id: data.requestId,
+                    projectId: data.projectId,
+                    $or: [
+                        { filterText: { $exists: false } },
+                        { filterText: '' },
+                    ],
+                });
+            }
+
+            let titleTemplate,
+                descriptionTemplate,
+                customFieldTemplates = [];
             if (incomingRequest && incomingRequest.createIncident) {
                 data.incidentType = incomingRequest.incidentType;
                 data.incidentPriority = incomingRequest.incidentPriority;
                 data.title = incomingRequest.incidentTitle;
                 data.description = incomingRequest.incidentDescription;
+                data.customFields = incomingRequest.customFields;
 
                 if (
                     data.title &&
@@ -438,6 +474,15 @@ module.exports = {
                     // handle template variables
                     titleTemplate = Handlebars.compile(data.title);
                     descriptionTemplate = Handlebars.compile(data.description);
+                }
+
+                if (data.customFields && data.customFields.length > 0) {
+                    customFieldTemplates = data.customFields.map(field => ({
+                        ...field,
+                        fieldValue: Handlebars.compile(
+                            String(field.fieldValue)
+                        ),
+                    }));
                 }
 
                 const filterCriteria = incomingRequest.filterCriteria,
@@ -459,6 +504,7 @@ module.exports = {
                                 monitorName: monitor.name,
                                 projectName: monitor.projectId.name,
                                 componentName: monitor.componentId.name,
+                                request: data.request,
                             };
 
                             if (titleTemplate) {
@@ -467,6 +513,19 @@ module.exports = {
                             if (descriptionTemplate) {
                                 data.description = descriptionTemplate(
                                     dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
                                 );
                             }
 
@@ -529,6 +588,7 @@ module.exports = {
                                 monitorName: monitor.name,
                                 componentName: monitor.componentId.name,
                                 projectName: incomingRequest.projectId.name,
+                                request: data.request,
                             };
                             if (titleTemplate) {
                                 data.title = titleTemplate(dataConfig);
@@ -536,6 +596,19 @@ module.exports = {
                             if (descriptionTemplate) {
                                 data.description = descriptionTemplate(
                                     dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
                                 );
                             }
 
@@ -599,6 +672,7 @@ module.exports = {
                                 monitorName: monitor.name,
                                 projectName: monitor.projectId.name,
                                 componentName: monitor.componentId.name,
+                                request: data.request,
                             };
 
                             if (titleTemplate) {
@@ -607,6 +681,19 @@ module.exports = {
                             if (descriptionTemplate) {
                                 data.description = descriptionTemplate(
                                     dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
                                 );
                             }
                             data.monitorId = monitor._id;
@@ -622,6 +709,7 @@ module.exports = {
                                 monitorName: monitor.name,
                                 componentName: monitor.componentId.name,
                                 projectName: incomingRequest.projectId.name,
+                                request: data.request,
                             };
                             if (titleTemplate) {
                                 data.title = titleTemplate(dataConfig);
@@ -629,6 +717,19 @@ module.exports = {
                             if (descriptionTemplate) {
                                 data.description = descriptionTemplate(
                                     dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
                                 );
                             }
 

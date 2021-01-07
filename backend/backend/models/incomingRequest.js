@@ -36,6 +36,7 @@ const incomingRequestSchema = new Schema(
             ref: 'IncidentPriority',
         },
         incidentDescription: String,
+        customFields: [{ fieldName: String, fieldValue: Schema.Types.Mixed }],
     },
     { timestamps: true }
 );
