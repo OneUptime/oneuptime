@@ -10579,21 +10579,21 @@ table {
   overflow: auto;
 }
 
-/********************** SmsLogsJsonViewModal ***********************/
-.db-SmsLogsJsonViewModal-JsonViewerWrapper {
+/********************** SmsLogsContentViewModal ***********************/
+.db-SmsLogsContentViewModal-ContentViewerWrapper {
   display: flex;
 }
 
-.db-SmsLogsJsonViewModal-JsonViewerWrapper > div {
+.db-SmsLogsContentViewModal-ContentViewerWrapper > div {
   flex: 1;
   overflow: hidden;
 }
 
-.db-SmsLogsJsonViewModal-JsonViewerContainer:first-child {
+.db-SmsLogsContentViewModal-ContentViewerContainer:first-child {
   margin: 0 10px;
 }
 
-.db-SmsLogsJsonViewModal-JsonViewer {
+.db-SmsLogsContentViewModal-ContentViewer {
   min-height: 300px;
   max-height: 400px;
   overflow: auto;

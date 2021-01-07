@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-class EmailLogsContentViewModal extends Component {
+class SmsLogsContentViewModal extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -24,7 +24,7 @@ class EmailLogsContentViewModal extends Component {
         const { isRequesting, error, closeThisDialog, content } = this.props;
 
         return (
-            <div className="db-EmailLogsContentViewModal ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
+            <div className="db-SmsLogsContentViewModal ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -41,8 +41,8 @@ class EmailLogsContentViewModal extends Component {
                             </div>
                             <div className="bs-Modal-content">
                                 <div className="jsonViwer Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <div className="db-EmailLogsContentViewModal-ContentViewerWrapper">
-                                        <div className="db-EmailLogsContentViewModal-ContentViewerContainer">
+                                    <div className="db-SmsLogsContentViewModal-ContentViewerWrapper">
+                                        <div className="db-SmsLogsContentViewModal-ContentViewerContainer">
                                             <div
                                                 dangerouslySetInnerHTML={{
                                                     __html: content,
@@ -101,22 +101,22 @@ class EmailLogsContentViewModal extends Component {
     }
 }
 
-EmailLogsContentViewModal.displayName = 'EmailLogsContentViewModal';
+SmsLogsContentViewModal.displayName = 'SmsLogsContentViewModal';
 
 const mapStateToProps = state => {
     return {
         isRequesting:
-            state.emailLogs &&
-            state.emailLogs.emailLogs &&
-            state.emailLogs.emailLogs.requesting,
+            state.smsLogs &&
+            state.smsLogs.smsLogs &&
+            state.smsLogs.smsLogs.requesting,
         error:
-            state.emailLogs &&
-            state.emailLogs.emailLogs &&
-            state.emailLogs.emailLogs.error,
+            state.smsLogs &&
+            state.smsLogs.smsLogs &&
+            state.smsLogs.smsLogs.error,
     };
 };
 
-EmailLogsContentViewModal.propTypes = {
+SmsLogsContentViewModal.propTypes = {
     isRequesting: PropTypes.oneOfType([
         PropTypes.bool,
         PropTypes.oneOf([null, undefined]),
@@ -129,4 +129,4 @@ EmailLogsContentViewModal.propTypes = {
     content: PropTypes.string,
 };
 
-export default connect(mapStateToProps)(EmailLogsContentViewModal);
+export default connect(mapStateToProps)(SmsLogsContentViewModal);

@@ -7,6 +7,7 @@ import uuid from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import SmsLogsContentViewModal from './SmsLogsContentViewModal';
 
 export class SmsLogsList extends Component {
     constructor(props) {
@@ -78,16 +79,6 @@ export class SmsLogsList extends Component {
                                     style={{ height: '1px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>User name</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Project name</span>
                                         </span>
@@ -99,7 +90,27 @@ export class SmsLogsList extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>User name</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Sent to</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Actions</span>
                                         </span>
                                     </div>
                                 </td>
@@ -136,6 +147,24 @@ export class SmsLogsList extends Component {
                                             className="Table-row db-ListViewItem bs-ActionsParent"
                                         >
                                             <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <div className="Box-root">
+                                                                <span>
+                                                                    {smsLog.projectId
+                                                                        ? smsLog.projectId
+                                                                        : 'N/A'}
+                                                                </span>
+                                                            </div>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                                 style={{ height: '1px' }}
                                             >
@@ -158,10 +187,10 @@ export class SmsLogsList extends Component {
                                                 <div className="db-ListViewItem-link">
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root">
+                                                            <div className="Box-root Flex-flex">
                                                                 <span>
-                                                                    {smsLog.projectId
-                                                                        ? smsLog.projectId
+                                                                    {smsLog.sentTo
+                                                                        ? smsLog.sentTo
                                                                         : 'N/A'}
                                                                 </span>
                                                             </div>
@@ -170,17 +199,41 @@ export class SmsLogsList extends Component {
                                                 </div>
                                             </td>
                                             <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                 style={{ height: '1px' }}
                                             >
                                                 <div className="db-ListViewItem-link">
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Flex-flex">
+                                                            <div className="Box-root">
                                                                 <span>
-                                                                    {smsLog.sentTo
-                                                                        ? smsLog.sentTo
-                                                                        : 'N/A'}
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            this.props.openModal(
+                                                                                {
+                                                                                    id: uuid.v4(),
+                                                                                    onConfirm: () => {
+                                                                                        return Promise.resolve();
+                                                                                    },
+                                                                                    content: props => (
+                                                                                        <SmsLogsContentViewModal
+                                                                                            {...props}
+                                                                                            content={
+                                                                                                smsLog.content
+                                                                                            }
+                                                                                        />
+                                                                                    ),
+                                                                                }
+                                                                            );
+                                                                        }}
+                                                                        id="view"
+                                                                        className="bs-Button"
+                                                                    >
+                                                                        <span>
+                                                                            View
+                                                                            Content
+                                                                        </span>
+                                                                    </button>
                                                                 </span>
                                                             </div>
                                                         </span>
@@ -281,7 +334,7 @@ export class SmsLogsList extends Component {
                                     </div>
                                 </button>
                             </div>
-                            <div className="Box-root">
+                            {/* <div className="Box-root">
                                 <button
                                     id="deleteLog"
                                     onClick={this.handleDelete}
@@ -296,7 +349,7 @@ export class SmsLogsList extends Component {
                                         </span>
                                     </div>
                                 </button>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                 </div>
