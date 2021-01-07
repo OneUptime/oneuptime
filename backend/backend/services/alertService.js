@@ -71,6 +71,7 @@ module.exports = {
         alertStatus,
         error,
         errorMessage,
+        eventType
     }) {
         try {
             const alert = new AlertModel();
@@ -83,6 +84,7 @@ module.exports = {
             alert.userId = userId;
             alert.incidentId = incidentId;
             alert.alertStatus = alertStatus;
+            alert.eventType = eventType;
 
             if (error) {
                 alert.error = error;
@@ -463,6 +465,7 @@ module.exports = {
                         escalation: escalation,
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
+                        eventType: 'identified'
                     });
                 }
                 if (escalation.email && shouldSendEmailReminder) {
@@ -476,6 +479,7 @@ module.exports = {
                         escalation: escalation,
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
+                        eventType: 'identified'
                     });
                 }
                 if (escalation.sms && shouldSendSMSReminder) {
@@ -489,6 +493,7 @@ module.exports = {
                         escalation: escalation,
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
+                        eventType: 'identified'
                     });
                 }
 
@@ -509,6 +514,7 @@ module.exports = {
                         schedule,
                         escalation,
                         onCallScheduleStatus,
+                        eventType: 'identified'
                     });
                 }
 
@@ -521,6 +527,7 @@ module.exports = {
                         schedule,
                         escalation,
                         onCallScheduleStatus,
+                        eventType: 'identified'
                     });
                 }
 
@@ -533,6 +540,7 @@ module.exports = {
                         schedule,
                         escalation,
                         onCallScheduleStatus,
+                        eventType: 'identified'
                     });
                 }
             }
@@ -547,6 +555,7 @@ module.exports = {
         schedule,
         escalation,
         onCallScheduleStatus,
+        eventType
     }) {
         const _this = this;
 
@@ -598,6 +607,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
+                    eventType,
                     errorMessage:
                         !hasGlobalSmtpSettings && !hasCustomSmtpSettings
                             ? 'SMTP Settings not found on Admin Dashboard'
@@ -649,6 +659,7 @@ module.exports = {
                 alertVia: AlertType.Email,
                 userId: user._id,
                 incidentId: incident._id,
+                eventType,
                 alertStatus: 'Success',
             });
         } catch (e) {
@@ -661,6 +672,7 @@ module.exports = {
                 alertVia: AlertType.Email,
                 userId: user._id,
                 incidentId: incident._id,
+                eventType,
                 alertStatus: 'Cannot Send',
             });
         }
@@ -760,6 +772,7 @@ module.exports = {
         schedule,
         escalation,
         onCallScheduleStatus,
+        eventType
     }) {
         const _this = this;
         let alert, balanceStatus;
@@ -781,6 +794,7 @@ module.exports = {
                 incidentId: incident._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: 'No phone number',
             });
         }
@@ -815,6 +829,7 @@ module.exports = {
                 incidentId: incident._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: !hasGlobalTwilioSettings
                     ? 'Twilio Settings not found on Admin Dashboard'
                     : !areAlertsEnabledGlobally
@@ -843,6 +858,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
+                    eventType,
                     errorMessage:
                         countryType === 'us'
                             ? 'Calls for numbers inside US not enabled for this project'
@@ -871,6 +887,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
+                    eventType,
                     errorMessage: status.message,
                 });
             }
@@ -896,6 +913,7 @@ module.exports = {
                 incidentId: incident._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: 'Error',
             });
         } else if (alertStatus) {
@@ -908,6 +926,7 @@ module.exports = {
                 alertVia: AlertType.Call,
                 userId: user._id,
                 incidentId: incident._id,
+                eventType,
                 alertStatus: 'Success',
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
@@ -941,6 +960,7 @@ module.exports = {
         schedule,
         escalation,
         onCallScheduleStatus,
+        eventType
     }) {
         const _this = this;
         let alert, balanceStatus;
@@ -959,6 +979,7 @@ module.exports = {
                 incidentId: incident._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: 'No phone number',
             });
         }
@@ -993,6 +1014,7 @@ module.exports = {
                 incidentId: incident._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: !hasGlobalTwilioSettings
                     ? 'Twilio Settings not found on Admin Dashboard'
                     : !areAlertsEnabledGlobally
@@ -1021,6 +1043,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
+                    eventType,
                     errorMessage:
                         countryType === 'us'
                             ? 'SMS for numbers inside US not enabled for this project'
@@ -1049,6 +1072,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
+                    eventType,
                     errorMessage: status.message,
                 });
             }
@@ -1077,6 +1101,7 @@ module.exports = {
                 onCallScheduleStatus: onCallScheduleStatus._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: sendResult.message,
             });
         } else if (sendResult) {
@@ -1090,6 +1115,7 @@ module.exports = {
                 alertVia: AlertType.SMS,
                 userId: user._id,
                 incidentId: incident._id,
+                eventType,
                 alertStatus,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
