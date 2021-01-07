@@ -326,6 +326,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 264,
                     details: '$264 / Year / User',
+                    title: 'Startup Plan',
                 },
                 {
                     category: 'Growth',
@@ -340,6 +341,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 588,
                     details: '$588 / Year / User',
+                    title: 'Growth Plan',
                 },
                 {
                     category: 'Scale',
@@ -354,6 +356,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 1188,
                     details: '$1188 / Year / User',
+                    title: 'Scale Plan',
                 },
             ];
         } else {
@@ -371,6 +374,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 264,
                     details: '$264 / Year / User',
+                    title: 'Startup Plan',
                 },
                 {
                     category: 'Growth',
@@ -385,6 +389,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 588,
                     details: '$588 / Year / User',
+                    title: 'Growth Plan',
                 },
                 {
                     category: 'Scale',
@@ -399,6 +404,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 1188,
                     details: '$1188 / Year / User',
+                    title: 'Scale Plan',
                 },
             ];
         }
