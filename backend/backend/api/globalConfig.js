@@ -52,9 +52,10 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
             if (
                 !value &&
                 name !== 'auditLogMonitoringStatus' &&
-                name !== 'emailLogMonitoringStatus'
+                name !== 'emailLogMonitoringStatus'  &&
+                name !== 'smsLogMonitoringStatus'
             ) {
-                // Audit Log Status can be 'false'
+                // Audit or Email or SMS Log Status can be 'false'
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Value must be present.',
