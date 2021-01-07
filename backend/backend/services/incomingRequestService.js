@@ -470,6 +470,7 @@ module.exports = {
                                 monitorName: monitor.name,
                                 projectName: monitor.projectId.name,
                                 componentName: monitor.componentId.name,
+                                request: data.request,
                             };
 
                             if (titleTemplate) {
@@ -540,6 +541,7 @@ module.exports = {
                                 monitorName: monitor.name,
                                 componentName: monitor.componentId.name,
                                 projectName: incomingRequest.projectId.name,
+                                request: data.request,
                             };
                             if (titleTemplate) {
                                 data.title = titleTemplate(dataConfig);
@@ -610,6 +612,7 @@ module.exports = {
                                 monitorName: monitor.name,
                                 projectName: monitor.projectId.name,
                                 componentName: monitor.componentId.name,
+                                request: data.request,
                             };
 
                             if (titleTemplate) {
@@ -633,6 +636,7 @@ module.exports = {
                                 monitorName: monitor.name,
                                 componentName: monitor.componentId.name,
                                 projectName: incomingRequest.projectId.name,
+                                request: data.request,
                             };
                             if (titleTemplate) {
                                 data.title = titleTemplate(dataConfig);
