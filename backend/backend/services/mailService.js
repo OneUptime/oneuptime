@@ -1306,6 +1306,7 @@ const _this = {
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: mailOptions.context.body,
+                error: error.message,
             });
             throw error;
         }
@@ -1585,6 +1586,7 @@ const _this = {
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: mailOptions.context.body,
+                error: error.message,
             });
             throw error;
         }
@@ -1672,6 +1674,7 @@ const _this = {
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: mailOptions.context.body,
+                error: error.message,
             });
             throw error;
         }
@@ -1788,6 +1791,7 @@ const _this = {
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: mailOptions.context.body,
+                error: error.message,
             });
             throw error;
         }

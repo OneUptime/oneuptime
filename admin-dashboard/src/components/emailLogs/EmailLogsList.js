@@ -7,6 +7,7 @@ import uuid from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
 import EmailLogsContentViewModal from './EmailLogsContentViewModal';
+import EmailLogsErrorViewModal from './EmailLogsErrorViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 export class EmailLogsList extends Component {
@@ -127,6 +128,14 @@ export class EmailLogsList extends Component {
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Actions</span>
                                         </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
                                     </div>
                                 </td>
                             </tr>
@@ -284,6 +293,48 @@ export class EmailLogsList extends Component {
                                                                         <span>
                                                                             View
                                                                             Content
+                                                                        </span>
+                                                                    </button>
+                                                                </span>
+                                                            </div>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <div className="Box-root">
+                                                                <span>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            this.props.openModal(
+                                                                                {
+                                                                                    id: uuid.v4(),
+                                                                                    onConfirm: () => {
+                                                                                        return Promise.resolve();
+                                                                                    },
+                                                                                    content: props => (
+                                                                                        <EmailLogsErrorViewModal
+                                                                                            {...props}
+                                                                                            content={
+                                                                                                emailLog.error
+                                                                                            }
+                                                                                        />
+                                                                                    ),
+                                                                                }
+                                                                            );
+                                                                        }}
+                                                                        id="view"
+                                                                        className="bs-Button"
+                                                                    >
+                                                                        <span>
+                                                                            View
+                                                                            Error
                                                                         </span>
                                                                     </button>
                                                                 </span>
