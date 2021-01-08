@@ -362,7 +362,6 @@ TD7.propTypes = {
 };
 
 function TD8({ text }) {
-    console.log('checking text: ', text);
     const incidentStatusColor = {
         identified: 'green',
         acknowledged: 'yellow',
