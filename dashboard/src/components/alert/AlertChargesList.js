@@ -37,7 +37,7 @@ export class AlertChargesList extends Component {
         fetchAlertCharges(projectId, skip ? parseInt(skip, 10) + 5 : 5, 5);
     };
 
-    render() {
+    render() {        
         const {
             alertCharges,
             error,
@@ -190,14 +190,18 @@ export class AlertChargesList extends Component {
                                                                 '/dashboard/project/' +
                                                                     projectId +
                                                                     '/incidents/' +
-                                                                    alertCharge.incidentId
+                                                                    alertCharge
+                                                                        .incidentId
+                                                                        ._id
                                                             );
                                                         }}
                                                         className="Box-root Margin-right--16"
                                                     >
                                                         <span>
                                                             {
-                                                                alertCharge.incidentId
+                                                                alertCharge
+                                                                    .incidentId
+                                                                    .idNumber
                                                             }
                                                         </span>
                                                     </div>
