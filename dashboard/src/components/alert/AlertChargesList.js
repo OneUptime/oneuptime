@@ -38,7 +38,7 @@ export class AlertChargesList extends Component {
     };
 
     render() {
-        console.log('My Alert Charges: ',this.props.alertCharges)
+        console.log('My Alert Charges: ', this.props.alertCharges);
         const {
             alertCharges,
             error,
@@ -191,14 +191,18 @@ export class AlertChargesList extends Component {
                                                                 '/dashboard/project/' +
                                                                     projectId +
                                                                     '/incidents/' +
-                                                                    alertCharge.incidentId._id
+                                                                    alertCharge
+                                                                        .incidentId
+                                                                        ._id
                                                             );
                                                         }}
                                                         className="Box-root Margin-right--16"
                                                     >
                                                         <span>
                                                             {
-                                                                alertCharge.incidentId.idNumber
+                                                                alertCharge
+                                                                    .incidentId
+                                                                    .idNumber
                                                             }
                                                         </span>
                                                     </div>
