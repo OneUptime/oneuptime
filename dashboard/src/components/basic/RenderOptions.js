@@ -164,6 +164,7 @@ export class RenderOption extends Component {
             removeField,
             level,
             type,
+            change,
         } = this.props;
         const filterval =
             bodyfield && bodyfield.filter && bodyfield.filter !== ''
@@ -192,7 +193,6 @@ export class RenderOption extends Component {
                             placeholder="Response Type"
                             disabled={false}
                             onChange={() => {
-                                alert(fieldnameprop);
                                 change(
                                     'NewMonitor',
                                     `${fieldnameprop}.filter`,
