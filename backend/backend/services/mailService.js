@@ -1278,6 +1278,7 @@ const _this = {
                     ...(mailOptions.replyTo && {
                         replyTo: mailOptions.replyTo,
                     }),
+                    content: mailOptions.context.body,
                 });
                 return;
             }
@@ -1289,6 +1290,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Success',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: mailOptions.context.body,
             });
             return info;
         } catch (error) {
@@ -1303,6 +1305,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: mailOptions.context.body,
             });
             throw error;
         }
@@ -1554,6 +1557,7 @@ const _this = {
                     ...(mailOptions.replyTo && {
                         replyTo: mailOptions.replyTo,
                     }),
+                    content: mailOptions.context.body,
                 });
                 return;
             }
@@ -1565,6 +1569,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Success',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: mailOptions.context.body,
             });
             return info;
         } catch (error) {
@@ -1579,6 +1584,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: mailOptions.context.body,
             });
             throw error;
         }
@@ -1650,6 +1656,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Success',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: mailOptions.context.body,
             });
             return info;
         } catch (error) {
@@ -1664,6 +1671,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: mailOptions.context.body,
             });
             throw error;
         }
@@ -1752,6 +1760,7 @@ const _this = {
                     ...(mailOptions.replyTo && {
                         replyTo: mailOptions.replyTo,
                     }),
+                    content: mailOptions.context.body,
                 });
                 return;
             }
@@ -1763,6 +1772,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Success',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: mailOptions.context.body,
             });
             return info;
         } catch (error) {
@@ -1777,6 +1787,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: mailOptions.context.body,
             });
             throw error;
         }
