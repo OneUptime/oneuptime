@@ -898,6 +898,9 @@ const mapStateToProps = (state, props) => {
                         return {
                             type,
                             id,
+                            ...(criterion.default && {
+                                default: true,
+                            }),
                         };
                     });
                 }

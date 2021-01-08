@@ -217,6 +217,8 @@ module.exports = {
                 await MonitorService.updateMonitorPingTime(data.monitorId);
             }
 
+            const { matchedCriterion } = data;
+
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
@@ -226,21 +228,12 @@ module.exports = {
                     if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
 
-                    const monitor = await MonitorService.findOneBy({
-                        _id: data.monitorId,
-                    });
-                    const autoAcknowledge =
-                        lastStatus && lastStatus === 'degraded'
-                            ? monitor.criteria.degraded.autoAcknowledge
-                            : lastStatus === 'offline'
-                            ? monitor.criteria.down.autoAcknowledge
-                            : false;
-                    const autoResolve =
-                        lastStatus === 'degraded'
-                            ? monitor.criteria.degraded.autoResolve
-                            : lastStatus === 'offline'
-                            ? monitor.criteria.down.autoResolve
-                            : false;
+                    // const monitor = await MonitorService.findOneBy({
+                    //     _id: data.monitorId,
+                    // });
+                    const autoAcknowledge = matchedCriterion.autoAcknowledge;
+                    const autoResolve = matchedCriterion.autoResolve;
+
                     await _this.incidentResolveOrAcknowledge(
                         data,
                         lastStatus,
@@ -318,14 +311,14 @@ module.exports = {
                 resolved: false,
                 manuallyCreated: false,
             });
+            const { matchedCriterion } = data;
             let incidentIds = [];
 
             if (
                 data.status === 'online' &&
                 monitor &&
-                monitor.criteria &&
-                monitor.criteria.up &&
-                monitor.criteria.up.createAlert
+                matchedCriterion &&
+                matchedCriterion.createAlert
             ) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
@@ -354,7 +347,7 @@ module.exports = {
                 } else {
                     if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
-                    incidentIds = await [
+                    incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
                             monitorId: data.monitorId,
@@ -363,15 +356,20 @@ module.exports = {
                             probeId: data.probeId,
                             reason: data.reason,
                             response: data.response,
+                            ...(matchedCriterion && {
+                                title: matchedCriterion.title,
+                            }),
+                            ...(matchedCriterion && {
+                                description: matchedCriterion.description,
+                            }),
                         }),
                     ];
                 }
             } else if (
                 data.status === 'degraded' &&
                 monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded &&
-                monitor.criteria.degraded.createAlert
+                matchedCriterion &&
+                matchedCriterion.createAlert
             ) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
@@ -400,7 +398,7 @@ module.exports = {
                 } else {
                     if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
-                    incidentIds = await [
+                    incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
                             monitorId: data.monitorId,
@@ -409,15 +407,20 @@ module.exports = {
                             probeId: data.probeId,
                             reason: data.reason,
                             response: data.response,
+                            ...(matchedCriterion && {
+                                title: matchedCriterion.title,
+                            }),
+                            ...(matchedCriterion && {
+                                description: matchedCriterion.description,
+                            }),
                         }),
                     ];
                 }
             } else if (
                 data.status === 'offline' &&
                 monitor &&
-                monitor.criteria &&
-                monitor.criteria.down &&
-                monitor.criteria.down.createAlert
+                matchedCriterion &&
+                matchedCriterion.createAlert
             ) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
@@ -446,7 +449,7 @@ module.exports = {
                 } else {
                     if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
-                    incidentIds = await [
+                    incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
                             monitorId: data.monitorId,
@@ -455,6 +458,9 @@ module.exports = {
                             probeId: data.probeId,
                             reason: data.reason,
                             response: data.response,
+                            ...(matchedCriterion && {
+                                matchedCriterion,
+                            }),
                         }),
                     ];
                 }
@@ -595,7 +601,6 @@ module.exports = {
     },
 
     scriptConditions: async (payload, resp, con) => {
-        let stat = true;
         const status = resp
             ? resp.status
                 ? resp.status
@@ -606,22 +611,41 @@ module.exports = {
         const body = resp && resp.body ? resp.body : null;
         const reasons = [];
 
-        if (con && con.and && con.and.length) {
-            stat = await checkScriptAnd(
-                payload,
-                con.and,
-                status,
-                body,
-                reasons
-            );
-        } else if (con && con.or && con.or.length) {
-            stat = await checkScriptOr(payload, con.or, status, body, reasons);
+        let eventOccurred = false;
+        let matchedCriterion;
+        if (con && con.length) {
+            eventOccurred = some(con, async condition => {
+                let stat = true;
+                if (condition && condition.and && condition.and.length) {
+                    stat = await checkScriptAnd(
+                        payload,
+                        condition.and,
+                        status,
+                        body,
+                        reasons
+                    );
+                } else if (condition && condition.or && condition.or.length) {
+                    stat = await checkScriptOr(
+                        payload,
+                        condition.or,
+                        status,
+                        body,
+                        reasons
+                    );
+                }
+                if (stat) {
+                    matchedCriterion = condition;
+                    return true;
+                }
+
+                return false;
+            });
         }
-        return { stat, reasons };
+
+        return { stat: eventOccurred, reasons, matchedCriterion };
     },
 
     conditions: async (monitorType, con, payload, resp, response) => {
-        let stat = true;
         const status = resp
             ? resp.status
                 ? resp.status
@@ -634,30 +658,45 @@ module.exports = {
             resp && resp.sslCertificate ? resp.sslCertificate : null;
         const reasons = [];
 
-        if (con && con.and && con.and.length) {
-            stat = await checkAnd(
-                payload,
-                con.and,
-                status,
-                body,
-                sslCertificate,
-                response,
-                reasons,
-                monitorType
-            );
-        } else if (con && con.or && con.or.length) {
-            stat = await checkOr(
-                payload,
-                con.or,
-                status,
-                body,
-                sslCertificate,
-                response,
-                reasons,
-                monitorType
-            );
+        let eventOccurred = false;
+        let matchedCriterion;
+
+        if (con && con.length) {
+            eventOccurred = await some(con, async condition => {
+                let stat = true;
+                if (condition && condition.and && condition.and.length) {
+                    stat = await checkAnd(
+                        payload,
+                        condition.and,
+                        status,
+                        body,
+                        sslCertificate,
+                        response,
+                        reasons,
+                        monitorType
+                    );
+                } else if (condition && condition.or && condition.or.length) {
+                    stat = await checkOr(
+                        payload,
+                        condition.or,
+                        status,
+                        body,
+                        sslCertificate,
+                        response,
+                        reasons,
+                        monitorType
+                    );
+                }
+                if (stat) {
+                    matchedCriterion = condition;
+                    return true;
+                }
+
+                return false;
+            });
         }
-        return { stat, reasons };
+
+        return { stat: eventOccurred, reasons, matchedCriterion };
     },
 
     scanApplicationSecurity: async security => {
@@ -1033,34 +1072,47 @@ module.exports = {
         }
     },
 
-    incomingCondition: async (payload, condition) => {
-        let response = false;
-        let respAnd = false,
-            respOr = false,
-            countAnd = 0,
-            countOr = 0;
-        if (condition && condition.and && condition.and.length) {
-            respAnd = await incomingCheckAnd(payload, condition.and);
-            countAnd++;
+    incomingCondition: async (payload, conditions) => {
+        let eventOccurred = false;
+        let matchedCriterion;
+        if (conditions && conditions.length) {
+            eventOccurred = await some(conditions, async condition => {
+                let response = false;
+                let respAnd = false,
+                    respOr = false,
+                    countAnd = 0,
+                    countOr = 0;
+
+                if (condition && condition.and && condition.and.length) {
+                    respAnd = await incomingCheckAnd(payload, condition.and);
+                    countAnd++;
+                }
+                if (condition && condition.or && condition.or.length) {
+                    respOr = await incomingCheckOr(payload, condition.or);
+                    countOr++;
+                }
+                if (countAnd > 0 && countOr > 0) {
+                    if (respAnd && respOr) {
+                        response = true;
+                    }
+                } else if (countAnd > 0 && countOr <= 0) {
+                    if (respAnd) {
+                        response = true;
+                    }
+                } else if (countOr > 0 && countAnd <= 0) {
+                    if (respOr) {
+                        response = true;
+                    }
+                }
+                if (response) {
+                    matchedCriterion = condition;
+                    return true;
+                }
+
+                return false;
+            });
         }
-        if (condition && condition.or && condition.or.length) {
-            respOr = await incomingCheckOr(payload, condition.or);
-            countOr++;
-        }
-        if (countAnd > 0 && countOr > 0) {
-            if (respAnd && respOr) {
-                response = true;
-            }
-        } else if (countAnd > 0 && countOr <= 0) {
-            if (respAnd) {
-                response = true;
-            }
-        } else if (countOr > 0 && countAnd <= 0) {
-            if (respOr) {
-                response = true;
-            }
-        }
-        return response;
+        return { eventOccurred, matchedCriterion };
     },
 
     processHttpRequest: async function(data) {
@@ -1144,22 +1196,33 @@ module.exports = {
         try {
             const _this = this;
             let status, reason;
+            let matchedCriterion;
             const lastPingTime = monitor.lastPingTime;
             const payload = moment().diff(moment(lastPingTime), 'minutes');
-            const validUp = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
+
+            const {
+                eventOccurred: validUp,
+                matchedCriterion: matchedUpCriterion,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? _this.incomingCondition(payload, monitor.criteria.up)
                 : false);
-            const validDegraded = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.degraded
+
+            const {
+                eventOccurred: validDegraded,
+                matchedCriterion: matchedDegradedCriterion,
+            } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? _this.incomingCondition(payload, monitor.criteria.degraded)
                 : false);
-            const validDown = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
-                ? _this.incomingCondition(payload, monitor.criteria.down)
+
+            const {
+                eventOccurred: validDown,
+                matchedCriterion: matchedDownCriterion,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
+                ? _this.incomingCondition(payload, [
+                      ...monitor.criteria.down.filter(
+                          criterion => criterion.default !== true
+                      ),
+                  ])
                 : false);
             let timeHours = 0;
             let timeMinutes = payload;
@@ -1173,15 +1236,23 @@ module.exports = {
             if (validDown) {
                 status = 'offline';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+                matchedCriterion = matchedDownCriterion;
             } else if (validDegraded) {
                 status = 'degraded';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+                matchedCriterion = matchedDegradedCriterion;
             } else if (validUp) {
                 status = 'online';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+                matchedCriterion = matchedUpCriterion;
             } else {
                 status = 'online';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+                if (monitor.criteria.down) {
+                    matchedCriterion = monitor.criteria.down.find(
+                        criterion => criterion.default === true
+                    );
+                }
             }
             const logData = {};
             logData.responseTime = 0;
@@ -1201,6 +1272,7 @@ module.exports = {
             logData.reason = reason;
             logData.response = null;
             logData.stopPingTimeUpdate = true;
+            logData.matchedCriterion = matchedCriterion;
             const log = await _this.saveMonitorLog(logData);
             return log;
         } catch (error) {
@@ -4352,3 +4424,4 @@ const { promisify } = require('util');
 const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
+const { some } = require('p-iteration');

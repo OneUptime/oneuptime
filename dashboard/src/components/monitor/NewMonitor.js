@@ -109,6 +109,15 @@ class NewMonitor extends Component {
             if (!areCriterionInitialValuesEqual) {
                 const criteria = [];
 
+                // add a default criterion as a down criterion
+                const defaultDownCriterion = {
+                    type: CRITERIA_TYPES.DOWN.type,
+                    id: uuid.v4(),
+                    default: true,
+                };
+                this.addCriterionFieldsToReduxForm(defaultDownCriterion);
+                criteria.push(defaultDownCriterion);
+
                 Object.values(CRITERIA_TYPES).forEach(criterion => {
                     const id = uuid.v4();
 
@@ -137,12 +146,22 @@ class NewMonitor extends Component {
 
         const { change } = this.props;
 
+        /** @type {{bodyField:Object[] | undefined, createAlert:boolean, autoAcknowledge: boolean, autoResolve:boolean}} */
+        let criterionValues;
         const criterionFieldName = `${criterion.type}_${criterion.id}`;
+        // add filter criteria if the criterion is not default
 
-        /** @type {{bodyField:Object[], createAlert:boolean, autoAcknowledge: boolean, autoResolve:boolean}} */
-        const criterionValues = this.getCriterionInitialValue(criterion.type);
+        if (criterion.default) {
+            criterionValues = {
+                createAlert: false,
+                autoAcknowledge: false,
+                autoResolve: false,
+            };
+        } else {
+            criterionValues = this.getCriterionInitialValue(criterion.type);
+            change(criterionFieldName, criterionValues.bodyField);
+        }
 
-        change(criterionFieldName, criterionValues.bodyField);
         change(
             `createAlert_${criterionFieldName}`,
             criterionValues.createAlert
@@ -211,6 +230,28 @@ class NewMonitor extends Component {
             return initialCriterionValue;
         } catch (error) {
             return {};
+        }
+    }
+
+    /**
+     * removes a criterion
+     *
+     * @param {*} id id of the criterion to remove
+     * @memberof NewMonitor
+     */
+    removeCriterion(id) {
+        const indexOfTargetCriterion = this.state.criteria.findIndex(
+            criterion => criterion.id === id
+        );
+        if (indexOfTargetCriterion !== -1) {
+            const newCriteria = [
+                ...this.state.criteria.slice(0, indexOfTargetCriterion),
+                ...this.state.criteria.slice(
+                    indexOfTargetCriterion + 1,
+                    this.state.criteria.length
+                ),
+            ];
+            this.setState({ ...this.state, criteria: newCriteria });
         }
     }
 
@@ -305,6 +346,26 @@ class NewMonitor extends Component {
 
                 const criterionFieldName = `${criterion.type}_${criterion.id}`;
 
+                // add conditions only if the criterion isn't a default one
+                if (criterion.default) {
+                    criterionData.default = true;
+                } else {
+                    const conditions = makeCriteria(
+                        values[`${criterionFieldName}`]
+                    );
+
+                    // pass the criterion if no 'and' and 'or' conditions are set
+                    if (
+                        conditions.and.length === 0 &&
+                        conditions.or.length === 0
+                    ) {
+                        return;
+                    }
+
+                    criterionData.and = conditions.and;
+                    criterionData.or = conditions.or;
+                }
+
                 const criterionSchedules =
                     values[`criterion_${criterion.id}_schedules`];
                 const schedules = criterionSchedules
@@ -326,11 +387,6 @@ class NewMonitor extends Component {
                     values[`incidentTitle_${criterionFieldName}`];
                 criterionData.description =
                     values[`incidentDescription_${criterionFieldName}`];
-                const conditions = makeCriteria(
-                    values[`${criterionFieldName}`]
-                );
-                criterionData.and = conditions.and;
-                criterionData.or = conditions.or;
 
                 if (Array.isArray(criteria[criterion.type])) {
                     criteria[criterion.type].push(criterionData);
@@ -2105,6 +2161,13 @@ class NewMonitor extends Component {
                                                         {Object.values(
                                                             CRITERIA_TYPES
                                                         ).map(criterionType => {
+                                                            const criteria = [
+                                                                ...this.state.criteria.filter(
+                                                                    criterion =>
+                                                                        criterion.type ===
+                                                                        criterionType.type
+                                                                ),
+                                                            ];
                                                             return (
                                                                 <TabPanel
                                                                     key={
@@ -2114,45 +2177,83 @@ class NewMonitor extends Component {
                                                                     <Fade>
                                                                         <div>
                                                                             {[
-                                                                                ...this.state.criteria
-                                                                                    .filter(
-                                                                                        criterion =>
-                                                                                            criterion.type ===
-                                                                                            criterionType.type
-                                                                                    )
-                                                                                    .map(
-                                                                                        (
-                                                                                            criterion,
-                                                                                            index
-                                                                                        ) => {
-                                                                                            return (
-                                                                                                <ResponseComponent
-                                                                                                    key={
-                                                                                                        index
-                                                                                                    }
-                                                                                                    type={
-                                                                                                        this
-                                                                                                            .state
-                                                                                                            .type
-                                                                                                    }
-                                                                                                    addCriterion={data =>
-                                                                                                        this.addCriterion(
-                                                                                                            data
-                                                                                                        )
-                                                                                                    }
-                                                                                                    criterion={
-                                                                                                        criterion
-                                                                                                    }
-                                                                                                    schedules={
-                                                                                                        this
-                                                                                                            .props
-                                                                                                            .schedules
-                                                                                                    }
-                                                                                                />
-                                                                                            );
-                                                                                        }
-                                                                                    ),
+                                                                                criteria.map(
+                                                                                    (
+                                                                                        criterion,
+                                                                                        index
+                                                                                    ) => {
+                                                                                        return (
+                                                                                            <ResponseComponent
+                                                                                                key={
+                                                                                                    index
+                                                                                                }
+                                                                                                type={
+                                                                                                    this
+                                                                                                        .state
+                                                                                                        .type
+                                                                                                }
+                                                                                                addCriterion={data =>
+                                                                                                    this.addCriterion(
+                                                                                                        data
+                                                                                                    )
+                                                                                                }
+                                                                                                removeCriterion={id =>
+                                                                                                    this.removeCriterion(
+                                                                                                        id
+                                                                                                    )
+                                                                                                }
+                                                                                                criterion={
+                                                                                                    criterion
+                                                                                                }
+                                                                                                schedules={
+                                                                                                    this
+                                                                                                        .props
+                                                                                                        .schedules
+                                                                                                }
+                                                                                            />
+                                                                                        );
+                                                                                    }
+                                                                                ),
                                                                             ]}
+
+                                                                            {criteria.length ===
+                                                                                0 && (
+                                                                                <div className="Flex-flex Flex-direction--column Margin-all--32 Flex-alignItems--center">
+                                                                                    <div className="Margin-bottom--16">
+                                                                                        <span>
+                                                                                            There
+                                                                                            are
+                                                                                            no
+                                                                                            criteria
+                                                                                            specified
+                                                                                            for
+                                                                                            this
+                                                                                            monitor
+                                                                                            event
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <button
+                                                                                        className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
+                                                                                        type="button"
+                                                                                        // onClick={this.addValue}
+                                                                                        onClick={() =>
+                                                                                            this.addCriterion(
+                                                                                                {
+                                                                                                    type:
+                                                                                                        criterionType.type,
+                                                                                                    id: uuid.v4(),
+                                                                                                }
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                            <span>
+                                                                                                {`Add ${criterionType.type.toUpperCase()} Criteria`}
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </button>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </Fade>
                                                                 </TabPanel>

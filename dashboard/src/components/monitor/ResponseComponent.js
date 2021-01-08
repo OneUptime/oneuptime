@@ -1,7 +1,13 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Component } from 'react';
-import { Field, FieldArray, formValueSelector, change } from 'redux-form';
+import {
+    Field,
+    FieldArray,
+    formValueSelector,
+    change,
+    arrayPush,
+} from 'redux-form';
 import PropTypes from 'prop-types';
 import { ResponseParent } from './ResponseParent';
 import ShouldRender from '../basic/ShouldRender';
@@ -21,6 +27,35 @@ const responsestyle = {
 };
 
 export class ResponseComponent extends Component {
+    handleAddFilterCriteria() {
+        const criterionFieldName = `${this.props.criterion.type}_${this.props.criterion.id}`;
+
+        this.props.arrayPush('NewMonitor', criterionFieldName, {
+            match: '',
+            responseType: '',
+            filter: '',
+            field1: '',
+            field2: '',
+            field3: false,
+        });
+    }
+
+    /**
+     * calls removeCriterion on parent component
+     *
+     * @param {string} id id of the criterion to remove
+     * @memberof ResponseComponent
+     */
+    handleRemoveCriterion(id) {
+        this.props.removeCriterion(id);
+    }
+
+    /**
+     * calls addCriterion on parent component
+     *
+     * @param {*} type
+     * @memberof ResponseComponent
+     */
     handleAddCriterion(type) {
         this.props.addCriterion({ type, id: uuid.v4() });
     }
@@ -75,11 +110,17 @@ export class ResponseComponent extends Component {
                         <div className="Box-root">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <span style={status}></span>
-                                <span>{head}</span>
+                                <span>
+                                    {criterion.default
+                                        ? 'Default Criteria'
+                                        : head}
+                                </span>
                             </span>
                             <p>
                                 <span style={{ marginLeft: '18px' }}>
-                                    {tagline}
+                                    {criterion.default
+                                        ? 'This criteria will be executed when no other criteria is met'
+                                        : tagline}
                                 </span>
                             </p>
                         </div>
@@ -99,6 +140,24 @@ export class ResponseComponent extends Component {
                                     </span>
                                 </button>
                             </div>
+                            {!criterion.default && (
+                                <div className="Margin-left--16">
+                                    <button
+                                        className="bs-Button bs-Button--red Box-background--red"
+                                        type="button"
+                                        // onClick={this.addValue}
+                                        onClick={() =>
+                                            this.handleRemoveCriterion(
+                                                criterionId
+                                            )
+                                        }
+                                    >
+                                        <span>
+                                            <span>Remove This Criteria</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -118,7 +177,15 @@ export class ResponseComponent extends Component {
                             </div>
                         </div>
 
-                        <ShouldRender if={schedules && schedules.length > 0}>
+                        <ShouldRender
+                            if={
+                                criterion.default ||
+                                (criterionBodyField &&
+                                    criterionBodyField.length &&
+                                    schedules &&
+                                    schedules.length > 0)
+                            }
+                        >
                             <div className="bs-Fieldset-row Flex-alignContent--start">
                                 <label className="Padding-right--12">
                                     <span>Call Schedules</span>
@@ -132,7 +199,8 @@ export class ResponseComponent extends Component {
                             </div>
                         </ShouldRender>
 
-                        {criterionBodyField && criterionBodyField.length ? (
+                        {criterion.default ||
+                        (criterionBodyField && criterionBodyField.length) ? (
                             <div>
                                 <div className="bs-Fieldset-row">
                                     <label
@@ -281,28 +349,26 @@ export class ResponseComponent extends Component {
                             </div>
                         ) : (
                             <div className="bs-Fieldset-row">
-                                <div className="Box-root Margin-bottom--12">
-                                    <div
-                                        data-test="RetrySettings-failedPaymentsRow"
-                                        className="Box-root"
+                                <div className="Flex-flex Flex-direction--column Margin-all--32 Flex-alignItems--start">
+                                    <span>
+                                        Currently you do not have any filter
+                                        criteria saved
+                                    </span>
+
+                                    <button
+                                        className="Button bs-ButtonLegacy ActionIconParent Margin-bottom--16"
+                                        type="button"
+                                        // onClick={this.addValue}
+                                        onClick={() =>
+                                            this.handleAddFilterCriteria(
+                                                criterionType
+                                            )
+                                        }
                                     >
-                                        <label
-                                            className="Checkbox"
-                                            htmlFor="smssmtpswitch"
-                                            style={{ marginLeft: '150px' }}
-                                        >
-                                            currently you do not have any
-                                            criteria saved.Please click the Add
-                                            Criteria button above to add one.
-                                        </label>
-                                        <div className="Box-root Padding-left--24">
-                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                <div className="Box-root">
-                                                    <div className="Box-root"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                            <span>Add Filter Criteria</span>
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -318,9 +384,11 @@ ResponseComponent.displayName = 'ResponseComponent';
 ResponseComponent.propTypes = {
     type: PropTypes.string,
     addCriterion: PropTypes.func.isRequired,
+    removeCriterion: PropTypes.func.isRequired,
     criterion: PropTypes.shape({
         id: PropTypes.string.isRequired,
         type: PropTypes.string.isRequired,
+        default: PropTypes.bool,
     }).isRequired,
     incidentCreatedAlertEnabledForCriterion: PropTypes.bool.isRequired,
     schedules: PropTypes.arrayOf(
@@ -343,6 +411,7 @@ ResponseComponent.propTypes = {
         _id: PropTypes.string.isRequired,
         name: PropTypes.string.isRequired,
     }).isRequired,
+    arrayPush: PropTypes.func.isRequired,
 };
 
 function mapStateToProps(state, ownProps) {
@@ -361,6 +430,7 @@ function mapStateToProps(state, ownProps) {
 
 const mapDispatchToProps = {
     change,
+    arrayPush,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ResponseComponent);

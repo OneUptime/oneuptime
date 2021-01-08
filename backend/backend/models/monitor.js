@@ -10,6 +10,7 @@ const criterionEventSchema = {
     description: { type: String, default: '' },
     and: [Object],
     or: [Object],
+    default: { type: Boolean, default: false },
 };
 
 const Schema = mongoose.Schema;

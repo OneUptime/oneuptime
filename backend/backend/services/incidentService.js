@@ -42,6 +42,9 @@ module.exports = {
             const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
             });
+
+            const { matchedCriterion } = data;
+
             if (monitor && monitor.disabled) {
                 const error = new Error('Monitor is disabled.');
                 ErrorService.log('incidentService.create', error);
@@ -103,10 +106,14 @@ module.exports = {
                             incidentSettings.description
                         );
 
-                        incident.title = titleTemplate(templatesInput);
-                        incident.description = descriptionTemplate(
-                            templatesInput
-                        );
+                        incident.title =
+                            matchedCriterion && matchedCriterion.title
+                                ? matchedCriterion.title
+                                : titleTemplate(templatesInput);
+                        incident.description =
+                            matchedCriterion && matchedCriterion.description
+                                ? matchedCriterion.description
+                                : descriptionTemplate(templatesInput);
                         incident.incidentPriority =
                             incidentSettings.incidentPriority;
 
