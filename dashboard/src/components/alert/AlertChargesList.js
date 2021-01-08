@@ -37,7 +37,7 @@ export class AlertChargesList extends Component {
         fetchAlertCharges(projectId, skip ? parseInt(skip, 10) + 5 : 5, 5);
     };
 
-    render() {        
+    render() {
         const {
             alertCharges,
             error,

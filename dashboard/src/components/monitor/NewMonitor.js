@@ -2324,6 +2324,7 @@ NewMonitor.propTypes = {
     project: PropTypes.object,
     currentPlanId: PropTypes.string,
     projectId: PropTypes.string,
+    componentId: PropTypes.string,
     subProjects: PropTypes.array,
     toggleEdit: PropTypes.func,
     logFile: PropTypes.func,
@@ -2335,17 +2336,9 @@ NewMonitor.propTypes = {
     uploadIdentityFile: PropTypes.func,
     fetchCommunicationSlas: PropTypes.func,
     incidentSlas: PropTypes.array,
-    fetchSlaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     requestingSla: PropTypes.bool,
     fetchMonitorSlas: PropTypes.func,
     monitorSlas: PropTypes.array,
-    fetchMonitorSlaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     requestingMonitorSla: PropTypes.bool,
 };
 
