@@ -31,7 +31,7 @@ class EmailLogsContentViewModal extends Component {
                     style={{ marginTop: 40 }}
                 >
                     <div className="bs-BIM">
-                        <div className="bs-Modal bs-Modal--large">
+                        <div className="ds-Modal">
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -40,21 +40,19 @@ class EmailLogsContentViewModal extends Component {
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
-                                <div className="jsonViwer Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <div className="db-EmailLogsContentViewModal-ContentViewerWrapper">
-                                        <div className="db-EmailLogsContentViewModal-ContentViewerContainer">
-                                            {content ? (
-                                                <div
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: content,
-                                                    }}
-                                                ></div>
-                                            ) : (
-                                                <span>
-                                                    The Email Body is Empty.
-                                                </span>
-                                            )}
-                                        </div>
+                                <div className="db-EmailLogsContentViewModal-ContentViewerWrapper">
+                                    <div className="db-EmailLogsContentViewModal-ContentViewerContainer">
+                                        {content ? (
+                                            <div
+                                                dangerouslySetInnerHTML={{
+                                                    __html: content,
+                                                }}
+                                            ></div>
+                                        ) : (
+                                            <span>
+                                                The Email Body is Empty.
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
