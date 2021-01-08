@@ -24,6 +24,7 @@ import {
     fetchProjectStatusPage,
 } from '../actions/statusPage';
 import CustomStyles from '../components/statusPage/CustomStyles';
+import EmbeddedBubble from '../components/statusPage/EmbeddedBubble';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
@@ -99,21 +100,24 @@ class StatusPage extends Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab className={'custom-tab custom-tab-5'}>
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab className={'custom-tab custom-tab-5'}>
                                     Custom Domains
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab className={'custom-tab custom-tab-5'}>
                                     Branding
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Embedded
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-5'}>
                                     Advanced Options
                                 </Tab>
                                 <div
                                     id="tab-slider"
-                                    className="custom-tab-4"
+                                    className="custom-tab-5"
                                 ></div>
                             </TabList>
                         </div>
@@ -192,6 +196,13 @@ class StatusPage extends Component {
                                                                             <CustomStyles />
                                                                         </div>
                                                                     </RenderIfSubProjectAdmin>
+                                                                </Fade>
+                                                            </TabPanel>
+                                                            <TabPanel>
+                                                                <Fade>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <EmbeddedBubble />
+                                                                    </div>
                                                                 </Fade>
                                                             </TabPanel>
                                                             <TabPanel>
