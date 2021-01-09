@@ -11,38 +11,43 @@ module.exports = {
      * @returns {Object[]} list of schedules
      */
     getSchedulesForAlerts: async function(incident) {
-        const monitorId = incident.monitorId._id || incident.monitorId;
-        const projectId = incident.projectId._id || incident.projectId;
+        try {
+            const monitorId = incident.monitorId._id || incident.monitorId;
+            const projectId = incident.projectId._id || incident.projectId;
 
-        const {
-            lastMatchedCriterion: matchedCriterion,
-        } = await MonitorService.findOneBy({
-            _id: monitorId,
-        });
-        let schedules = [];
+            const {
+                lastMatchedCriterion: matchedCriterion,
+            } = await MonitorService.findOneBy({
+                _id: monitorId,
+            });
+            let schedules = [];
 
-        // first, try to find schedules associated with the matched criterion of the monitor
-        if (
-            matchedCriterion.scheduleIds &&
-            matchedCriterion.scheduleIds.length
-        ) {
-            schedules = await ScheduleService.findBy({
-                _id: { $in: matchedCriterion.scheduleIds },
-            });
-        } else {
-            // then, try to find schedules in the monitor
-            schedules = await ScheduleService.findBy({
-                monitorIds: monitorId,
-            });
-            // lastly, find default schedules for the project
-            if (schedules.length === 0) {
+            // first, try to find schedules associated with the matched criterion of the monitor
+            if (
+                matchedCriterion.scheduleIds &&
+                matchedCriterion.scheduleIds.length
+            ) {
                 schedules = await ScheduleService.findBy({
-                    isDefault: true,
-                    projectId,
+                    _id: { $in: matchedCriterion.scheduleIds },
                 });
+            } else {
+                // then, try to find schedules in the monitor
+                schedules = await ScheduleService.findBy({
+                    monitorIds: monitorId,
+                });
+                // lastly, find default schedules for the project
+                if (schedules.length === 0) {
+                    schedules = await ScheduleService.findBy({
+                        isDefault: true,
+                        projectId,
+                    });
+                }
             }
+            return schedules;
+        } catch (error) {
+            ErrorService.log('AlertService.getSchedulesForAlerts', error);
+            return [];
         }
-        return schedules;
     },
 
     doesPhoneNumberComplyWithHighRiskConfig: async function(

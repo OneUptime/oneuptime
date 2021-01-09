@@ -44,7 +44,7 @@ function submitMonitorForm(values, dispatch, props) {
 }
 
 export function MonitorBox(props) {
-    const { currentProject, subProjects, subProjectId } = props;
+    const { currentProject, subProjects, subProjectId, schedule } = props;
     const currentProjectId = currentProject ? currentProject._id : null;
     let subProject =
         currentProjectId === subProjectId || currentProjectId === subProjectId
@@ -137,6 +137,9 @@ export function MonitorBox(props) {
                                                                     }
                                                                     subProject={
                                                                         currentProject
+                                                                    }
+                                                                    schedule={
+                                                                        schedule
                                                                     }
                                                                 />
                                                             ) : (
@@ -374,6 +377,7 @@ MonitorBox.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     subProjects: PropTypes.array.isRequired,
+    schedule: PropTypes.objectOf(PropTypes.any),
 };
 
 export default withRouter(

@@ -5,10 +5,67 @@ import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 
-function MonitorInputs({ monitors, subProject, currentProject }) {
+function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
     const monitorItems =
         currentProject._id === subProject._id
             ? monitors.map((monitor, index) => {
+                  // calculate how many up criteria, degraded criteria and down criteria
+                  // are using the schedule
+
+                  let upCriteriaUsingSchedule = 0;
+                  let degradedCriteriaUsingSchedule = 0;
+                  let downCriteriaUsingSchedule = 0;
+
+                  if (schedule && monitor.criteria) {
+                      upCriteriaUsingSchedule = monitor.criteria.up.length
+                          ? monitor.criteria.up.reduce((sum, criterion) => {
+                                return (
+                                    sum +
+                                    (criterion.scheduleIds
+                                        ? criterion.scheduleIds.includes(
+                                              schedule._id
+                                          )
+                                            ? 1
+                                            : 0
+                                        : 0)
+                                );
+                            }, 0)
+                          : 0;
+                      degradedCriteriaUsingSchedule = monitor.criteria.degraded
+                          .length
+                          ? monitor.criteria.degraded.reduce(
+                                (sum, criterion) => {
+                                    return (
+                                        sum +
+                                        (criterion.scheduleIds
+                                            ? criterion.scheduleIds.includes(
+                                                  schedule._id
+                                              )
+                                                ? 1
+                                                : 0
+                                            : 0)
+                                    );
+                                },
+                                0
+                            )
+                          : 0;
+
+                      downCriteriaUsingSchedule = monitor.criteria.down.length
+                          ? monitor.criteria.down.reduce((sum, criterion) => {
+                                return (
+                                    sum +
+                                    (criterion.scheduleIds
+                                        ? criterion.scheduleIds.includes(
+                                              schedule._id
+                                          )
+                                            ? 1
+                                            : 0
+                                        : 0)
+                                );
+                            }, 0)
+                          : 0;
+                  }
+
                   return (
                       <div className="Box-root Margin-bottom--12" key={index}>
                           <div
@@ -54,6 +111,14 @@ function MonitorInputs({ monitors, subProject, currentProject }) {
                                       </div>
                                   </div>
                               </div>
+                          </div>
+                          <div className="Box-root Margin-left--16">
+                              <span className="bs-Fieldset-explanation">
+                                  Enabled for {upCriteriaUsingSchedule} Up
+                                  criteria, {degradedCriteriaUsingSchedule}{' '}
+                                  Degraded Criteria, and{' '}
+                                  {downCriteriaUsingSchedule} Down Criteria
+                              </span>
                           </div>
                       </div>
                   );
