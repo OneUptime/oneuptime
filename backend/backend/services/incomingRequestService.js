@@ -182,6 +182,31 @@ module.exports = {
                     updateInternalNote: '',
                     incidentState: '',
                     noteContent: '',
+                    acknowledgeIncident: '',
+                    resolveIncident: '',
+                };
+            }
+
+            if (data.acknowledgeIncident) {
+                unsetData = {
+                    resolveIncident: '',
+                };
+            }
+
+            if (data.acknowledgeIncident || data.resolveIncident) {
+                unsetData = {
+                    ...unsetData,
+                    createIncident: '',
+                    updateIncidentNote: '',
+                    updateInternalNote: '',
+                    incidentState: '',
+                    noteContent: '',
+                    monitors: '',
+                    incidentPriority: '',
+                    incidentTitle: '',
+                    incidentType: '',
+                    incidentDescription: '',
+                    customFields: '',
                 };
             }
 
@@ -208,6 +233,8 @@ module.exports = {
                     incidentType: '',
                     incidentDescription: '',
                     customFields: '',
+                    acknowledgeIncident: '',
+                    resolveIncident: '',
                 };
             }
 
@@ -882,6 +909,117 @@ module.exports = {
                     for (const incident of incidents) {
                         data.incidentId = incident._id;
                         await IncidentMessageService.create(data);
+                    }
+                }
+            }
+
+            if (
+                incomingRequest &&
+                (incomingRequest.acknowledgeIncident ||
+                    incomingRequest.resolveIncident)
+            ) {
+                const filterCriteria = incomingRequest.filterCriteria,
+                    filterCondition = incomingRequest.filterCondition,
+                    filterText = incomingRequest.filterText;
+
+                if (
+                    filterCriteria &&
+                    filterCondition &&
+                    ((!isNaN(filterText) && parseFloat(filterText) >= 0) ||
+                        (filterText && filterText.trim()))
+                ) {
+                    if (
+                        filterCriteria &&
+                        filterCriteria === 'incidentId' &&
+                        filterText
+                    ) {
+                        data.incidentId = Number(filterText);
+                    }
+
+                    if (
+                        filterCriteria &&
+                        filterCriteria !== 'incidentId' &&
+                        filterText
+                    ) {
+                        data.fieldName = filterCriteria;
+                        data.fieldValue = filterText;
+                    }
+
+                    let incidents;
+                    if (filterCondition === 'equalTo') {
+                        if (data.incidentId) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                idNumber: data.incidentId,
+                            });
+                        }
+
+                        if (data.fieldName && data.fieldValue) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                'customFields.fieldName': data.fieldName,
+                                'customFields.fieldValue': data.fieldValue,
+                            });
+                        }
+                    }
+
+                    if (filterCondition === 'notEqualTo') {
+                        if (data.incidentId) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                idNumber: { $ne: data.incidentId },
+                            });
+                        }
+
+                        if (data.fieldName && data.fieldValue) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                'customFields.fieldName': data.fieldName,
+                                'customFields.fieldValue': {
+                                    $ne: data.fieldValue,
+                                },
+                            });
+                        }
+                    }
+
+                    if (incidents && incidents.length > 0) {
+                        for (const incident of incidents) {
+                            if (incomingRequest.acknowledgeIncident) {
+                                await IncidentService.acknowledge(
+                                    incident._id,
+                                    null,
+                                    'fyipe'
+                                );
+                            }
+                            if (incomingRequest.resolveIncident) {
+                                await IncidentService.resolve(
+                                    incident._id,
+                                    null,
+                                    'fyipe'
+                                );
+                            }
+                        }
+                    }
+                } else {
+                    const incidents = await IncidentService.findBy({
+                        projectId: incomingRequest.projectId,
+                    });
+
+                    for (const incident of incidents) {
+                        if (incomingRequest.acknowledgeIncident) {
+                            await IncidentService.acknowledge(
+                                incident._id,
+                                null,
+                                'fyipe'
+                            );
+                        }
+                        if (incomingRequest.resolveIncident) {
+                            await IncidentService.resolve(
+                                incident._id,
+                                null,
+                                'fyipe'
+                            );
+                        }
                     }
                 }
             }
