@@ -1,26 +1,26 @@
 {
     "version": "0.2.0",
     "configurations": [
-      {
-        "name": "Launch Chrome",
-        "request": "launch",
-        "type": "pwa-chrome",
-        "url": "http://localhost:3000",
-        "webRoot": "${workspaceFolder}"
-      },
-      {
-        "name": "Debug Jest Tests",
-        "type": "node",
-        "request": "launch",
-        "runtimeArgs": [
-          "--inspect-brk",
-          "${workspaceRoot}/node_modules/.bin/jest",
-          "--runInBand",
-          "./src/test/puppeteer/MonitorDetail.test.js" ///change this to any other file you like to debug.
-        ],
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen",
-        "port": 9229
-      }
+        {
+            "name": "Launch Chrome",
+            "request": "launch",
+            "type": "pwa-chrome",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug Jest Tests",
+            "type": "node",
+            "request": "launch",
+            "runtimeArgs": [
+                "--inspect-brk",
+                "${workspaceRoot}/node_modules/.bin/jest",
+                "--runInBand",
+                "./src/test/puppeteer/MonitorDetail.test.js" ///change this to any other file you like to debug.
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "port": 9229
+        }
     ]
-  }
+}

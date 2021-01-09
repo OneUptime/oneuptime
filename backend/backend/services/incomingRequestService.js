@@ -2,6 +2,11 @@ const IncomingRequestModel = require('../models/incomingRequest');
 const IncidentService = require('../services/incidentService');
 const MonitorService = require('../services/monitorService');
 const ErrorService = require('../services/errorService');
+const createDOMPurify = require('dompurify');
+const jsdom = require('jsdom').jsdom;
+const window = jsdom('').defaultView;
+const DOMPurify = createDOMPurify(window);
+const Handlebars = require('handlebars');
 // const RealTimeService = require('./realTimeService');
 
 module.exports = {
@@ -13,7 +18,14 @@ module.exports = {
 
             query.deleted = false;
             const incomingRequest = await IncomingRequestModel.findOne(query)
-                .populate('monitors.monitorId', 'name')
+                .populate({
+                    path: 'monitors.monitorId',
+                    select: 'name thirdPartyVariable componentId',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name',
+                    },
+                })
                 .populate('projectId', 'name')
                 .lean();
 
@@ -66,6 +78,27 @@ module.exports = {
             data.monitors = data.monitors.map(monitor => ({
                 monitorId: monitor,
             }));
+
+            if (data.incidentTitle) {
+                data.incidentTitle = DOMPurify.sanitize(data.incidentTitle);
+            }
+
+            if (data.incidentDescription) {
+                data.incidentDescription = DOMPurify.sanitize(
+                    data.incidentDescription
+                );
+            }
+
+            if (data.customFields && data.customFields.length > 0) {
+                const customFields = [...data.customFields];
+                data.customFields = customFields.map(field => ({
+                    fieldName: field.fieldName,
+                    fieldValue:
+                        typeof field.fieldValue === 'number'
+                            ? field.fieldValue
+                            : DOMPurify.sanitize(field.fieldValue),
+                }));
+            }
 
             let incomingRequest = await IncomingRequestModel.create({
                 ...data,
@@ -130,6 +163,27 @@ module.exports = {
                 // reassign data.monitors with a restructured monitor data
                 data.monitors = data.monitors.map(monitor => ({
                     monitorId: monitor,
+                }));
+            }
+
+            if (data.incidentTitle) {
+                data.incidentTitle = DOMPurify.sanitize(data.incidentTitle);
+            }
+
+            if (data.incidentDescription) {
+                data.incidentDescription = DOMPurify.sanitize(
+                    data.incidentDescription
+                );
+            }
+
+            if (data.customFields && data.customFields.length > 0) {
+                const customFields = [...data.customFields];
+                data.customFields = customFields.map(field => ({
+                    fieldName: field.fieldName,
+                    fieldValue:
+                        typeof field.fieldValue === 'number'
+                            ? field.fieldValue
+                            : DOMPurify.sanitize(field.fieldValue),
                 }));
             }
 
@@ -363,35 +417,325 @@ module.exports = {
 
     handleIncomingRequestAction: async function(data) {
         const _this = this;
+        const filter = data.filter;
         try {
-            const incomingRequest = await _this.findOneBy({
-                _id: data.requestId,
-                projectId: data.projectId,
-            });
-
-            if (incomingRequest && incomingRequest.createIncident) {
-                // TODO:
-                // find a way to handle incidentType
-                data.incidentType = 'offline';
-
-                if (incomingRequest.isDefault) {
-                    let monitors = await MonitorService.findBy({
+            let incomingRequest = null;
+            if (isNaN(filter)) {
+                if (filter && filter.trim()) {
+                    incomingRequest = await _this.findOneBy({
+                        _id: data.requestId,
+                        projectId: data.projectId,
+                        filterText: filter,
+                    });
+                } else {
+                    incomingRequest = await _this.findOneBy({
+                        _id: data.requestId,
                         projectId: data.projectId,
                     });
-                    // grab the monitor ids
-                    monitors = monitors.map(monitor => monitor._id);
-                    for (const monitorId of monitors) {
-                        data.monitorId = monitorId;
-                        await IncidentService.create(data);
+                }
+            } else {
+                incomingRequest = await _this.findOneBy({
+                    _id: data.requestId,
+                    projectId: data.projectId,
+                    filterText: Number(filter),
+                });
+            }
+
+            if (!incomingRequest) {
+                incomingRequest = await _this.findOneBy({
+                    _id: data.requestId,
+                    projectId: data.projectId,
+                    $or: [
+                        { filterText: { $exists: false } },
+                        { filterText: '' },
+                    ],
+                });
+            }
+
+            let titleTemplate,
+                descriptionTemplate,
+                customFieldTemplates = [];
+            if (incomingRequest && incomingRequest.createIncident) {
+                data.incidentType = incomingRequest.incidentType;
+                data.incidentPriority = incomingRequest.incidentPriority;
+                data.title = incomingRequest.incidentTitle;
+                data.description = incomingRequest.incidentDescription;
+                data.customFields = incomingRequest.customFields;
+
+                if (
+                    data.title &&
+                    data.title.trim() &&
+                    data.description &&
+                    data.description.trim() &&
+                    data.incidentPriority
+                ) {
+                    data.manuallyCreated = true;
+
+                    // handle template variables
+                    titleTemplate = Handlebars.compile(data.title);
+                    descriptionTemplate = Handlebars.compile(data.description);
+                }
+
+                if (data.customFields && data.customFields.length > 0) {
+                    customFieldTemplates = data.customFields.map(field => ({
+                        ...field,
+                        fieldValue: Handlebars.compile(
+                            String(field.fieldValue)
+                        ),
+                    }));
+                }
+
+                const filterCriteria = incomingRequest.filterCriteria,
+                    filterCondition = incomingRequest.filterCondition,
+                    filterText = incomingRequest.filterText;
+
+                if (
+                    filterCriteria &&
+                    filterCondition &&
+                    ((!isNaN(filterText) && parseFloat(filterText) >= 0) ||
+                        (filterText && filterText.trim()))
+                ) {
+                    if (incomingRequest.isDefault) {
+                        const monitors = await MonitorService.findBy({
+                            projectId: data.projectId,
+                        });
+                        for (const monitor of monitors) {
+                            const dataConfig = {
+                                monitorName: monitor.name,
+                                projectName: monitor.projectId.name,
+                                componentName: monitor.componentId.name,
+                                request: data.request,
+                            };
+
+                            if (titleTemplate) {
+                                data.title = titleTemplate(dataConfig);
+                            }
+                            if (descriptionTemplate) {
+                                data.description = descriptionTemplate(
+                                    dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
+                                );
+                            }
+
+                            const filterArray = monitor[filterCriteria];
+                            if (
+                                filterCondition === 'equalTo' &&
+                                filterArray.includes(filterText)
+                            ) {
+                                data.monitorId = monitor._id;
+                                await IncidentService.create(data);
+                            } else if (
+                                filterCondition === 'notEqualTo' &&
+                                !filterArray.includes(filterText)
+                            ) {
+                                data.monitorId = monitor._id;
+                                await IncidentService.create(data);
+                            } else if (!isNaN(filterText)) {
+                                // handle the case when filterText is a number
+                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                for (const filter of filterArray) {
+                                    if (!isNaN(filter)) {
+                                        if (
+                                            filterCondition === 'lessThan' &&
+                                            filter < filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition === 'greaterThan' &&
+                                            filter > filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition ===
+                                                'lessThanOrEqualTo' &&
+                                            filter <= filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition ===
+                                                'greaterThanOrEqualTo' &&
+                                            filter >= filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // grab the monitor from monitorId {_id, name, thirdPartyVariable}
+                        const monitors = incomingRequest.monitors.map(
+                            monitor => monitor.monitorId
+                        );
+                        for (const monitor of monitors) {
+                            const dataConfig = {
+                                monitorName: monitor.name,
+                                componentName: monitor.componentId.name,
+                                projectName: incomingRequest.projectId.name,
+                                request: data.request,
+                            };
+                            if (titleTemplate) {
+                                data.title = titleTemplate(dataConfig);
+                            }
+                            if (descriptionTemplate) {
+                                data.description = descriptionTemplate(
+                                    dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
+                                );
+                            }
+
+                            const filterArray = monitor[filterCriteria];
+                            if (
+                                filterCondition === 'equalTo' &&
+                                filterArray.includes(filterText)
+                            ) {
+                                data.monitorId = monitor._id;
+                                await IncidentService.create(data);
+                            } else if (
+                                filterCondition === 'notEqualTo' &&
+                                !filterArray.includes(filterText)
+                            ) {
+                                data.monitorId = monitor._id;
+                                await IncidentService.create(data);
+                            } else if (!isNaN(filterText)) {
+                                // handle the case when filterText is a number
+                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                for (const filter of filterArray) {
+                                    if (!isNaN(filter)) {
+                                        if (
+                                            filterCondition === 'lessThan' &&
+                                            filter < filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition === 'greaterThan' &&
+                                            filter > filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition ===
+                                                'lessThanOrEqualTo' &&
+                                            filter <= filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        } else if (
+                                            filterCondition ===
+                                                'greaterThanOrEqualTo' &&
+                                            filter >= filterText
+                                        ) {
+                                            data.monitorId = monitor._id;
+                                            await IncidentService.create(data);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 } else {
-                    // grab the monitor ids
-                    const monitors = incomingRequest.monitors.map(
-                        monitor => monitor.monitorId
-                    );
-                    for (const monitor of monitors) {
-                        data.monitorId = monitor._id;
-                        await IncidentService.create(data);
+                    if (incomingRequest.isDefault) {
+                        const monitors = await MonitorService.findBy({
+                            projectId: data.projectId,
+                        });
+                        for (const monitor of monitors) {
+                            const dataConfig = {
+                                monitorName: monitor.name,
+                                projectName: monitor.projectId.name,
+                                componentName: monitor.componentId.name,
+                                request: data.request,
+                            };
+
+                            if (titleTemplate) {
+                                data.title = titleTemplate(dataConfig);
+                            }
+                            if (descriptionTemplate) {
+                                data.description = descriptionTemplate(
+                                    dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
+                                );
+                            }
+                            data.monitorId = monitor._id;
+                            await IncidentService.create(data);
+                        }
+                    } else {
+                        // grab the monitor from monitorId {_id, name}
+                        const monitors = incomingRequest.monitors.map(
+                            monitor => monitor.monitorId
+                        );
+                        for (const monitor of monitors) {
+                            const dataConfig = {
+                                monitorName: monitor.name,
+                                componentName: monitor.componentId.name,
+                                projectName: incomingRequest.projectId.name,
+                                request: data.request,
+                            };
+                            if (titleTemplate) {
+                                data.title = titleTemplate(dataConfig);
+                            }
+                            if (descriptionTemplate) {
+                                data.description = descriptionTemplate(
+                                    dataConfig
+                                );
+                            }
+                            if (
+                                customFieldTemplates &&
+                                customFieldTemplates.length > 0
+                            ) {
+                                data.customFields = customFieldTemplates.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: field.fieldValue(
+                                            dataConfig
+                                        ),
+                                    })
+                                );
+                            }
+
+                            data.monitorId = monitor._id;
+                            await IncidentService.create(data);
+                        }
                     }
                 }
             }

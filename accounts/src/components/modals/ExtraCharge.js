@@ -1,10 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
-import { closeModal } from '../actions/modal';
+import { closeModal } from '../../actions/modal';
+import { bindActionCreators } from 'redux';
+
 class ExtraCharge extends React.Component {
-    handleClick = () => {
-        this.props.close();
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({
+                    id: this.props.modalId,
+                });
+            default:
+                return false;
+        }
     };
     render() {
         return (
@@ -54,9 +70,15 @@ class ExtraCharge extends React.Component {
                                     <button
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey"
                                         type="button"
-                                        onClick={this.handleClick}
+                                        onClick={() =>
+                                            this.props.closeModal({
+                                                id: this.props.modalId,
+                                            })
+                                        }
                                     >
-                                        <span>{'Close'}</span>
+                                        <span className="cancel-btn__keycode">
+                                            {'Close'}
+                                        </span>
                                     </button>
                                 </div>
                             </div>
@@ -69,21 +91,25 @@ class ExtraCharge extends React.Component {
 }
 
 ExtraCharge.propTypes = {
-    close: PropTypes.func,
+    closeModal: PropTypes.func,
+    modalId: PropTypes.string,
 };
 
 ExtraCharge.displayName = 'ExtraCharge';
 
-const mapStateToProps = () => {
-    return {};
+const mapStateToProps = state => {
+    return {
+        modalId: state.modal.modals[0].id,
+    };
 };
 
 const mapDispatchToProps = dispatch => {
-    return {
-        close: () => {
-            dispatch(closeModal({ id: 1 }));
+    return bindActionCreators(
+        {
+            closeModal,
         },
-    };
+        dispatch
+    );
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ExtraCharge);

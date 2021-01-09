@@ -312,6 +312,7 @@ _ProjectForm.propTypes = {
     submitFailed: PropTypes.bool,
     requesting: PropTypes.bool,
     stripe: PropTypes.object,
+    initialValues: PropTypes.object.isRequired,
     createProjectError: PropTypes.func.isRequired,
     createProjectRequest: PropTypes.func.isRequired,
     checkCard: PropTypes.func.isRequired,
@@ -330,7 +331,18 @@ const ProjectForm = new reduxForm({
 })(_ProjectForm);
 
 const mapStateToProps = state => {
+    let planId;
+    if (
+        env('STRIPE_PUBLIC_KEY') &&
+        env('STRIPE_PUBLIC_KEY').startsWith('pk_test')
+    ) {
+        planId = 'plan_H9IlBKhsFz4hV2';
+    } else {
+        planId = 'plan_H9IjvX2Flsvlcg';
+    }
+
     return {
+        initialValues: { planId },
         email:
             state.profileSettings.profileSetting &&
             state.profileSettings.profileSetting.data.email,

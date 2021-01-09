@@ -325,44 +325,48 @@ export class IncidentStatus extends Component {
                                                     </div>
                                                 )}
                                                 {this.props.incident
-                                                    .manuallyCreated && (
-                                                    <div className="bs-flex-display">
-                                                        <span className="bs-font-normal">
-                                                            Cause:&nbsp;{' '}
-                                                        </span>
-                                                        <span className="bs-flex-display bs-font-normal">
-                                                            <span>
-                                                                This incident
-                                                                was created by
+                                                    .manuallyCreated &&
+                                                    this.props.incident
+                                                        .createdById && (
+                                                        <div className="bs-flex-display">
+                                                            <span className="bs-font-normal">
+                                                                Cause:&nbsp;{' '}
                                                             </span>
-                                                            <Link
-                                                                style={{
-                                                                    textDecoration:
-                                                                        'underline',
-                                                                    marginLeft:
-                                                                        '4px',
-                                                                }}
-                                                                to={
-                                                                    '/dashboard/profile/' +
-                                                                    this.props
-                                                                        .incident
-                                                                        .createdById
-                                                                        ._id
-                                                                }
-                                                            >
-                                                                <div>
-                                                                    {
+                                                            <span className="bs-flex-display bs-font-normal">
+                                                                <span>
+                                                                    This
+                                                                    incident was
+                                                                    created by
+                                                                </span>
+                                                                <Link
+                                                                    style={{
+                                                                        textDecoration:
+                                                                            'underline',
+                                                                        marginLeft:
+                                                                            '4px',
+                                                                    }}
+                                                                    to={
+                                                                        '/dashboard/profile/' +
                                                                         this
                                                                             .props
                                                                             .incident
                                                                             .createdById
-                                                                            .name
+                                                                            ._id
                                                                     }
-                                                                </div>
-                                                            </Link>
-                                                        </span>
-                                                    </div>
-                                                )}
+                                                                >
+                                                                    <div>
+                                                                        {
+                                                                            this
+                                                                                .props
+                                                                                .incident
+                                                                                .createdById
+                                                                                .name
+                                                                        }
+                                                                    </div>
+                                                                </Link>
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 {this.props.incident
                                                     .incidentType &&
                                                     this.props.incident
@@ -573,6 +577,32 @@ export class IncidentStatus extends Component {
                                                             Monitor
                                                         </label>
                                                         <div className="bs-content-inside">
+                                                            <span className="value">
+                                                                <Link
+                                                                    style={{
+                                                                        textDecoration:
+                                                                            'underline',
+                                                                    }}
+                                                                    to={
+                                                                        '/dashboard/project/' +
+                                                                        projectId +
+                                                                        '/' +
+                                                                        componentId +
+                                                                        '/monitoring'
+                                                                    }
+                                                                    id="backToComponentView"
+                                                                >
+                                                                    {
+                                                                        this
+                                                                            .props
+                                                                            .incident
+                                                                            .monitorId
+                                                                            .componentId
+                                                                            .name
+                                                                    }
+                                                                </Link>
+                                                            </span>
+                                                            {' / '}
                                                             <span className="value">
                                                                 <Link
                                                                     style={{
@@ -1282,50 +1312,52 @@ export class IncidentStatus extends Component {
                                                         </div>
                                                     )}
                                                     {this.props.incident
-                                                        .manuallyCreated && (
-                                                        <div className="bs-content">
-                                                            <label className="">
-                                                                Cause
-                                                            </label>
-                                                            <div className="bs-content-inside">
-                                                                <div className="bs-flex-display bs-display-block">
-                                                                    <span>
-                                                                        This
-                                                                        incident
-                                                                        was
-                                                                        created
-                                                                        by
-                                                                    </span>
-                                                                    <Link
-                                                                        style={{
-                                                                            textDecoration:
-                                                                                'underline',
-                                                                            marginLeft:
-                                                                                '4px',
-                                                                        }}
-                                                                        to={
-                                                                            '/dashboard/profile/' +
-                                                                            this
-                                                                                .props
-                                                                                .incident
-                                                                                .createdById
-                                                                                ._id
-                                                                        }
-                                                                    >
-                                                                        <div>
-                                                                            {
+                                                        .manuallyCreated &&
+                                                        this.props.incident
+                                                            .createdById && (
+                                                            <div className="bs-content">
+                                                                <label className="">
+                                                                    Cause
+                                                                </label>
+                                                                <div className="bs-content-inside">
+                                                                    <div className="bs-flex-display bs-display-block">
+                                                                        <span>
+                                                                            This
+                                                                            incident
+                                                                            was
+                                                                            created
+                                                                            by
+                                                                        </span>
+                                                                        <Link
+                                                                            style={{
+                                                                                textDecoration:
+                                                                                    'underline',
+                                                                                marginLeft:
+                                                                                    '4px',
+                                                                            }}
+                                                                            to={
+                                                                                '/dashboard/profile/' +
                                                                                 this
                                                                                     .props
                                                                                     .incident
                                                                                     .createdById
-                                                                                    .name
+                                                                                    ._id
                                                                             }
-                                                                        </div>
-                                                                    </Link>
+                                                                        >
+                                                                            <div>
+                                                                                {
+                                                                                    this
+                                                                                        .props
+                                                                                        .incident
+                                                                                        .createdById
+                                                                                        .name
+                                                                                }
+                                                                            </div>
+                                                                        </Link>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    )}
+                                                        )}
                                                     {this.props.incident
                                                         .incidentType &&
                                                         this.props.incident
@@ -1502,6 +1534,35 @@ export class IncidentStatus extends Component {
                                                             </div>
                                                         </div>
                                                     )}
+                                                    {this.props.incident
+                                                        .customFields &&
+                                                        this.props.incident
+                                                            .customFields
+                                                            .length > 0 &&
+                                                        this.props.incident.customFields.map(
+                                                            (field, index) => (
+                                                                <div
+                                                                    className="bs-content"
+                                                                    key={index}
+                                                                >
+                                                                    <label>
+                                                                        {
+                                                                            field.fieldName
+                                                                        }
+                                                                    </label>
+                                                                    <div className="bs-content-inside">
+                                                                        <span className="value">
+                                                                            {field.fieldValue ||
+                                                                            (typeof field.fieldValue ===
+                                                                                'string' &&
+                                                                                !!field.fieldValue.trim())
+                                                                                ? field.fieldValue
+                                                                                : '-'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        )}
                                                 </div>
                                             </div>
                                         </fieldset>

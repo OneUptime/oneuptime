@@ -67,6 +67,7 @@ module.exports = {
             statusPageModel.monitors = Array.isArray(data.monitors)
                 ? [...data.monitors]
                 : [];
+            statusPageModel.statusBubbleId = data.statusBubbleId || uuid.v4();
 
             const statusPage = await statusPageModel.save();
             return statusPage;
@@ -932,6 +933,46 @@ module.exports = {
             throw error;
         }
     },
+
+    getStatusBubble: async (statusPages, probes) => {
+        try {
+            if (statusPages && statusPages[0]) {
+                statusPages = statusPages[0];
+            }
+            const endDate = moment(Date.now());
+            const startDate = moment(Date.now()).subtract(90, 'days');
+            const monitorsIds =
+                statusPages && statusPages.monitors
+                    ? statusPages.monitors.map(m =>
+                          m.monitor && m.monitor._id ? m.monitor._id : null
+                      )
+                    : [];
+            const statuses = await Promise.all(
+                monitorsIds.map(async m => {
+                    return await MonitorService.getMonitorStatuses(
+                        m,
+                        startDate,
+                        endDate
+                    );
+                })
+            );
+            const bubble = await getServiceStatus(statuses, probes);
+            let statusMessage = '';
+            if (bubble === 'all') {
+                statusMessage = 'All services are online';
+            } else if (bubble === 'some') {
+                statusMessage = 'Some services are offline';
+            } else if (bubble === 'none') {
+                statusMessage = 'All services are offline';
+            } else if (bubble === 'some-degraded') {
+                statusMessage = 'Some services are degraded';
+            }
+            return { bubble, statusMessage };
+        } catch (error) {
+            ErrorService.log('statusPageService.getStatusBubble', error);
+            throw error;
+        }
+    },
 };
 
 // handle the unique pagination for scheduled events on status page
@@ -942,6 +983,65 @@ function limitEvents(events, limit, skip) {
     }
     return events.slice(skip, limit);
 }
+
+const filterProbeData = (monitor, probe) => {
+    const monitorStatuses = monitor && monitor.length > 0 ? monitor : null;
+
+    const probesStatus =
+        monitorStatuses && monitorStatuses.length > 0
+            ? probe
+                ? monitorStatuses.filter(probeStatuses => {
+                      return (
+                          probeStatuses._id === null ||
+                          probeStatuses._id === probe._id
+                      );
+                  })
+                : monitorStatuses
+            : [];
+    const statuses =
+        probesStatus &&
+        probesStatus[0] &&
+        probesStatus[0].statuses &&
+        probesStatus[0].statuses.length > 0
+            ? probesStatus[0].statuses
+            : [];
+
+    return statuses;
+};
+
+const getServiceStatus = (monitorsData, probes) => {
+    const monitorsLength = monitorsData.length;
+    const probesLength = probes && probes.length;
+
+    const totalServices = monitorsLength * probesLength;
+    let onlineServices = totalServices;
+    let degraded = 0;
+
+    monitorsData.forEach(monitor => {
+        probes.forEach(probe => {
+            const statuses = filterProbeData(monitor, probe);
+            const monitorStatus =
+                statuses && statuses.length > 0
+                    ? statuses[0].status || 'online'
+                    : 'online';
+            if (monitorStatus === 'offline') {
+                onlineServices--;
+            }
+            if (monitorStatus === 'degraded') {
+                degraded++;
+            }
+        });
+    });
+
+    if (onlineServices === totalServices) {
+        if (degraded !== 0) return 'some-degraded';
+        return 'all';
+    } else if (onlineServices === 0) {
+        return 'none';
+    } else if (onlineServices < totalServices) {
+        return 'some';
+    }
+};
 
 const IncidentModel = require('../models/incident');
 const StatusPageModel = require('../models/statusPage');
@@ -958,3 +1058,4 @@ const flattenArray = require('../utils/flattenArray');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const IncidentMessageService = require('./incidentMessageService');
 const moment = require('moment');
+const uuid = require('uuid');

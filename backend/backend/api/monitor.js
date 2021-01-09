@@ -236,7 +236,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
         data.projectId = projectId;
-        data.variables = [data.name];
+        data.thirdPartyVariable = [data.name];
         const monitor = await MonitorService.create(data);
         if (data.callScheduleId) {
             const schedule = await ScheduleService.findOneBy({
@@ -572,16 +572,20 @@ router.post(
 
             if (validDown) {
                 data.status = 'offline';
-                data.reason = upFailedReasons;
+                data.reason = downFailedReasons;
             } else if (validDegraded) {
                 data.status = 'degraded';
-                data.reason = upFailedReasons;
+                data.reason = degradedFailedReasons;
             } else if (validUp) {
                 data.status = 'online';
-                data.reason = [...degradedFailedReasons, ...downFailedReasons];
+                data.reason = upFailedReasons;
             } else {
                 data.status = 'offline';
-                data.reason = upFailedReasons;
+                data.reason = [
+                    ...degradedFailedReasons,
+                    ...downFailedReasons,
+                    ...upFailedReasons,
+                ];
             }
 
             const log = await ProbeService.saveMonitorLog(data);

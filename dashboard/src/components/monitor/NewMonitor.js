@@ -60,6 +60,7 @@ class NewMonitor extends Component {
         this.state = {
             advance: false,
             script: '',
+            showAllMonitors: false,
             type: props.edit ? props.editMonitorProp.type : props.type,
             httpRequestLink: `${API_URL}/incomingHttpRequest/${uuid.v4()}`,
             mode: props.edit ? props.editMonitorProp.mode : props.mode,
@@ -645,7 +646,8 @@ class NewMonitor extends Component {
 
     renderMonitorConfiguration = name => {
         return (
-            <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+            <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                <label className="bs-Fieldset-label" />
                 <div className="Box-root">
                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                         <span>{name} Monitor Configuration</span>
@@ -700,22 +702,6 @@ class NewMonitor extends Component {
                     'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjQxNHB0IiB2aWV3Qm94PSIwIC0yNCA0MTQgNDE0IiB3aWR0aD0iNDE0cHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTM2NyAzNjUuMzA0Njg4aC0zMjBjLTI1LjkxNDA2MiAwLTQ3LTIxLjA4NTkzOC00Ny00N3YtMjcxLjMwNDY4OGMwLTI1LjkxNDA2MiAyMS4wODU5MzgtNDcgNDctNDdoMzIwYzI1LjkxNDA2MiAwIDQ3IDIxLjA4NTkzOCA0NyA0N3YyNzEuMzA0Njg4YzAgMjUuOTE0MDYyLTIxLjA4NTkzOCA0Ny00NyA0N3ptLTMyMC0zNTEuMzA0Njg4Yy0xOC4xOTUzMTIgMC0zMyAxNC44MDQ2ODgtMzMgMzN2MjcxLjMwNDY4OGMwIDE4LjE5NTMxMiAxNC44MDQ2ODggMzMgMzMgMzNoMzIwYzE4LjE5NTMxMiAwIDMzLTE0LjgwNDY4OCAzMy0zM3YtMjcxLjMwNDY4OGMwLTE4LjE5NTMxMi0xNC44MDQ2ODgtMzMtMzMtMzN6bTAgMCIvPjxwYXRoIGQ9Im0zNTAuODIwMzEyIDI1OC40MzM1OTRoLTEwOS45OTYwOTNjLTMuODY3MTg4IDAtNy0zLjEzMjgxMy03LTcgMC0zLjg2MzI4MiAzLjEzMjgxMi03IDctN2gxMDkuOTk2MDkzYzMuODYzMjgyIDAgNyAzLjEzNjcxOCA3IDcgMCAzLjg2NzE4Ny0zLjEzMjgxMiA3LTcgN3ptMCAwIi8+PHBhdGggZD0ibTM1MC44MjAzMTIgMzA5LjA0Mjk2OWgtMTA5Ljk5NjA5M2MtMy44NjcxODggMC03LTMuMTMyODEzLTctNyAwLTMuODYzMjgxIDMuMTMyODEyLTcgNy03aDEwOS45OTYwOTNjMy44NjMyODIgMCA3IDMuMTM2NzE5IDcgNyAwIDMuODY3MTg3LTMuMTMyODEyIDctNyA3em0wIDAiLz48cGF0aCBkPSJtMzUwLjgyMDMxMiAxNTcuMjE0ODQ0aC0xMDkuOTk2MDkzYy0zLjg2NzE4OCAwLTctMy4xMzI4MTMtNy03IDAtMy44NjMyODIgMy4xMzI4MTItNyA3LTdoMTA5Ljk5NjA5M2MzLjg2MzI4MiAwIDcgMy4xMzY3MTggNyA3IDAgMy44NjcxODctMy4xMzI4MTIgNy03IDd6bTAgMCIvPjxwYXRoIGQ9Im0zNTAuODIwMzEyIDIwNy44MjQyMTloLTEwOS45OTYwOTNjLTMuODY3MTg4IDAtNy0zLjEzMjgxMy03LTcgMC0zLjg2MzI4MSAzLjEzMjgxMi03IDctN2gxMDkuOTk2MDkzYzMuODYzMjgyIDAgNyAzLjEzNjcxOSA3IDcgMCAzLjg2NzE4Ny0zLjEzMjgxMiA3LTcgN3ptMCAwIi8+PHBhdGggZD0ibTQwNyA5My43MzA0NjloLTQwMGMtMy44NjcxODggMC03LTMuMTMyODEzLTctNyAwLTMuODY3MTg4IDMuMTMyODEyLTcgNy03aDQwMGMzLjg2NzE4OCAwIDcgMy4xMzI4MTIgNyA3IDAgMy44NjcxODctMy4xMzI4MTIgNy03IDd6bTAgMCIvPjxwYXRoIGQ9Im0xMDAuOTE0MDYyIDY4Ljc4MTI1Yy0xMi4wMTE3MTggMC0yMS43ODUxNTYtOS43Njk1MzEtMjEuNzg1MTU2LTIxLjc4MTI1czkuNzczNDM4LTIxLjc4MTI1IDIxLjc4NTE1Ni0yMS43ODEyNWMxMi4wMTE3MTkgMCAyMS43ODEyNSA5Ljc2OTUzMSAyMS43ODEyNSAyMS43ODEyNXMtOS43Njk1MzEgMjEuNzgxMjUtMjEuNzgxMjUgMjEuNzgxMjV6bTAtMjkuNTYyNWMtNC4yOTI5NjggMC03Ljc4NTE1NiAzLjQ5MjE4OC03Ljc4NTE1NiA3Ljc4MTI1czMuNDkyMTg4IDcuNzgxMjUgNy43ODUxNTYgNy43ODEyNWM0LjI4OTA2MyAwIDcuNzgxMjUtMy40OTIxODggNy43ODEyNS03Ljc4MTI1cy0zLjQ5MjE4Ny03Ljc4MTI1LTcuNzgxMjUtNy43ODEyNXptMCAwIi8+PHBhdGggZD0ibTUwLjQ3NjU2MiA2OC43ODEyNWMtMTIuMDA3ODEyIDAtMjEuNzgxMjUtOS43Njk1MzEtMjEuNzgxMjUtMjEuNzgxMjVzOS43NzM0MzgtMjEuNzgxMjUgMjEuNzgxMjUtMjEuNzgxMjVjMTIuMDExNzE5IDAgMjEuNzg1MTU3IDkuNzY5NTMxIDIxLjc4NTE1NyAyMS43ODEyNXMtOS43NzM0MzggMjEuNzgxMjUtMjEuNzg1MTU3IDIxLjc4MTI1em0wLTI5LjU2MjVjLTQuMjg5MDYyIDAtNy43ODEyNSAzLjQ5MjE4OC03Ljc4MTI1IDcuNzgxMjVzMy40OTIxODggNy43ODEyNSA3Ljc4MTI1IDcuNzgxMjVjNC4yOTI5NjkgMCA3Ljc4NTE1Ny0zLjQ5MjE4OCA3Ljc4NTE1Ny03Ljc4MTI1cy0zLjQ5MjE4OC03Ljc4MTI1LTcuNzg1MTU3LTcuNzgxMjV6bTAgMCIvPjxwYXRoIGQ9Im0xNTEuMzQ3NjU2IDY4Ljc4MTI1Yy0xMi4wMTE3MTggMC0yMS43ODEyNS05Ljc2OTUzMS0yMS43ODEyNS0yMS43ODEyNXM5Ljc2OTUzMi0yMS43ODEyNSAyMS43ODEyNS0yMS43ODEyNWMxMi4wMTE3MTkgMCAyMS43ODUxNTYgOS43Njk1MzEgMjEuNzg1MTU2IDIxLjc4MTI1cy05Ljc3MzQzNyAyMS43ODEyNS0yMS43ODUxNTYgMjEuNzgxMjV6bTAtMjkuNTYyNWMtNC4yOTI5NjggMC03Ljc4MTI1IDMuNDkyMTg4LTcuNzgxMjUgNy43ODEyNXMzLjQ5MjE4OCA3Ljc4MTI1IDcuNzgxMjUgNy43ODEyNWM0LjI5Mjk2OSAwIDcuNzg1MTU2LTMuNDkyMTg4IDcuNzg1MTU2LTcuNzgxMjVzLTMuNDkyMTg3LTcuNzgxMjUtNy43ODUxNTYtNy43ODEyNXptMCAwIi8+PHBhdGggZD0ibTE4OCAzMDkuMDQyOTY5aC0xMjdjLTMuODY3MTg4IDAtNy0zLjEzMjgxMy03LTd2LTE1MS44MjgxMjVjMC0zLjg2MzI4MiAzLjEzMjgxMi03IDctN2gxMjdjMy44NjcxODggMCA3IDMuMTM2NzE4IDcgN3YxNTEuODI4MTI1YzAgMy44NjcxODctMy4xMzI4MTIgNy03IDd6bS0xMjAtMTRoMTEzdi0xMzcuODI4MTI1aC0xMTN6bTAgMCIvPjwvc3ZnPg==',
             },
             {
-                value: 'device',
-                label: 'IoT Device',
-                description:
-                    'Monitor IoT devices constantly and notify your team when they do not behave the way you want.',
-                icon:
-                    'data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgNDgwLjA2NSA0ODAuMDY1IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQ4MC4wNjUgNDgwLjA2NSIgd2lkdGg9IjUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtMjI1Ljg4OCAyODMuODVjMCA3LjgxNyA2LjMyNSAxNC4xNDQgMTQuMTQ0IDE0LjE0NCA3LjgxNyAwIDE0LjE0NC02LjMyNSAxNC4xNDQtMTQuMTQ0IDAtNy44MTctNi4zMjUtMTQuMTQ1LTE0LjE0NC0xNC4xNDUtNy44MTcuMDAxLTE0LjE0NCA2LjMyNi0xNC4xNDQgMTQuMTQ1em00MC0yNS44NTZjLTE0LjI1Ny0xNC4yNTctMzcuNDU1LTE0LjI1Ny01MS43MTIgMC0zLjEyNCAzLjEyNC04LjE4OSAzLjEyNC0xMS4zMTMgMC0zLjEyNS0zLjEyNC0zLjEyNS04LjE4OSAwLTExLjMxMyAyMC40OTUtMjAuNDk1IDUzLjg0NC0yMC40OTUgNzQuMzM5IDAgNS4wNTYgNS4wNTUgMS40MDUgMTMuNjU3LTUuNjU3IDEzLjY1Ny0yLjA0Ny0uMDAxLTQuMDk1LS43ODItNS42NTctMi4zNDR6bTMwLjA4LTMwLjA4Yy0zMC45MTYtMzAuOTE2LTgwLjk1NC0zMC45MTgtMTExLjg3MiAwLTMuMTI0IDMuMTI0LTguMTg5IDMuMTI0LTExLjMxMyAwLTMuMTI1LTMuMTI0LTMuMTI1LTguMTg5IDAtMTEuMzEzIDM3LjE2OC0zNy4xNjkgOTcuMzI3LTM3LjE3MyAxMzQuNDk5IDAgNS4wNTYgNS4wNTUgMS40MDUgMTMuNjU3LTUuNjU3IDEzLjY1Ny0yLjA0OC0uMDAxLTQuMDk1LS43ODEtNS42NTctMi4zNDR6bS01NS45MzYtMTAzLjg4MmMtNjMuOTYyIDAtMTE2IDUyLjAzOC0xMTYgMTE2czUyLjAzOCAxMTYgMTE2IDExNmM0Ny45NzYgMCA5MS41OTktMzAuMTQzIDEwOC41NTEtNzUuMDA2IDEuNTYyLTQuMTMyIDYuMTc3LTYuMjE5IDEwLjMxMS00LjY1NiA0LjEzMyAxLjU2MiA2LjIxOCA2LjE3OCA0LjY1NiAxMC4zMTEtMTkuMDUgNTAuNDE3LTY3LjUyNiA4NS4zNTEtMTIzLjUxOCA4NS4zNTEtNzIuNzg1IDAtMTMyLTU5LjIxNS0xMzItMTMyczU5LjIxNS0xMzIgMTMyLTEzMiAxMzIgNTkuMjE1IDEzMiAxMzJjMCA0LjQxOC0zLjU4MiA4LTggOHMtOC0zLjU4Mi04LThjMC02My45NjMtNTIuMDM3LTExNi0xMTYtMTE2em0tMTg3LjM1NSAyMzguODE1Yy00OC44NjYtNzQuMzMzLTQ4LjkzMi0xNzEuMjAxLS4wMDEtMjQ1LjYzMiAzMS4wNzkgMTguOTA5IDcxLjM1Ny0zLjUyNiA3MS4zNTctNDAuMTg0IDAtOC45MS0yLjQ5Mi0xNy4yNDktNi44MTYtMjQuMzU3IDY0LjgwMi00Mi42MDIgMTQ2LjM1Ni00Ny45MSAyMTUuMDM0LTE2Ljg0MyA0LjAyNiAxLjgyMiA4Ljc2Ni4wMzQgMTAuNTg2LTMuOTkyIDEuODIxLTQuMDI2LjAzNC04Ljc2Ni0zLjk5Mi0xMC41ODYtNzQuMTkyLTMzLjU2LTE2Mi40MTktMjcuNTUyLTIzMi4yNDkgMTkuMjc1LTguMDgxLTYuNTU3LTE4LjM2OS0xMC40OTctMjkuNTYzLTEwLjQ5Ny0zOS41NzggMC02MS4yMzkgNDYuMDc4LTM2LjUwMyA3Ni41NjMtNTQuMDI0IDgwLjU2Ni01NC4wNTQgMTg2LjI2NCAwIDI2Ni44NzUtMjQuNzM2IDMwLjQ4Ni0zLjA3NiA3Ni41NjMgMzYuNTAzIDc2LjU2MyAyNS45MTYgMCA0Ny0yMS4wODQgNDctNDctLjAwMS0zNi42NzMtNDAuMjkzLTU5LjA4MS03MS4zNTYtNDAuMTg1em0yNC4zNTUtMzE2LjgxNWMxNy4wOTMgMCAzMSAxMy45MDcgMzEgMzFzLTEzLjkwNyAzMS0zMSAzMS0zMS0xMy45MDctMzEtMzEgMTMuOTA3LTMxIDMxLTMxem0wIDM4OGMtMTcuMDkzIDAtMzEtMTMuOTA3LTMxLTMxczEzLjkwNy0zMSAzMS0zMSAzMSAxMy45MDcgMzEgMzEtMTMuOTA2IDMxLTMxIDMxem0zNjIuNTAzLTMyNy40MzhjMjQuNzM2LTMwLjQ4MyAzLjA3OC03Ni41NjMtMzYuNTAzLTc2LjU2My0yNS45MTYgMC00NyAyMS4wODQtNDcgNDcgMCAzNi42NzQgNDAuMjk0IDU5LjA4MiA3MS4zNTYgNDAuMTg0IDQ4Ljg2NCA3NC4zMjggNDguOTMxIDE3MS4yMDIgMCAyNDUuNjMyLTMxLjA3OS0xOC45MDgtNzEuMzU2IDMuNTI2LTcxLjM1NiA0MC4xODQgMCA4LjkxIDIuNDkyIDE3LjI0OCA2LjgxNiAyNC4zNTUtNjUuNjQzIDQzLjE1My0xNDguNTQ1IDQ4LjEwNi0yMTcuOTQ3IDE1LjUwMS00LTEuODc4LTguNzY0LS4xNi0xMC42NDMgMy44MzlzLS4xNiA4Ljc2NCAzLjgzOSAxMC42NDNjNzUuMDk0IDM1LjI3OSAxNjQuNzgzIDI5LjQ5OSAyMzUuMzczLTE3LjgzNCAzMC40ODYgMjQuNzM2IDc2LjU2MiAzLjA3NCA3Ni41NjItMzYuNTAzIDAtMTEuMTk0LTMuOTQtMjEuNDgxLTEwLjQ5Ny0yOS41NjMgNTQuMDI1LTgwLjU2NSA1NC4wNTUtMTg2LjI2NSAwLTI2Ni44NzV6bS02Ny41MDMtMjkuNTYyYzAtMTcuMDkzIDEzLjkwNy0zMSAzMS0zMXMzMSAxMy45MDcgMzEgMzEtMTMuOTA3IDMxLTMxIDMxLTMxLTEzLjkwNy0zMS0zMXptMzEgMzU3Yy0xNy4wOTMgMC0zMS0xMy45MDctMzEtMzFzMTMuOTA3LTMxIDMxLTMxIDMxIDEzLjkwNyAzMSAzMS0xMy45MDYgMzEtMzEgMzF6Ii8+PC9zdmc+',
-            },
-            {
-                value: 'manual',
-                label: 'Manual',
-                description:
-                    'Manual monitors do not monitor any resource. You can change monitor status by using Fyipe’s API. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.',
-                icon:
-                    'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjQxNHB0IiB2aWV3Qm94PSIwIC0yNCA0MTQgNDE0IiB3aWR0aD0iNDE0cHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTM2NyAzNjUuMzA0Njg4aC0zMjBjLTI1LjkxNDA2MiAwLTQ3LTIxLjA4NTkzOC00Ny00N3YtMjcxLjMwNDY4OGMwLTI1LjkxNDA2MiAyMS4wODU5MzgtNDcgNDctNDdoMzIwYzI1LjkxNDA2MiAwIDQ3IDIxLjA4NTkzOCA0NyA0N3YyNzEuMzA0Njg4YzAgMjUuOTE0MDYyLTIxLjA4NTkzOCA0Ny00NyA0N3ptLTMyMC0zNTEuMzA0Njg4Yy0xOC4xOTUzMTIgMC0zMyAxNC44MDQ2ODgtMzMgMzN2MjcxLjMwNDY4OGMwIDE4LjE5NTMxMiAxNC44MDQ2ODggMzMgMzMgMzNoMzIwYzE4LjE5NTMxMiAwIDMzLTE0LjgwNDY4OCAzMy0zM3YtMjcxLjMwNDY4OGMwLTE4LjE5NTMxMi0xNC44MDQ2ODgtMzMtMzMtMzN6bTAgMCIvPjxwYXRoIGQ9Im0zNTAuODIwMzEyIDI1OC40MzM1OTRoLTEwOS45OTYwOTNjLTMuODY3MTg4IDAtNy0zLjEzMjgxMy03LTcgMC0zLjg2MzI4MiAzLjEzMjgxMi03IDctN2gxMDkuOTk2MDkzYzMuODYzMjgyIDAgNyAzLjEzNjcxOCA3IDcgMCAzLjg2NzE4Ny0zLjEzMjgxMiA3LTcgN3ptMCAwIi8+PHBhdGggZD0ibTM1MC44MjAzMTIgMzA5LjA0Mjk2OWgtMTA5Ljk5NjA5M2MtMy44NjcxODggMC03LTMuMTMyODEzLTctNyAwLTMuODYzMjgxIDMuMTMyODEyLTcgNy03aDEwOS45OTYwOTNjMy44NjMyODIgMCA3IDMuMTM2NzE5IDcgNyAwIDMuODY3MTg3LTMuMTMyODEyIDctNyA3em0wIDAiLz48cGF0aCBkPSJtMzUwLjgyMDMxMiAxNTcuMjE0ODQ0aC0xMDkuOTk2MDkzYy0zLjg2NzE4OCAwLTctMy4xMzI4MTMtNy03IDAtMy44NjMyODIgMy4xMzI4MTItNyA3LTdoMTA5Ljk5NjA5M2MzLjg2MzI4MiAwIDcgMy4xMzY3MTggNyA3IDAgMy44NjcxODctMy4xMzI4MTIgNy03IDd6bTAgMCIvPjxwYXRoIGQ9Im0zNTAuODIwMzEyIDIwNy44MjQyMTloLTEwOS45OTYwOTNjLTMuODY3MTg4IDAtNy0zLjEzMjgxMy03LTcgMC0zLjg2MzI4MSAzLjEzMjgxMi03IDctN2gxMDkuOTk2MDkzYzMuODYzMjgyIDAgNyAzLjEzNjcxOSA3IDcgMCAzLjg2NzE4Ny0zLjEzMjgxMiA3LTcgN3ptMCAwIi8+PHBhdGggZD0ibTQwNyA5My43MzA0NjloLTQwMGMtMy44NjcxODggMC03LTMuMTMyODEzLTctNyAwLTMuODY3MTg4IDMuMTMyODEyLTcgNy03aDQwMGMzLjg2NzE4OCAwIDcgMy4xMzI4MTIgNyA3IDAgMy44NjcxODctMy4xMzI4MTIgNy03IDd6bTAgMCIvPjxwYXRoIGQ9Im0xMDAuOTE0MDYyIDY4Ljc4MTI1Yy0xMi4wMTE3MTggMC0yMS43ODUxNTYtOS43Njk1MzEtMjEuNzg1MTU2LTIxLjc4MTI1czkuNzczNDM4LTIxLjc4MTI1IDIxLjc4NTE1Ni0yMS43ODEyNWMxMi4wMTE3MTkgMCAyMS43ODEyNSA5Ljc2OTUzMSAyMS43ODEyNSAyMS43ODEyNXMtOS43Njk1MzEgMjEuNzgxMjUtMjEuNzgxMjUgMjEuNzgxMjV6bTAtMjkuNTYyNWMtNC4yOTI5NjggMC03Ljc4NTE1NiAzLjQ5MjE4OC03Ljc4NTE1NiA3Ljc4MTI1czMuNDkyMTg4IDcuNzgxMjUgNy43ODUxNTYgNy43ODEyNWM0LjI4OTA2MyAwIDcuNzgxMjUtMy40OTIxODggNy43ODEyNS03Ljc4MTI1cy0zLjQ5MjE4Ny03Ljc4MTI1LTcuNzgxMjUtNy43ODEyNXptMCAwIi8+PHBhdGggZD0ibTUwLjQ3NjU2MiA2OC43ODEyNWMtMTIuMDA3ODEyIDAtMjEuNzgxMjUtOS43Njk1MzEtMjEuNzgxMjUtMjEuNzgxMjVzOS43NzM0MzgtMjEuNzgxMjUgMjEuNzgxMjUtMjEuNzgxMjVjMTIuMDExNzE5IDAgMjEuNzg1MTU3IDkuNzY5NTMxIDIxLjc4NTE1NyAyMS43ODEyNXMtOS43NzM0MzggMjEuNzgxMjUtMjEuNzg1MTU3IDIxLjc4MTI1em0wLTI5LjU2MjVjLTQuMjg5MDYyIDAtNy43ODEyNSAzLjQ5MjE4OC03Ljc4MTI1IDcuNzgxMjVzMy40OTIxODggNy43ODEyNSA3Ljc4MTI1IDcuNzgxMjVjNC4yOTI5NjkgMCA3Ljc4NTE1Ny0zLjQ5MjE4OCA3Ljc4NTE1Ny03Ljc4MTI1cy0zLjQ5MjE4OC03Ljc4MTI1LTcuNzg1MTU3LTcuNzgxMjV6bTAgMCIvPjxwYXRoIGQ9Im0xNTEuMzQ3NjU2IDY4Ljc4MTI1Yy0xMi4wMTE3MTggMC0yMS43ODEyNS05Ljc2OTUzMS0yMS43ODEyNS0yMS43ODEyNXM5Ljc2OTUzMi0yMS43ODEyNSAyMS43ODEyNS0yMS43ODEyNWMxMi4wMTE3MTkgMCAyMS43ODUxNTYgOS43Njk1MzEgMjEuNzg1MTU2IDIxLjc4MTI1cy05Ljc3MzQzNyAyMS43ODEyNS0yMS43ODUxNTYgMjEuNzgxMjV6bTAtMjkuNTYyNWMtNC4yOTI5NjggMC03Ljc4MTI1IDMuNDkyMTg4LTcuNzgxMjUgNy43ODEyNXMzLjQ5MjE4OCA3Ljc4MTI1IDcuNzgxMjUgNy43ODEyNWM0LjI5Mjk2OSAwIDcuNzg1MTU2LTMuNDkyMTg4IDcuNzg1MTU2LTcuNzgxMjVzLTMuNDkyMTg3LTcuNzgxMjUtNy43ODUxNTYtNy43ODEyNXptMCAwIi8+PHBhdGggZD0ibTE4OCAzMDkuMDQyOTY5aC0xMjdjLTMuODY3MTg4IDAtNy0zLjEzMjgxMy03LTd2LTE1MS44MjgxMjVjMC0zLjg2MzI4MiAzLjEzMjgxMi03IDctN2gxMjdjMy44NjcxODggMCA3IDMuMTM2NzE4IDcgN3YxNTEuODI4MTI1YzAgMy44NjcxODctMy4xMzI4MTIgNy03IDd6bS0xMjAtMTRoMTEzdi0xMzcuODI4MTI1aC0xMTN6bTAgMCIvPjwvc3ZnPg==',
-            },
-            {
                 value: 'api',
                 label: 'API',
                 description:
@@ -724,12 +710,12 @@ class NewMonitor extends Component {
                     'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik00NjcsNzMuNTZINDVjLTI0LjgxMywwLTQ1LDIwLjE4Ny00NSw0NXYyNzQuODgxYzAsMjQuODEzLDIwLjE4Nyw0NSw0NSw0NWg0MjJjMjQuODEzLDAsNDUtMjAuMTg3LDQ1LTQ1VjExOC41Ng0KCQkJQzUxMiw5My43NDYsNDkxLjgxMyw3My41Niw0NjcsNzMuNTZ6IE00ODIsMzkzLjQ0MWMwLDguMjcxLTYuNzI5LDE1LTE1LDE1SDQ1Yy04LjI3MSwwLTE1LTYuNzI5LTE1LTE1VjE3Ny45NjVoNDUyVjM5My40NDF6DQoJCQkgTTQ4MiwxNDcuOTY1SDMwVjExOC41NmMwLTguMjcxLDYuNzI5LTE1LDE1LTE1aDQyMmM4LjI3MSwwLDE1LDYuNzI5LDE1LDE1VjE0Ny45NjV6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik0xNzEuNzQxLDIxNy4yNjRjLTI2Ljc0OSwwLTQ4LjUxMiwyMS43NjMtNDguNTEyLDQ4LjUxMnY2NS40NjFjMCw4LjI4NCw2LjcxNiwxNSwxNSwxNXMxNS02LjcxNiwxNS0xNXYtMjguNDM1aDM3LjAyMw0KCQkJdjI4LjQzNWMwLDguMjg0LDYuNzE2LDE1LDE1LDE1czE1LTYuNzE2LDE1LTE1di02NS40NjFDMjIwLjI1MywyMzkuMDI3LDE5OC40OSwyMTcuMjY0LDE3MS43NDEsMjE3LjI2NHogTTE5MC4yNTMsMjcyLjgwM0gxNTMuMjMNCgkJCXYtNy4wMjZoLTAuMDAxYzAtMTAuMjA4LDguMzA1LTE4LjUxMiwxOC41MTItMTguNTEyYzEwLjIwNywwLDE4LjUxMiw4LjMwNCwxOC41MTIsMTguNTEyVjI3Mi44MDN6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik0yOTUuMjU1LDIxNy4yNjRIMjU2Yy04LjI4NCwwLTE1LDYuNzE2LTE1LDE1djk4Ljk3M2MwLDguMjg0LDYuNzE2LDE1LDE1LDE1czE1LTYuNzE2LDE1LTE1di0yOC40MzVoMjQuMjU1DQoJCQljMjMuNTgzLDAsNDIuNzctMTkuMTg3LDQyLjc3LTQyLjc3QzMzOC4wMjUsMjM2LjQ1LDMxOC44MzgsMjE3LjI2NCwyOTUuMjU1LDIxNy4yNjR6IE0yOTUuMjU1LDI3Mi44MDNIMjcxdi0yNS41MzhoMjQuMjU1DQoJCQljNy4wNDEsMCwxMi43Nyw1LjcyOSwxMi43NywxMi43N0MzMDguMDI1LDI2Ny4wNzcsMzAyLjI5NiwyNzIuODAzLDI5NS4yNTUsMjcyLjgwM3oiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCgk8Zz4NCgkJPHBhdGggZD0iTTM3My43NzEsMjE3LjI2NGMtOC4yODQsMC0xNSw2LjcxNi0xNSwxNXY5OC45NzNjMCw4LjI4NCw2LjcxNiwxNSwxNSwxNXMxNS02LjcxNiwxNS0xNXYtOTguOTczDQoJCQlDMzg4Ljc3MSwyMjMuOTgsMzgyLjA1NSwyMTcuMjY0LDM3My43NzEsMjE3LjI2NHoiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==',
             },
             {
-                value: 'script',
-                label: 'Script',
+                value: 'manual',
+                label: 'Manual',
                 description:
-                    'Run custom JavaScript script and alerts you when script fails.',
+                    'Manual monitors do not monitor any resource. You can change monitor status by using Fyipe’s API. This is helpful when you use different monitoring tool but want to record monitor status on Fyipe.',
                 icon:
-                    'data:image/svg+xml;base64,PHN2ZyBpZD0iX3gzMV9weCIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMjQgMjQiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSI1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTE5LjUgMjRoLTE1Yy0xLjM3OCAwLTIuNS0xLjEyMi0yLjUtMi41di0xOWMwLTEuMzc4IDEuMTIyLTIuNSAyLjUtMi41aDE1YzEuMzc4IDAgMi41IDEuMTIyIDIuNSAyLjV2MTljMCAxLjM3OC0xLjEyMiAyLjUtMi41IDIuNXptLTE1LTIzYy0uODI3IDAtMS41LjY3My0xLjUgMS41djE5YzAgLjgyNy42NzMgMS41IDEuNSAxLjVoMTVjLjgyNyAwIDEuNS0uNjczIDEuNS0xLjV2LTE5YzAtLjgyNy0uNjczLTEuNS0xLjUtMS41eiIvPjxwYXRoIGQ9Im04LjUgMTZjLS4xNjIgMC0uMzItLjA3OC0uNDE3LS4yMjNsLTItM2MtLjExMi0uMTY4LS4xMTItLjM4NyAwLS41NTVsMi0zYy4xNTItLjIzLjQ2Mi0uMjkyLjY5My0uMTM5LjIzLjE1My4yOTIuNDYzLjEzOS42OTNsLTEuODE0IDIuNzI0IDEuODE1IDIuNzIzYy4xNTMuMjMuMDkxLjU0LS4xMzkuNjkzLS4wODUuMDU3LS4xODEuMDg0LS4yNzcuMDg0eiIvPjxwYXRoIGQ9Im0xNS41IDE2Yy0uMDk1IDAtLjE5MS0uMDI3LS4yNzctLjA4NC0uMjMtLjE1My0uMjkyLS40NjMtLjEzOS0uNjkzbDEuODE1LTIuNzIzLTEuODE1LTIuNzIzYy0uMTUzLS4yMy0uMDkxLS41NC4xMzktLjY5M3MuNTQtLjA5Mi42OTMuMTM5bDIgM2MuMTEyLjE2OC4xMTIuMzg3IDAgLjU1NWwtMiAzYy0uMDk2LjE0NC0uMjU1LjIyMi0uNDE2LjIyMnoiLz48cGF0aCBkPSJtMTAuNSAxN2MtLjA1OSAwLS4xMTgtLjAxLS4xNzYtLjAzMi0uMjU4LS4wOTctLjM4OS0uMzg1LS4yOTItLjY0NGwzLThjLjA5Ny0uMjU5LjM4NS0uMzg4LjY0NC0uMjkyLjI1OC4wOTcuMzg5LjM4NS4yOTIuNjQ0bC0zIDhjLS4wNzUuMi0uMjY2LjMyNC0uNDY4LjMyNHoiLz48L3N2Zz4=',
+                    'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNDI2LjY2NyA0MjYuNjY3IiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA0MjYuNjY3IDQyNi42Njc7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNMjEzLjMzMywwQzk1LjQ2NywwLDAsOTUuNDY3LDAsMjEzLjMzM3M5NS40NjcsMjEzLjMzMywyMTMuMzMzLDIxMy4zMzNTNDI2LjY2NywzMzEuMiw0MjYuNjY3LDIxMy4zMzNTMzMxLjIsMCwyMTMuMzMzLDANCgkJCXogTTIxMy4zMzMsMzg0Yy05NC4yOTMsMC0xNzAuNjY3LTc2LjM3My0xNzAuNjY3LTE3MC42NjdTMTE5LjA0LDQyLjY2NywyMTMuMzMzLDQyLjY2N1MzODQsMTE5LjA0LDM4NCwyMTMuMzMzDQoJCQlTMzA3LjYyNywzODQsMjEzLjMzMywzODR6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPC9zdmc+DQo=',
             },
             {
                 value: 'server-monitor',
@@ -746,6 +732,22 @@ class NewMonitor extends Component {
                     'Receives incoming HTTP get or post request and evaluates response body.',
                 icon:
                     'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNDY5LjMzMyA0NjkuMzMzIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA0NjkuMzMzIDQ2OS4zMzM7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxnPg0KCTxnPg0KCQk8Zz4NCgkJCTxwb2x5Z29uIHBvaW50cz0iNzQuNjY3LDIxMy4zMzMgMzIsMjEzLjMzMyAzMiwxNzAuNjY3IDAsMTcwLjY2NyAwLDI5OC42NjcgMzIsMjk4LjY2NyAzMiwyNDUuMzMzIDc0LjY2NywyNDUuMzMzIA0KCQkJCTc0LjY2NywyOTguNjY3IDEwNi42NjcsMjk4LjY2NyAxMDYuNjY3LDE3MC42NjcgNzQuNjY3LDE3MC42NjcgCQkJIi8+DQoJCQk8cG9seWdvbiBwb2ludHM9IjEyOCwyMDIuNjY3IDE2MCwyMDIuNjY3IDE2MCwyOTguNjY3IDE5MiwyOTguNjY3IDE5MiwyMDIuNjY3IDIyNCwyMDIuNjY3IDIyNCwxNzAuNjY3IDEyOCwxNzAuNjY3IAkJCSIvPg0KCQkJPHBvbHlnb24gcG9pbnRzPSIyNDUuMzMzLDIwMi42NjcgMjc3LjMzMywyMDIuNjY3IDI3Ny4zMzMsMjk4LjY2NyAzMDkuMzMzLDI5OC42NjcgMzA5LjMzMywyMDIuNjY3IDM0MS4zMzMsMjAyLjY2NyANCgkJCQkzNDEuMzMzLDE3MC42NjcgMjQ1LjMzMywxNzAuNjY3IAkJCSIvPg0KCQkJPHBhdGggZD0iTTQzNy4zMzMsMTcwLjY2N2gtNzQuNjY3djEyOGgzMlYyNTZoNDIuNjY3YzE4LjEzMywwLDMyLTEzLjg2NywzMi0zMnYtMjEuMzMzDQoJCQkJQzQ2OS4zMzMsMTg0LjUzMyw0NTUuNDY3LDE3MC42NjcsNDM3LjMzMywxNzAuNjY3eiBNNDM3LjMzMywyMjRoLTQyLjY2N3YtMjEuMzMzaDQyLjY2N1YyMjR6Ii8+DQoJCTwvZz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==',
+            },
+            {
+                value: 'script',
+                label: 'Script',
+                description:
+                    'Run custom JavaScript script and alerts you when script fails.',
+                icon:
+                    'data:image/svg+xml;base64,PHN2ZyBpZD0iX3gzMV9weCIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMjQgMjQiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSI1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTE5LjUgMjRoLTE1Yy0xLjM3OCAwLTIuNS0xLjEyMi0yLjUtMi41di0xOWMwLTEuMzc4IDEuMTIyLTIuNSAyLjUtMi41aDE1YzEuMzc4IDAgMi41IDEuMTIyIDIuNSAyLjV2MTljMCAxLjM3OC0xLjEyMiAyLjUtMi41IDIuNXptLTE1LTIzYy0uODI3IDAtMS41LjY3My0xLjUgMS41djE5YzAgLjgyNy42NzMgMS41IDEuNSAxLjVoMTVjLjgyNyAwIDEuNS0uNjczIDEuNS0xLjV2LTE5YzAtLjgyNy0uNjczLTEuNS0xLjUtMS41eiIvPjxwYXRoIGQ9Im04LjUgMTZjLS4xNjIgMC0uMzItLjA3OC0uNDE3LS4yMjNsLTItM2MtLjExMi0uMTY4LS4xMTItLjM4NyAwLS41NTVsMi0zYy4xNTItLjIzLjQ2Mi0uMjkyLjY5My0uMTM5LjIzLjE1My4yOTIuNDYzLjEzOS42OTNsLTEuODE0IDIuNzI0IDEuODE1IDIuNzIzYy4xNTMuMjMuMDkxLjU0LS4xMzkuNjkzLS4wODUuMDU3LS4xODEuMDg0LS4yNzcuMDg0eiIvPjxwYXRoIGQ9Im0xNS41IDE2Yy0uMDk1IDAtLjE5MS0uMDI3LS4yNzctLjA4NC0uMjMtLjE1My0uMjkyLS40NjMtLjEzOS0uNjkzbDEuODE1LTIuNzIzLTEuODE1LTIuNzIzYy0uMTUzLS4yMy0uMDkxLS41NC4xMzktLjY5M3MuNTQtLjA5Mi42OTMuMTM5bDIgM2MuMTEyLjE2OC4xMTIuMzg3IDAgLjU1NWwtMiAzYy0uMDk2LjE0NC0uMjU1LjIyMi0uNDE2LjIyMnoiLz48cGF0aCBkPSJtMTAuNSAxN2MtLjA1OSAwLS4xMTgtLjAxLS4xNzYtLjAzMi0uMjU4LS4wOTctLjM4OS0uMzg1LS4yOTItLjY0NGwzLThjLjA5Ny0uMjU5LjM4NS0uMzg4LjY0NC0uMjkyLjI1OC4wOTcuMzg5LjM4NS4yOTIuNjQ0bC0zIDhjLS4wNzUuMi0uMjY2LjMyNC0uNDY4LjMyNHoiLz48L3N2Zz4=',
+            },
+            {
+                value: 'device',
+                label: 'IoT Device',
+                description:
+                    'Monitor IoT devices constantly and notify your team when they do not behave the way you want.',
+                icon:
+                    'data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgNDgwLjA2NSA0ODAuMDY1IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQ4MC4wNjUgNDgwLjA2NSIgd2lkdGg9IjUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtMjI1Ljg4OCAyODMuODVjMCA3LjgxNyA2LjMyNSAxNC4xNDQgMTQuMTQ0IDE0LjE0NCA3LjgxNyAwIDE0LjE0NC02LjMyNSAxNC4xNDQtMTQuMTQ0IDAtNy44MTctNi4zMjUtMTQuMTQ1LTE0LjE0NC0xNC4xNDUtNy44MTcuMDAxLTE0LjE0NCA2LjMyNi0xNC4xNDQgMTQuMTQ1em00MC0yNS44NTZjLTE0LjI1Ny0xNC4yNTctMzcuNDU1LTE0LjI1Ny01MS43MTIgMC0zLjEyNCAzLjEyNC04LjE4OSAzLjEyNC0xMS4zMTMgMC0zLjEyNS0zLjEyNC0zLjEyNS04LjE4OSAwLTExLjMxMyAyMC40OTUtMjAuNDk1IDUzLjg0NC0yMC40OTUgNzQuMzM5IDAgNS4wNTYgNS4wNTUgMS40MDUgMTMuNjU3LTUuNjU3IDEzLjY1Ny0yLjA0Ny0uMDAxLTQuMDk1LS43ODItNS42NTctMi4zNDR6bTMwLjA4LTMwLjA4Yy0zMC45MTYtMzAuOTE2LTgwLjk1NC0zMC45MTgtMTExLjg3MiAwLTMuMTI0IDMuMTI0LTguMTg5IDMuMTI0LTExLjMxMyAwLTMuMTI1LTMuMTI0LTMuMTI1LTguMTg5IDAtMTEuMzEzIDM3LjE2OC0zNy4xNjkgOTcuMzI3LTM3LjE3MyAxMzQuNDk5IDAgNS4wNTYgNS4wNTUgMS40MDUgMTMuNjU3LTUuNjU3IDEzLjY1Ny0yLjA0OC0uMDAxLTQuMDk1LS43ODEtNS42NTctMi4zNDR6bS01NS45MzYtMTAzLjg4MmMtNjMuOTYyIDAtMTE2IDUyLjAzOC0xMTYgMTE2czUyLjAzOCAxMTYgMTE2IDExNmM0Ny45NzYgMCA5MS41OTktMzAuMTQzIDEwOC41NTEtNzUuMDA2IDEuNTYyLTQuMTMyIDYuMTc3LTYuMjE5IDEwLjMxMS00LjY1NiA0LjEzMyAxLjU2MiA2LjIxOCA2LjE3OCA0LjY1NiAxMC4zMTEtMTkuMDUgNTAuNDE3LTY3LjUyNiA4NS4zNTEtMTIzLjUxOCA4NS4zNTEtNzIuNzg1IDAtMTMyLTU5LjIxNS0xMzItMTMyczU5LjIxNS0xMzIgMTMyLTEzMiAxMzIgNTkuMjE1IDEzMiAxMzJjMCA0LjQxOC0zLjU4MiA4LTggOHMtOC0zLjU4Mi04LThjMC02My45NjMtNTIuMDM3LTExNi0xMTYtMTE2em0tMTg3LjM1NSAyMzguODE1Yy00OC44NjYtNzQuMzMzLTQ4LjkzMi0xNzEuMjAxLS4wMDEtMjQ1LjYzMiAzMS4wNzkgMTguOTA5IDcxLjM1Ny0zLjUyNiA3MS4zNTctNDAuMTg0IDAtOC45MS0yLjQ5Mi0xNy4yNDktNi44MTYtMjQuMzU3IDY0LjgwMi00Mi42MDIgMTQ2LjM1Ni00Ny45MSAyMTUuMDM0LTE2Ljg0MyA0LjAyNiAxLjgyMiA4Ljc2Ni4wMzQgMTAuNTg2LTMuOTkyIDEuODIxLTQuMDI2LjAzNC04Ljc2Ni0zLjk5Mi0xMC41ODYtNzQuMTkyLTMzLjU2LTE2Mi40MTktMjcuNTUyLTIzMi4yNDkgMTkuMjc1LTguMDgxLTYuNTU3LTE4LjM2OS0xMC40OTctMjkuNTYzLTEwLjQ5Ny0zOS41NzggMC02MS4yMzkgNDYuMDc4LTM2LjUwMyA3Ni41NjMtNTQuMDI0IDgwLjU2Ni01NC4wNTQgMTg2LjI2NCAwIDI2Ni44NzUtMjQuNzM2IDMwLjQ4Ni0zLjA3NiA3Ni41NjMgMzYuNTAzIDc2LjU2MyAyNS45MTYgMCA0Ny0yMS4wODQgNDctNDctLjAwMS0zNi42NzMtNDAuMjkzLTU5LjA4MS03MS4zNTYtNDAuMTg1em0yNC4zNTUtMzE2LjgxNWMxNy4wOTMgMCAzMSAxMy45MDcgMzEgMzFzLTEzLjkwNyAzMS0zMSAzMS0zMS0xMy45MDctMzEtMzEgMTMuOTA3LTMxIDMxLTMxem0wIDM4OGMtMTcuMDkzIDAtMzEtMTMuOTA3LTMxLTMxczEzLjkwNy0zMSAzMS0zMSAzMSAxMy45MDcgMzEgMzEtMTMuOTA2IDMxLTMxIDMxem0zNjIuNTAzLTMyNy40MzhjMjQuNzM2LTMwLjQ4MyAzLjA3OC03Ni41NjMtMzYuNTAzLTc2LjU2My0yNS45MTYgMC00NyAyMS4wODQtNDcgNDcgMCAzNi42NzQgNDAuMjk0IDU5LjA4MiA3MS4zNTYgNDAuMTg0IDQ4Ljg2NCA3NC4zMjggNDguOTMxIDE3MS4yMDIgMCAyNDUuNjMyLTMxLjA3OS0xOC45MDgtNzEuMzU2IDMuNTI2LTcxLjM1NiA0MC4xODQgMCA4LjkxIDIuNDkyIDE3LjI0OCA2LjgxNiAyNC4zNTUtNjUuNjQzIDQzLjE1My0xNDguNTQ1IDQ4LjEwNi0yMTcuOTQ3IDE1LjUwMS00LTEuODc4LTguNzY0LS4xNi0xMC42NDMgMy44MzlzLS4xNiA4Ljc2NCAzLjgzOSAxMC42NDNjNzUuMDk0IDM1LjI3OSAxNjQuNzgzIDI5LjQ5OSAyMzUuMzczLTE3LjgzNCAzMC40ODYgMjQuNzM2IDc2LjU2MiAzLjA3NCA3Ni41NjItMzYuNTAzIDAtMTEuMTk0LTMuOTQtMjEuNDgxLTEwLjQ5Ny0yOS41NjMgNTQuMDI1LTgwLjU2NSA1NC4wNTUtMTg2LjI2NSAwLTI2Ni44NzV6bS02Ny41MDMtMjkuNTYyYzAtMTcuMDkzIDEzLjkwNy0zMSAzMS0zMXMzMSAxMy45MDcgMzEgMzEtMTMuOTA3IDMxLTMxIDMxLTMxLTEzLjkwNy0zMS0zMXptMzEgMzU3Yy0xNy4wOTMgMC0zMS0xMy45MDctMzEtMzFzMTMuOTA3LTMxIDMxLTMxIDMxIDEzLjkwNyAzMSAzMS0xMy45MDYgMzEtMzEgMzF6Ii8+PC9zdmc+',
             },
         ];
 
@@ -808,7 +810,8 @@ class NewMonitor extends Component {
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
-                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                                                    <label className="bs-Fieldset-label" />
                                                     <div className="Box-root">
                                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                             <span>
@@ -826,10 +829,14 @@ class NewMonitor extends Component {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">
-                                                        Name
+                                                <div className="nm-Fieldset-row">
+                                                    <label className="bs-Fieldset-label" />
+                                                    <label className="new-monitor-label">
+                                                        Monitor Name
                                                     </label>
+                                                </div>
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label" />
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -850,72 +857,6 @@ class NewMonitor extends Component {
                                                     </div>
                                                 </div>
                                                 <ShouldRender
-                                                    if={
-                                                        resourceCategoryList &&
-                                                        resourceCategoryList.length >
-                                                            0
-                                                    }
-                                                >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Resource Category
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <span className="flex">
-                                                                <Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name={`resourceCategory_${this.props.index}`}
-                                                                    id="resourceCategory"
-                                                                    placeholder="Choose Resource Category"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select resource category',
-                                                                        },
-                                                                        ...(resourceCategoryList &&
-                                                                        resourceCategoryList.length >
-                                                                            0
-                                                                            ? resourceCategoryList.map(
-                                                                                  category => ({
-                                                                                      value:
-                                                                                          category._id,
-                                                                                      label:
-                                                                                          category.name,
-                                                                                  })
-                                                                              )
-                                                                            : []),
-                                                                    ]}
-                                                                />
-                                                                <Tooltip title="Resource Category">
-                                                                    <div>
-                                                                        <p>
-                                                                            Resource
-                                                                            Categories
-                                                                            lets
-                                                                            you
-                                                                            group
-                                                                            resources
-                                                                            by
-                                                                            categories
-                                                                            on
-                                                                            Status
-                                                                            Page.
-                                                                        </p>
-                                                                    </div>
-                                                                </Tooltip>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </ShouldRender>
-                                                <ShouldRender
                                                     if={!this.props.edit}
                                                 >
                                                     <div
@@ -924,114 +865,156 @@ class NewMonitor extends Component {
                                                             marginTop: '30px',
                                                         }}
                                                     >
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             What would you like
                                                             to monitor?
                                                         </label>
+                                                    </div>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            marginBottom:
+                                                                '30px',
+                                                        }}
+                                                    >
+                                                        <label className="bs-Fieldset-label" />
 
                                                         <div className="radio-field">
                                                             <span className="flex">
                                                                 <div className="monitor-type-grid">
-                                                                    {monitorTypesOptions.map(
-                                                                        el => (
-                                                                            <label
-                                                                                key={
-                                                                                    el.value
-                                                                                }
-                                                                                htmlFor={
-                                                                                    el.value
-                                                                                }
-                                                                                style={{
-                                                                                    cursor:
-                                                                                        'pointer',
-                                                                                }}
-                                                                            >
-                                                                                <div
-                                                                                    className={`radio-field monitor-type-item Box-background--white`}
+                                                                    {monitorTypesOptions
+                                                                        .slice(
+                                                                            0,
+                                                                            this
+                                                                                .state
+                                                                                .showAllMonitors
+                                                                                ? 7
+                                                                                : 4
+                                                                        )
+                                                                        .map(
+                                                                            el => (
+                                                                                <label
+                                                                                    key={
+                                                                                        el.value
+                                                                                    }
+                                                                                    htmlFor={
+                                                                                        el.value
+                                                                                    }
                                                                                     style={{
-                                                                                        border: `1px solid ${
-                                                                                            this
-                                                                                                .props
-                                                                                                .type ===
-                                                                                            el.value
-                                                                                                ? 'black'
-                                                                                                : 'rgba(0,0,0,0.2)'
-                                                                                        }`,
+                                                                                        cursor:
+                                                                                            'pointer',
                                                                                     }}
                                                                                 >
-                                                                                    <div className="radioButtonStyle">
-                                                                                        <Field
-                                                                                            required={
-                                                                                                true
-                                                                                            }
-                                                                                            component="input"
-                                                                                            type="radio"
-                                                                                            id={
+                                                                                    <div
+                                                                                        className={`radio-field monitor-type-item Box-background--white`}
+                                                                                        style={{
+                                                                                            border: `1px solid ${
+                                                                                                this
+                                                                                                    .props
+                                                                                                    .type ===
                                                                                                 el.value
-                                                                                            }
-                                                                                            name={`type_${this.props.index}`}
-                                                                                            className="Margin-left--4 Margin-top--4"
-                                                                                            validate={
-                                                                                                ValidateField.select
-                                                                                            }
-                                                                                            disabled={
-                                                                                                requesting
-                                                                                            }
-                                                                                            onChange={(
-                                                                                                e,
-                                                                                                v
-                                                                                            ) => {
-                                                                                                this.changeBox(
+                                                                                                    ? 'black'
+                                                                                                    : 'rgba(0,0,0,0.2)'
+                                                                                            }`,
+                                                                                        }}
+                                                                                    >
+                                                                                        <div className="radioButtonStyle">
+                                                                                            <Field
+                                                                                                required={
+                                                                                                    true
+                                                                                                }
+                                                                                                component="input"
+                                                                                                type="radio"
+                                                                                                id={
+                                                                                                    el.value
+                                                                                                }
+                                                                                                name={`type_${this.props.index}`}
+                                                                                                className="Margin-left--4 Margin-top--4"
+                                                                                                validate={
+                                                                                                    ValidateField.select
+                                                                                                }
+                                                                                                disabled={
+                                                                                                    requesting
+                                                                                                }
+                                                                                                onChange={(
                                                                                                     e,
                                                                                                     v
-                                                                                                );
-                                                                                            }}
-                                                                                            value={
-                                                                                                el.value
-                                                                                            }
-                                                                                        />
-                                                                                    </div>
-                                                                                    <span className="imageAndLabel">
-                                                                                        <img
-                                                                                            src={
-                                                                                                el.icon
-                                                                                            }
-                                                                                            style={{
-                                                                                                width:
-                                                                                                    '10%',
-                                                                                                height:
-                                                                                                    '100%',
-                                                                                                marginRight:
-                                                                                                    '5%',
-                                                                                            }}
-                                                                                        />
-                                                                                        <span
-                                                                                            className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                                                                            style={{
-                                                                                                marginRight:
-                                                                                                    '5%',
-                                                                                                minWidth:
-                                                                                                    '68px',
-                                                                                            }}
-                                                                                        >
+                                                                                                ) => {
+                                                                                                    this.changeBox(
+                                                                                                        e,
+                                                                                                        v
+                                                                                                    );
+                                                                                                }}
+                                                                                                value={
+                                                                                                    el.value
+                                                                                                }
+                                                                                            />
+                                                                                        </div>
+                                                                                        <span className="imageAndLabel">
+                                                                                            <img
+                                                                                                alt=""
+                                                                                                src={
+                                                                                                    el.icon
+                                                                                                }
+                                                                                                style={{
+                                                                                                    width:
+                                                                                                        '10%',
+                                                                                                    height:
+                                                                                                        '100%',
+                                                                                                    marginRight:
+                                                                                                        '5%',
+                                                                                                }}
+                                                                                            />
+                                                                                            <span
+                                                                                                className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                                                                style={{
+                                                                                                    marginRight:
+                                                                                                        '5%',
+                                                                                                    minWidth:
+                                                                                                        '68px',
+                                                                                                }}
+                                                                                            >
+                                                                                                {
+                                                                                                    el.label
+                                                                                                }
+                                                                                            </span>
                                                                                             {
-                                                                                                el.label
+                                                                                                el.description
                                                                                             }
                                                                                         </span>
+                                                                                    </div>
+                                                                                </label>
+                                                                            )
+                                                                        )}
+                                                                    {this.state
+                                                                        .showAllMonitors ? null : (
+                                                                        <div className="bs-Fieldset-fields">
+                                                                            <button
+                                                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--moreMonitorTypes"
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    this.setState(
                                                                                         {
-                                                                                            el.description
+                                                                                            showAllMonitors: true,
                                                                                         }
-                                                                                    </span>
-                                                                                </div>
-                                                                            </label>
-                                                                        )
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <span>
+                                                                                    Show
+                                                                                    more
+                                                                                    monitor
+                                                                                    types
+                                                                                </span>
+                                                                            </button>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-
                                                 <ShouldRender
                                                     if={
                                                         type ===
@@ -1042,11 +1025,14 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Server'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Mode
                                                         </label>
-
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
                                                                 <Field
@@ -1102,10 +1088,14 @@ class NewMonitor extends Component {
                                                             mode === 'agentless'
                                                         }
                                                     >
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
+                                                        <div className="nm-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <label className="new-monitor-label">
                                                                 Host
                                                             </label>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1126,10 +1116,14 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
 
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
+                                                        <div className="nm-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <label className="new-monitor-label">
                                                                 Port
                                                             </label>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1150,10 +1144,14 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
 
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
+                                                        <div className="nm-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <label className="new-monitor-label">
                                                                 Username
                                                             </label>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1174,11 +1172,15 @@ class NewMonitor extends Component {
                                                             </div>
                                                         </div>
 
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
+                                                        <div className="nm-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <label className="new-monitor-label">
                                                                 Authentication
                                                                 Method
                                                             </label>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
 
                                                             <div className="bs-Fieldset-fields">
                                                                 <span className="flex">
@@ -1236,10 +1238,14 @@ class NewMonitor extends Component {
                                                                 'password'
                                                             }
                                                         >
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
+                                                            <div className="nm-Fieldset-row">
+                                                                <label className="bs-Fieldset-label" />
+                                                                <label className="new-monitor-label">
                                                                     Password
                                                                 </label>
+                                                            </div>
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label" />
                                                                 <div className="bs-Fieldset-fields">
                                                                     <Field
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1267,11 +1273,15 @@ class NewMonitor extends Component {
                                                                 'identityFile'
                                                             }
                                                         >
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
+                                                            <div className="nm-Fieldset-row">
+                                                                <label className="bs-Fieldset-label" />
+                                                                <label className="new-monitor-label">
                                                                     Identity
                                                                     File
                                                                 </label>
+                                                            </div>
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label" />
                                                                 <div className="bs-Fieldset-fields">
                                                                     <div
                                                                         className="Box-root Flex-flex Flex-alignItems--center"
@@ -1381,10 +1391,14 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'API'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             HTTP Method
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
                                                                 className="db-select-nw"
@@ -1439,10 +1453,14 @@ class NewMonitor extends Component {
                                                             />
                                                         </div>
                                                     </div>
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             URL
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1475,10 +1493,14 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Website'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             URL
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1514,10 +1536,14 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Incoming HTTP Request'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Incoming URL
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div
                                                             className="bs-Fieldset-fields"
                                                             style={{
@@ -1543,11 +1569,15 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Manual'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Description
                                                             (optional)
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1570,10 +1600,14 @@ class NewMonitor extends Component {
                                                         {this.renderMonitorConfiguration(
                                                             'IOT Device'
                                                         )}
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
+                                                        <div className="nm-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
+                                                            <label className="new-monitor-label">
                                                                 Device ID
                                                             </label>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label" />
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1601,10 +1635,14 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Script'
                                                     )}
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Script
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <span>
                                                                 <span>
@@ -1652,11 +1690,104 @@ class NewMonitor extends Component {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
+                                                        resourceCategoryList &&
+                                                        resourceCategoryList.length >
+                                                            0
+                                                    }
+                                                >
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <div className="Box-root">
+                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Resource
+                                                                    Category
+                                                                </span>
+                                                            </span>
+                                                            <p>
+                                                                <span>
+                                                                    Resource
+                                                                    Category
+                                                                    lets you
+                                                                    categorize
+                                                                    monitors on
+                                                                    your status
+                                                                    page.
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
+                                                            Resource Category
+                                                        </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name={`resourceCategory_${this.props.index}`}
+                                                                    id="resourceCategory"
+                                                                    placeholder="Choose Resource Category"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select resource category',
+                                                                        },
+                                                                        ...(resourceCategoryList &&
+                                                                        resourceCategoryList.length >
+                                                                            0
+                                                                            ? resourceCategoryList.map(
+                                                                                  category => ({
+                                                                                      value:
+                                                                                          category._id,
+                                                                                      label:
+                                                                                          category.name,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
+                                                                />
+                                                                <Tooltip title="Resource Category">
+                                                                    <div>
+                                                                        <p>
+                                                                            Resource
+                                                                            Categories
+                                                                            lets
+                                                                            you
+                                                                            group
+                                                                            resources
+                                                                            by
+                                                                            categories
+                                                                            on
+                                                                            Status
+                                                                            Page.
+                                                                        </p>
+                                                                    </div>
+                                                                </Tooltip>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
                                                         schedules &&
                                                         schedules.length > 0
                                                     }
                                                 >
-                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="Box-root">
                                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                                 <span>
@@ -1674,10 +1805,14 @@ class NewMonitor extends Component {
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Call Schedule
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
                                                                 <Field
@@ -1762,7 +1897,8 @@ class NewMonitor extends Component {
                                                             .length > 0
                                                     }
                                                 >
-                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="Box-root">
                                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                                 <span>
@@ -1776,7 +1912,7 @@ class NewMonitor extends Component {
                                                                     Select the
                                                                     SLAs for
                                                                     your new
-                                                                    Monitor.
+                                                                    monitor.
                                                                 </span>
                                                             </p>
                                                         </div>
@@ -1788,10 +1924,14 @@ class NewMonitor extends Component {
                                                             .length > 0
                                                     }
                                                 >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Monitor SLA
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
@@ -1894,11 +2034,15 @@ class NewMonitor extends Component {
                                                             .length > 0
                                                     }
                                                 >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
                                                             Incident
                                                             Communication SLA
                                                         </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
 
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
@@ -2030,7 +2174,8 @@ class NewMonitor extends Component {
                                                         !this.state.advance
                                                     }
                                                 >
-                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
+                                                        <label className="bs-Fieldset-label" />
                                                         <div className="Box-root">
                                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                                 <span>
@@ -2043,7 +2188,7 @@ class NewMonitor extends Component {
                                                                     Configuration
                                                                     settings for
                                                                     your new
-                                                                    Monitor.
+                                                                    monitor.
                                                                 </span>
                                                             </p>
                                                         </div>
@@ -2536,6 +2681,7 @@ NewMonitor.propTypes = {
     project: PropTypes.object,
     currentPlanId: PropTypes.string,
     projectId: PropTypes.string,
+    componentId: PropTypes.string,
     subProjects: PropTypes.array,
     toggleEdit: PropTypes.func,
     logFile: PropTypes.func,
@@ -2547,17 +2693,9 @@ NewMonitor.propTypes = {
     uploadIdentityFile: PropTypes.func,
     fetchCommunicationSlas: PropTypes.func,
     incidentSlas: PropTypes.array,
-    fetchSlaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     requestingSla: PropTypes.bool,
     fetchMonitorSlas: PropTypes.func,
     monitorSlas: PropTypes.array,
-    fetchMonitorSlaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     requestingMonitorSla: PropTypes.bool,
     change: PropTypes.func,
     initialValues: PropTypes.objectOf(PropTypes.any),

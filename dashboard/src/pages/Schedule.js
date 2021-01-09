@@ -54,7 +54,7 @@ class Schedule extends Component {
                 <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
-                        name="On-Call Duties"
+                        name="On-Call Duty"
                     />
                     <BreadCrumbItem
                         route={pathname}

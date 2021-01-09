@@ -111,6 +111,7 @@ module.exports = {
         alertStatus,
         error,
         errorMessage,
+        eventType,
     }) {
         try {
             const alert = new AlertModel();
@@ -123,6 +124,7 @@ module.exports = {
             alert.userId = userId;
             alert.incidentId = incidentId;
             alert.alertStatus = alertStatus;
+            alert.eventType = eventType;
 
             if (error) {
                 alert.error = error;
@@ -488,6 +490,7 @@ module.exports = {
                         escalation: escalation,
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
+                        eventType: 'identified',
                     });
                 }
                 if (escalation.email && shouldSendEmailReminder) {
@@ -501,6 +504,7 @@ module.exports = {
                         escalation: escalation,
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
+                        eventType: 'identified',
                     });
                 }
                 if (escalation.sms && shouldSendSMSReminder) {
@@ -514,6 +518,7 @@ module.exports = {
                         escalation: escalation,
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
+                        eventType: 'identified',
                     });
                 }
 
@@ -534,6 +539,7 @@ module.exports = {
                         schedule,
                         escalation,
                         onCallScheduleStatus,
+                        eventType: 'identified',
                     });
                 }
 
@@ -546,6 +552,7 @@ module.exports = {
                         schedule,
                         escalation,
                         onCallScheduleStatus,
+                        eventType: 'identified',
                     });
                 }
 
@@ -558,6 +565,7 @@ module.exports = {
                         schedule,
                         escalation,
                         onCallScheduleStatus,
+                        eventType: 'identified',
                     });
                 }
             }
@@ -572,6 +580,7 @@ module.exports = {
         schedule,
         escalation,
         onCallScheduleStatus,
+        eventType,
     }) {
         const _this = this;
 
@@ -623,6 +632,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
+                    eventType,
                     errorMessage:
                         !hasGlobalSmtpSettings && !hasCustomSmtpSettings
                             ? 'SMTP Settings not found on Admin Dashboard'
@@ -674,6 +684,7 @@ module.exports = {
                 alertVia: AlertType.Email,
                 userId: user._id,
                 incidentId: incident._id,
+                eventType,
                 alertStatus: 'Success',
             });
         } catch (e) {
@@ -686,6 +697,7 @@ module.exports = {
                 alertVia: AlertType.Email,
                 userId: user._id,
                 incidentId: incident._id,
+                eventType,
                 alertStatus: 'Cannot Send',
             });
         }
@@ -785,9 +797,10 @@ module.exports = {
         schedule,
         escalation,
         onCallScheduleStatus,
+        eventType,
     }) {
         const _this = this;
-        let alert, balanceStatus;
+        let alert;
         const date = new Date();
         const monitorId = monitor._id;
         const accessToken = UserService.getAccessToken({
@@ -806,6 +819,7 @@ module.exports = {
                 incidentId: incident._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: 'No phone number',
             });
         }
@@ -840,6 +854,7 @@ module.exports = {
                 incidentId: incident._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: !hasGlobalTwilioSettings
                     ? 'Twilio Settings not found on Admin Dashboard'
                     : !areAlertsEnabledGlobally
@@ -868,6 +883,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
+                    eventType,
                     errorMessage:
                         countryType === 'us'
                             ? 'Calls for numbers inside US not enabled for this project'
@@ -896,6 +912,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
+                    eventType,
                     errorMessage: status.message,
                 });
             }
@@ -921,6 +938,7 @@ module.exports = {
                 incidentId: incident._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: 'Error',
             });
         } else if (alertStatus) {
@@ -933,6 +951,7 @@ module.exports = {
                 alertVia: AlertType.Call,
                 userId: user._id,
                 incidentId: incident._id,
+                eventType,
                 alertStatus: 'Success',
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
@@ -966,9 +985,10 @@ module.exports = {
         schedule,
         escalation,
         onCallScheduleStatus,
+        eventType,
     }) {
         const _this = this;
-        let alert, balanceStatus;
+        let alert;
         const projectId = project._id;
         const date = new Date();
         const monitorId = monitor._id;
@@ -984,6 +1004,7 @@ module.exports = {
                 incidentId: incident._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: 'No phone number',
             });
         }
@@ -1018,6 +1039,7 @@ module.exports = {
                 incidentId: incident._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: !hasGlobalTwilioSettings
                     ? 'Twilio Settings not found on Admin Dashboard'
                     : !areAlertsEnabledGlobally
@@ -1046,6 +1068,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
+                    eventType,
                     errorMessage:
                         countryType === 'us'
                             ? 'SMS for numbers inside US not enabled for this project'
@@ -1074,6 +1097,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
+                    eventType,
                     errorMessage: status.message,
                 });
             }
@@ -1102,6 +1126,7 @@ module.exports = {
                 onCallScheduleStatus: onCallScheduleStatus._id,
                 alertStatus: null,
                 error: true,
+                eventType,
                 errorMessage: sendResult.message,
             });
         } else if (sendResult) {
@@ -1115,6 +1140,7 @@ module.exports = {
                 alertVia: AlertType.SMS,
                 userId: user._id,
                 incidentId: incident._id,
+                eventType,
                 alertStatus,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
@@ -1333,7 +1359,9 @@ module.exports = {
                             },
                         }
                     );
+                    let onCallScheduleStatus = null;
                     let escalationId = null;
+                    let currentEscalationStatus = null;
 
                     if (callScheduleStatuses.length === 0) {
                         escalationId = schedule.escalationIds[0];
@@ -1341,7 +1369,26 @@ module.exports = {
                         if (escalationId && escalationId._id) {
                             escalationId = escalationId._id;
                         }
+                        currentEscalationStatus = {
+                            escalation: escalationId,
+                            callRemindersSent: 0,
+                            emailRemindersSent: 0,
+                            smsRemindersSent: 0,
+                        };
+
+                        //create new onCallScheduleStatus
+                        onCallScheduleStatus = await OnCallScheduleStatusService.create(
+                            {
+                                project: projectId,
+                                incident: incident._id,
+                                activeEscalation: escalationId,
+                                schedule: schedule._id,
+                                incidentAcknowledged: false,
+                                escalations: [currentEscalationStatus],
+                            }
+                        );
                     } else {
+                        onCallScheduleStatus = callScheduleStatuses[0];
                         escalationId =
                             callScheduleStatuses[0].escalations[
                                 callScheduleStatuses[0].escalations.length - 1
@@ -1362,14 +1409,10 @@ module.exports = {
                         continue;
                     }
                     for (const teamMember of activeTeam.teamMembers) {
-                        const isOnDuty = await _this.isOnDuty(
-                            teamMember.timezone,
+                        const isOnDuty = await _this.checkIsOnDuty(
                             teamMember.startTime,
                             teamMember.endTime
                         );
-                        if (!isOnDuty) {
-                            continue;
-                        }
                         const user = await UserService.findOneBy({
                             _id: teamMember.userId,
                         });
@@ -1378,13 +1421,34 @@ module.exports = {
                             continue;
                         }
 
-                        if (escalation.email) {
-                            _this.sendAcknowledgeEmailAlert({
-                                incident,
-                                user,
-                                project,
-                                monitor,
-                            });
+                        if (!isOnDuty) {
+                            if (escalation.email) {
+                                await _this.create({
+                                    projectId: incident.projectId,
+                                    monitorId,
+                                    alertVia: AlertType.Email,
+                                    userId: user._id,
+                                    incidentId: incident._id,
+                                    schedule,
+                                    escalation,
+                                    onCallScheduleStatus,
+                                    alertStatus: 'Not on Duty',
+                                    eventType: 'acknowledged',
+                                });
+                            }
+                        } else {
+                            if (escalation.email) {
+                                _this.sendAcknowledgeEmailAlert({
+                                    incident,
+                                    user,
+                                    project,
+                                    monitor,
+                                    schedule,
+                                    escalation,
+                                    onCallScheduleStatus,
+                                    eventType: 'acknowledged',
+                                });
+                            }
                         }
                     }
                 }
@@ -1403,7 +1467,13 @@ module.exports = {
         user,
         project,
         monitor,
+        schedule,
+        escalation,
+        onCallScheduleStatus,
+        eventType,
     }) {
+        const _this = this;
+
         let date = new Date();
         const accessToken = UserService.getAccessToken({
             userId: user._id,
@@ -1439,7 +1509,26 @@ module.exports = {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
-                return;
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId: monitor._id,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: AlertType.Email,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    alertStatus: null,
+                    error: true,
+                    eventType,
+                    errorMessage:
+                        !hasGlobalSmtpSettings && !hasCustomSmtpSettings
+                            ? 'SMTP Settings not found on Admin Dashboard'
+                            : hasGlobalSmtpSettings &&
+                              !areEmailAlertsEnabledInGlobalSettings
+                            ? 'Alert Disabled on Admin Dashboard'
+                            : 'Error.',
+                });
             }
             const incidentcreatedBy =
                 incident.createdById && incident.createdById.name
@@ -1493,9 +1582,31 @@ module.exports = {
                 acknowledgeTime: incident.acknowledgedAt,
                 length: downtimestring,
             });
-            return;
+            return await _this.create({
+                projectId: incident.projectId,
+                monitorId: monitor._id,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                alertVia: AlertType.Email,
+                userId: user._id,
+                incidentId: incident._id,
+                eventType,
+                alertStatus: 'Success',
+            });
         } catch (e) {
-            return e;
+            return await _this.create({
+                projectId: incident.projectId,
+                monitorId: monitor._id,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                alertVia: AlertType.Email,
+                userId: user._id,
+                incidentId: incident._id,
+                eventType,
+                alertStatus: 'Cannot Send',
+            });
         }
     },
 
@@ -1540,7 +1651,9 @@ module.exports = {
                             },
                         }
                     );
+                    let onCallScheduleStatus = null;
                     let escalationId = null;
+                    let currentEscalationStatus = null;
 
                     if (callScheduleStatuses.length === 0) {
                         escalationId = schedule.escalationIds[0];
@@ -1548,7 +1661,26 @@ module.exports = {
                         if (escalationId && escalationId._id) {
                             escalationId = escalationId._id;
                         }
+                        currentEscalationStatus = {
+                            escalation: escalationId,
+                            callRemindersSent: 0,
+                            emailRemindersSent: 0,
+                            smsRemindersSent: 0,
+                        };
+
+                        //create new onCallScheduleStatus
+                        onCallScheduleStatus = await OnCallScheduleStatusService.create(
+                            {
+                                project: projectId,
+                                incident: incident._id,
+                                activeEscalation: escalationId,
+                                schedule: schedule._id,
+                                incidentAcknowledged: false,
+                                escalations: [currentEscalationStatus],
+                            }
+                        );
                     } else {
+                        onCallScheduleStatus = callScheduleStatuses[0];
                         escalationId =
                             callScheduleStatuses[0].escalations[
                                 callScheduleStatuses[0].escalations.length - 1
@@ -1569,14 +1701,10 @@ module.exports = {
                         continue;
                     }
                     for (const teamMember of activeTeam.teamMembers) {
-                        const isOnDuty = await _this.isOnDuty(
-                            teamMember.timezone,
+                        const isOnDuty = await _this.checkIsOnDuty(
                             teamMember.startTime,
                             teamMember.endTime
                         );
-                        if (!isOnDuty) {
-                            continue;
-                        }
                         const user = await UserService.findOneBy({
                             _id: teamMember.userId,
                         });
@@ -1585,13 +1713,34 @@ module.exports = {
                             continue;
                         }
 
-                        if (escalation.email) {
-                            _this.sendResolveEmailAlert({
-                                incident,
-                                user,
-                                project,
-                                monitor,
-                            });
+                        if (!isOnDuty) {
+                            if (escalation.email) {
+                                await _this.create({
+                                    projectId: incident.projectId,
+                                    monitorId,
+                                    alertVia: AlertType.Email,
+                                    userId: user._id,
+                                    incidentId: incident._id,
+                                    schedule,
+                                    escalation,
+                                    onCallScheduleStatus,
+                                    alertStatus: 'Not on Duty',
+                                    eventType: 'resolved',
+                                });
+                            }
+                        } else {
+                            if (escalation.email) {
+                                _this.sendResolveEmailAlert({
+                                    incident,
+                                    user,
+                                    project,
+                                    monitor,
+                                    schedule,
+                                    escalation,
+                                    onCallScheduleStatus,
+                                    eventType: 'resolved',
+                                });
+                            }
                         }
                     }
                 }
@@ -1607,7 +1756,13 @@ module.exports = {
         user,
         project,
         monitor,
+        schedule,
+        escalation,
+        onCallScheduleStatus,
+        eventType,
     }) {
+        const _this = this;
+
         let date = new Date();
         const accessToken = UserService.getAccessToken({
             userId: user._id,
@@ -1642,7 +1797,26 @@ module.exports = {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
-                return;
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId: monitor._id,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: AlertType.Email,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    alertStatus: null,
+                    error: true,
+                    eventType,
+                    errorMessage:
+                        !hasGlobalSmtpSettings && !hasCustomSmtpSettings
+                            ? 'SMTP Settings not found on Admin Dashboard'
+                            : hasGlobalSmtpSettings &&
+                              !areEmailAlertsEnabledInGlobalSettings
+                            ? 'Alert Disabled on Admin Dashboard'
+                            : 'Error.',
+                });
             }
             const incidentcreatedBy =
                 incident.createdById && incident.createdById.name
@@ -1695,9 +1869,31 @@ module.exports = {
                 resolveTime: incident.resolvedAt,
                 length: downtimestring,
             });
-            return;
+            return await _this.create({
+                projectId: incident.projectId,
+                monitorId: monitor._id,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                alertVia: AlertType.Email,
+                userId: user._id,
+                incidentId: incident._id,
+                eventType,
+                alertStatus: 'Success',
+            });
         } catch (e) {
-            return e;
+            return await _this.create({
+                projectId: incident.projectId,
+                monitorId: monitor._id,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                alertVia: AlertType.Email,
+                userId: user._id,
+                incidentId: incident._id,
+                eventType,
+                alertStatus: 'Cannot Send',
+            });
         }
     },
 

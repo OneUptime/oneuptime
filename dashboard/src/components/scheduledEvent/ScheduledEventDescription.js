@@ -71,10 +71,12 @@ function ScheduledEventDescription({
                         <div className="Box-root">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 {isOngoing ? (
-                                    <span>Ongoing Scheduled Maintenance</span>
+                                    <span>
+                                        Ongoing Scheduled Maintenance Event
+                                    </span>
                                 ) : (
                                     <span>
-                                        Scheduled Maintenance Description
+                                        Scheduled Maintenance Event Description
                                     </span>
                                 )}
                             </span>

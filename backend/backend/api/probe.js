@@ -112,7 +112,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             type,
             retryCount,
         } = req.body;
-        let status, log, reason, data;
+        let status,
+            log,
+            reason,
+            data = {};
         let matchedCriterion;
 
         if (type === 'incomingHttpRequest') {
@@ -170,25 +173,32 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
                 if (validDown) {
                     status = 'offline';
-                    reason = upFailedReasons;
+                    reason = downFailedReasons;
                     matchedCriterion = matchedDownCriterion;
                 } else if (validDegraded) {
                     status = 'degraded';
-                    reason = upFailedReasons;
+                    reason = degradedFailedReasons;
                     matchedCriterion = matchedDegradedCriterion;
                 } else if (validUp) {
                     status = 'online';
-                    reason = [...degradedFailedReasons, ...downFailedReasons];
+                    reason = upFailedReasons;
                     matchedCriterion = matchedUpCriterion;
                 } else {
                     status = 'offline';
-                    reason = upFailedReasons;
+                    reason = [
+                        ...degradedFailedReasons,
+                        ...downFailedReasons,
+                        ...upFailedReasons,
+                    ];
                     if (monitor.criteria.down) {
                         matchedCriterion = monitor.criteria.down.find(
                             criterion => criterion.default === true
                         );
                     }
                 }
+
+                data.status = status;
+                data.reason = reason;
             }
             if (type === 'script') {
                 const {
@@ -251,6 +261,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     }
                 }
                 resp.status = null;
+
+                data.status = status;
+                data.reason = reason;
             }
             if (type === 'device') {
                 if (res) {
@@ -306,22 +319,23 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
                 if (validDown) {
                     data.status = 'offline';
-                    data.reason = upFailedReasons;
+                    data.reason = downFailedReasons;
                     matchedCriterion = matchedDownCriterion;
                 } else if (validDegraded) {
                     data.status = 'degraded';
-                    data.reason = upFailedReasons;
+                    data.reason = degradedFailedReasons;
                     matchedCriterion = matchedDegradedCriterion;
                 } else if (validUp) {
                     data.status = 'online';
-                    data.reason = [
-                        ...degradedFailedReasons,
-                        ...downFailedReasons,
-                    ];
+                    data.reason = upFailedReasons;
                     matchedCriterion = matchedUpCriterion;
                 } else {
                     data.status = 'offline';
-                    data.reason = upFailedReasons;
+                    data.reason = [
+                        ...degradedFailedReasons,
+                        ...downFailedReasons,
+                        ...upFailedReasons,
+                    ];
                     if (monitor.criteria.down) {
                         matchedCriterion = monitor.criteria.down.find(
                             criterion => criterion.default === true

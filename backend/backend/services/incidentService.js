@@ -83,6 +83,7 @@ module.exports = {
                         incidentsCountInProject +
                         deletedIncidentsCountInProject +
                         1;
+                    incident.customFields = data.customFields;
 
                     if (!incident.manuallyCreated) {
                         const incidentSettings = await IncidentSettingsService.findOne(
@@ -838,7 +839,7 @@ module.exports = {
             );
         }
 
-        if (incidentCommunicationSla) {
+        if (incidentCommunicationSla && !incidentCommunicationSla.deleted) {
             let countDown = incidentCommunicationSla.duration * 60;
             const alertTime = incidentCommunicationSla.alertTime * 60;
 

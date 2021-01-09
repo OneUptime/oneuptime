@@ -349,7 +349,9 @@ class UpdateSchedule extends React.Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Update Scheduled Maintenance</span>
+                                    <span>
+                                        Update Scheduled Maintenance Event
+                                    </span>
                                 </span>
                             </div>
                         </div>
@@ -370,7 +372,7 @@ class UpdateSchedule extends React.Component {
                                                     htmlFor="endpoint"
                                                 >
                                                     <span>
-                                                        Maintenance name
+                                                        Maintenance Name
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -442,7 +444,7 @@ class UpdateSchedule extends React.Component {
                                                     htmlFor="monitorIds"
                                                 >
                                                     <span>
-                                                        Event Description
+                                                        Maintenance Description
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -575,8 +577,10 @@ class UpdateSchedule extends React.Component {
                                                     <div className="Checkbox-label Box-root Margin-left--8">
                                                         <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
-                                                                Show this event
-                                                                on Status Page
+                                                                Show this
+                                                                maintenance
+                                                                event on Status
+                                                                Page
                                                             </span>
                                                         </span>
                                                     </div>
@@ -616,8 +620,8 @@ class UpdateSchedule extends React.Component {
                                                                 Alert your team
                                                                 members who are
                                                                 on call when
-                                                                this event
-                                                                starts
+                                                                this maintenance
+                                                                event starts
                                                             </span>
                                                         </span>
                                                     </div>
@@ -657,7 +661,9 @@ class UpdateSchedule extends React.Component {
                                                                 Alert
                                                                 subscribers
                                                                 about this
-                                                                scheduled event
+                                                                scheduled
+                                                                maintenance
+                                                                event
                                                             </span>
                                                         </span>
                                                     </div>

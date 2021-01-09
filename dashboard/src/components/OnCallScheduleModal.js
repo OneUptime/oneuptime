@@ -153,9 +153,11 @@ class OnCallScheduleModal extends Component {
                                                             <span>
                                                                 You&#39;re
                                                                 currently on
-                                                                call duty for
-                                                                these call
-                                                                schedules.
+                                                                call duty for{' '}
+                                                                {schedule.scheduleId &&
+                                                                    schedule
+                                                                        .scheduleId
+                                                                        .name}
                                                             </span>
                                                         )}
                                                     </li>

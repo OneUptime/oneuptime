@@ -2,7 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Component } from 'react';
-import { Field } from 'redux-form';
+import { Field, change } from 'redux-form';
 import PropTypes from 'prop-types';
 import { addArrayField, removeArrayField } from '../../actions/monitor';
 import { ValidateField } from '../../config';
@@ -26,7 +26,7 @@ const firstField = [
     'lessThan',
     'inBetween',
     'equalTo',
-    'notEqualto',
+    'notEqualTo',
     'gtEqualTo',
     'ltEqualTo',
     'contains',
@@ -164,6 +164,7 @@ export class RenderOption extends Component {
             removeField,
             level,
             type,
+            change,
         } = this.props;
 
         const filterval =
@@ -192,7 +193,13 @@ export class RenderOption extends Component {
                             id="responseType"
                             placeholder="Response Type"
                             disabled={false}
-                            onChange={() => (bodyfield.filter = '')}
+                            onChange={() => {
+                                change(
+                                    'NewMonitor',
+                                    `${fieldnameprop}.filter`,
+                                    ''
+                                );
+                            }}
                             validate={ValidateField.select}
                             style={{
                                 width: `${
@@ -628,7 +635,10 @@ export class RenderOption extends Component {
                                         filterval !== '' &&
                                         firstField.indexOf(filterval) > -1
                                             ? filterval === 'jsExpression' ||
-                                              filterval === 'evaluateResponse'
+                                              filterval ===
+                                                  'evaluateResponse' ||
+                                              filterval === 'contains' ||
+                                              filterval === 'doesNotContain'
                                                 ? ValidateField.required
                                                 : [
                                                       ValidateField.required,
@@ -1094,10 +1104,11 @@ RenderOption.propTypes = {
     level: PropTypes.number,
     fieldnameprop: PropTypes.string,
     type: PropTypes.string,
+    change: PropTypes.func.isRequired,
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ addArrayField, removeArrayField }, dispatch);
+    bindActionCreators({ addArrayField, removeArrayField, change }, dispatch);
 
 function mapStateToProps() {
     return {

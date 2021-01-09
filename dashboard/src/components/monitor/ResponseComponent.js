@@ -303,9 +303,7 @@ export class ResponseComponent extends Component {
                                             <div className="Checkbox-label Box-root Margin-left--8">
                                                 <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <span>
-                                                        Automatically
-                                                        acknowledge an incident
-                                                        when monitor is back up.
+                                                        Create an incident.
                                                     </span>
                                                 </span>
                                             </div>
@@ -333,15 +331,16 @@ export class ResponseComponent extends Component {
                                                 <div className="Checkbox-target Box-root">
                                                     <div className="Checkbox-color Box-root"></div>
                                                 </div>
-                                            </div>
-                                            <div className="Checkbox-label Box-root Margin-left--8">
-                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <span>
-                                                        Automatically resolve an
-                                                        incident when monitor is
-                                                        back up.
+                                                <div className="Checkbox-label Box-root Margin-left--8">
+                                                    <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <span>
+                                                            Automatically
+                                                            acknowledge an
+                                                            incident when
+                                                            monitor is back up.
+                                                        </span>
                                                     </span>
-                                                </span>
+                                                </div>
                                             </div>
                                         </label>
                                     </div>
