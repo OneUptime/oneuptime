@@ -13,6 +13,8 @@ const incomingRequestSchema = new Schema(
         ],
         isDefault: { type: Boolean, default: false },
         createIncident: { type: Boolean, default: false },
+        acknowledgeIncident: { type: Boolean, default: false },
+        resolveIncident: { type: Boolean, default: false },
         updateIncidentNote: { type: Boolean, default: false },
         updateInternalNote: { type: Boolean, default: false },
         noteContent: String,
