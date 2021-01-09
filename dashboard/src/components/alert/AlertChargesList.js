@@ -190,14 +190,18 @@ export class AlertChargesList extends Component {
                                                                 '/dashboard/project/' +
                                                                     projectId +
                                                                     '/incidents/' +
-                                                                    alertCharge.incidentId
+                                                                    alertCharge
+                                                                        .incidentId
+                                                                        ._id
                                                             );
                                                         }}
                                                         className="Box-root Margin-right--16"
                                                     >
                                                         <span>
                                                             {
-                                                                alertCharge.incidentId
+                                                                alertCharge
+                                                                    .incidentId
+                                                                    .idNumber
                                                             }
                                                         </span>
                                                     </div>
