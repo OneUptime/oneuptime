@@ -64,6 +64,7 @@ const monitorSchema = new Schema({
         degraded: [criterionEventSchema],
         down: [criterionEventSchema],
     },
+    lastMatchedCriterion: criterionEventSchema,
     method: String,
     bodyType: String,
     formData: [Object],

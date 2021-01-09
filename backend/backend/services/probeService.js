@@ -357,10 +357,7 @@ module.exports = {
                             reason: data.reason,
                             response: data.response,
                             ...(matchedCriterion && {
-                                title: matchedCriterion.title,
-                            }),
-                            ...(matchedCriterion && {
-                                description: matchedCriterion.description,
+                                matchedCriterion,
                             }),
                         }),
                     ];
@@ -408,10 +405,7 @@ module.exports = {
                             reason: data.reason,
                             response: data.response,
                             ...(matchedCriterion && {
-                                title: matchedCriterion.title,
-                            }),
-                            ...(matchedCriterion && {
-                                description: matchedCriterion.description,
+                                matchedCriterion,
                             }),
                         }),
                     ];
