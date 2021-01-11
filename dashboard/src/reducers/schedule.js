@@ -561,6 +561,7 @@ export default function schedule(state = initialState, action) {
                     error: null,
                 },
                 scheduleEscalations: action.payload.data,
+                escalations: action.payload.data
             });
 
         case ESCALATION_REQUEST:
