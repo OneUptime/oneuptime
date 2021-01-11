@@ -256,6 +256,10 @@ app.use(
     ['/customField', '/api/customField'],
     require('./backend/api/customField')
 );
+app.use(
+    ['/monitorCustomField', '/api/monitorCustomField'],
+    require('./backend/api/monitorCustomField')
+);
 
 app.set('port', process.env.PORT || 3002);
 
