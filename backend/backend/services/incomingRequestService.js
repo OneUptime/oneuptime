@@ -7,6 +7,8 @@ const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
 const Handlebars = require('handlebars');
+const { isEmpty } = require('lodash');
+const IncidentMessageService = require('../services/incidentMessageService');
 // const RealTimeService = require('./realTimeService');
 
 module.exports = {
@@ -41,6 +43,7 @@ module.exports = {
         try {
             if (
                 !data.isDefault &&
+                data.createIncident &&
                 (!data.monitors || data.monitors.length === 0)
             ) {
                 const error = new Error(
@@ -50,7 +53,11 @@ module.exports = {
                 throw error;
             }
 
-            if (!data.isDefault && !isArrayUnique(data.monitors)) {
+            if (
+                !data.isDefault &&
+                data.createIncident &&
+                !isArrayUnique(data.monitors)
+            ) {
                 const error = new Error(
                     'You cannot have multiple selection of a monitor'
                 );
@@ -74,10 +81,12 @@ module.exports = {
                 }
             }
 
-            // reassign data.monitors with a restructured monitor data
-            data.monitors = data.monitors.map(monitor => ({
-                monitorId: monitor,
-            }));
+            if (data.createIncident) {
+                // reassign data.monitors with a restructured monitor data
+                data.monitors = data.monitors.map(monitor => ({
+                    monitorId: monitor,
+                }));
+            }
 
             if (data.incidentTitle) {
                 data.incidentTitle = DOMPurify.sanitize(data.incidentTitle);
@@ -133,6 +142,7 @@ module.exports = {
 
     updateOneBy: async function(query, data, excludeMonitors) {
         const _this = this;
+        let unsetData = {};
         if (!query) {
             query = {};
         }
@@ -140,7 +150,7 @@ module.exports = {
         if (!query.deleted) query.deleted = false;
 
         try {
-            if (!excludeMonitors) {
+            if (!excludeMonitors && data.createIncident) {
                 if (
                     !data.isDefault &&
                     (!data.monitors || data.monitors.length === 0)
@@ -164,6 +174,68 @@ module.exports = {
                 data.monitors = data.monitors.map(monitor => ({
                     monitorId: monitor,
                 }));
+            }
+
+            if (data.createIncident) {
+                unsetData = {
+                    updateIncidentNote: '',
+                    updateInternalNote: '',
+                    incidentState: '',
+                    noteContent: '',
+                    acknowledgeIncident: '',
+                    resolveIncident: '',
+                };
+            }
+
+            if (data.acknowledgeIncident) {
+                unsetData = {
+                    resolveIncident: '',
+                };
+            }
+
+            if (data.acknowledgeIncident || data.resolveIncident) {
+                unsetData = {
+                    ...unsetData,
+                    createIncident: '',
+                    updateIncidentNote: '',
+                    updateInternalNote: '',
+                    incidentState: '',
+                    noteContent: '',
+                    monitors: '',
+                    incidentPriority: '',
+                    incidentTitle: '',
+                    incidentType: '',
+                    incidentDescription: '',
+                    customFields: '',
+                };
+            }
+
+            if (data.updateIncidentNote) {
+                unsetData = {
+                    createIncident: '',
+                    updateInternalNote: '',
+                };
+            }
+
+            if (data.updateInternalNote) {
+                unsetData = {
+                    createIncident: '',
+                    updateIncidentNote: '',
+                };
+            }
+
+            if (data.updateInternalNote || data.updateIncidentNote) {
+                unsetData = {
+                    ...unsetData,
+                    monitors: '',
+                    incidentPriority: '',
+                    incidentTitle: '',
+                    incidentType: '',
+                    incidentDescription: '',
+                    customFields: '',
+                    acknowledgeIncident: '',
+                    resolveIncident: '',
+                };
             }
 
             if (data.incidentTitle) {
@@ -213,6 +285,14 @@ module.exports = {
                 },
                 { new: true }
             );
+
+            if (!isEmpty(unsetData)) {
+                updatedIncomingRequest = await IncomingRequestModel.findOneAndUpdate(
+                    { _id: query.requestId },
+                    { $unset: unsetData },
+                    { new: true }
+                );
+            }
 
             updatedIncomingRequest = await updatedIncomingRequest
                 .populate('monitors.monitorId', 'name')
@@ -735,6 +815,210 @@ module.exports = {
 
                             data.monitorId = monitor._id;
                             await IncidentService.create(data);
+                        }
+                    }
+                }
+            }
+
+            if (
+                incomingRequest &&
+                (incomingRequest.updateIncidentNote ||
+                    incomingRequest.updateInternalNote)
+            ) {
+                data.incident_state = incomingRequest.incidentState;
+                data.type = incomingRequest.updateIncidentNote
+                    ? 'investigation'
+                    : 'internal';
+                data.content = incomingRequest.noteContent;
+
+                const filterCriteria = incomingRequest.filterCriteria,
+                    filterCondition = incomingRequest.filterCondition,
+                    filterText = incomingRequest.filterText;
+
+                if (
+                    filterCriteria &&
+                    filterCondition &&
+                    ((!isNaN(filterText) && parseFloat(filterText) >= 0) ||
+                        (filterText && filterText.trim()))
+                ) {
+                    if (
+                        filterCriteria &&
+                        filterCriteria === 'incidentId' &&
+                        filterText
+                    ) {
+                        data.incidentId = Number(filterText);
+                    }
+
+                    if (
+                        filterCriteria &&
+                        filterCriteria !== 'incidentId' &&
+                        filterText
+                    ) {
+                        data.fieldName = filterCriteria;
+                        data.fieldValue = filterText;
+                    }
+
+                    let incidents;
+                    if (filterCondition === 'equalTo') {
+                        if (data.incidentId) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                idNumber: data.incidentId,
+                            });
+                        }
+
+                        if (data.fieldName && data.fieldValue) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                'customFields.fieldName': data.fieldName,
+                                'customFields.fieldValue': data.fieldValue,
+                            });
+                        }
+                    }
+
+                    if (filterCondition === 'notEqualTo') {
+                        if (data.incidentId) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                idNumber: { $ne: data.incidentId },
+                            });
+                        }
+
+                        if (data.fieldName && data.fieldValue) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                'customFields.fieldName': data.fieldName,
+                                'customFields.fieldValue': {
+                                    $ne: data.fieldValue,
+                                },
+                            });
+                        }
+                    }
+
+                    if (incidents && incidents.length > 0) {
+                        for (const incident of incidents) {
+                            data.incidentId = incident._id;
+                            await IncidentMessageService.create(data);
+                        }
+                    }
+                } else {
+                    const incidents = await IncidentService.findBy({
+                        projectId: incomingRequest.projectId,
+                    });
+
+                    for (const incident of incidents) {
+                        data.incidentId = incident._id;
+                        await IncidentMessageService.create(data);
+                    }
+                }
+            }
+
+            if (
+                incomingRequest &&
+                (incomingRequest.acknowledgeIncident ||
+                    incomingRequest.resolveIncident)
+            ) {
+                const filterCriteria = incomingRequest.filterCriteria,
+                    filterCondition = incomingRequest.filterCondition,
+                    filterText = incomingRequest.filterText;
+
+                if (
+                    filterCriteria &&
+                    filterCondition &&
+                    ((!isNaN(filterText) && parseFloat(filterText) >= 0) ||
+                        (filterText && filterText.trim()))
+                ) {
+                    if (
+                        filterCriteria &&
+                        filterCriteria === 'incidentId' &&
+                        filterText
+                    ) {
+                        data.incidentId = Number(filterText);
+                    }
+
+                    if (
+                        filterCriteria &&
+                        filterCriteria !== 'incidentId' &&
+                        filterText
+                    ) {
+                        data.fieldName = filterCriteria;
+                        data.fieldValue = filterText;
+                    }
+
+                    let incidents;
+                    if (filterCondition === 'equalTo') {
+                        if (data.incidentId) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                idNumber: data.incidentId,
+                            });
+                        }
+
+                        if (data.fieldName && data.fieldValue) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                'customFields.fieldName': data.fieldName,
+                                'customFields.fieldValue': data.fieldValue,
+                            });
+                        }
+                    }
+
+                    if (filterCondition === 'notEqualTo') {
+                        if (data.incidentId) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                idNumber: { $ne: data.incidentId },
+                            });
+                        }
+
+                        if (data.fieldName && data.fieldValue) {
+                            incidents = await IncidentService.findBy({
+                                projectId: incomingRequest.projectId,
+                                'customFields.fieldName': data.fieldName,
+                                'customFields.fieldValue': {
+                                    $ne: data.fieldValue,
+                                },
+                            });
+                        }
+                    }
+
+                    if (incidents && incidents.length > 0) {
+                        for (const incident of incidents) {
+                            if (incomingRequest.acknowledgeIncident) {
+                                await IncidentService.acknowledge(
+                                    incident._id,
+                                    null,
+                                    'fyipe'
+                                );
+                            }
+                            if (incomingRequest.resolveIncident) {
+                                await IncidentService.resolve(
+                                    incident._id,
+                                    null,
+                                    'fyipe'
+                                );
+                            }
+                        }
+                    }
+                } else {
+                    const incidents = await IncidentService.findBy({
+                        projectId: incomingRequest.projectId,
+                    });
+
+                    for (const incident of incidents) {
+                        if (incomingRequest.acknowledgeIncident) {
+                            await IncidentService.acknowledge(
+                                incident._id,
+                                null,
+                                'fyipe'
+                            );
+                        }
+                        if (incomingRequest.resolveIncident) {
+                            await IncidentService.resolve(
+                                incident._id,
+                                null,
+                                'fyipe'
+                            );
                         }
                     }
                 }
