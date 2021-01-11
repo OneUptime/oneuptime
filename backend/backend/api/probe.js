@@ -360,7 +360,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         await MonitorService.updateBy(
                             { _id: req.params.monitorId },
                             {
-                                lighthouseScanStatus: data.lighthouseScanStatus,
+                                scriptRunStatus: 'completed',
+                                scriptRunBy: req.probe.id,
                             }
                         );
                     } else {
