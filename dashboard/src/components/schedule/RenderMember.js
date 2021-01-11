@@ -32,6 +32,18 @@ const RenderMember = ({
 
     const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
     const showTimes = memberHasCallTimes ? !forcedTimeHide : timeVisible;
+
+    const getCurrentTimezone = () => {
+        const tz = Intl.DateTimeFormat()
+            .resolvedOptions()
+            .timeZone;
+        const offSet = -(new Date().getTimezoneOffset() / 60);
+        const result = `${tz} GMT${Math.sign(offSet) === -1
+                ? offSet :
+                `+${offSet}`}`
+        return result
+    }
+
     return (
         <li key={nameIndex}>
             <div className="bs-Fieldset-row">
@@ -121,9 +133,7 @@ const RenderMember = ({
                                 </div>
                             </Tooltip>
                         </span>
-                        <label className="bs-oncall-label">
-                            {Intl.DateTimeFormat().resolvedOptions().timeZone}
-                        </label>
+                        <label className="bs-oncall-label">{getCurrentTimezone()}</label>
                     </div>
                 </div>
             )}
@@ -167,9 +177,7 @@ const RenderMember = ({
                                 </div>
                             </Tooltip>
                         </span>
-                        <label className="bs-oncall-label">
-                            {Intl.DateTimeFormat().resolvedOptions().timeZone}
-                        </label>
+                        <label className="bs-oncall-label">{getCurrentTimezone()}</label>
                     </div>
                 </div>
             )}
