@@ -777,6 +777,111 @@ export function deleteStatusPage(projectId, statusPageId) {
         return promise;
     };
 }
+
+//Update status page embedded css
+
+export function updateStatusPageEmbeddedCssRequest() {
+    return {
+        type: types.UPDATE_STATUSPAGE_EMBEDDED_CSS_REQUEST,
+    };
+}
+
+export function updateStatusPageEmbeddedCssSuccess(statusPage) {
+    return {
+        type: types.UPDATE_STATUSPAGE_EMBEDDED_CSS_SUCCESS,
+        payload: statusPage,
+    };
+}
+
+export function updateStatusPageEmbeddedCssError(error) {
+    return {
+        type: types.UPDATE_STATUSPAGE_EMBEDDED_CSS_FAILURE,
+        payload: error,
+    };
+}
+
+// Calls the API to update setting.
+export function updateStatusPageEmbeddedCss(projectId, data) {
+    return function(dispatch) {
+        const promise = putApi(`statusPage/${projectId}`, data);
+        dispatch(updateStatusPageEmbeddedCssRequest());
+        promise.then(
+            function(response) {
+                const statusPage = response.data;
+                dispatch(updateStatusPageEmbeddedCssSuccess(statusPage));
+                dispatch(fetchProjectStatusPage(projectId, true));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateStatusPageEmbeddedCssError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+//Update status page embedded css
+
+export function resetStatusPageEmbeddedCssRequest() {
+    return {
+        type: types.RESET_STATUSPAGE_EMBEDDED_CSS_REQUEST,
+    };
+}
+
+export function resetStatusPageEmbeddedCssSuccess(statusPage) {
+    return {
+        type: types.RESET_STATUSPAGE_EMBEDDED_CSS_SUCCESS,
+        payload: statusPage,
+    };
+}
+
+export function resetStatusPageEmbeddedCssError(error) {
+    return {
+        type: types.RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE,
+        payload: error,
+    };
+}
+
+// Calls the API to update setting.
+export function resetStatusPageEmbeddedCss(projectId, data) {
+    return function(dispatch) {
+        const promise = putApi(`statusPage/${projectId}`, data);
+        dispatch(resetStatusPageEmbeddedCssRequest());
+        promise.then(
+            function(response) {
+                const statusPage = response.data;
+                dispatch(resetStatusPageEmbeddedCssSuccess(statusPage));
+                dispatch(fetchProjectStatusPage(projectId, true));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(resetStatusPageEmbeddedCssError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
 // Calls the API to delete StatusPages after deleting the project
 
 export function deleteProjectStatusPages(projectId) {
