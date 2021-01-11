@@ -17,7 +17,7 @@ import { ApplicationLogList } from '../components/application/ApplicationLogList
 import { LoadingState } from '../components/basic/Loader';
 import LibraryList from '../components/application/LibraryList';
 import sortByName from '../utils/sortByName';
-import { API_URL } from '../config';
+import { API_URL, User } from '../config';
 import io from 'socket.io-client';
 import { history } from '../store';
 
@@ -54,7 +54,7 @@ class ApplicationLog extends Component {
                 `createApplicationLog-${this.props.componentId}`,
                 data => {
                     history.push(
-                        `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-logs/${data._id}`
+                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/application-logs/${data._id}`
                     );
                 }
             );
@@ -154,7 +154,10 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, props) => {
-    const { componentId, projectId } = props.match.params;
+    const { componentId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
 
     const applicationLog = state.applicationLog.applicationLogsList;
 

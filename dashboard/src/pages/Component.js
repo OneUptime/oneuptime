@@ -21,7 +21,7 @@ import { loadPage } from '../actions/page';
 import { getSmtpConfig } from '../actions/smsTemplates';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
-import { IS_SAAS_SERVICE } from '../config';
+import { IS_SAAS_SERVICE, User } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
@@ -81,8 +81,9 @@ class DashboardView extends Component {
             subProjects,
             currentProject,
             location: { pathname },
+            projectId,
         } = this.props;
-        const currentProjectId = currentProject ? currentProject._id : null;
+        const currentProjectId = projectId;
         let allComponents = this.props.component.componentList.components
             .map(component => component.components)
             .flat();
@@ -373,7 +374,10 @@ const mapStateToProps = (state, props) => {
         return monitor;
     });
 
-    const { projectId } = props.match.params;
+    // const { projectId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
 
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
@@ -401,6 +405,7 @@ const mapStateToProps = (state, props) => {
         endDate: state.monitor.monitorsList.endDate,
         monitors,
         tutorialStat,
+        projectId,
     };
 };
 
@@ -432,6 +437,7 @@ DashboardView.propTypes = {
     monitors: PropTypes.array,
     tutorialStat: PropTypes.object,
     getSmtpConfig: PropTypes.func.isRequired,
+    projectId: PropTypes.string,
 };
 
 DashboardView.displayName = 'DashboardView';

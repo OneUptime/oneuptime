@@ -3,6 +3,7 @@ import { BreadcrumbsItem } from 'react-breadcrumbs-dynamic';
 import { PropTypes } from 'prop-types';
 import { history } from '../../store';
 import pageTitles from '../../utils/pageTitles';
+import { User } from '../../config';
 
 function BreadCrumbItem({
     route,
@@ -23,8 +24,11 @@ function BreadCrumbItem({
     };
 
     const getRoute = (route, projectId) => {
+        const projectSlug = User.getCurrentProjectSlug()
+            ? User.getCurrentProjectSlug()
+            : '';
         if (route === '/') {
-            return `/dashboard/project/${projectId}`;
+            return `/dashboard/project/${projectSlug}`;
         }
         return route;
     };

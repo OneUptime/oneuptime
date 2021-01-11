@@ -9,7 +9,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { deleteSchedule, fetchUserSchedule } from '../../actions/schedule';
 import DeleteScheduleModal from './DeleteScheduleModal';
 import { openModal } from '../../actions/modal';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
 import { logEvent } from '../../analytics';
 
 export class DeleteScheduleBox extends Component {
@@ -42,7 +42,9 @@ export class DeleteScheduleBox extends Component {
                         );
                     }
                     this.props.fetchUserSchedule(projectId, userId);
-                    history.push(`/dashboard/project/${projectId}/on-call`);
+                    history.push(
+                        `/dashboard/project/${User.getCurrentProjectSlug()}/on-call`
+                    );
                 });
             },
             content: DeleteScheduleModal,
@@ -107,7 +109,10 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId, projectId, subProjectId, userId } = props.match.params;
+    const { scheduleId, subProjectId, userId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
 
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {

@@ -16,6 +16,7 @@ import { getEscalation } from '../actions/schedule';
 import { teamLoading } from '../actions/team';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import { User } from '../config';
 class Schedule extends Component {
     constructor(props) {
         super(props);
@@ -147,7 +148,10 @@ const mapStateToProps = (state, props) => {
         schedule => schedule && schedule._id === scheduleId
     );
     const escalations = state.schedule.scheduleEscalations;
-    const { projectId } = props.match.params;
+    // const { projectId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
 
     const { subProjectId } = props.match.params;
     return {
@@ -176,6 +180,7 @@ Schedule.propTypes = {
     schedule: PropTypes.shape({
         name: PropTypes.string,
     }),
+    projectId: PropTypes.string.isRequired,
 };
 
 export default withRouter(

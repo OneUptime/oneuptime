@@ -8,6 +8,7 @@ import { markAsRead, closeNotification } from '../../actions/notification';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 import Fade from 'react-reveal/Fade';
+import { User } from '../../config';
 
 class IncidentCreated extends Component {
     markAsRead = notification => {
@@ -19,6 +20,9 @@ class IncidentCreated extends Component {
                 incidentId: { _id },
             },
         } = notification;
+        const projectSlug = User.getCurrentProjectSlug()
+            ? User.getCurrentProjectSlug()
+            : '';
         const project_Id =
             typeof projectId === 'object' ? projectId._id : projectId;
         this.props.markAsRead(project_Id, notificationId);
@@ -26,7 +30,7 @@ class IncidentCreated extends Component {
             logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
         }
         history.push(
-            `/dashboard/project/${project_Id}/${componentId}/incidents/${_id}`
+            `/dashboard/project/${projectSlug}/${componentId}/incidents/${_id}`
         );
     };
 

@@ -11,7 +11,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -273,7 +273,11 @@ const mapStateToProps = (state, props) => {
      }) : */
     const { escalations } = state.schedule;
 
-    const { projectId } = props.match.params;
+    // const { projectId } = props.match.params;
+
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
     const { scheduleId } = props.match.params;
     const { subProjectId } = props.match.params;
 

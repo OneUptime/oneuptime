@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { User } from '../../config';
 
 export class RowData extends Component {
     render() {
@@ -12,7 +13,9 @@ export class RowData extends Component {
         monitors += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
-        const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPage._id}`;
+        const path = `/dashboard/project/${User.getCurrentProjectSlug()}/sub-project/${subProjectId}/status-page/${
+            statusPage._id
+        }`;
         return (
             <tr
                 className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink statusPageListItem"

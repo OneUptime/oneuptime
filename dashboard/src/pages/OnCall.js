@@ -21,6 +21,7 @@ import TutorialBox from '../components/tutorial/TutorialBox';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import { User } from '../config';
 
 export class OnCall extends Component {
     constructor(props) {
@@ -81,11 +82,12 @@ export class OnCall extends Component {
     };
 
     createSchedule = subProjectId => {
-        const { createSchedule, currentProjectId, history } = this.props;
+        const { createSchedule, currentProjectId, history, match } = this.props;
+        const slug = match.params.slug;
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
             history.push(
-                `/dashboard/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`
+                `/dashboard/project/${slug}/sub-project/${subProjectId}/schedule/${data[0]._id}`
             );
         });
 
@@ -318,7 +320,10 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
+
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order

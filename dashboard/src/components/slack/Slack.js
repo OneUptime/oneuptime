@@ -7,7 +7,11 @@ import RenderIfAdmin from '../basic/RenderIfAdmin';
 
 class Slack extends React.Component {
     render() {
-        const { projectId } = this.props.match.params;
+        // const { projectId } = this.props.match.params;
+        const projectId = User.getCurrentProjectId()
+            ? User.getCurrentProjectId()
+            : null;
+
         const userToken = User.getAccessToken();
         return (
             <div className="bs-BIM">

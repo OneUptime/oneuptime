@@ -3,6 +3,7 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import { withRouter } from 'react-router-dom';
 import AffectedResources from '../basic/AffectedResources';
+import { User } from '../../config';
 
 const OngoingScheduledEvent = ({ event, monitorList, history, projectId }) => {
     let monitorState = [];
@@ -22,7 +23,9 @@ const OngoingScheduledEvent = ({ event, monitorList, history, projectId }) => {
             key={event._id}
             onClick={() => {
                 history.push(
-                    `/dashboard/project/${projectId}/scheduledEvents/${event._id}`
+                    `/dashboard/project/${User.getCurrentProjectSlug()}/scheduledEvents/${
+                        event._id
+                    }`
                 );
             }}
         >

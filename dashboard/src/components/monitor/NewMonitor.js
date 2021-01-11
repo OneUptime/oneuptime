@@ -294,7 +294,7 @@ class NewMonitor extends Component {
                         );
                     }
                     history.push(
-                        `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring/${data.data._id}`
+                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/monitoring/${data.data._id}`
                     );
                 },
                 error => {

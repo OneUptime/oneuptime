@@ -22,6 +22,7 @@ import IncidentBasicSettings from '../components/incident/IncidentBasicSettings'
 import IncidentCommunicationSla from '../components/incidentCommunicationSla/IncidentCommunicationSla';
 import IncidentCustomFields from '../components/incident/IncidentCustomFields';
 import { fetchCustomFields } from '../actions/customField';
+import { User } from '../config';
 
 class IncidentSettings extends React.Component {
     state = {
@@ -349,14 +350,14 @@ class IncidentSettings extends React.Component {
                             <TabPanel>
                                 <Fade>
                                     <IncidentCommunicationSla
-                                        projectId={match.params.projectId}
+                                        projectId={this.props.projectId}
                                     />
                                 </Fade>
                             </TabPanel>
                             <TabPanel>
                                 <Fade>
                                     <IncidentCustomFields
-                                        projectId={match.params.projectId}
+                                        projectId={this.props.projectId}
                                     />
                                 </Fade>
                             </TabPanel>
@@ -385,8 +386,12 @@ IncidentSettings.propTypes = {
     ]),
     match: PropTypes.object,
     fetchCustomFields: PropTypes.func,
+    projectId: PropTypes.string.isRequired,
 };
 const mapStateToProps = state => {
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : null;
     return {
         currentProject: state.project.currentProject,
         incidentPriorities:
@@ -395,6 +400,7 @@ const mapStateToProps = state => {
         selectedIncidentPriority:
             state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
         modalId: state.modal.modals[0],
+        projectId,
     };
 };
 const mapDispatchToProps = dispatch =>

@@ -7,7 +7,7 @@ import Dashboard from '../components/Dashboard';
 import ContainerSecurityForm from '../components/security/ContainerSecurityForm';
 import ContainerSecurity from '../components/security/ContainerSecurity';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, API_URL } from '../config';
+import { SHOULD_LOG_ANALYTICS, API_URL, User } from '../config';
 import {
     getContainerSecurities,
     getContainerSecurityLogs,
@@ -68,7 +68,9 @@ class Container extends Component {
 
         socket.on(`createContainerSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${projectId}/${componentId}/security/container/${data._id}`
+                `/dashboard/project/${User.getCurrentProjectSlug()}/${componentId}/security/container/${
+                    data._id
+                }`
             );
         });
 
@@ -205,7 +207,10 @@ Container.propTypes = {
 
 const mapStateToProps = (state, ownProps) => {
     // ids from url
-    const { componentId, projectId } = ownProps.match.params;
+    const { componentId } = ownProps.match.params;
+    const projectId = User.getCurrentProjectId()
+        ? User.getCurrentProjectId()
+        : '';
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {

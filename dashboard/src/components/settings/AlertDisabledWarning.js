@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import { IS_SAAS_SERVICE } from '../../config';
+import { IS_SAAS_SERVICE, User } from '../../config';
 import booleanParser from '../../utils/booleanParser';
 import { history } from '../../store';
 
@@ -10,7 +10,7 @@ class AlertDisabledWarning extends Component {
     render() {
         const { alertEnable, currentProject, page } = this.props;
         const projectId = currentProject ? currentProject._id : null;
-        const redirectTo = `/dashboard/project/${projectId}/settings/billing`;
+        const redirectTo = `/dashboard/project/${User.getCurrentProjectSlug()}/settings/billing`;
 
         return (
             <ShouldRender if={!alertEnable && booleanParser(IS_SAAS_SERVICE)}>
