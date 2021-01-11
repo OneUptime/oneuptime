@@ -158,11 +158,7 @@ router.post('/:projectId/request/:requestId', async function(req, res) {
         const data = { projectId, requestId, filter: externalFilter, request };
         await IncomingRequestService.handleIncomingRequestAction(data);
 
-        return sendItemResponse(
-            req,
-            res,
-            'Request accepted and handled appropriately ):'
-        );
+        return sendItemResponse(req, res, 'Success');
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
