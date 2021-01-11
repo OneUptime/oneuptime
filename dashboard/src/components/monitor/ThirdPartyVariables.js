@@ -3,118 +3,50 @@ import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import { Field, FieldArray, reduxForm } from 'redux-form';
+import { Field, reduxForm } from 'redux-form';
 import { FormLoader, ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderField } from '../basic/RenderField';
 import { editMonitor } from '../../actions/monitor';
+import { fetchCustomFields } from '../../actions/monitorCustomField';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 
 class ThirdPartyVariables extends Component {
+    componentDidMount() {
+        const { currentProject, fetchCustomFields } = this.props;
+        fetchCustomFields(currentProject._id);
+    }
+
     submitForm = values => {
-        const { currentProject, monitor } = this.props;
+        const { currentProject, monitor, customFields } = this.props;
         values._id = monitor._id;
         values.projectId = currentProject._id;
 
-        if (values.thirdPartyVariable && values.thirdPartyVariable.length > 0) {
-            const thirdPartyVariable = values.thirdPartyVariable.filter(
-                variable =>
-                    typeof variable === 'string' || typeof variable === 'number'
-            );
-            values.thirdPartyVariable = thirdPartyVariable.map(variable => {
-                if (!isNaN(variable)) {
-                    variable = Number(variable);
-                }
-                return variable;
-            });
-        }
+        values.customFields = customFields.map(field => ({
+            fieldName: field.fieldName,
+            fieldValue:
+                field.fieldType === 'number'
+                    ? parseFloat(values[field.fieldName])
+                    : values[field.fieldName],
+        }));
 
         this.props.editMonitor(currentProject._id, values);
 
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
-                'EVENT: DASHBOARD > PROJECT > MONITOR > INTEGRATION > THIRD PARTY VARIABLE'
+                'EVENT: DASHBOARD > PROJECT > MONITOR > ADVANCED OPTIONS > CUSTOM FIELDS'
             );
         }
     };
 
-    renderVariables = ({ fields }) => {
-        const { formValues } = this.props;
-
-        return (
-            <>
-                <div
-                    style={{
-                        width: '100%',
-                    }}
-                >
-                    <button
-                        id="addVariable"
-                        className="Button bs-ButtonLegacy ActionIconParent"
-                        type="button"
-                        onClick={() => {
-                            fields.push();
-                        }}
-                    ></button>
-                    {formValues &&
-                        (!formValues.thirdPartyVariable ||
-                            formValues.thirdPartyVariable.length === 0) && (
-                            <span
-                                style={{
-                                    display: 'block',
-                                    textAlign: 'center',
-                                }}
-                            >
-                                You do not have any variable on this monitor
-                            </span>
-                        )}
-                    {fields.map((field, index) => {
-                        return (
-                            <div
-                                style={{
-                                    width: '65%',
-                                    marginBottom: 10,
-                                    marginTop: 10,
-                                }}
-                                key={index}
-                            >
-                                <Field
-                                    component={RenderField}
-                                    name={field}
-                                    id={`variable_${index}`}
-                                    placeholder="Any variable"
-                                    className="bs-TextInput"
-                                    style={{
-                                        width: '100%',
-                                        padding: '3px 5px',
-                                    }}
-                                />
-                                <button
-                                    id="removeVariable"
-                                    className="Button bs-ButtonLegacy ActionIconParent"
-                                    style={{
-                                        marginTop: 10,
-                                    }}
-                                    type="button"
-                                    onClick={() => {
-                                        fields.remove(index);
-                                    }}
-                                >
-                                    <span className="bs-Button bs-Button--icon bs-Button--delete">
-                                        <span>Remove Variable</span>
-                                    </span>
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
-            </>
-        );
-    };
-
     render() {
-        const { handleSubmit, editingMonitor, editError } = this.props;
+        const {
+            handleSubmit,
+            editingMonitor,
+            editError,
+            customFields,
+        } = this.props;
 
         return (
             <div className="Box-root Margin-vertical--12">
@@ -125,41 +57,14 @@ class ThirdPartyVariables extends Component {
                                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                         <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                            <span>Third Party Variables</span>
+                                            <span>Monitor Custom Fields</span>
                                         </span>
                                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                             <span>
-                                                List of all the available third
-                                                party variables for this monitor
+                                                List of all the available custom
+                                                fields for this monitor
                                             </span>
                                         </span>
-                                    </div>
-                                    <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                        <div className="Box-root">
-                                            <button
-                                                className="Button bs-ButtonLegacy ActionIconParent"
-                                                type="button"
-                                                id="altAddVariable"
-                                                onClick={() => {
-                                                    document
-                                                        .querySelector(
-                                                            '#addVariable'
-                                                        )
-                                                        .click();
-                                                }}
-                                            >
-                                                <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                    <div className="Box-root Margin-right--8">
-                                                        <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                                    </div>
-                                                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                        <span>
-                                                            Add Variable
-                                                        </span>
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -179,59 +84,104 @@ class ThirdPartyVariables extends Component {
                                             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                                                 <div>
                                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                                        <fieldset
-                                                            data-test="RetrySettings-failedAndExpiring"
-                                                            className="bs-Fieldset"
-                                                        >
-                                                            <div className="bs-Fieldset-rows">
-                                                                <div className="bs-Fieldset-row">
-                                                                    <label
-                                                                        className="bs-Fieldset-label"
+                                                        {customFields &&
+                                                            customFields.length >
+                                                                0 &&
+                                                            customFields.map(
+                                                                field => (
+                                                                    <fieldset
+                                                                        key={
+                                                                            field._id
+                                                                        }
+                                                                        data-test="RetrySettings-failedAndExpiring"
+                                                                        className="bs-Fieldset"
                                                                         style={{
-                                                                            flex:
-                                                                                '25% 0 0',
+                                                                            padding: 0,
                                                                         }}
                                                                     >
-                                                                        <span></span>
-                                                                    </label>
-                                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                                        <div
-                                                                            className="Box-root"
-                                                                            style={{
-                                                                                height:
-                                                                                    '5px',
-                                                                            }}
-                                                                        ></div>
-                                                                        <div
-                                                                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart"
-                                                                            style={{
-                                                                                width:
-                                                                                    '100%',
-                                                                            }}
-                                                                        >
-                                                                            <div className="Flex-flex">
-                                                                                <div
-                                                                                    className="bs-Fieldset-field"
-                                                                                    style={{
-                                                                                        width:
-                                                                                            '100%',
-                                                                                        marginTop: 10,
-                                                                                    }}
-                                                                                >
-                                                                                    <FieldArray
-                                                                                        name="thirdPartyVariable"
-                                                                                        component={
-                                                                                            this
-                                                                                                .renderVariables
+                                                                        <div className="bs-Fieldset-rows">
+                                                                            <div className="bs-Fieldset-row">
+                                                                                <label className="bs-Fieldset-label">
+                                                                                    <span>
+                                                                                        {
+                                                                                            field.fieldName
                                                                                         }
-                                                                                    />
+                                                                                    </span>
+                                                                                </label>
+                                                                                <div className="bs-Fieldset-fields">
+                                                                                    <div
+                                                                                        className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart"
+                                                                                        style={{
+                                                                                            width:
+                                                                                                '100%',
+                                                                                        }}
+                                                                                    >
+                                                                                        <div className="Flex-flex">
+                                                                                            <div
+                                                                                                className="bs-Fieldset-field"
+                                                                                                style={{
+                                                                                                    width:
+                                                                                                        '100%',
+                                                                                                }}
+                                                                                            >
+                                                                                                <Field
+                                                                                                    component={
+                                                                                                        RenderField
+                                                                                                    }
+                                                                                                    name={
+                                                                                                        field.fieldName
+                                                                                                    }
+                                                                                                    id={
+                                                                                                        field.fieldName
+                                                                                                    }
+                                                                                                    type={
+                                                                                                        field.fieldType
+                                                                                                    }
+                                                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                                                    style={{
+                                                                                                        width:
+                                                                                                            '100%',
+                                                                                                        padding:
+                                                                                                            '3px 5px',
+                                                                                                    }}
+                                                                                                />
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
+                                                                    </fieldset>
+                                                                )
+                                                            )}
+
+                                                        {customFields &&
+                                                            customFields.length ===
+                                                                0 && (
+                                                                <div
+                                                                    style={{
+                                                                        textAlign:
+                                                                            'center',
+                                                                    }}
+                                                                >
+                                                                    <span
+                                                                        style={{
+                                                                            display:
+                                                                                'block',
+                                                                            marginTop: 10,
+                                                                        }}
+                                                                    >
+                                                                        You do
+                                                                        not have
+                                                                        any
+                                                                        custom
+                                                                        fields
+                                                                        at this
+                                                                        time
+                                                                    </span>
+                                                                    <br />
                                                                 </div>
-                                                            </div>
-                                                        </fieldset>
+                                                            )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -275,11 +225,11 @@ class ThirdPartyVariables extends Component {
                                                             editingMonitor
                                                         }
                                                         type="submit"
-                                                        id="saveMonitorVariables"
+                                                        id="saveMonitorCustomField"
                                                     >
                                                         {!editingMonitor && (
                                                             <span>
-                                                                Save Variables
+                                                                Save Fields
                                                             </span>
                                                         )}
                                                         {editingMonitor && (
@@ -309,13 +259,14 @@ ThirdPartyVariables.propTypes = {
     currentProject: PropTypes.object,
     editMonitor: PropTypes.func,
     handleSubmit: PropTypes.func.isRequired,
-    formValues: PropTypes.object,
     monitor: PropTypes.object,
     editingMonitor: PropTypes.bool,
     editError: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    fetchCustomFields: PropTypes.func,
+    customFields: PropTypes.array,
 };
 
 const ThirdPartyVariableForm = reduxForm({
@@ -328,6 +279,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             editMonitor,
+            fetchCustomFields,
         },
         dispatch
     );
@@ -335,12 +287,10 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = (state, ownProps) => {
     const { monitor } = ownProps;
     const initialValues = {};
-    if (
-        monitor &&
-        monitor.thirdPartyVariable &&
-        monitor.thirdPartyVariable.length > 0
-    ) {
-        initialValues.thirdPartyVariable = monitor.thirdPartyVariable;
+    if (monitor && monitor.customFields && monitor.customFields.length > 0) {
+        monitor.customFields.forEach(
+            field => (initialValues[field.fieldName] = field.fieldValue)
+        );
     }
 
     return {
@@ -351,6 +301,7 @@ const mapStateToProps = (state, ownProps) => {
             state.form.ThirdPartyVariableForm.values,
         editingMonitor: state.monitor.editMonitor.requesting,
         editError: state.monitor.editMonitor.error,
+        customFields: state.monitorCustomField.monitorCustomFields.fields,
     };
 };
 
