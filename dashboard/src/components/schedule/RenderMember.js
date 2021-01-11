@@ -35,9 +35,7 @@ const RenderMember = ({
     const showTimes = memberHasCallTimes ? !forcedTimeHide : timeVisible;
 
     const getCurrentTimezone = () => {
-        const tz = Intl.DateTimeFormat()
-            .resolvedOptions()
-            .timeZone;
+        const tz = moment.tz.guess();
         const result = `${tz} GMT${moment()
             .tz(tz)
             .format('Z')}`;
