@@ -190,7 +190,7 @@ export function resetCreateMonitor() {
 //Edit new monitor
 //props -> {name: '', type, data -> { data.url}}
 export function editMonitor(projectId, values) {
-    values.projectId = values.projectId._id || values.projectId;
+    values.projectId = values.projectId._id || values.projectId || projectId;
     return function(dispatch) {
         const promise = putApi(`monitor/${projectId}/${values._id}`, values);
         if (
