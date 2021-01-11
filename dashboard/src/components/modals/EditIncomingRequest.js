@@ -13,6 +13,7 @@ import { RenderTextArea } from '../basic/RenderTextArea';
 import Tooltip from '../basic/Tooltip';
 import { incomingRequestVariables } from '../../config';
 import { fetchCustomFields } from '../../actions/customField';
+import { fetchCustomFields as fetchMonitorCustomFields } from '../../actions/monitorCustomField';
 import CodeEditor from '../basic/CodeEditor';
 
 function validate(values) {
@@ -37,8 +38,13 @@ class EditIncomingRequest extends Component {
     };
 
     componentDidMount() {
-        const { fetchCustomFields, projectId } = this.props;
+        const {
+            fetchCustomFields,
+            projectId,
+            fetchMonitorCustomFields,
+        } = this.props;
         fetchCustomFields(projectId);
+        fetchMonitorCustomFields(projectId);
 
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -69,11 +75,7 @@ class EditIncomingRequest extends Component {
             if (isNaN(values.filterText)) {
                 postObj.filterText = values.filterText;
             } else {
-                if (typeof values.filterText === 'string') {
-                    postObj.filterText = values.filterText;
-                } else {
-                    postObj.filterText = Number(values.filterText);
-                }
+                postObj.filterText = parseFloat(values.filterText);
             }
             postObj.incidentTitle = values.incidentTitle;
             postObj.incidentType = values.incidentType;
@@ -131,11 +133,7 @@ class EditIncomingRequest extends Component {
             if (isNaN(values.filterText)) {
                 postObj.filterText = values.filterText;
             } else {
-                if (typeof values.filterText === 'string') {
-                    postObj.filterText = values.filterText;
-                } else {
-                    postObj.filterText = Number(values.filterText);
-                }
+                postObj.filterText = parseFloat(values.filterText);
             }
 
             postObj.noteContent = values.noteContent;
@@ -440,6 +438,7 @@ class EditIncomingRequest extends Component {
             incidentPriorities,
             destroy,
             customFields,
+            monitorCustomFields,
         } = this.props;
 
         return (
@@ -1668,7 +1667,8 @@ class EditIncomingRequest extends Component {
                                                                 >
                                                                     <CodeEditor
                                                                         code={
-                                                                            formValues.noteContent
+                                                                            formValues.noteContent ||
+                                                                            ''
                                                                         }
                                                                         onCodeChange={
                                                                             this
@@ -1747,12 +1747,14 @@ class EditIncomingRequest extends Component {
                                                                                 '100%',
                                                                         }}
                                                                         options={[
-                                                                            {
-                                                                                value:
-                                                                                    'thirdPartyVariable',
-                                                                                label:
-                                                                                    'Third Party Variables',
-                                                                            },
+                                                                            ...monitorCustomFields.map(
+                                                                                field => ({
+                                                                                    value:
+                                                                                        field.fieldName,
+                                                                                    label:
+                                                                                        field.fieldName,
+                                                                                })
+                                                                            ),
                                                                         ]}
                                                                     />
                                                                     <Field
@@ -1814,8 +1816,22 @@ class EditIncomingRequest extends Component {
                                                                             RenderField
                                                                         }
                                                                         name="filterText"
-                                                                        type="input"
-                                                                        placeholder="Text to filter"
+                                                                        type={
+                                                                            formValues.filterCriteria
+                                                                                ? (
+                                                                                      monitorCustomFields.find(
+                                                                                          field =>
+                                                                                              field.fieldName ===
+                                                                                              formValues.filterCriteria
+                                                                                      ) || {
+                                                                                          fieldType:
+                                                                                              'text',
+                                                                                      }
+                                                                                  )
+                                                                                      .fieldType
+                                                                                : 'text'
+                                                                        }
+                                                                        placeholder="request.body.value"
                                                                         id="filterText"
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                         style={{
@@ -1832,7 +1848,7 @@ class EditIncomingRequest extends Component {
                                                                             true
                                                                         }
                                                                     />
-                                                                    <Tooltip title="Incoming Request Filter">
+                                                                    <Tooltip title="Incoming http Request Filter">
                                                                         <p>
                                                                             Filter
                                                                             exposes
@@ -2540,6 +2556,8 @@ EditIncomingRequest.propTypes = {
     destroy: PropTypes.func.isRequired, // to manually destroy the redux form state
     customFields: PropTypes.array,
     fetchCustomFields: PropTypes.func,
+    fetchMonitorCustomFields: PropTypes.func,
+    monitorCustomFields: PropTypes.array,
 };
 
 const EditIncomingRequestForm = reduxForm({
@@ -2551,7 +2569,12 @@ const EditIncomingRequestForm = reduxForm({
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { editIncomingRequest, closeModal, fetchCustomFields },
+        {
+            editIncomingRequest,
+            closeModal,
+            fetchCustomFields,
+            fetchMonitorCustomFields,
+        },
         dispatch
     );
 
@@ -2647,6 +2670,8 @@ const mapStateToProps = state => {
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         customFields: state.customField.customFields.fields,
+        monitorCustomFields:
+            state.monitorCustomField.monitorCustomFields.fields,
     };
 };
 

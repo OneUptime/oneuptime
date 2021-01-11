@@ -14,6 +14,7 @@ import { RenderTextArea } from '../basic/RenderTextArea';
 import Tooltip from '../basic/Tooltip';
 import { incomingRequestVariables } from '../../config';
 import { fetchCustomFields } from '../../actions/customField';
+import { fetchCustomFields as fetchMonitorCustomFields } from '../../actions/monitorCustomField';
 import CodeEditor from '../basic/CodeEditor';
 
 function validate(values) {
@@ -38,9 +39,14 @@ class CreateIncomingRequest extends Component {
     };
 
     componentDidMount() {
-        const { fetchCustomFields, data } = this.props;
+        const {
+            fetchCustomFields,
+            data,
+            fetchMonitorCustomFields,
+        } = this.props;
         const { projectId } = data;
         fetchCustomFields(projectId);
+        fetchMonitorCustomFields(projectId);
 
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -70,7 +76,7 @@ class CreateIncomingRequest extends Component {
             if (isNaN(values.filterText)) {
                 postObj.filterText = values.filterText;
             } else {
-                postObj.filterText = Number(values.filterText);
+                postObj.filterText = parseFloat(values.filterText);
             }
             postObj.incidentType = values.incidentType;
             postObj.incidentTitle = values.incidentTitle;
@@ -128,7 +134,7 @@ class CreateIncomingRequest extends Component {
             if (isNaN(values.filterText)) {
                 postObj.filterText = values.filterText;
             } else {
-                postObj.filterText = Number(values.filterText);
+                postObj.filterText = parseFloat(values.filterText);
             }
 
             postObj.noteContent = values.noteContent;
@@ -156,7 +162,7 @@ class CreateIncomingRequest extends Component {
             if (isNaN(values.filterText)) {
                 postObj.filterText = values.filterText;
             } else {
-                postObj.filterText = Number(values.filterText);
+                postObj.filterText = parseFloat(values.filterText);
             }
         }
 
@@ -329,6 +335,7 @@ class CreateIncomingRequest extends Component {
             closeModal,
             incidentPriorities,
             customFields,
+            monitorCustomFields,
         } = this.props;
         const { projectId } = data;
 
@@ -1055,7 +1062,7 @@ class CreateIncomingRequest extends Component {
                                                                         marginRight: 5,
                                                                     }}
                                                                 />
-                                                                <Tooltip title="Incoming Request Filter">
+                                                                <Tooltip title="Incoming http Request Filter">
                                                                     <p>
                                                                         Filter
                                                                         exposes
@@ -1282,7 +1289,7 @@ class CreateIncomingRequest extends Component {
                                                                             marginRight: 5,
                                                                         }}
                                                                     />
-                                                                    <Tooltip title="Incoming Request Filter">
+                                                                    <Tooltip title="Incoming http Request Filter">
                                                                         <p>
                                                                             Filter
                                                                             exposes
@@ -1635,12 +1642,14 @@ class CreateIncomingRequest extends Component {
                                                                                 '100%',
                                                                         }}
                                                                         options={[
-                                                                            {
-                                                                                value:
-                                                                                    'thirdPartyVariable',
-                                                                                label:
-                                                                                    'Third Party Variables',
-                                                                            },
+                                                                            ...monitorCustomFields.map(
+                                                                                field => ({
+                                                                                    value:
+                                                                                        field.fieldName,
+                                                                                    label:
+                                                                                        field.fieldName,
+                                                                                })
+                                                                            ),
                                                                         ]}
                                                                     />
                                                                     <Field
@@ -1702,7 +1711,21 @@ class CreateIncomingRequest extends Component {
                                                                             RenderField
                                                                         }
                                                                         name="filterText"
-                                                                        type="input"
+                                                                        type={
+                                                                            formValues.filterCriteria
+                                                                                ? (
+                                                                                      monitorCustomFields.find(
+                                                                                          field =>
+                                                                                              field.fieldName ===
+                                                                                              formValues.filterCriteria
+                                                                                      ) || {
+                                                                                          fieldType:
+                                                                                              'text',
+                                                                                      }
+                                                                                  )
+                                                                                      .fieldType
+                                                                                : 'text'
+                                                                        }
                                                                         placeholder="response.body.value"
                                                                         id="filterText"
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -1717,7 +1740,7 @@ class CreateIncomingRequest extends Component {
                                                                             marginRight: 5,
                                                                         }}
                                                                     />
-                                                                    <Tooltip title="Incoming Request Filter">
+                                                                    <Tooltip title="Incoming http Request Filter">
                                                                         <p>
                                                                             Filter
                                                                             exposes
@@ -2427,6 +2450,8 @@ CreateIncomingRequest.propTypes = {
     change: PropTypes.func.isRequired, // to manually change redux form state
     fetchCustomFields: PropTypes.func,
     customFields: PropTypes.array,
+    fetchMonitorCustomFields: PropTypes.func,
+    monitorCustomFields: PropTypes.array,
 };
 
 const CreateIncomingRequestForm = reduxForm({
@@ -2438,7 +2463,13 @@ const CreateIncomingRequestForm = reduxForm({
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { createIncomingRequest, closeModal, openModal, fetchCustomFields },
+        {
+            createIncomingRequest,
+            closeModal,
+            openModal,
+            fetchCustomFields,
+            fetchMonitorCustomFields,
+        },
         dispatch
     );
 
@@ -2469,6 +2500,8 @@ const mapStateToProps = (state, ownProps) => {
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         customFields: state.customField.customFields.fields,
+        monitorCustomFields:
+            state.monitorCustomField.monitorCustomFields.fields,
     };
 };
 
