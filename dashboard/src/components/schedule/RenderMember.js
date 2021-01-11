@@ -39,8 +39,8 @@ const RenderMember = ({
         const result = `${tz} GMT${moment()
             .tz(tz)
             .format('Z')}`;
-        return result
-    }
+        return result;
+    };
 
     return (
         <li key={nameIndex}>
@@ -131,7 +131,9 @@ const RenderMember = ({
                                 </div>
                             </Tooltip>
                         </span>
-                        <label className="bs-oncall-label">{getCurrentTimezone()}</label>
+                        <label className="bs-oncall-label">
+                            {getCurrentTimezone()}
+                        </label>
                     </div>
                 </div>
             )}
@@ -175,7 +177,9 @@ const RenderMember = ({
                                 </div>
                             </Tooltip>
                         </span>
-                        <label className="bs-oncall-label">{getCurrentTimezone()}</label>
+                        <label className="bs-oncall-label">
+                            {getCurrentTimezone()}
+                        </label>
                     </div>
                 </div>
             )}
