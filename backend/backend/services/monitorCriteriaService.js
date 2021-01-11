@@ -369,6 +369,7 @@ const MonitorCriteriaService = {
             if (criteria) {
                 if (criteria.up_1000 && criteria.up_1000.length) {
                     const upCriteria = this.makeCriteria(criteria.up_1000);
+                    upCriteria.scheduleIds = [];
                     upCriteria.createAlert = criteria.up_1000_createAlert
                         ? true
                         : false;
@@ -379,13 +380,12 @@ const MonitorCriteriaService = {
                         ? true
                         : false;
                     criteriaObj.up = [upCriteria];
-                } else if (
-                    criteria.degraded_1000 &&
-                    criteria.degraded_1000.length
-                ) {
+                }
+                if (criteria.degraded_1000 && criteria.degraded_1000.length) {
                     const degradedCriteria = this.makeCriteria(
                         criteria.degraded_1000
                     );
+                    degradedCriteria.scheduleIds = [];
                     degradedCriteria.createAlert = criteria.degraded_1000_createAlert
                         ? true
                         : false;
@@ -396,23 +396,25 @@ const MonitorCriteriaService = {
                         ? true
                         : false;
                     criteriaObj.degraded = [degradedCriteria];
-                } else {
-                    const downCriterion = this.makeCriteria(criteria.down_1000);
-                    downCriterion.createAlert = criteria.down_1000_createAlert
+                }
+                if (criteria.down_1000 && criteria.down_1000.length) {
+                    const downCriteria = this.makeCriteria(criteria.down_1000);
+                    downCriteria.scheduleIds = [];
+                    downCriteria.createAlert = criteria.down_1000_createAlert
                         ? true
                         : false;
-                    downCriterion.autoAcknowledge = criteria.down_1000_autoAcknowledge
+                    downCriteria.autoAcknowledge = criteria.down_1000_autoAcknowledge
                         ? true
                         : false;
-                    downCriterion.autoResolve = criteria.down_1000_autoResolve
+                    downCriteria.autoResolve = criteria.down_1000_autoResolve
                         ? true
                         : false;
 
                     const defaultCriterion = {
-                        ...downCriterion,
+                        ...downCriteria,
                         default: true,
                     };
-                    criteriaObj.down = [downCriterion, defaultCriterion];
+                    criteriaObj.down = [downCriteria, defaultCriterion];
                 }
             }
 
