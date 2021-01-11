@@ -22,7 +22,7 @@ module.exports = {
             const incomingRequest = await IncomingRequestModel.findOne(query)
                 .populate({
                     path: 'monitors.monitorId',
-                    select: 'name thirdPartyVariable componentId',
+                    select: 'name customFields componentId',
                     populate: {
                         path: 'componentId',
                         select: 'name',
@@ -341,7 +341,14 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate('monitors.monitorId', 'name')
+                .populate({
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name',
+                    },
+                })
                 .populate('projectId', 'name')
                 .lean();
 
@@ -578,7 +585,64 @@ module.exports = {
                         (filterText && filterText.trim()))
                 ) {
                     if (incomingRequest.isDefault) {
-                        const monitors = await MonitorService.findBy({
+                        let monitors = [];
+                        if (filterCondition === 'equalTo') {
+                            monitors = await MonitorService.findBy({
+                                projectId: data.projectId,
+                                'customFields.fieldName': filterCriteria,
+                                'customFields.fieldValue': filterText,
+                            });
+                        } else if (filterCondition === 'notEqualTo') {
+                            monitors = await MonitorService.findBy({
+                                projectId: data.projectId,
+                                'customFields.fieldName': filterCriteria,
+                                'customFields.fieldValue': { $ne: filterText },
+                            });
+                        } else if (!isNaN(filterText)) {
+                            // handle the case when filterText is a number
+                            // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                            if (!isNaN(filter)) {
+                                if (filterCondition === 'lessThan') {
+                                    monitors = await MonitorService.findBy({
+                                        projectId: data.projectId,
+                                        'customFields.fieldName': filterCriteria,
+                                        'customFields.fieldValue': {
+                                            $lt: filterText,
+                                        },
+                                    });
+                                } else if (filterCondition === 'greaterThan') {
+                                    monitors = await MonitorService.findBy({
+                                        projectId: data.projectId,
+                                        'customFields.fieldName': filterCriteria,
+                                        'customFields.fieldValue': {
+                                            $gt: filterText,
+                                        },
+                                    });
+                                } else if (
+                                    filterCondition === 'lessThanOrEqualTo'
+                                ) {
+                                    monitors = await MonitorService.findBy({
+                                        projectId: data.projectId,
+                                        'customFields.fieldName': filterCriteria,
+                                        'customFields.fieldValue': {
+                                            $lte: filterText,
+                                        },
+                                    });
+                                } else if (
+                                    filterCondition === 'greaterThanOrEqualTo'
+                                ) {
+                                    monitors = await MonitorService.findBy({
+                                        projectId: data.projectId,
+                                        'customFields.fieldName': filterCriteria,
+                                        'customFields.fieldValue': {
+                                            $gte: filterText,
+                                        },
+                                    });
+                                }
+                            }
+                        }
+
+                        monitors = await MonitorService.findBy({
                             projectId: data.projectId,
                         });
                         for (const monitor of monitors) {
@@ -611,60 +675,128 @@ module.exports = {
                                 );
                             }
 
-                            const filterArray = monitor[filterCriteria];
-                            if (
-                                filterCondition === 'equalTo' &&
-                                filterArray.includes(filterText)
-                            ) {
-                                data.monitorId = monitor._id;
-                                await IncidentService.create(data);
-                            } else if (
-                                filterCondition === 'notEqualTo' &&
-                                !filterArray.includes(filterText)
-                            ) {
-                                data.monitorId = monitor._id;
-                                await IncidentService.create(data);
-                            } else if (!isNaN(filterText)) {
-                                // handle the case when filterText is a number
-                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
-                                for (const filter of filterArray) {
-                                    if (!isNaN(filter)) {
-                                        if (
-                                            filterCondition === 'lessThan' &&
-                                            filter < filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition === 'greaterThan' &&
-                                            filter > filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition ===
-                                                'lessThanOrEqualTo' &&
-                                            filter <= filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition ===
-                                                'greaterThanOrEqualTo' &&
-                                            filter >= filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        }
+                            data.monitorId = monitor._id;
+                            await IncidentService.create(data);
+                        }
+                    } else {
+                        // grab the monitor from monitorId {_id, name, customFields}
+                        let monitors = incomingRequest.monitors.map(
+                            monitor => monitor.monitorId
+                        );
+                        if (filterCondition === 'equalTo') {
+                            const matchedMonitor = [];
+                            monitors.forEach(monitor => {
+                                let added = false;
+                                monitor.customFields.forEach(field => {
+                                    if (
+                                        field.fieldName === filterCriteria &&
+                                        field.fieldValue === filterText &&
+                                        !added
+                                    ) {
+                                        matchedMonitor.push(monitor);
+                                        added = true;
                                     }
+                                });
+                            });
+                            monitors = matchedMonitor;
+                        } else if (filterCondition === 'notEqualTo') {
+                            const matchedMonitor = [];
+                            monitors.forEach(monitor => {
+                                let added = false;
+                                monitor.customFields.forEach(field => {
+                                    if (
+                                        field.fieldName === filterCriteria &&
+                                        field.fieldValue !== filterText &&
+                                        !added
+                                    ) {
+                                        matchedMonitor.push(monitor);
+                                        added = true;
+                                    }
+                                });
+                            });
+                            monitors = matchedMonitor;
+                        } else if (!isNaN(filterText)) {
+                            // handle the case when filterText is a number
+                            // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                            if (!isNaN(filter)) {
+                                if (filterCondition === 'lessThan') {
+                                    const matchedMonitor = [];
+                                    monitors.forEach(monitor => {
+                                        let added = false;
+                                        monitor.customFields.forEach(field => {
+                                            if (
+                                                field.fieldName ===
+                                                    filterCriteria &&
+                                                field.fieldValue < filterText &&
+                                                !added
+                                            ) {
+                                                matchedMonitor.push(monitor);
+                                                added = true;
+                                            }
+                                        });
+                                    });
+                                    monitors = matchedMonitor;
+                                } else if (filterCondition === 'greaterThan') {
+                                    const matchedMonitor = [];
+                                    monitors.forEach(monitor => {
+                                        let added = false;
+                                        monitor.customFields.forEach(field => {
+                                            if (
+                                                field.fieldName ===
+                                                    filterCriteria &&
+                                                field.fieldValue > filterText &&
+                                                !added
+                                            ) {
+                                                matchedMonitor.push(monitor);
+                                                added = true;
+                                            }
+                                        });
+                                    });
+                                    monitors = matchedMonitor;
+                                } else if (
+                                    filterCondition === 'lessThanOrEqualTo'
+                                ) {
+                                    const matchedMonitor = [];
+                                    monitors.forEach(monitor => {
+                                        let added = false;
+                                        monitor.customFields.forEach(field => {
+                                            if (
+                                                field.fieldName ===
+                                                    filterCriteria &&
+                                                field.fieldValue <=
+                                                    filterText &&
+                                                !added
+                                            ) {
+                                                matchedMonitor.push(monitor);
+                                                added = true;
+                                            }
+                                        });
+                                    });
+                                    monitors = matchedMonitor;
+                                } else if (
+                                    filterCondition === 'greaterThanOrEqualTo'
+                                ) {
+                                    const matchedMonitor = [];
+                                    monitors.forEach(monitor => {
+                                        let added = false;
+                                        monitor.customFields.forEach(field => {
+                                            if (
+                                                field.fieldName ===
+                                                    filterCriteria &&
+                                                field.fieldValue >=
+                                                    filterText &&
+                                                !added
+                                            ) {
+                                                matchedMonitor.push(monitor);
+                                                added = true;
+                                            }
+                                        });
+                                    });
+                                    monitors = matchedMonitor;
                                 }
                             }
                         }
-                    } else {
-                        // grab the monitor from monitorId {_id, name, thirdPartyVariable}
-                        const monitors = incomingRequest.monitors.map(
-                            monitor => monitor.monitorId
-                        );
+
                         for (const monitor of monitors) {
                             const dataConfig = {
                                 monitorName: monitor.name,
@@ -694,54 +826,8 @@ module.exports = {
                                 );
                             }
 
-                            const filterArray = monitor[filterCriteria];
-                            if (
-                                filterCondition === 'equalTo' &&
-                                filterArray.includes(filterText)
-                            ) {
-                                data.monitorId = monitor._id;
-                                await IncidentService.create(data);
-                            } else if (
-                                filterCondition === 'notEqualTo' &&
-                                !filterArray.includes(filterText)
-                            ) {
-                                data.monitorId = monitor._id;
-                                await IncidentService.create(data);
-                            } else if (!isNaN(filterText)) {
-                                // handle the case when filterText is a number
-                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
-                                for (const filter of filterArray) {
-                                    if (!isNaN(filter)) {
-                                        if (
-                                            filterCondition === 'lessThan' &&
-                                            filter < filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition === 'greaterThan' &&
-                                            filter > filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition ===
-                                                'lessThanOrEqualTo' &&
-                                            filter <= filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition ===
-                                                'greaterThanOrEqualTo' &&
-                                            filter >= filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        }
-                                    }
-                                }
-                            }
+                            data.monitorId = monitor._id;
+                            await IncidentService.create(data);
                         }
                     }
                 } else {
