@@ -20,7 +20,6 @@ import { openModal, closeModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { User } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -61,15 +60,19 @@ export class Links extends Component {
     };
 
     submitForm = values => {
-        const { _id } = this.props.statusPage.status;
+        const { _id, projectId } = this.props.statusPage.status;
         if (_id) values._id = _id;
-        const projectId = User.getCurrentProjectId();
-        this.props.updateStatusPageLinks(projectId, values).then(() => {
-            this.props.fetchProjectStatusPage(projectId, true);
-            this.props.closeModal({
-                id: this.state.createFooterLinkModalId,
+        this.props
+            .updateStatusPageLinks(projectId._id || projectId, values)
+            .then(() => {
+                this.props.fetchProjectStatusPage(
+                    projectId._id || projectId,
+                    true
+                );
+                this.props.closeModal({
+                    id: this.state.createFooterLinkModalId,
+                });
             });
-        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > LINKS UPDATED'

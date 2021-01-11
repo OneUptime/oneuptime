@@ -29,7 +29,7 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
-import { API_URL, User } from '../config';
+import { API_URL } from '../config';
 import io from 'socket.io-client';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
 
@@ -463,11 +463,7 @@ const mapDispatchToProps = dispatch => {
 };
 
 const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : null;
-
+    const { componentId, projectId } = props.match.params;
     const monitor = state.monitor;
     let component;
     state.component.componentList.components.forEach(item => {
@@ -521,7 +517,6 @@ const mapStateToProps = (state, props) => {
         endDate: state.monitor.monitorsList.endDate,
         component,
         tutorialStat,
-        projectId,
     };
 };
 
@@ -564,7 +559,6 @@ DashboardView.propTypes = {
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     tutorialStat: PropTypes.object,
-    projectId: PropTypes.string,
 };
 
 DashboardView.displayName = 'DashboardView';

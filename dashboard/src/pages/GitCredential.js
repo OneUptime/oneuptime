@@ -11,7 +11,6 @@ import GitCredentialList from '../components/credential/GitCredentialList';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import TutorialBox from '../components/tutorial/TutorialBox';
-import { User } from '../config';
 
 class GitCredential extends Component {
     constructor(props) {
@@ -93,10 +92,7 @@ GitCredential.propTypes = {
 };
 
 const mapStateToProps = (state, ownProps) => {
-    // const { projectId } = ownProps.match.params;
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : '';
+    const { projectId } = ownProps.match.params;
 
     return {
         projectId,

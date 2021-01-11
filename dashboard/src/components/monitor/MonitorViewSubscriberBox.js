@@ -91,7 +91,7 @@ export class MonitorViewSubscriberBox extends Component {
                                 <span
                                     onClick={() =>
                                         history.push(
-                                            `/dashboard/project/${this.props.currentProject.slug}/on-call`
+                                            `/dashboard/project/${this.props.currentProject._id}/on-call`
                                         )
                                     }
                                     style={{

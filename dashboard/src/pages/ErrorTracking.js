@@ -13,7 +13,7 @@ import { bindActionCreators } from 'redux';
 import { LoadingState } from '../components/basic/Loader';
 import sortByName from '../utils/sortByName';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
-import { SHOULD_LOG_ANALYTICS, User } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
 
 class ErrorTracking extends Component {
@@ -127,10 +127,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentId } = ownProps.match.params;
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : null;
+    const { componentId, projectId } = ownProps.match.params;
     const currentProject = state.project.currentProject;
 
     const errorTracker = state.errorTracker.errorTrackersList;

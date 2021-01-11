@@ -10,7 +10,6 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { Field, reduxForm } from 'redux-form';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
-import { User } from '../../config';
 
 export class CustomStyles extends Component {
     state = {
@@ -61,8 +60,8 @@ export class CustomStyles extends Component {
         } = this.props;
 
         // eslint-disable-next-line prefer-const
-        let { _id } = statusPage.status;
-        let projectId = User.getCurrentProjectId();
+        let { _id, projectId } = statusPage.status;
+        projectId = projectId ? projectId._id || projectId : null;
         if (_id) values._id = _id;
         updateStatusPageCustomHTML(projectId, values).then(() =>
             fetchProjectStatusPage(projectId, true, 0, 10)

@@ -20,7 +20,6 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { User } from '../../config';
 
 //Client side validation
 function validate(values) {
@@ -79,7 +78,8 @@ export class Branding extends Component {
 
     submitForm = values => {
         const { _id } = this.props.statusPage.status;
-        let projectId = User.getCurrentProjectId();
+        let { projectId } = this.props.statusPage.status;
+        projectId = projectId ? projectId._id || projectId : null;
         if (_id) values._id = _id;
         const { reset, resetLogoCache, resetFaviconCache } = this.props;
         this.props.updateStatusPageName(projectId, values).then(

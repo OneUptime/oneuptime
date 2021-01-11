@@ -22,7 +22,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import { LoadingState } from '../components/basic/Loader';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
@@ -235,11 +235,7 @@ class IncidentLog extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : null;
-
+    const { componentId, projectId } = props.match.params;
     let subProjects = state.subProject.subProjects.subProjects;
     let component;
     state.component.componentList.components.forEach(item => {
@@ -283,7 +279,6 @@ const mapStateToProps = (state, props) => {
         tutorialStat,
         component,
         modalList: state.modal.modals,
-        projectId,
     };
 };
 
@@ -330,7 +325,6 @@ IncidentLog.propTypes = {
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     modalList: PropTypes.array,
-    projectId: PropTypes.string,
 };
 
 IncidentLog.displayName = 'IncidentLog';

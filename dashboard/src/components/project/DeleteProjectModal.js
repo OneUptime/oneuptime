@@ -14,7 +14,8 @@ import {
 } from '../../actions/project';
 import { history } from '../../store';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+
 export class DeleteProjectModal extends Component {
     constructor(props) {
         super(props);
@@ -104,10 +105,7 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    // const { projectId } = props.match.params;
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : null;
+    const { projectId } = props.match.params;
 
     const { projects } = state.project.projects;
 

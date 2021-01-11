@@ -10,7 +10,7 @@ import Incidents from '../components/reports/Incidents';
 import ResolveTime from '../components/reports/ResolveTime';
 import Select from '../components/basic/react-select-fyipe';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import DateTimeRangePicker from '../components/basic/DateTimeRangePicker';
 
@@ -327,7 +327,8 @@ export class Reports extends Component {
                                                                     .resolveTimeEnd
                                                             }
                                                             currentProject={
-                                                                this.props
+                                                                this.props.match
+                                                                    .params
                                                                     .projectId
                                                             }
                                                         />
@@ -482,7 +483,8 @@ export class Reports extends Component {
                                                                     .incidentEnd
                                                             }
                                                             currentProject={
-                                                                this.props
+                                                                this.props.match
+                                                                    .params
                                                                     .projectId
                                                             }
                                                         />
@@ -560,7 +562,9 @@ export class Reports extends Component {
                                                                 .membersEnd
                                                         }
                                                         currentProject={
-                                                            this.props.projectId
+                                                            this.props.match
+                                                                .params
+                                                                .projectId
                                                         }
                                                         styles={styles.number}
                                                     />
@@ -634,7 +638,9 @@ export class Reports extends Component {
                                                                 .monitorEnd
                                                         }
                                                         currentProject={
-                                                            this.props.projectId
+                                                            this.props.match
+                                                                .params
+                                                                .projectId
                                                         }
                                                         styles={styles.number}
                                                     />
@@ -653,13 +659,8 @@ export class Reports extends Component {
 }
 
 const mapStateToProps = state => {
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : '';
-
     return {
         currentProject: state.project.currentProject,
-        projectId,
     };
 };
 
@@ -668,7 +669,6 @@ Reports.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    projectId: PropTypes.string,
 };
 
 Reports.displayName = 'Reports';

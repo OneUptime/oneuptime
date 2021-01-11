@@ -1584,7 +1584,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${User.getCurrentProjectSlug()}/${componentId}/incidents/${incidentId}`
+                                                    `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false

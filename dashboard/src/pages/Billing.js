@@ -8,7 +8,7 @@ import AlertCharges from '../components/alert/AlertCharges';
 import ChangePlan from '../components/settings/ChangePlan';
 import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { PropTypes } from 'prop-types';
@@ -67,11 +67,7 @@ class Billing extends Component {
 Billing.displayName = 'Billing';
 
 const mapStateToProps = (state, props) => {
-    // const { projectId } = props.match.params;
-
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : null;
+    const { projectId } = props.match.params;
     return {
         currentProjectId: projectId,
         alertEnable:

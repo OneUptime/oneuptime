@@ -8,7 +8,6 @@ import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
 import { markAsRead } from '../../actions/notification';
 import { animateSidebar } from '../../actions/animateSidebar';
-import { User } from '../../config';
 
 export class IncidentList extends Component {
     render() {
@@ -184,7 +183,9 @@ export class IncidentList extends Component {
                                                 setTimeout(() => {
                                                     history.push(
                                                         '/dashboard/project/' +
-                                                            User.getCurrentProjectSlug() +
+                                                            this.props
+                                                                .currentProject
+                                                                ._id +
                                                             '/' +
                                                             incident.monitorId
                                                                 .componentId
