@@ -13,7 +13,6 @@ import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { User } from '../../config';
 
 export class IncidentDeleteBox extends Component {
     constructor(props) {
@@ -28,10 +27,6 @@ export class IncidentDeleteBox extends Component {
         const componentId = this.props.componentId;
         const monitorId = this.props.incident.monitorId._id;
 
-        const projectSlug = User.getCurrentProjectSlug()
-            ? User.getCurrentProjectSlug()
-            : '';
-
         const promise = this.props.deleteIncident(projectId, incidentId);
         promise.then(() => {
             if (SHOULD_LOG_ANALYTICS) {
@@ -44,7 +39,7 @@ export class IncidentDeleteBox extends Component {
                 );
             }
             history.push(
-                `/dashboard/project/${projectSlug}/${componentId}/monitoring/${monitorId}`
+                `/dashboard/project/${projectId}/${componentId}/monitoring/${monitorId}`
             );
         });
         return promise;

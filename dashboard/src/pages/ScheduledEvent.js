@@ -4,8 +4,6 @@ import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import ScheduledEventBox from '../components/scheduledEvent/ScheduledEvent';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import { connect } from 'react-redux';
-import { User } from '../config';
 
 class ScheduledEvent extends Component {
     render() {
@@ -13,7 +11,8 @@ class ScheduledEvent extends Component {
             match,
             location: { pathname },
         } = this.props;
-        const projectId = User.getCurrentProjectId();
+        const { projectId } = match.params;
+
         return (
             <Dashboard>
                 <Fade>
@@ -39,13 +38,6 @@ ScheduledEvent.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    currentProject: PropTypes.object,
 };
 
-const mapStateToProps = state => {
-    return {
-        currentProject: state.project.currentProject,
-    };
-};
-
-export default connect(mapStateToProps)(ScheduledEvent);
+export default ScheduledEvent;

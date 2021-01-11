@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import { getDockerCredentials } from '../actions/credential';
 import DockerCredentialList from '../components/credential/DockerCredentialList';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -97,10 +97,7 @@ DockerCredential.propTypes = {
 };
 
 const mapStateToProps = (state, ownProps) => {
-    // const { projectId } = ownProps.match.params;
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : '';
+    const { projectId } = ownProps.match.params;
 
     return {
         projectId,

@@ -61,7 +61,7 @@ class NewComponent extends Component {
 
     viewCreatedComponent = (projectId, componentId) => {
         history.push(
-            `/dashboard/project/${User.getCurrentProjectSlug()}/${componentId}/monitoring`
+            `/dashboard/project/${projectId}/${componentId}/monitoring`
         );
     };
 

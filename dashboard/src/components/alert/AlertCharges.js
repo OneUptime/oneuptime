@@ -10,7 +10,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { User } from '../../config';
 
 class AlertCharge extends Component {
     csvLink = React.createRef();
@@ -152,10 +151,7 @@ class AlertCharge extends Component {
 }
 
 const mapStateToProps = (state, props) => {
-    // const { projectId } = props.match.params;
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : null;
+    const { projectId } = props.match.params;
     const downloadedAlertCharges =
         state.alert.downloadedAlertCharges &&
         state.alert.downloadedAlertCharges.data;

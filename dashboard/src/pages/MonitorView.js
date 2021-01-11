@@ -24,7 +24,7 @@ import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin
 import { mapCriteria } from '../config';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
 import moment from 'moment';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -153,7 +153,7 @@ class MonitorView extends React.Component {
             history,
             defaultSchedule,
         } = this.props;
-        const redirectTo = `/dashboard/project/${User.getCurrentProjectSlug()}/on-call`;
+        const redirectTo = `/dashboard/project/${projectId}/on-call`;
         let scheduleAlert;
         if (
             scheduleWarning.includes(monitorId) === false &&
@@ -748,10 +748,7 @@ class MonitorView extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const scheduleWarning = [];
-    const { componentId, monitorId } = props.match.params;
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : null;
+    const { projectId, componentId, monitorId } = props.match.params;
 
     state.schedule.subProjectSchedules.forEach(item => {
         item.schedules.forEach(item => {

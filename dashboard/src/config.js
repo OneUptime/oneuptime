@@ -66,14 +66,6 @@ export const User = {
         return localStorage.getItem('current_project_id');
     },
 
-    setCurrentProjectSlug(slug) {
-        localStorage.setItem('current_project_slug', slug);
-    },
-
-    getCurrentProjectSlug() {
-        return localStorage.getItem('current_project_slug');
-    },
-
     setAccessToken(token) {
         localStorage.setItem('access_token', token);
     },

@@ -7,7 +7,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
 import { deleteScheduledEvent } from '../../actions/scheduledEvent';
 import { history } from '../../store';
-import { User } from '../../config';
+
 class DeleteSchedule extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -40,12 +40,9 @@ class DeleteSchedule extends Component {
         deleteScheduledEvent(projectId, eventId).then(() => {
             if (!deleteError) {
                 closeModal({ id: modalId });
-
-                const projectSlug = User.getCurrentProjectSlug()
-                    ? User.getCurrentProjectSlug()
-                    : '';
                 return history.push(
-                    `/dashboard/project/${projectSlug}/scheduledEvents`
+                    `/dashboard/project/${parentProjectId ||
+                        projectId}/scheduledEvents`
                 );
             }
         });

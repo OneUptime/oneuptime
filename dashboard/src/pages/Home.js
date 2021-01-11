@@ -8,7 +8,7 @@ import { loadPage } from '../actions/page';
 import { closeIncident } from '../actions/incident';
 import { logEvent } from '../analytics';
 import { userScheduleRequest, fetchUserSchedule } from '../actions/schedule';
-import { IS_SAAS_SERVICE, User } from '../config';
+import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -460,10 +460,10 @@ class Home extends Component {
                                                                                     schedules={
                                                                                         upcomingSchedules
                                                                                     }
-                                                                                    projectSlug={
+                                                                                    currentProjectId={
                                                                                         this
                                                                                             .props
-                                                                                            .projectSlug
+                                                                                            .currentProjectId
                                                                                     }
                                                                                 />
                                                                             </ShouldRender>
@@ -480,10 +480,10 @@ class Home extends Component {
                                                                                     schedules={
                                                                                         inactiveSchedules
                                                                                     }
-                                                                                    projectSlug={
+                                                                                    currentProjectId={
                                                                                         this
                                                                                             .props
-                                                                                            .projectSlug
+                                                                                            .currentProjectId
                                                                                     }
                                                                                 />
                                                                             </ShouldRender>
@@ -672,13 +672,7 @@ Home.propTypes = {
 };
 
 const mapStateToProps = (state, props) => {
-    // const { projectId } = props.match.params;
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : null;
-    const projectSlug = User.getCurrentProjectSlug()
-        ? User.getCurrentProjectSlug()
-        : null;
+    const { projectId } = props.match.params;
     let monitors = [],
         components = [],
         projectTeamMembers = [];
@@ -713,7 +707,6 @@ const mapStateToProps = (state, props) => {
     }
     return {
         currentProjectId: projectId,
-        projectSlug,
         user: state.profileSettings.profileSetting.data,
         escalation: state.schedule.escalation,
         escalations: state.schedule.escalations,

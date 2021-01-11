@@ -215,7 +215,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                   '/dashboard/project/' +
                                                                       this.props
                                                                           .currentProject
-                                                                          .slug +
+                                                                          ._id +
                                                                       '/' +
                                                                       this.props
                                                                           .componentId +

@@ -16,7 +16,7 @@ import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin
 import { LoadingState } from '../components/basic/Loader';
 import PropTypes from 'prop-types';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import { history } from '../store';
 import {
     fetchSubProjectStatusPages,
@@ -32,7 +32,9 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 class StatusPage extends Component {
     async componentDidMount() {
         if (!this.props.statusPage.status._id) {
-            const projectId = User.getCurrentProjectId();
+            const projectId = history.location.pathname
+                .split('project/')[1]
+                .split('/')[0];
             const statusPageId = history.location.pathname
                 .split('status-page/')[1]
                 .split('/')[0];

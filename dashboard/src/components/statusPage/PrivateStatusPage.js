@@ -20,7 +20,6 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import { RenderField } from '../basic/RenderField';
-import { User } from '../../config';
 
 export class PrivateStatusPage extends Component {
     constructor(props) {
@@ -34,7 +33,7 @@ export class PrivateStatusPage extends Component {
 
     submitForm = values => {
         const { status } = this.props.statusPage;
-        const projectId = User.getCurrentProjectId();
+        const { projectId } = status;
 
         if (values.ipWhitelist && values.ipWhitelist.length > 0) {
             const ipWhitelist = values.ipWhitelist.filter(
@@ -44,7 +43,7 @@ export class PrivateStatusPage extends Component {
         }
 
         this.props
-            .updatePrivateStatusPage(projectId, {
+            .updatePrivateStatusPage(projectId._id || projectId, {
                 _id: status._id,
                 isPrivate: values.isPrivate,
                 isSubscriberEnabled: values.isSubscriberEnabled,
@@ -55,7 +54,10 @@ export class PrivateStatusPage extends Component {
                 enableIpWhitelist: values.enableIpWhitelist,
             })
             .then(() => {
-                this.props.fetchProjectStatusPage(projectId, true);
+                this.props.fetchProjectStatusPage(
+                    projectId._id || projectId,
+                    true
+                );
             });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(

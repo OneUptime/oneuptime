@@ -7,7 +7,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
 import { history } from '../../store';
 import { deleteApplicationSecurity } from '../../actions/security';
-import { User } from '../../config';
 
 class DeleteApplicationSecurity extends Component {
     componentDidMount() {
@@ -41,11 +40,8 @@ class DeleteApplicationSecurity extends Component {
         const data = { projectId, componentId, applicationSecurityId };
 
         deleteApplicationSecurity(data).then(() => {
-            const projectSlug = User.getCurrentProjectSlug()
-                ? User.getCurrentProjectSlug()
-                : '';
             history.push(
-                `/dashboard/project/${projectSlug}/${data.componentId}/security/application`
+                `/dashboard/project/${data.projectId}/${data.componentId}/security/application`
             );
 
             if (!deleteApplicationError) {

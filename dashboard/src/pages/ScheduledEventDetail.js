@@ -19,7 +19,7 @@ import { LoadingState } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
 import ScheduledEventNote from '../components/scheduledEvent/ScheduledEventNote';
-import { API_URL, User } from '../config';
+import { API_URL } from '../config';
 import io from 'socket.io-client';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import ScheduleEventDeleteBox from '../components/scheduledEvent/ScheduleEventDeleteBox';
@@ -52,9 +52,8 @@ class ScheduledEvent extends Component {
             updateScheduledEventNoteInternalSuccess,
             deleteScheduledEventNoteSuccess,
             createScheduledEventNoteSuccess,
-            projectId,
         } = this.props;
-        const { scheduledEventId } = match.params;
+        const { projectId, scheduledEventId } = match.params;
         // fetch scheduled event
         fetchscheduledEvent(projectId, scheduledEventId);
 
@@ -105,10 +104,9 @@ class ScheduledEvent extends Component {
             investigationNotesList,
             internalNotesList,
             match,
-            projectId,
             monitorList,
         } = this.props;
-        const { scheduledEventId } = match.params;
+        const { projectId, scheduledEventId } = match.params;
         const eventName = scheduledEvent ? scheduledEvent.name : '';
 
         return (
@@ -303,7 +301,6 @@ ScheduledEvent.propTypes = {
     deleteScheduledEventNoteSuccess: PropTypes.func,
     createScheduledEventNoteSuccess: PropTypes.func,
     monitorList: PropTypes.array,
-    projectId: PropTypes.string,
 };
 
 const mapStateToProps = state => {
@@ -315,9 +312,6 @@ const mapStateToProps = state => {
         });
         return data;
     });
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : null;
 
     return {
         scheduledEvent:
@@ -328,7 +322,6 @@ const mapStateToProps = state => {
         investigationNotesList:
             state.scheduledEvent.scheduledEventInvestigationList,
         monitorList,
-        projectId,
     };
 };
 

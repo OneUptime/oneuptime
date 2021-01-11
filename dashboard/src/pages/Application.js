@@ -7,7 +7,7 @@ import Dashboard from '../components/Dashboard';
 import ApplicationSecurityForm from '../components/security/ApplicationSecurityForm';
 import ApplicationSecurity from '../components/security/ApplicationSecurity';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, API_URL, User } from '../config';
+import { SHOULD_LOG_ANALYTICS, API_URL } from '../config';
 import {
     getApplicationSecurities,
     getApplicationSecurityLogs,
@@ -69,9 +69,7 @@ class Application extends Component {
 
         socket.on(`createApplicationSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${User.getCurrentProjectSlug()}/${componentId}/security/application/${
-                    data._id
-                }`
+                `/dashboard/project/${projectId}/${componentId}/security/application/${data._id}`
             );
         });
         const applicationSecurities = appSecurities
@@ -198,10 +196,7 @@ Application.propTypes = {
 };
 
 const mapStateToProps = (state, ownProps) => {
-    const { componentId } = ownProps.match.params;
-    const projectId = User.getCurrentProjectId()
-        ? User.getCurrentProjectId()
-        : '';
+    const { componentId, projectId } = ownProps.match.params;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {

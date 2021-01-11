@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { FormLoader, LoadingState } from '../basic/Loader';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-import { User } from '../../config';
 
 class DeleteCredentialModal extends Component {
     componentDidMount() {
@@ -94,12 +93,7 @@ class DeleteCredentialModal extends Component {
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
                                                     <a
-                                                        href={`/dashboard/project/${User.getCurrentProjectSlug()}/${
-                                                            security.componentId
-                                                                ._id
-                                                        }/security/${securityType}/${
-                                                            security._id
-                                                        }`}
+                                                        href={`/dashboard/project/${projectId}/${security.componentId._id}/security/${securityType}/${security._id}`}
                                                     >
                                                         {security.name}
                                                     </a>

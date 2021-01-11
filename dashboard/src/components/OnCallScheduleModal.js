@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import { history } from '../store';
-import { User } from '../config';
 class OnCallScheduleModal extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -51,7 +50,12 @@ class OnCallScheduleModal extends Component {
                                                         <b
                                                             onClick={() => {
                                                                 history.push(
-                                                                    `/dashboard/project/${User.getCurrentProjectSlug()}/sub-project/${schedule.projectId &&
+                                                                    `/dashboard/project/${
+                                                                        this
+                                                                            .props
+                                                                            .data
+                                                                            .currentProjectId
+                                                                    }/sub-project/${schedule.projectId &&
                                                                         schedule
                                                                             .projectId
                                                                             ._id}/schedule/${schedule.scheduleId &&

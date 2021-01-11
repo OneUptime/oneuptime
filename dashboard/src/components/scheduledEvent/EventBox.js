@@ -12,7 +12,7 @@ import EditSchedule from '../modals/EditSchedule';
 import DataPathHoC from '../DataPathHoC';
 import DeleteSchedule from '../modals/DeleteSchedule';
 import { history } from '../../store';
-import { capitalize, User } from '../../config';
+import { capitalize } from '../../config';
 import { ListLoader } from '../basic/Loader';
 import { Link } from 'react-router-dom';
 import Badge from '../common/Badge';
@@ -54,8 +54,10 @@ class EventBox extends Component {
     };
 
     handleScheduledEventDetail = scheduledEventId => {
+        const { projectId, parentProjectId } = this.props;
         history.push(
-            `/dashboard/project/${User.getCurrentProjectSlug()}/scheduledEvents/${scheduledEventId}`
+            `/dashboard/project/${parentProjectId ||
+                projectId}/scheduledEvents/${scheduledEventId}`
         );
     };
 
@@ -431,7 +433,7 @@ class EventBox extends Component {
                                             </Link>
                                         ) : (
                                             <Link
-                                                to={`/dashboard/project/${User.getCurrentProjectSlug()}/components`}
+                                                to={`/dashboard/project/${projectId}/components`}
                                                 style={{
                                                     textDecoration: 'underline',
                                                 }}
