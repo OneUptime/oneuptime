@@ -207,6 +207,7 @@ module.exports = {
                     incidentType: '',
                     incidentDescription: '',
                     customFields: '',
+                    isDefault: '',
                 };
             }
 
@@ -235,6 +236,7 @@ module.exports = {
                     customFields: '',
                     acknowledgeIncident: '',
                     resolveIncident: '',
+                    isDefault: '',
                 };
             }
 
@@ -259,7 +261,7 @@ module.exports = {
                 }));
             }
 
-            if (data.isDefault) {
+            if (data.isDefault && data.createIncident) {
                 const incomingRequest = await _this.findOneBy({
                     isDefault: true,
                     projectId: query.projectId,
