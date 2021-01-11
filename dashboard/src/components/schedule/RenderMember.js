@@ -6,6 +6,7 @@ import TeamMemberSelector from '../basic/TeamMemberSelector';
 import TimeSelector from '../basic/TimeSelector';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
+import moment from 'moment-timezone';
 
 const RenderMember = ({
     memberValue,
@@ -37,10 +38,9 @@ const RenderMember = ({
         const tz = Intl.DateTimeFormat()
             .resolvedOptions()
             .timeZone;
-        const offSet = -(new Date().getTimezoneOffset() / 60);
-        const result = `${tz} GMT${Math.sign(offSet) === -1
-                ? offSet :
-                `+${offSet}`}`
+        const result = `${tz} GMT${moment()
+            .tz(tz)
+            .format('Z')}`;
         return result
     }
 
