@@ -42,6 +42,12 @@ app.get('/', function(req, res) {
     );
 });
 
+//App Version
+app.get(['/version', 'probe/version'], function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send({ probeVersion: process.env.npm_package_version });
+});
+
 // This cron runs every minute
 cron.schedule('* * * * *', () => {
     setTimeout(() => {
