@@ -49,14 +49,18 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
                 });
             }
 
-            if (!value && name !== 'auditLogMonitoringStatus') {
-                // Audit Log Status can be 'false'
+            if (
+                !value &&
+                name !== 'auditLogMonitoringStatus' &&
+                name !== 'emailLogMonitoringStatus' &&
+                name !== 'smsLogMonitoringStatus'
+            ) {
+                // Audit or Email or SMS Log Status can be 'false'
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Value must be present.',
                 });
             }
-
             if (name === 'twilio') {
                 const data = {
                     accountSid: value['account-sid'],
@@ -134,6 +138,24 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
                 value: true,
             };
             await GlobalConfigService.create(auditLogConfig);
+        }
+
+        // If email logs status was fetched and it doesnt exist, we need to create it
+        if (!globalConfig && req.params.name === 'emailLogMonitoringStatus') {
+            const emailLogConfig = {
+                name: 'emailLogMonitoringStatus',
+                value: true,
+            };
+            await GlobalConfigService.create(emailLogConfig);
+        }
+
+        // If SMS logs status was fetched and it doesnt exist, we need to create it
+        if (!globalConfig && req.params.name === 'smsLogMonitoringStatus') {
+            const smsLogConfig = {
+                name: 'smsLogMonitoringStatus',
+                value: true,
+            };
+            await GlobalConfigService.create(smsLogConfig);
         }
         globalConfig = await GlobalConfigService.findOneBy({
             name: req.params.name,

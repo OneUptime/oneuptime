@@ -52,6 +52,7 @@ module.exports = {
                     .populate('alertId', 'alertVia')
                     .populate('subscriberAlertId', 'alertVia')
                     .populate('monitorId')
+                    .populate('incidentId')
                     .limit(limit)
                     .skip(skip);
             } else {
@@ -59,7 +60,8 @@ module.exports = {
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
                     .populate('subscriberAlertId', 'alertVia')
-                    .populate('monitorId');
+                    .populate('monitorId')
+                    .populate('incidentId')
             }
             return alertCharges;
         } catch (error) {

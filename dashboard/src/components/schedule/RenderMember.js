@@ -121,6 +121,7 @@ const RenderMember = ({
                                 </div>
                             </Tooltip>
                         </span>
+                        <label className="bs-oncall-label">{Intl.DateTimeFormat().resolvedOptions().timeZone}</label>
                     </div>
                 </div>
             )}
@@ -164,6 +165,7 @@ const RenderMember = ({
                                 </div>
                             </Tooltip>
                         </span>
+                        <label className="bs-oncall-label">{Intl.DateTimeFormat().resolvedOptions().timeZone}</label>
                     </div>
                 </div>
             )}

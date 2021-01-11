@@ -7,6 +7,7 @@ try {
     require('./applicationLog.test');
     require('./applicationSecurity.test');
     require('./auditLogs.test');
+    require('./emailLogs.test');
     require('./component.test');
     require('./containerSecurity.test');
     require('./disableSignup.test');
