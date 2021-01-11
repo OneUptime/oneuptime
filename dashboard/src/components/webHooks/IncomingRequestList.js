@@ -88,7 +88,7 @@ class IncomingRequestList extends React.Component {
     };
 
     handleMonitorList = monitors => {
-        if (monitors.length === 0) {
+        if (!monitors || monitors.length === 0) {
             return 'No monitor in this event';
         }
         if (monitors.length === 1) {
@@ -112,12 +112,12 @@ class IncomingRequestList extends React.Component {
             incomingRequestList &&
             incomingRequestList.length > 0 &&
             incomingRequestList.map((incomingRequest, index) => {
-                const requestMonitors = incomingRequest.monitors.map(
-                    monitor => ({
+                const requestMonitors =
+                    incomingRequest.monitors &&
+                    incomingRequest.monitors.map(monitor => ({
                         name: monitor.monitorId.name,
                         _id: monitor.monitorId._id,
-                    })
-                );
+                    }));
 
                 return (
                     <div
