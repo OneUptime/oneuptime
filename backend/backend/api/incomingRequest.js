@@ -150,9 +150,9 @@ router.post('/:projectId/request/:requestId', async function(req, res) {
 
         // request object for use in variables
         const request = {
-            body: { value: req.body.value },
-            query: { value: req.query.value },
-            headers: { value: req.headers.value },
+            body: { ...req.body },
+            query: { ...req.query },
+            headers: { ...req.headers },
         };
 
         const { projectId, requestId } = req.params;
@@ -175,9 +175,9 @@ router.get('/:projectId/request/:requestId', async function(req, res) {
 
         // request object for use in variables
         const request = {
-            body: { value: req.body.value },
-            query: { value: req.query.value },
-            headers: { value: req.headers.value },
+            body: { ...req.body },
+            query: { ...req.query },
+            headers: { ...req.headers },
         };
 
         const { projectId, requestId } = req.params;
