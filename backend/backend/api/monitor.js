@@ -473,12 +473,14 @@ router.post(
                 endDate,
                 probeValue,
                 incidentId,
+                type,
             } = req.body;
             const monitorId = req.params.monitorId;
             const query = {};
             if (monitorId && !incidentId) query.monitorId = monitorId;
             if (incidentId) query.incidentIds = incidentId;
             if (probeValue) query.probeId = probeValue;
+            if (type === 'incomingHttpRequest') query.probeId = null;
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
