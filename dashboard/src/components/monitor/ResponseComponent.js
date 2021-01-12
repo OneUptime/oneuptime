@@ -16,6 +16,7 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import uuid from 'uuid';
 import ScheduleInput from '../schedule/ScheduleInput';
+import { ValidateField } from '../../config';
 
 const newSelector = formValueSelector('NewMonitor');
 
@@ -160,7 +161,31 @@ export class ResponseComponent extends Component {
                             )}
                         </div>
                     </div>
+
                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                        <ShouldRender if={!criterion.default}>
+                            <div
+                                className="bs-Fieldset-row Flex-alignItems--flexCenter"
+                                style={{ gap: '1rem' }}
+                            >
+                                <label
+                                    style={{ flex: '0 0 6rem' }}
+                                    htmlFor={`name_${criterionFieldName}`}
+                                >
+                                    Name
+                                </label>
+                                <div className="bs-Fieldset-fields">
+                                    <Field
+                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                        component={RenderField}
+                                        name={`name_${criterionFieldName}`}
+                                        id={`name_${criterionFieldName}`}
+                                        validate={[ValidateField.required]}
+                                        placeholder="Name for the criterion"
+                                    />
+                                </div>
+                            </div>
+                        </ShouldRender>
                         <div>
                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                 <fieldset className="bs-Fieldset">
@@ -227,7 +252,6 @@ export class ResponseComponent extends Component {
                                         </div>
                                     </label>
                                 </div>
-
                                 <ShouldRender
                                     if={
                                         this.props
@@ -303,7 +327,9 @@ export class ResponseComponent extends Component {
                                             <div className="Checkbox-label Box-root Margin-left--8">
                                                 <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <span>
-                                                        Create an incident.
+                                                        Automatically
+                                                        acknowledge an incident
+                                                        when monitor is back up.
                                                     </span>
                                                 </span>
                                             </div>
@@ -322,7 +348,6 @@ export class ResponseComponent extends Component {
                                                 component="input"
                                                 type="checkbox"
                                                 name={`autoResolve_${criterionFieldName}`}
-                                                defaultChecked={true}
                                                 data-test="RetrySettings-failedPaymentsCheckbox"
                                                 className="Checkbox-source"
                                                 id={`autoResolve_${criterionFieldName}`}
@@ -331,16 +356,15 @@ export class ResponseComponent extends Component {
                                                 <div className="Checkbox-target Box-root">
                                                     <div className="Checkbox-color Box-root"></div>
                                                 </div>
-                                                <div className="Checkbox-label Box-root Margin-left--8">
-                                                    <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <span>
-                                                            Automatically
-                                                            acknowledge an
-                                                            incident when
-                                                            monitor is back up.
-                                                        </span>
+                                            </div>
+                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>
+                                                        Automatically resolve an
+                                                        incident when monitor is
+                                                        back up.
                                                     </span>
-                                                </div>
+                                                </span>
                                             </div>
                                         </label>
                                     </div>

@@ -11,6 +11,7 @@ const criterionEventSchema = {
     and: [Object],
     or: [Object],
     default: { type: Boolean, default: false },
+    name: String,
 };
 
 const Schema = mongoose.Schema;

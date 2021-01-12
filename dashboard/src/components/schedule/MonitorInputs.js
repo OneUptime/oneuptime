@@ -12,58 +12,22 @@ function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
                   // calculate how many up criteria, degraded criteria and down criteria
                   // are using the schedule
 
-                  let upCriteriaUsingSchedule = 0;
-                  let degradedCriteriaUsingSchedule = 0;
-                  let downCriteriaUsingSchedule = 0;
+                  const criteriaUsingSchedule = [];
 
                   if (schedule && monitor.criteria) {
-                      upCriteriaUsingSchedule = monitor.criteria.up.length
-                          ? monitor.criteria.up.reduce((sum, criterion) => {
-                                return (
-                                    sum +
-                                    (criterion.scheduleIds
-                                        ? criterion.scheduleIds.includes(
-                                              schedule._id
-                                          )
-                                            ? 1
-                                            : 0
-                                        : 0)
-                                );
-                            }, 0)
-                          : 0;
-                      degradedCriteriaUsingSchedule = monitor.criteria.degraded
-                          .length
-                          ? monitor.criteria.degraded.reduce(
-                                (sum, criterion) => {
-                                    return (
-                                        sum +
-                                        (criterion.scheduleIds
-                                            ? criterion.scheduleIds.includes(
-                                                  schedule._id
-                                              )
-                                                ? 1
-                                                : 0
-                                            : 0)
-                                    );
-                                },
-                                0
-                            )
-                          : 0;
-
-                      downCriteriaUsingSchedule = monitor.criteria.down.length
-                          ? monitor.criteria.down.reduce((sum, criterion) => {
-                                return (
-                                    sum +
-                                    (criterion.scheduleIds
-                                        ? criterion.scheduleIds.includes(
-                                              schedule._id
-                                          )
-                                            ? 1
-                                            : 0
-                                        : 0)
-                                );
-                            }, 0)
-                          : 0;
+                      [
+                          ...monitor.criteria.up,
+                          ...monitor.criteria.degraded,
+                          ...monitor.criteria.down,
+                      ].forEach(criterion => {
+                          if (criterion.scheduleIds.includes(schedule._id)) {
+                              criteriaUsingSchedule.push({
+                                  id: criterion.id,
+                                  name: `${criterion.name ||
+                                      'Unnamed Criterion'}`,
+                              });
+                          }
+                      });
                   }
 
                   return (
@@ -112,13 +76,17 @@ function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
                                   </div>
                               </div>
                           </div>
-                          <div className="Box-root Margin-left--16">
-                              <span className="bs-Fieldset-explanation">
-                                  Enabled for {upCriteriaUsingSchedule} Up
-                                  criteria, {degradedCriteriaUsingSchedule}{' '}
-                                  Degraded Criteria, and{' '}
-                                  {downCriteriaUsingSchedule} Down Criteria
-                              </span>
+                          <div className="Box-root Margin-left--32">
+                              {criteriaUsingSchedule.map(criterion => {
+                                  return (
+                                      <span
+                                          key={criterion.id}
+                                          className="bs-Fieldset-explanation"
+                                      >
+                                          {criterion.name}
+                                      </span>
+                                  );
+                              })}
                           </div>
                       </div>
                   );

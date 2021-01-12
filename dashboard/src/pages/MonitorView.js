@@ -851,6 +851,9 @@ const mapStateToProps = (state, props) => {
 
                         // set initial values for the criterion
                         initialValues[criterionFieldName] = criterionBodyField;
+
+                        initialValues[`name_${criterionFieldName}`] =
+                            criterion.name;
                         initialValues[`incidentTitle_${criterionFieldName}`] =
                             criterion.title;
                         initialValues[

@@ -4,7 +4,13 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { isEqual } from 'lodash';
 import uuid from 'uuid';
-import { reduxForm, Field, formValueSelector, change } from 'redux-form';
+import {
+    reduxForm,
+    Field,
+    formValueSelector,
+    change,
+    isValid,
+} from 'redux-form';
 import {
     createMonitor,
     createMonitorSuccess,
@@ -69,6 +75,11 @@ class NewMonitor extends Component {
                 : props.authentication,
             criteria: props.currentMonitorCriteria || [],
             criteriaTabIndex: 0,
+            tabValidity: {
+                up: true,
+                degraded: true,
+                down: true,
+            },
         };
 
         this.tabIndexRef = createRef();
@@ -122,7 +133,11 @@ class NewMonitor extends Component {
                 Object.values(CRITERIA_TYPES).forEach(criterion => {
                     const id = uuid.v4();
 
-                    const newCriterion = { id, type: criterion.type };
+                    const newCriterion = {
+                        id,
+                        type: criterion.type,
+                        name: CRITERIA_TYPES[criterion.type.toUpperCase()].name,
+                    };
                     criteria.push(newCriterion);
 
                     this.addCriterionFieldsToReduxForm(newCriterion);
@@ -163,6 +178,7 @@ class NewMonitor extends Component {
             change(criterionFieldName, criterionValues.bodyField);
         }
 
+        change(`name_${criterionFieldName}`, criterion.name);
         change(
             `createAlert_${criterionFieldName}`,
             criterionValues.createAlert
@@ -258,6 +274,34 @@ class NewMonitor extends Component {
 
     /**
      *
+     * @param {criterion} criterion
+     * @returns {string} name computed name
+     */
+    getDefaultCriterionName(criterion) {
+        const criteriaWithSameType = this.state.criteria.reduce(
+            (acc, criterionItem) => {
+                return (
+                    acc +
+                    (criterion.id !== criterionItem.id &&
+                    !criterionItem.default &&
+                    criterion.type === criterionItem.type
+                        ? 1
+                        : 0)
+                );
+            },
+            0
+        );
+        const defaultCriterionName =
+            CRITERIA_TYPES[criterion.type.toUpperCase()].name;
+        const name =
+            criteriaWithSameType === 0
+                ? defaultCriterionName
+                : `${defaultCriterionName} ${criteriaWithSameType + 1}`;
+        return name;
+    }
+
+    /**
+     *
      * adds a criteria to the state
      * @param {{ type:string, id:string}} [criterion={}] data of the new criteria
      * @memberof NewMonitor
@@ -269,9 +313,10 @@ class NewMonitor extends Component {
 
         const newCriterion = {
             ...criterion,
+            name: this.getDefaultCriterionName(criterion),
         };
 
-        this.addCriterionFieldsToReduxForm(criterion);
+        this.addCriterionFieldsToReduxForm(newCriterion);
 
         this.setState({
             ...this.state,
@@ -378,6 +423,7 @@ class NewMonitor extends Component {
                     : [];
 
                 criterionData.scheduleIds = schedules;
+                criterionData.name = values[`name_${criterionFieldName}`];
                 criterionData.createAlert =
                     values[`createAlert_${criterionFieldName}`];
                 criterionData.autoAcknowledge =
@@ -641,7 +687,23 @@ class NewMonitor extends Component {
     };
 
     criteriaTabSelected = index => {
-        this.setState({ ...this.state, criteriaTabIndex: index });
+        const currentTabIsInvalid = this.props.isValid;
+        const activeTab =
+            this.state.criteriaTabIndex === 0
+                ? 'up'
+                : this.state.criteriaTabIndex === 1
+                ? 'degraded'
+                : 'down';
+        const newTabValidity = {
+            ...this.state.tabValidity,
+            [activeTab]: currentTabIsInvalid,
+        };
+
+        this.setState({
+            ...this.state,
+            criteriaTabIndex: index,
+            tabValidity: newTabValidity,
+        });
     };
 
     renderMonitorConfiguration = name => {
@@ -2454,7 +2516,21 @@ class NewMonitor extends Component {
                                     <button
                                         id="addMonitorButton"
                                         className="bs-Button bs-Button--blue"
-                                        disabled={requesting}
+                                        disabled={
+                                            requesting ||
+                                            !this.props.isValid ||
+                                            (this.state.criteriaTabIndex === 0
+                                                ? !this.state.tabValidity
+                                                      .degraded ||
+                                                  !this.state.tabValidity.down
+                                                : this.state
+                                                      .criteriaTabIndex === 1
+                                                ? !this.state.tabValidity.up ||
+                                                  !this.state.tabValidity.down
+                                                : !this.state.tabValidity.up ||
+                                                  !this.state.tabValidity
+                                                      .degraded)
+                                        }
                                         type="submit"
                                     >
                                         <PricingPlan
@@ -2609,6 +2685,7 @@ const mapStateToProps = (state, ownProps) => {
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
             fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
+            isValid: isValid('NewMonitor')(state),
         };
     } else {
         return {
@@ -2643,6 +2720,7 @@ const mapStateToProps = (state, ownProps) => {
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
             fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
+            isValid: isValid('NewMonitor')(state),
         };
     }
 };
@@ -2702,6 +2780,7 @@ NewMonitor.propTypes = {
     currentMonitorCriteria: PropTypes.arrayOf(
         PropTypes.objectOf(PropTypes.any)
     ),
+    isValid: PropTypes.bool.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);
