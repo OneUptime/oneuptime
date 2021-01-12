@@ -35069,6 +35069,54 @@ span.CodeMirror-selectedtext {
   font-weight: 400;
 }
 
+/* Investigation notes */
+.bs-thread-container {
+  position: relative;
+  padding: 20px;
+  /* z-index: -2; */
+}
+
+.bs-thread-card {
+  width: 100%;
+  height: auto;
+  min-height: 100px;
+  box-shadow: 0 0 0 1px rgba(69,79,91,0.05), 0 1px 3px 0 rgba(69,79,91,0.15);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bs-thread-line-up, .bs-thread-line-down {
+  width: 3px;
+  left: 40px;
+  position: relative;
+  height: 8px;
+  background: #dfe3e8;
+}
+
+.bs-thread-display {
+  display: flex;
+  width: 100%;
+}
+
+.bs-ma-10 {
+  margin-left: 10px;
+}
+
+.bs-thread-content {
+  width: 65%;
+}
+
+.bs-action-side {
+  width: 35%;
+}
+
+.bs-action-side > div {
+  display: flex;
+  justify-content: flex-end;
+}
+
 @media (max-width: 768px) {
   .bs-Fieldset.bs-container, .bs-content-1 {
     width: 100%;
