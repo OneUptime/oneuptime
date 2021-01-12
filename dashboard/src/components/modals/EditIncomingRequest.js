@@ -13,6 +13,7 @@ import { RenderTextArea } from '../basic/RenderTextArea';
 import Tooltip from '../basic/Tooltip';
 import { incomingRequestVariables } from '../../config';
 import { fetchCustomFields } from '../../actions/customField';
+import { fetchCustomFields as fetchMonitorCustomFields } from '../../actions/monitorCustomField';
 import CodeEditor from '../basic/CodeEditor';
 
 function validate(values) {
@@ -37,8 +38,13 @@ class EditIncomingRequest extends Component {
     };
 
     componentDidMount() {
-        const { fetchCustomFields, projectId } = this.props;
+        const {
+            fetchCustomFields,
+            projectId,
+            fetchMonitorCustomFields,
+        } = this.props;
         fetchCustomFields(projectId);
+        fetchMonitorCustomFields(projectId);
 
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -60,20 +66,16 @@ class EditIncomingRequest extends Component {
         const postObj = {};
 
         postObj.name = values.name;
-        postObj.isDefault = values.isDefault;
 
         if (values.nextAction && values.nextAction === 'createIncident') {
+            postObj.isDefault = values.isDefault;
             postObj.createIncident = true;
             postObj.filterCriteria = values.filterCriteria;
             postObj.filterCondition = values.filterCondition;
             if (isNaN(values.filterText)) {
                 postObj.filterText = values.filterText;
             } else {
-                if (typeof values.filterText === 'string') {
-                    postObj.filterText = values.filterText;
-                } else {
-                    postObj.filterText = Number(values.filterText);
-                }
+                postObj.filterText = parseFloat(values.filterText);
             }
             postObj.incidentTitle = values.incidentTitle;
             postObj.incidentType = values.incidentType;
@@ -131,11 +133,7 @@ class EditIncomingRequest extends Component {
             if (isNaN(values.filterText)) {
                 postObj.filterText = values.filterText;
             } else {
-                if (typeof values.filterText === 'string') {
-                    postObj.filterText = values.filterText;
-                } else {
-                    postObj.filterText = Number(values.filterText);
-                }
+                postObj.filterText = parseFloat(values.filterText);
             }
 
             postObj.noteContent = values.noteContent;
@@ -440,6 +438,7 @@ class EditIncomingRequest extends Component {
             incidentPriorities,
             destroy,
             customFields,
+            monitorCustomFields,
         } = this.props;
 
         return (
@@ -510,69 +509,6 @@ class EditIncomingRequest extends Component {
                                                             }}
                                                             autoFocus={true}
                                                         />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="isDefault"
-                                                    style={{ flexBasis: '20%' }}
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        paddingTop: '6px',
-                                                        flexBasis: '80%',
-                                                        maxWidth: '80%',
-                                                    }}
-                                                >
-                                                    <div className="bs-Fieldset-field">
-                                                        <label
-                                                            className="Checkbox"
-                                                            style={{
-                                                                marginRight:
-                                                                    '12px',
-                                                            }}
-                                                            htmlFor="isDefault"
-                                                        >
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name="isDefault"
-                                                                className="Checkbox-source"
-                                                                id="isDefault"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    Use as
-                                                                    default
-                                                                    incoming
-                                                                    request
-                                                                </span>
-                                                            </div>
-                                                        </label>
                                                     </div>
                                                 </div>
                                             </div>
@@ -924,52 +860,127 @@ class EditIncomingRequest extends Component {
                                         !formValues.isDefault &&
                                         formValues.nextAction ===
                                             'createIncident' && (
-                                            <fieldset className="Margin-bottom--16">
-                                                <div className="bs-Fieldset-rows">
-                                                    <div
-                                                        className="bs-Fieldset-row"
-                                                        style={{
-                                                            padding: 0,
-                                                        }}
-                                                    >
-                                                        <label
-                                                            className="bs-Fieldset-label Text-align--left"
-                                                            style={{
-                                                                flexBasis:
-                                                                    '20%',
-                                                            }}
-                                                        >
-                                                            <span>
-                                                                Monitors
-                                                            </span>
-                                                        </label>
+                                            <>
+                                                <fieldset className="Margin-bottom--16">
+                                                    <div className="bs-Fieldset-rows">
                                                         <div
-                                                            className="bs-Fieldset-fields"
+                                                            className="bs-Fieldset-row"
                                                             style={{
-                                                                flexBasis:
-                                                                    '80%',
-                                                                maxWidth: '80%',
+                                                                padding: 0,
                                                             }}
                                                         >
-                                                            <div
-                                                                className="bs-Fieldset-field"
+                                                            <label
+                                                                className="bs-Fieldset-label Text-align--left"
                                                                 style={{
-                                                                    width:
-                                                                        '100%',
+                                                                    flexBasis:
+                                                                        '20%',
                                                                 }}
                                                             >
-                                                                <FieldArray
-                                                                    name="monitors"
-                                                                    component={
-                                                                        this
-                                                                            .renderMonitors
-                                                                    }
-                                                                />
+                                                                <span>
+                                                                    Monitors
+                                                                </span>
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '80%',
+                                                                    maxWidth:
+                                                                        '80%',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                >
+                                                                    <FieldArray
+                                                                        name="monitors"
+                                                                        component={
+                                                                            this
+                                                                                .renderMonitors
+                                                                        }
+                                                                    />
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </fieldset>
+                                                </fieldset>
+
+                                                <fieldset className="Margin-bottom--16">
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            <label
+                                                                className="bs-Fieldset-label Text-align--left"
+                                                                htmlFor="isDefault"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '20%',
+                                                                }}
+                                                            >
+                                                                <span></span>
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    paddingTop:
+                                                                        '6px',
+                                                                    flexBasis:
+                                                                        '80%',
+                                                                    maxWidth:
+                                                                        '80%',
+                                                                }}
+                                                            >
+                                                                <div className="bs-Fieldset-field">
+                                                                    <label
+                                                                        className="Checkbox"
+                                                                        style={{
+                                                                            marginRight:
+                                                                                '12px',
+                                                                        }}
+                                                                        htmlFor="isDefault"
+                                                                    >
+                                                                        <Field
+                                                                            component="input"
+                                                                            type="checkbox"
+                                                                            name="isDefault"
+                                                                            className="Checkbox-source"
+                                                                            id="isDefault"
+                                                                        />
+                                                                        <div className="Checkbox-box Box-root Margin-right--2">
+                                                                            <div className="Checkbox-target Box-root">
+                                                                                <div className="Checkbox-color Box-root"></div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div
+                                                                            className="Box-root"
+                                                                            style={{
+                                                                                paddingLeft:
+                                                                                    '5px',
+                                                                            }}
+                                                                        >
+                                                                            <span>
+                                                                                Use
+                                                                                as
+                                                                                default
+                                                                                incoming
+                                                                                request
+                                                                            </span>
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
+                                            </>
                                         )}
 
                                     <fieldset style={{ paddingTop: 0 }}>
@@ -1656,7 +1667,8 @@ class EditIncomingRequest extends Component {
                                                                 >
                                                                     <CodeEditor
                                                                         code={
-                                                                            formValues.noteContent
+                                                                            formValues.noteContent ||
+                                                                            ''
                                                                         }
                                                                         onCodeChange={
                                                                             this
@@ -1735,12 +1747,14 @@ class EditIncomingRequest extends Component {
                                                                                 '100%',
                                                                         }}
                                                                         options={[
-                                                                            {
-                                                                                value:
-                                                                                    'thirdPartyVariable',
-                                                                                label:
-                                                                                    'Third Party Variables',
-                                                                            },
+                                                                            ...monitorCustomFields.map(
+                                                                                field => ({
+                                                                                    value:
+                                                                                        field.fieldName,
+                                                                                    label:
+                                                                                        field.fieldName,
+                                                                                })
+                                                                            ),
                                                                         ]}
                                                                     />
                                                                     <Field
@@ -1802,8 +1816,22 @@ class EditIncomingRequest extends Component {
                                                                             RenderField
                                                                         }
                                                                         name="filterText"
-                                                                        type="input"
-                                                                        placeholder="Text to filter"
+                                                                        type={
+                                                                            formValues.filterCriteria
+                                                                                ? (
+                                                                                      monitorCustomFields.find(
+                                                                                          field =>
+                                                                                              field.fieldName ===
+                                                                                              formValues.filterCriteria
+                                                                                      ) || {
+                                                                                          fieldType:
+                                                                                              'text',
+                                                                                      }
+                                                                                  )
+                                                                                      .fieldType
+                                                                                : 'text'
+                                                                        }
+                                                                        placeholder="request.body.value"
                                                                         id="filterText"
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                         style={{
@@ -1820,7 +1848,7 @@ class EditIncomingRequest extends Component {
                                                                             true
                                                                         }
                                                                     />
-                                                                    <Tooltip title="Incoming Request Filter">
+                                                                    <Tooltip title="Incoming http Request Filter">
                                                                         <p>
                                                                             Filter
                                                                             exposes
@@ -2528,6 +2556,8 @@ EditIncomingRequest.propTypes = {
     destroy: PropTypes.func.isRequired, // to manually destroy the redux form state
     customFields: PropTypes.array,
     fetchCustomFields: PropTypes.func,
+    fetchMonitorCustomFields: PropTypes.func,
+    monitorCustomFields: PropTypes.array,
 };
 
 const EditIncomingRequestForm = reduxForm({
@@ -2539,7 +2569,12 @@ const EditIncomingRequestForm = reduxForm({
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { editIncomingRequest, closeModal, fetchCustomFields },
+        {
+            editIncomingRequest,
+            closeModal,
+            fetchCustomFields,
+            fetchMonitorCustomFields,
+        },
         dispatch
     );
 
@@ -2635,6 +2670,8 @@ const mapStateToProps = state => {
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         customFields: state.customField.customFields.fields,
+        monitorCustomFields:
+            state.monitorCustomField.monitorCustomFields.fields,
     };
 };
 

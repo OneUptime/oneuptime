@@ -82,7 +82,7 @@ class ErrorTrackerDetailView extends Component {
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
     };
     openEventMemberModal = errorTrackerIssue => {
-        const { openModal, updateErrorEventMember } = this.props;
+        const { openModal, updateErrorEventMember, teamMembers } = this.props;
         const { memberModalId } = this.state;
 
         openModal({
@@ -92,6 +92,7 @@ class ErrorTrackerDetailView extends Component {
             content: DataPathHoC(ErrorEventIssueMember, {
                 errorTrackerIssue,
                 updateErrorEventMember,
+                allTeamMembers: teamMembers,
             }),
         });
     };
@@ -465,6 +466,7 @@ ErrorTrackerDetailView.propTypes = {
     resolveErrorEvent: PropTypes.string,
     openModal: PropTypes.func,
     updateErrorEventMember: PropTypes.func,
+    teamMembers: PropTypes.array,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);

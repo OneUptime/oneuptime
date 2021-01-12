@@ -61,7 +61,7 @@ module.exports = {
                     .populate('alertId', 'alertVia')
                     .populate('subscriberAlertId', 'alertVia')
                     .populate('monitorId')
-                    .populate('incidentId')
+                    .populate('incidentId');
             }
             return alertCharges;
         } catch (error) {

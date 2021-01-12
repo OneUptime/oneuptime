@@ -651,6 +651,11 @@ class MonitorView extends React.Component {
                                                                                 }
                                                                             />
                                                                         </div>
+                                                                    </Fade>
+                                                                </TabPanel>
+
+                                                                <TabPanel>
+                                                                    <Fade>
                                                                         <div>
                                                                             <ThirdPartyVariables
                                                                                 monitor={
@@ -665,11 +670,6 @@ class MonitorView extends React.Component {
                                                                                 }
                                                                             />
                                                                         </div>
-                                                                    </Fade>
-                                                                </TabPanel>
-
-                                                                <TabPanel>
-                                                                    <Fade>
                                                                         <RenderIfSubProjectAdmin
                                                                             subProjectId={
                                                                                 subProjectId
