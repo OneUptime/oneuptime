@@ -860,127 +860,127 @@ class EditIncomingRequest extends Component {
                                         !formValues.isDefault &&
                                         formValues.nextAction ===
                                             'createIncident' && (
-                                            <>
-                                                <fieldset className="Margin-bottom--16">
-                                                    <div className="bs-Fieldset-rows">
-                                                        <div
-                                                            className="bs-Fieldset-row"
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            padding: 0,
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
                                                             style={{
-                                                                padding: 0,
+                                                                flexBasis:
+                                                                    '20%',
                                                             }}
                                                         >
-                                                            <label
-                                                                className="bs-Fieldset-label Text-align--left"
-                                                                style={{
-                                                                    flexBasis:
-                                                                        '20%',
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    Monitors
-                                                                </span>
-                                                            </label>
+                                                            <span>
+                                                                Monitors
+                                                            </span>
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                flexBasis:
+                                                                    '80%',
+                                                                maxWidth: '80%',
+                                                            }}
+                                                        >
                                                             <div
-                                                                className="bs-Fieldset-fields"
+                                                                className="bs-Fieldset-field"
                                                                 style={{
-                                                                    flexBasis:
-                                                                        '80%',
-                                                                    maxWidth:
-                                                                        '80%',
+                                                                    width:
+                                                                        '100%',
                                                                 }}
                                                             >
-                                                                <div
-                                                                    className="bs-Fieldset-field"
-                                                                    style={{
-                                                                        width:
-                                                                            '100%',
-                                                                    }}
-                                                                >
-                                                                    <FieldArray
-                                                                        name="monitors"
-                                                                        component={
-                                                                            this
-                                                                                .renderMonitors
-                                                                        }
-                                                                    />
-                                                                </div>
+                                                                <FieldArray
+                                                                    name="monitors"
+                                                                    component={
+                                                                        this
+                                                                            .renderMonitors
+                                                                    }
+                                                                />
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </fieldset>
+                                                </div>
+                                            </fieldset>
+                                        )}
 
-                                                <fieldset className="Margin-bottom--16">
-                                                    <div className="bs-Fieldset-rows">
-                                                        <div
-                                                            className="bs-Fieldset-row"
+                                    {formValues &&
+                                        formValues.nextAction ===
+                                            'createIncident' && (
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            padding: 0,
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="isDefault"
                                                             style={{
-                                                                padding: 0,
+                                                                flexBasis:
+                                                                    '20%',
                                                             }}
                                                         >
-                                                            <label
-                                                                className="bs-Fieldset-label Text-align--left"
-                                                                htmlFor="isDefault"
-                                                                style={{
-                                                                    flexBasis:
-                                                                        '20%',
-                                                                }}
-                                                            >
-                                                                <span></span>
-                                                            </label>
-                                                            <div
-                                                                className="bs-Fieldset-fields"
-                                                                style={{
-                                                                    paddingTop:
-                                                                        '6px',
-                                                                    flexBasis:
-                                                                        '80%',
-                                                                    maxWidth:
-                                                                        '80%',
-                                                                }}
-                                                            >
-                                                                <div className="bs-Fieldset-field">
-                                                                    <label
-                                                                        className="Checkbox"
+                                                            <span></span>
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop:
+                                                                    '6px',
+                                                                flexBasis:
+                                                                    '80%',
+                                                                maxWidth: '80%',
+                                                            }}
+                                                        >
+                                                            <div className="bs-Fieldset-field">
+                                                                <label
+                                                                    className="Checkbox"
+                                                                    style={{
+                                                                        marginRight:
+                                                                            '12px',
+                                                                    }}
+                                                                    htmlFor="isDefault"
+                                                                >
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name="isDefault"
+                                                                        className="Checkbox-source"
+                                                                        id="isDefault"
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
+                                                                        className="Box-root"
                                                                         style={{
-                                                                            marginRight:
-                                                                                '12px',
+                                                                            paddingLeft:
+                                                                                '5px',
                                                                         }}
-                                                                        htmlFor="isDefault"
                                                                     >
-                                                                        <Field
-                                                                            component="input"
-                                                                            type="checkbox"
-                                                                            name="isDefault"
-                                                                            className="Checkbox-source"
-                                                                            id="isDefault"
-                                                                        />
-                                                                        <div className="Checkbox-box Box-root Margin-right--2">
-                                                                            <div className="Checkbox-target Box-root">
-                                                                                <div className="Checkbox-color Box-root"></div>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div
-                                                                            className="Box-root"
-                                                                            style={{
-                                                                                paddingLeft:
-                                                                                    '5px',
-                                                                            }}
-                                                                        >
-                                                                            <span>
-                                                                                Use
-                                                                                as
-                                                                                default
-                                                                                incoming
-                                                                                request
-                                                                            </span>
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
+                                                                        <span>
+                                                                            Use
+                                                                            as
+                                                                            default
+                                                                            incoming
+                                                                            request
+                                                                        </span>
+                                                                    </div>
+                                                                </label>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </fieldset>
-                                            </>
+                                                </div>
+                                            </fieldset>
                                         )}
 
                                     <fieldset style={{ paddingTop: 0 }}>
