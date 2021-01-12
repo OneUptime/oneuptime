@@ -79,7 +79,17 @@ class EditIncomingRequest extends Component {
             }
             postObj.incidentTitle = values.incidentTitle;
             postObj.incidentType = values.incidentType;
+            if (values.dynamicIncidentType) {
+                postObj.customIncidentType = values.customIncidentType;
+                postObj.dynamicIncidentType = values.dynamicIncidentType;
+            }
             postObj.incidentPriority = values.incidentPriority;
+            if (values.dynamicIncidentPriority) {
+                // create this incident priority on the BE
+                postObj.customIncidentPriority = values.customIncidentPriority;
+                postObj.dynamicIncidentPriority =
+                    values.dynamicIncidentPriority;
+            }
             postObj.incidentDescription = values.incidentDescription;
 
             postObj.customFields = customFields.map(field => ({
@@ -2081,40 +2091,76 @@ class EditIncomingRequest extends Component {
                                                                             '100%',
                                                                     }}
                                                                 >
-                                                                    <Field
-                                                                        className="db-select-nw"
-                                                                        component={
-                                                                            RenderSelect
-                                                                        }
-                                                                        name="incidentType"
-                                                                        id="incidentType"
-                                                                        placeholder="Incident type"
-                                                                        disabled={
-                                                                            this
-                                                                                .props
-                                                                                .requesting
-                                                                        }
-                                                                        options={[
-                                                                            {
-                                                                                value:
-                                                                                    'online',
-                                                                                label:
-                                                                                    'Online',
-                                                                            },
-                                                                            {
-                                                                                value:
-                                                                                    'offline',
-                                                                                label:
-                                                                                    'Offline',
-                                                                            },
-                                                                            {
-                                                                                value:
-                                                                                    'degraded',
-                                                                                label:
-                                                                                    'Degraded',
-                                                                            },
-                                                                        ]}
-                                                                    />
+                                                                    {formValues &&
+                                                                    !formValues.dynamicIncidentType ? (
+                                                                        <Field
+                                                                            className="db-select-nw"
+                                                                            component={
+                                                                                RenderSelect
+                                                                            }
+                                                                            name="incidentType"
+                                                                            id="incidentType"
+                                                                            placeholder="Incident type"
+                                                                            disabled={
+                                                                                this
+                                                                                    .props
+                                                                                    .requesting
+                                                                            }
+                                                                            options={[
+                                                                                {
+                                                                                    value:
+                                                                                        'online',
+                                                                                    label:
+                                                                                        'Online',
+                                                                                },
+                                                                                {
+                                                                                    value:
+                                                                                        'offline',
+                                                                                    label:
+                                                                                        'Offline',
+                                                                                },
+                                                                                {
+                                                                                    value:
+                                                                                        'degraded',
+                                                                                    label:
+                                                                                        'Degraded',
+                                                                                },
+                                                                            ]}
+                                                                        />
+                                                                    ) : (
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderField
+                                                                            }
+                                                                            type="text"
+                                                                            name="customIncidentType"
+                                                                            id="incidentType"
+                                                                            placeholder="Incident Type"
+                                                                            style={{
+                                                                                width:
+                                                                                    '100%',
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                                <div
+                                                                    onClick={() =>
+                                                                        this.props.change(
+                                                                            'dynamicIncidentType',
+                                                                            true
+                                                                        )
+                                                                    }
+                                                                    style={{
+                                                                        cursor:
+                                                                            'pointer',
+                                                                        marginTop: 5,
+                                                                        textDecoration:
+                                                                            'underline',
+                                                                    }}
+                                                                >
+                                                                    use dynamic
+                                                                    values
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2163,35 +2209,70 @@ class EditIncomingRequest extends Component {
                                                                                 '100%',
                                                                         }}
                                                                     >
-                                                                        <Field
-                                                                            style={{
-                                                                                width:
-                                                                                    '100%',
-                                                                                padding:
-                                                                                    '3px 5px',
-                                                                            }}
-                                                                            className="db-select-nw"
-                                                                            component={
-                                                                                RenderSelect
-                                                                            }
-                                                                            name="incidentPriority"
-                                                                            id="incidentPriority"
-                                                                            disabled={
-                                                                                this
-                                                                                    .props
-                                                                                    .requesting
-                                                                            }
-                                                                            options={[
-                                                                                ...incidentPriorities.map(
-                                                                                    incidentPriority => ({
-                                                                                        value:
-                                                                                            incidentPriority._id,
-                                                                                        label:
-                                                                                            incidentPriority.name,
-                                                                                    })
-                                                                                ),
-                                                                            ]}
-                                                                        />
+                                                                        {formValues &&
+                                                                        !formValues.dynamicIncidentPriority ? (
+                                                                            <Field
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                }}
+                                                                                className="db-select-nw"
+                                                                                component={
+                                                                                    RenderSelect
+                                                                                }
+                                                                                name="incidentPriority"
+                                                                                id="incidentPriority"
+                                                                                disabled={
+                                                                                    this
+                                                                                        .props
+                                                                                        .requesting
+                                                                                }
+                                                                                options={[
+                                                                                    ...incidentPriorities.map(
+                                                                                        incidentPriority => ({
+                                                                                            value:
+                                                                                                incidentPriority._id,
+                                                                                            label:
+                                                                                                incidentPriority.name,
+                                                                                        })
+                                                                                    ),
+                                                                                ]}
+                                                                            />
+                                                                        ) : (
+                                                                            <Field
+                                                                                className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                                                component={
+                                                                                    RenderField
+                                                                                }
+                                                                                type="text"
+                                                                                name="customIncidentPriority"
+                                                                                id="incidentPriority"
+                                                                                placeholder="Incident Priority"
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                }}
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                    <div
+                                                                        onClick={() =>
+                                                                            this.props.change(
+                                                                                'dynamicIncidentPriority',
+                                                                                true
+                                                                            )
+                                                                        }
+                                                                        style={{
+                                                                            cursor:
+                                                                                'pointer',
+                                                                            marginTop: 5,
+                                                                            textDecoration:
+                                                                                'underline',
+                                                                        }}
+                                                                    >
+                                                                        use
+                                                                        dynamic
+                                                                        values
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -2628,10 +2709,34 @@ const mapStateToProps = state => {
         initialValues.filterCondition =
             incomingRequestToBeUpdated.filterCondition;
         initialValues.filterText = incomingRequestToBeUpdated.filterText;
-        initialValues.incidentPriority =
-            incomingRequestToBeUpdated.incidentPriority;
+        if (incomingRequestToBeUpdated.createIncident) {
+            const priorityIds = incidentPriorities.map(priority =>
+                String(priority._id)
+            );
+            initialValues.dynamicIncidentPriority = !priorityIds.includes(
+                incomingRequestToBeUpdated.incidentPriority
+            );
+            initialValues.customIncidentPriority =
+                incomingRequestToBeUpdated.incidentPriority;
+        }
+        if (!initialValues.dynamicIncidentPriority) {
+            initialValues.incidentPriority =
+                incomingRequestToBeUpdated.incidentPriority;
+        }
         initialValues.incidentTitle = incomingRequestToBeUpdated.incidentTitle;
-        initialValues.incidentType = incomingRequestToBeUpdated.incidentType;
+        if (incomingRequestToBeUpdated.createIncident) {
+            initialValues.dynamicIncidentType = ![
+                'offline',
+                'online',
+                'degraded',
+            ].includes(incomingRequestToBeUpdated.incidentType);
+            initialValues.customIncidentType =
+                incomingRequestToBeUpdated.incidentType;
+        }
+        if (!initialValues.dynamicIncidentType) {
+            initialValues.incidentType =
+                incomingRequestToBeUpdated.incidentType;
+        }
         initialValues.incidentDescription =
             incomingRequestToBeUpdated.incidentDescription;
         if (
@@ -2667,8 +2772,7 @@ const mapStateToProps = state => {
             state.form.editIncomingRequestForm.values,
         initialValues,
         projectId,
-        incidentPriorities:
-            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        incidentPriorities,
         customFields: state.customField.customFields.fields,
         monitorCustomFields:
             state.monitorCustomField.monitorCustomFields.fields,
