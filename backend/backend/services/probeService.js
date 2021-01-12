@@ -1135,7 +1135,7 @@ module.exports = {
         }
     },
 
-    probeHttpRequest: async function(monitor) {
+    probeHttpRequest: async function(monitor, probeId) {
         try {
             const _this = this;
             let status, reason;
@@ -1182,7 +1182,7 @@ module.exports = {
             logData.responseTime = 0;
             logData.responseStatus = null;
             logData.status = status;
-            logData.probeId = null;
+            logData.probeId = probeId;
             logData.monitorId = monitor && monitor.id ? monitor.id : null;
             logData.sslCertificate = null;
             logData.lighthouseScanStatus = null;

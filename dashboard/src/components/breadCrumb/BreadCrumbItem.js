@@ -54,6 +54,8 @@ function BreadCrumbItem({
         resourceType.innerHTML = type
             ? type === 'server-monitor'
                 ? 'Server Monitor'
+                : type === 'incomingHttpRequest'
+                ? 'incoming Http Request Monitor'
                 : type + ' Monitor'
             : status
             ? ' Status Page'

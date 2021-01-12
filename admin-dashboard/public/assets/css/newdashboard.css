@@ -4483,6 +4483,9 @@ div.db-Trend-groupChart {
 .db-RenameKeyModal-errorMessage {
   color: #e25950;
 }
+.db-BusinessSettings-input-wide {
+  width: 100%;
+}
 .db-BusinessSettings-input {
   width: 250px;
 }

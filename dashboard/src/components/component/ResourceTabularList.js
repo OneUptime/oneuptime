@@ -351,6 +351,9 @@ class ResourceTabularList extends Component {
                                                                 {componentResource.type ===
                                                                 'api monitor'
                                                                     ? 'API Monitor'
+                                                                    : componentResource.type ===
+                                                                      'incomingHttpRequest monitor'
+                                                                    ? 'incoming Http Request Monitor'
                                                                     : componentResource.type}
                                                             </span>
                                                         </div>

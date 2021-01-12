@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+import ShouldRender from '../basic/ShouldRender';
 
 class AlertDetailsModal extends Component {
     componentDidMount() {
@@ -182,6 +183,18 @@ class AlertDetailsModal extends Component {
                                         </div>
                                     </div>
                                 </div>
+                                <ShouldRender if={this.props.data.errorMessage}>
+                                    <div className="bs-Fieldset-row">
+                                        <label className="bs-Fieldset-label">
+                                            Error Message
+                                        </label>
+                                        <div className="bs-Fieldset-fields Margin-top--6">
+                                            <div>
+                                                {this.props.data.errorMessage}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ShouldRender>
                                 <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label">
                                         Created At

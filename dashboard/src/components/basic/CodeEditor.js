@@ -25,6 +25,7 @@ class CodeEditor extends Component {
                     borderRadius: '4px',
                     height: '100px',
                     overflow: 'auto',
+                    ...this.props.style,
                 }}
             />
         );
@@ -35,5 +36,6 @@ CodeEditor.displayName = 'CodeEditor';
 CodeEditor.propTypes = {
     code: PropTypes.string,
     onCodeChange: PropTypes.func,
+    style: PropTypes.object,
 };
 export default CodeEditor;

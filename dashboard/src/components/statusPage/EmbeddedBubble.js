@@ -1,15 +1,21 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
 import uuid from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
-import { resetStatusBubbleId } from '../../actions/statusPage';
+import {
+    resetStatusBubbleId,
+    updateStatusPageEmbeddedCss,
+    resetStatusPageEmbeddedCss,
+} from '../../actions/statusPage';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { Field, reduxForm, formValueSelector, change } from 'redux-form';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { API_URL } from '../../config';
 import ResetStatusBubbleIdModal from '../modals/ResetStatusBubbleIdModal';
+import ResetCssModal from '../modals/ResetCssModal';
 import { openModal, closeModal } from '../../actions/modal';
 
 const selector = formValueSelector('EmbeddedBubble');
@@ -45,8 +51,9 @@ const css = colors => `<style>
     }
     .text {
         color: rgb(76, 76, 76);
-        font-size: 13px;
-        padding-top: 4px;
+        font-size: 14px;
+        font-weight: 400;
+        font-family: Camphor, Segoe UI, Open Sans, sans-serif;
     }
     .bubble-box {
         display:flex;
@@ -101,13 +108,37 @@ export class EmbeddedBubble extends Component {
         this.props = props;
         this.state = {
             showMoreOptions: false,
+            copied: false,
             resetModalId: uuid.v4(),
+            resetCssModalId: uuid.v4(),
         };
     }
-    resetcss = css => {
+    submitForm = values => {
+        const { status } = this.props.statusPage;
+        const { projectId } = status;
+        const { embeddedCustomCSS } = values;
+        this.props.updateStatusPageEmbeddedCss(projectId._id || projectId, {
+            _id: status._id,
+            embeddedCss: embeddedCustomCSS,
+        });
+    };
+    changecss = (event, css) => {
         const url = `${API_URL}/statusPage/statusBubble?statusPageId=${this.props.statusPageId}&statusBubbleId=${this.props.statusBubbleId}`;
         const value = createScript(url, css);
         this.props.change('embeddedcode', value);
+    };
+    resetcss = () => {
+        const { status } = this.props.statusPage;
+        const { projectId, colors } = status;
+        const customCss = css(colors);
+
+        return this.props.resetStatusPageEmbeddedCss(
+            projectId._id || projectId,
+            {
+                _id: status._id,
+                embeddedCss: customCss,
+            }
+        );
     };
     showMoreOptionsToggle = () =>
         this.setState(prevState => ({
@@ -116,15 +147,17 @@ export class EmbeddedBubble extends Component {
 
     render() {
         const {
+            handleSubmit,
             statusBubbleId,
             statusBubble,
             resetStatusBubbleId,
             statusPageId,
             projectId,
-            customCssValue,
             customCodeValue,
+            resetEmbeddedCss,
+            embeddedCss,
         } = this.props;
-        const { showMoreOptions, resetModalId } = this.state;
+        const { showMoreOptions, resetModalId, resetCssModalId } = this.state;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -168,7 +201,7 @@ export class EmbeddedBubble extends Component {
                         </div>
                     </div>
 
-                    <form>
+                    <form onSubmit={handleSubmit(this.submitForm)}>
                         <div
                             className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1"
                             style={{ overflow: 'hidden', overflowX: 'auto' }}
@@ -179,12 +212,12 @@ export class EmbeddedBubble extends Component {
                                         <div className="bs-Fieldset-rows">
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label script-label">
-                                                    Bubble Display
+                                                    Preview
                                                 </label>
                                                 <div
                                                     className="bs-Fieldset-fields script-editor-wrapper"
                                                     style={{
-                                                        height: '200px',
+                                                        height: '50px',
                                                         width: '80%',
                                                         position: 'relative',
                                                     }}
@@ -207,13 +240,8 @@ export class EmbeddedBubble extends Component {
                                                             height: '100%',
                                                             width: '100%',
                                                             border: 'none',
-                                                            background: 'white',
-                                                            boxShadow:
-                                                                'rgba(50, 50, 93, 0.16) 0px 0px 0px 1px, rgba(50, 151, 211, 0) 0px 0px 0px 1px, rgba(50, 151, 211, 0) 0px 0px 0px 2px, rgba(0, 0, 0, 0.08) 0px 1px 1px',
                                                         }}
-                                                    >
-                                                        {customCodeValue}
-                                                    </iframe>
+                                                    ></iframe>
                                                 </div>
                                             </div>
                                             <div className="bs-Fieldset-row">
@@ -227,85 +255,61 @@ export class EmbeddedBubble extends Component {
                                                         component={
                                                             RenderCodeEditor
                                                         }
+                                                        readOnly={true}
                                                         mode="html"
                                                         theme="github"
                                                         height="180px"
                                                         width="100%"
                                                     />
-                                                </div>
-                                            </div>
-                                            <ShouldRender if={showMoreOptions}>
-                                                <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label script-label">
-                                                        Status Bubble ID :
-                                                    </label>
-                                                    <div
-                                                        className="bs-Fieldset-fields"
-                                                        style={{
-                                                            paddingTop: '7px',
-                                                        }}
-                                                    >
+                                                    <p className="bs-Fieldset-explanation">
                                                         <span>
-                                                            {statusBubbleId}
+                                                            Copy the code above
+                                                            and paste it into
+                                                            any html file or web
+                                                            project to add
+                                                            status bubble to
+                                                            your website.
                                                         </span>
-                                                    </div>
-                                                    <div>
-                                                        <button
-                                                            style={{
-                                                                border: 'none',
-                                                                background:
-                                                                    'none',
-                                                            }}
-                                                            disabled={
-                                                                statusBubble.requesting
+                                                        <CopyToClipboard
+                                                            text={
+                                                                customCodeValue
                                                             }
-                                                            type="button"
-                                                            id="btnreset"
-                                                            onClick={() =>
-                                                                this.props.openModal(
-                                                                    {
-                                                                        id: resetModalId,
-                                                                        onConfirm: () => {
-                                                                            return resetStatusBubbleId(
-                                                                                projectId,
-                                                                                statusPageId
-                                                                            );
-                                                                        },
-                                                                        content: ResetStatusBubbleIdModal,
-                                                                    }
-                                                                )
+                                                            onCopy={() =>
+                                                                this.setState({
+                                                                    copied: true,
+                                                                })
                                                             }
                                                         >
-                                                            <ShouldRender
-                                                                if={
-                                                                    !statusBubble.requesting
-                                                                }
+                                                            <span
+                                                                style={{
+                                                                    textDecoration:
+                                                                        'underline',
+                                                                    margin:
+                                                                        '0px 5px',
+                                                                    cursor:
+                                                                        'copy',
+                                                                }}
                                                             >
-                                                                <span>
-                                                                    <img
-                                                                        src="/dashboard/assets/img/refresh.svg"
-                                                                        alt="refresh"
-                                                                        style={{
-                                                                            height:
-                                                                                'inherit',
-                                                                            width:
-                                                                                '15px',
-                                                                            marginTop:
-                                                                                '8px',
-                                                                        }}
-                                                                    />
-                                                                </span>
-                                                            </ShouldRender>
-                                                            <ShouldRender
-                                                                if={
-                                                                    statusBubble.requesting
-                                                                }
+                                                                Click here to
+                                                                copy to
+                                                                clipboard
+                                                            </span>
+                                                        </CopyToClipboard>
+                                                        {this.state.copied ? (
+                                                            <span
+                                                                style={{
+                                                                    color:
+                                                                        'red',
+                                                                }}
                                                             >
-                                                                <FormLoader />
-                                                            </ShouldRender>
-                                                        </button>
-                                                    </div>
+                                                                Copied.
+                                                            </span>
+                                                        ) : null}
+                                                    </p>
                                                 </div>
+                                            </div>
+
+                                            <ShouldRender if={showMoreOptions}>
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label script-label">
                                                         Embedded Custom CSS
@@ -317,11 +321,116 @@ export class EmbeddedBubble extends Component {
                                                             component={
                                                                 RenderCodeEditor
                                                             }
+                                                            onChange={
+                                                                this.changecss
+                                                            }
                                                             mode="css"
                                                             theme="github"
                                                             height="150px"
                                                             width="100%"
                                                         />
+                                                        <p className="bs-Fieldset-explanation">
+                                                            <span>
+                                                                Change css
+                                                                inside the box
+                                                                to change the
+                                                                look and feel of
+                                                                status bubble
+                                                                and status text.
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label script-label">
+                                                        Auth ID :
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop:
+                                                                    '7px',
+                                                                flexDirection:
+                                                                    'row',
+                                                            }}
+                                                        >
+                                                            <span>
+                                                                {statusBubbleId}
+                                                            </span>
+                                                            <button
+                                                                style={{
+                                                                    border:
+                                                                        'none',
+                                                                    background:
+                                                                        'none',
+                                                                }}
+                                                                disabled={
+                                                                    statusBubble.requesting
+                                                                }
+                                                                type="button"
+                                                                id="btnreset"
+                                                                onClick={() =>
+                                                                    this.props.openModal(
+                                                                        {
+                                                                            id: resetModalId,
+                                                                            onConfirm: () => {
+                                                                                return resetStatusBubbleId(
+                                                                                    projectId,
+                                                                                    statusPageId
+                                                                                );
+                                                                            },
+                                                                            content: ResetStatusBubbleIdModal,
+                                                                        }
+                                                                    )
+                                                                }
+                                                            >
+                                                                <ShouldRender
+                                                                    if={
+                                                                        !statusBubble.requesting
+                                                                    }
+                                                                >
+                                                                    <span>
+                                                                        <img
+                                                                            src="/dashboard/assets/img/refresh.svg"
+                                                                            alt="refresh"
+                                                                            style={{
+                                                                                height:
+                                                                                    'inherit',
+                                                                                width:
+                                                                                    '15px',
+                                                                                marginLeft:
+                                                                                    '20px',
+                                                                                marginTop:
+                                                                                    '1px',
+                                                                            }}
+                                                                        />
+                                                                    </span>
+                                                                </ShouldRender>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        statusBubble.requesting
+                                                                    }
+                                                                >
+                                                                    <FormLoader />
+                                                                </ShouldRender>
+                                                            </button>
+                                                        </div>
+                                                        <p
+                                                            className="bs-Fieldset-explanation"
+                                                            style={{
+                                                                marginTop:
+                                                                    '0px',
+                                                            }}
+                                                        >
+                                                            <span>
+                                                                This is a unique
+                                                                id required to
+                                                                fetch status
+                                                                data inside
+                                                                embedded script.
+                                                            </span>
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </ShouldRender>
@@ -333,7 +442,13 @@ export class EmbeddedBubble extends Component {
 
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                             <span className="db-SettingsForm-footerMessage">
-                                <ShouldRender if={statusBubble.error}>
+                                <ShouldRender
+                                    if={
+                                        statusBubble.error ||
+                                        resetEmbeddedCss.error ||
+                                        embeddedCss.error
+                                    }
+                                >
                                     <div className="bs-Tail-copy">
                                         <div
                                             className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
@@ -344,28 +459,56 @@ export class EmbeddedBubble extends Component {
                                             </div>
                                             <div className="Box-root">
                                                 <span style={{ color: 'red' }}>
-                                                    {statusBubble.error}
+                                                    {statusBubble.error
+                                                        ? statusBubble.error
+                                                        : ''}
+                                                    {resetEmbeddedCss.error
+                                                        ? resetEmbeddedCss.error
+                                                        : ''}
+                                                    {embeddedCss.error
+                                                        ? embeddedCss.error
+                                                        : ''}
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
                                 </ShouldRender>
                             </span>
-                            <ShouldRender if={showMoreOptions}>
-                                <div>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                        disabled={false}
-                                        type="button"
-                                        id="btnresetcss"
-                                        onClick={() =>
-                                            this.resetcss(customCssValue)
-                                        }
-                                    >
-                                        <span>Change CSS</span>
-                                    </button>
-                                </div>
-                            </ShouldRender>
+                            <div>
+                                <button
+                                    className="bs-Button bs-DeprecatedButton bs-Button--new"
+                                    disabled={resetEmbeddedCss.requesting}
+                                    type="button"
+                                    id="btnresetcss"
+                                    onClick={() => {
+                                        this.props.openModal({
+                                            id: resetCssModalId,
+                                            onConfirm: () => {
+                                                return this.resetcss();
+                                            },
+                                            content: ResetCssModal,
+                                        });
+                                    }}
+                                >
+                                    {!resetEmbeddedCss.requesting && (
+                                        <span>Reset CSS</span>
+                                    )}
+                                    {resetEmbeddedCss.requesting && (
+                                        <FormLoader />
+                                    )}
+                                </button>
+                                <button
+                                    className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                    disabled={embeddedCss.requesting}
+                                    type="submit"
+                                    id="btnsavecss"
+                                >
+                                    {!embeddedCss.requesting && (
+                                        <span>Save Changes </span>
+                                    )}
+                                    {embeddedCss.requesting && <FormLoader />}
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -378,20 +521,36 @@ EmbeddedBubble.displayName = 'Embedded Bubble';
 
 EmbeddedBubble.propTypes = {
     change: PropTypes.func,
-    customCodeValue: PropTypes.shape({
-        length: PropTypes.func,
-        substring: PropTypes.func,
+    customCodeValue: PropTypes.any,
+    embeddedCss: PropTypes.shape({
+        error: PropTypes.any,
+        requesting: PropTypes.any,
     }),
-    customCssValue: PropTypes.any,
+    handleSubmit: PropTypes.func,
     openModal: PropTypes.func,
     projectId: PropTypes.any,
+    resetEmbeddedCss: PropTypes.shape({
+        error: PropTypes.any,
+        requesting: PropTypes.any,
+    }),
     resetStatusBubbleId: PropTypes.func,
+    resetStatusPageEmbeddedCss: PropTypes.func,
     statusBubble: PropTypes.shape({
         error: PropTypes.any,
         requesting: PropTypes.any,
     }),
     statusBubbleId: PropTypes.any,
+    statusPage: PropTypes.shape({
+        status: PropTypes.shape({
+            _id: PropTypes.any,
+            colors: PropTypes.any,
+            projectId: PropTypes.shape({
+                _id: PropTypes.any,
+            }),
+        }),
+    }),
     statusPageId: PropTypes.any,
+    updateStatusPageEmbeddedCss: PropTypes.func,
 };
 
 const EmbeddedBubbleForm = reduxForm({
@@ -401,16 +560,29 @@ const EmbeddedBubbleForm = reduxForm({
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { resetStatusBubbleId, change, openModal, closeModal },
+        {
+            resetStatusBubbleId,
+            change,
+            openModal,
+            closeModal,
+            updateStatusPageEmbeddedCss,
+            resetStatusPageEmbeddedCss,
+        },
         dispatch
     );
 
 const mapStateToProps = state => {
-    const customCssValue = selector(state, 'embeddedCustomCSS');
     const customCodeValue = selector(state, 'embeddedcode');
-    const { statusBubbleId, _id, projectId, colors } = state.statusPage.status;
+    const {
+        statusBubbleId,
+        _id,
+        projectId,
+        colors,
+        embeddedCss,
+    } = state.statusPage.status;
     const url = `${API_URL}/statusPage/statusBubble?statusPageId=${_id}&statusBubbleId=${statusBubbleId}`;
-    const customCss = css(colors);
+    const customCss =
+        embeddedCss && embeddedCss.length ? embeddedCss : css(colors);
     const script = createScript(url, customCss);
     return {
         initialValues: { embeddedcode: script, embeddedCustomCSS: customCss },
@@ -418,8 +590,10 @@ const mapStateToProps = state => {
         statusPageId: _id,
         statusBubble: state.statusPage.statusBubble,
         projectId: projectId._id,
-        customCssValue,
         customCodeValue,
+        embeddedCss: state.statusPage.embeddedCss,
+        resetEmbeddedCss: state.statusPage.resetEmbeddedCss,
+        statusPage: state.statusPage,
     };
 };
 
