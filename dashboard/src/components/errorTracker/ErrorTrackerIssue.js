@@ -219,21 +219,55 @@ function ErrorTrackerIssue({
                     height: '1px',
                 }}
             >
-                <div
-                    className="db-ListViewItem-link"
-                    onClick={() => openEventMemberModal(errorTrackerIssue)}
-                >
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Flex-flex Flex-justifyContent--center Flex-alignItems--center">
-                        <img
-                            src="/dashboard/assets/img/user.svg"
-                            alt=""
-                            style={{
-                                marginBottom: '-5px',
-                                height: '20px',
-                                width: '20px',
-                                marginRight: '10px',
-                            }}
-                        />
+                <div className="db-ListViewItem-link Flex-flex  Flex-alignItems--center">
+                    <div className="Padding-all--8">
+                        {errorTrackerIssue.members.length > 0
+                            ? errorTrackerIssue.members.map((member, i) => {
+                                  return (
+                                      <div
+                                          key={i}
+                                          className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-all--2"
+                                          onClick={e => {
+                                              e.stopPropagation();
+                                              history.push(
+                                                  '/dashboard/profile/' +
+                                                      member.userId._id
+                                              );
+                                          }}
+                                      >
+                                          <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                              <span>
+                                                  {member.userId.name
+                                                      ? member.userId.name
+                                                      : member.userId.email
+                                                      ? member.userId.email
+                                                      : 'N/A'}
+                                              </span>
+                                          </span>
+                                      </div>
+                                  );
+                              })
+                            : null}
+
+                        <div
+                            className="Badge Badge--color--orange Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-all--2"
+                            onClick={() =>
+                                openEventMemberModal(errorTrackerIssue)
+                            }
+                        >
+                            <span className="Badge-text Text-color--orange Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                <img
+                                    src="/dashboard/assets/img/user.svg"
+                                    alt=""
+                                    style={{
+                                        height: '10px',
+                                        width: '10px',
+                                        marginRight: '5px',
+                                    }}
+                                />
+                                <span>Manage </span>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </td>

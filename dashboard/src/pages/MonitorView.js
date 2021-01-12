@@ -88,7 +88,10 @@ class MonitorView extends React.Component {
                 moment()
                     .subtract(1, 'd')
                     .utc(),
-                moment().utc()
+                moment().utc(),
+                null,
+                null,
+                monitor.type
             ); //0 -> skip, 5-> limit.
 
             this.props.fetchMonitorSlas(subProjectId);
@@ -128,7 +131,10 @@ class MonitorView extends React.Component {
             moment()
                 .subtract(1, 'd')
                 .utc(),
-            moment().utc()
+            moment().utc(),
+            null,
+            null,
+            monitor.type
         ); //0 -> skip, 5-> limit.
 
         this.props.fetchMonitorSlas(subProjectId);
@@ -651,6 +657,11 @@ class MonitorView extends React.Component {
                                                                                 }
                                                                             />
                                                                         </div>
+                                                                    </Fade>
+                                                                </TabPanel>
+
+                                                                <TabPanel>
+                                                                    <Fade>
                                                                         <div>
                                                                             <ThirdPartyVariables
                                                                                 monitor={
@@ -665,11 +676,6 @@ class MonitorView extends React.Component {
                                                                                 }
                                                                             />
                                                                         </div>
-                                                                    </Fade>
-                                                                </TabPanel>
-
-                                                                <TabPanel>
-                                                                    <Fade>
                                                                         <RenderIfSubProjectAdmin
                                                                             subProjectId={
                                                                                 subProjectId
