@@ -8,8 +8,8 @@ const GlobalConfigService = require('./globalConfigService');
 const EmailSmtpService = require('./emailSmtpService');
 const EmailStatusService = require('./emailStatusService');
 const DateTime = require('../utils/DateTime');
-const fs = require('fs');
 const Path = require('path');
+const fsp = require('fs/promises');
 
 const helpers = {
     year: DateTime.getCurrentYear,
@@ -62,18 +62,22 @@ const _this = {
     },
 
     getEmailBody: async function(mailOptions) {
-        const data = fs.readFileSync(
-            Path.resolve(
-                process.cwd(),
-                'views',
-                'email',
-                `${mailOptions.template}.hbs`
-            ),
-            { encoding: 'utf8', flag: 'r' }
-        );
-        let emailBody = Handlebars.compile(data);
-        emailBody = emailBody(mailOptions.context);
-        return emailBody;
+        try {
+            const data = await fsp.readFile(
+                Path.resolve(
+                    process.cwd(),
+                    'views',
+                    'email',
+                    `${mailOptions.template}.hbs`
+                ),
+                { encoding: 'utf8', flag: 'r' }
+            );
+            let emailBody = Handlebars.compile(data);
+            emailBody = emailBody(mailOptions.context);
+            return emailBody;
+        } catch (error) {
+            ErrorService.log('mailService.getEmailBody', error);
+        }
     },
     createMailer: async function({ host, port, user, pass, secure }) {
         if (!host || !user || !pass) {
@@ -155,6 +159,7 @@ const _this = {
     sendSignupMail: async function(userEmail, name) {
         const accountMail = await _this.getSmtpSettings();
         let mailOptions = {};
+        let EmailBody;
         try {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
@@ -169,7 +174,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -183,7 +188,6 @@ const _this = {
             }
 
             const info = await mailer.sendMail(mailOptions);
-
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -202,6 +206,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -212,6 +218,7 @@ const _this = {
         accountMail.name = 'Fyipe Support';
         accountMail.from = 'support@fyipe.com';
         let mailOptions = {};
+        let EmailBody;
         try {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
@@ -228,7 +235,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -261,12 +268,15 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: error.message,
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
     },
     sendVerifyEmail: async function(tokenVerifyURL, name, email) {
         let mailOptions = {};
+        let EmailBody;
         const accountMail = await _this.getSmtpSettings();
         try {
             mailOptions = {
@@ -281,7 +291,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -312,12 +322,15 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
     },
     sendLeadEmailToFyipeTeam: async function(lead) {
         let mailOptions = {};
+        let EmailBody;
         const accountMail = await _this.getSmtpSettings();
         try {
             mailOptions = {
@@ -332,7 +345,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -364,6 +377,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -371,6 +386,7 @@ const _this = {
 
     sendUserFeedbackResponse: async function(userEmail, name) {
         let mailOptions = {};
+        let EmailBody;
         const accountMail = await _this.getSmtpSettings();
         try {
             mailOptions = {
@@ -385,7 +401,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -416,6 +432,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -423,6 +441,7 @@ const _this = {
 
     sendRequestDemoEmail: async function(to) {
         let mailOptions = {};
+        let EmailBody;
         try {
             if (!to) {
                 const error = new Error('Email not found');
@@ -437,7 +456,7 @@ const _this = {
                     subject: 'Thank you for your demo request.',
                     template: 'request_demo_body',
                 };
-                const EmailBody = await _this.getEmailBody(mailOptions);
+                EmailBody = await _this.getEmailBody(mailOptions);
                 const mailer = await _this.createMailer({});
 
                 if (!mailer) {
@@ -471,6 +490,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -478,6 +499,7 @@ const _this = {
 
     sendWhitepaperEmail: async function(to, whitepaperName) {
         let mailOptions = {};
+        let EmailBody;
         try {
             if (!to || whitepaperName) {
                 const error = new Error('Email or Whitepaper found');
@@ -513,7 +535,7 @@ const _this = {
                     };
 
                     const mailer = await _this.createMailer({});
-                    const EmailBody = await _this.getEmailBody(mailOptions);
+                    EmailBody = await _this.getEmailBody(mailOptions);
                     if (!mailer) {
                         await EmailStatusService.create({
                             from: mailOptions.from,
@@ -547,6 +569,8 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Error',
+                    content: EmailBody,
+                    error: error.message,
                 });
             }
             throw error;
@@ -561,6 +585,7 @@ const _this = {
     // Returns: promise
     sendForgotPasswordMail: async function(forgotPasswordURL, email) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -574,7 +599,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -605,6 +630,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -616,7 +643,7 @@ const _this = {
     // Returns: promise
     sendResetPasswordConfirmMail: async function(email) {
         let mailOptions = {};
-
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -630,7 +657,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -661,6 +688,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -677,6 +706,7 @@ const _this = {
         registerUrl
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -692,7 +722,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -726,6 +756,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -737,6 +769,7 @@ const _this = {
         email
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -752,7 +785,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -786,6 +819,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -797,6 +832,7 @@ const _this = {
         email
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -811,7 +847,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -845,6 +881,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -856,6 +894,7 @@ const _this = {
         email
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -871,7 +910,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -905,6 +944,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -912,6 +953,7 @@ const _this = {
 
     sendNewStatusPageViewerMail: async function(project, addedByUser, email) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -927,7 +969,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -958,6 +1000,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -970,6 +1014,7 @@ const _this = {
         role
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -987,7 +1032,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1018,6 +1063,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1029,6 +1076,7 @@ const _this = {
         email
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -1045,7 +1093,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1079,6 +1127,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1090,6 +1140,7 @@ const _this = {
         email
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -1106,7 +1157,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1140,6 +1191,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1175,6 +1228,7 @@ const _this = {
         projectName,
     }) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getProjectSmtpSettings(projectId);
             let iconColor = '#94c800';
@@ -1219,7 +1273,7 @@ const _this = {
                     dashboardURL: global.dashboardHost,
                 },
             };
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             const mailer = await _this.createMailer(accountMail);
             if (!mailer) {
                 await EmailStatusService.create({
@@ -1251,6 +1305,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1280,6 +1336,7 @@ const _this = {
         replyAddress
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
@@ -1326,7 +1383,7 @@ const _this = {
                     },
                 };
             }
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1364,6 +1421,8 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1390,6 +1449,7 @@ const _this = {
         length,
     }) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getProjectSmtpSettings(projectId);
             mailOptions = {
@@ -1420,7 +1480,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer(accountMail);
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1451,6 +1511,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1476,6 +1538,7 @@ const _this = {
         length,
     }) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getProjectSmtpSettings(projectId);
             mailOptions = {
@@ -1505,7 +1568,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer(accountMail);
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1536,6 +1599,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1565,6 +1630,7 @@ const _this = {
         replyAddress
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
@@ -1611,7 +1677,7 @@ const _this = {
                     },
                 };
             }
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1649,6 +1715,8 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1679,6 +1747,7 @@ const _this = {
         statusNoteStatus
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
@@ -1713,7 +1782,7 @@ const _this = {
                 },
             };
             const info = await privateMailer.sendMail(mailOptions);
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -1736,6 +1805,8 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1765,6 +1836,7 @@ const _this = {
         replyAddress
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
@@ -1813,7 +1885,7 @@ const _this = {
                     },
                 };
             }
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1851,6 +1923,8 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1858,6 +1932,7 @@ const _this = {
 
     testSmtpConfig: async function(data) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const privateMailer = await _this.createMailer(data);
             mailOptions = {
@@ -1870,7 +1945,7 @@ const _this = {
                     ...data,
                 },
             };
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1913,6 +1988,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw err;
         }
@@ -1920,6 +1997,7 @@ const _this = {
 
     sendChangePlanMail: async function(projectName, oldPlan, newPlan, email) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -1937,7 +2015,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1968,6 +2046,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -1975,6 +2055,7 @@ const _this = {
 
     sendCreateProjectMail: async function(projectName, email) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
 
@@ -1991,7 +2072,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2022,6 +2103,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -2029,6 +2112,7 @@ const _this = {
 
     sendCreateSubProjectMail: async function(subProjectName, email) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -2043,7 +2127,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2074,6 +2158,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -2086,6 +2172,7 @@ const _this = {
         email
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -2102,7 +2189,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2133,6 +2220,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -2145,6 +2234,7 @@ const _this = {
         chargeAttemptStage
     ) {
         let mailOptions = {};
+        let EmailBody;
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
@@ -2161,7 +2251,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2192,6 +2282,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -2222,6 +2314,7 @@ const _this = {
     }) {
         const smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
+        let EmailBody;
         try {
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -2244,7 +2337,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer(smtpSettings);
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -2278,6 +2371,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: error.message,
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -2297,6 +2392,7 @@ const _this = {
     }) {
         const smtpSettings = await _this.getProjectSmtpSettings(projectId);
         let mailOptions = {};
+        let EmailBody;
         try {
             mailOptions = {
                 from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -2318,7 +2414,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer(smtpSettings);
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2351,6 +2447,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: error.message,
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -2366,6 +2464,7 @@ const _this = {
         accountMail.name = 'Fyipe Support';
         accountMail.from = 'support@fyipe.com';
         let mailOptions = {};
+        let EmailBody;
         try {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
@@ -2384,7 +2483,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2420,6 +2519,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: error.message,
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
@@ -2434,6 +2535,7 @@ const _this = {
         accountMail.name = 'Fyipe Support';
         accountMail.from = 'support@fyipe.com';
         let mailOptions = {};
+        let EmailBody;
         try {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
@@ -2451,7 +2553,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-            const EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2487,6 +2589,8 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: error.message,
+                content: EmailBody,
+                error: error.message,
             });
             throw error;
         }
