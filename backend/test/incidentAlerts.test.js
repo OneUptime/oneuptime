@@ -57,6 +57,8 @@ const AlertChargeService = require('../backend/services/alertChargeService');
 const { formatBalance } = require('../backend/utils/number');
 const TeamMembers = require('./utils/teamMembers');
 const MonitorCriteriaService = require('../backend/services/monitorCriteriaService');
+const { generateRandomString } = require('./utils/string');
+const generate = require('nanoid/generate');
 
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -883,7 +885,7 @@ describe('SMS/Calls Incident Alerts', function() {
             this.timeout(180 * 1000);
             // first add a team member
             const userData = {
-                email: `team1member@hackerbay.io`,
+                email: `${generateRandomString()}@fyipe.com`,
             };
             const newUser = await UserService.create(userData);
 
@@ -913,7 +915,7 @@ describe('SMS/Calls Incident Alerts', function() {
                 request,
                 authorization,
                 projectId,
-                name: 'team 1 schedule',
+                name: generateRandomString(),
             });
             expect(newSchedule).to.have.status(200);
 
@@ -970,7 +972,7 @@ describe('SMS/Calls Incident Alerts', function() {
                     componentId,
                     projectId,
                     type: 'url',
-                    name: 'test 1 monitor ',
+                    name: generateRandomString(10),
                     data: { url },
 
                     criteria,
@@ -1011,6 +1013,15 @@ describe('SMS/Calls Incident Alerts', function() {
                 updatedProject.users.filter(user => user.userId === newUserId)
             );
             expect(updatedProject.users).to.have.lengthOf(1);
+            // remove the monitor
+            const removedMonitor = await MonitorService.deleteBy(
+                {
+                    _id: newMonitorId,
+                },
+                newUserId
+            );
+            expect(removedMonitor.toJSON()).to.have.ownProperty('deleted').that
+                .is.true;
         });
 
         /**
@@ -1023,12 +1034,11 @@ describe('SMS/Calls Incident Alerts', function() {
         it('should use default criterion if no criterion is matched for an incident', async function() {
             /*
              * run the probe server for this test
-             * run it at a 3 second interval
              */
             this.timeout(120 * 1000);
             // first add a team member
             const userData = {
-                email: `team1member@hackerbay.io`,
+                email: `${generateRandomString}@fyipe.com`,
             };
             const newUser = await UserService.create(userData);
 
@@ -1058,7 +1068,7 @@ describe('SMS/Calls Incident Alerts', function() {
                 request,
                 authorization,
                 projectId,
-                name: 'team 1 schedule',
+                name: generateRandomString(10),
             });
             expect(newSchedule).to.have.status(200);
 
@@ -1098,7 +1108,10 @@ describe('SMS/Calls Incident Alerts', function() {
 
             // create criteria, but remove the all other down criteria so we only have default criteria
             const criteria = MonitorCriteriaService.create('url');
-            criteria.down.filter(criterion => criterion.default === true);
+            criteria.down = criteria.down.filter(
+                criterion => criterion.default === true
+            );
+            expect(criteria.down).to.have.lengthOf(1);
             // add a schedule to the default criterion
             criteria.down[0].scheduleIds = [newScheduleId];
             // create a new URL monitor, with a resource that will fail
@@ -1111,7 +1124,7 @@ describe('SMS/Calls Incident Alerts', function() {
                     componentId,
                     projectId,
                     type: 'url',
-                    name: 'test 1 monitor ',
+                    name: generateRandomString(),
                     data: { url },
 
                     criteria,
@@ -1152,6 +1165,16 @@ describe('SMS/Calls Incident Alerts', function() {
                 updatedProject.users.filter(user => user.userId === newUserId)
             );
             expect(updatedProject.users).to.have.lengthOf(1);
+
+            // remove the monitor
+            const removedMonitor = await MonitorService.deleteBy(
+                {
+                    _id: newMonitorId,
+                },
+                newUserId
+            );
+            expect(removedMonitor.toJSON()).to.have.ownProperty('deleted').that
+                .is.true;
         });
 
         /**
