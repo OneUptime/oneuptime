@@ -104,7 +104,6 @@ class ErrorTrackerDetailView extends Component {
             projectId,
             componentId,
             openModal,
-            teamMembers,
         } = this.props;
         let skip =
             errorTrackerIssues && errorTrackerIssues.skip
@@ -333,7 +332,6 @@ class ErrorTrackerDetailView extends Component {
                                                 openEventMemberModal={
                                                     this.openEventMemberModal
                                                 }
-                                                teamMembers={teamMembers}
                                             />
                                         );
                                     }
