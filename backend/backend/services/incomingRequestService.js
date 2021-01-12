@@ -534,7 +534,6 @@ module.exports = {
 
     handleIncomingRequestAction: async function(data) {
         const _this = this;
-        const filter = data.filter;
         try {
             let incomingRequest = null;
             if (isNaN(filter)) {
@@ -558,16 +557,10 @@ module.exports = {
                 });
             }
 
-            if (!incomingRequest) {
-                incomingRequest = await _this.findOneBy({
-                    _id: data.requestId,
-                    projectId: data.projectId,
-                    $or: [
-                        { filterText: { $exists: false } },
-                        { filterText: '' },
-                    ],
-                });
-            }
+            const incomingRequest = await _this.findOneBy({
+                _id: data.requestId,
+                projectId: data.projectId,
+            });
 
             let titleTemplate,
                 descriptionTemplate,
