@@ -297,6 +297,9 @@ class ErrorTrackerDetail extends Component {
                                                 this.handleFilterUpdate
                                             }
                                             formId="errorTrackerDateTimeForm"
+                                            showComponentWithIssue={
+                                                showComponentWithIssue
+                                            }
                                         />
                                     </ShouldRender>
                                     <ShouldRender if={errorTracker.editMode}>
