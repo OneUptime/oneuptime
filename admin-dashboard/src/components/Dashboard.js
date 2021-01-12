@@ -94,7 +94,7 @@ export class DashboardApp extends Component {
 
         return (
             <Fragment>
-                <ClickOutside onClickOutside={this.closeModal} />
+                {/* <ClickOutside onClickOutside={this.closeModal} /> */}
                 <ClickOutside onClickOutside={this.hideProfileMenu}>
                     <ProfileMenu visible={this.props.profile.menuVisible} />
                 </ClickOutside>
