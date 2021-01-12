@@ -366,7 +366,7 @@ class CreateIncomingRequest extends Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Create Incoming http Request</span>
+                                    <span>Create Incoming HTTP Request</span>
                                 </span>
                             </div>
                         </div>
@@ -1058,7 +1058,7 @@ class CreateIncomingRequest extends Component {
                                                                                   .fieldType
                                                                             : 'text'
                                                                     }
-                                                                    placeholder="response.body.value"
+                                                                    placeholder="request.body.value"
                                                                     id="filterText"
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                     style={{
@@ -1142,7 +1142,7 @@ class CreateIncomingRequest extends Component {
                                                                                 <code>
                                                                                     2
                                                                                     |
-                                                                                    response.query.value
+                                                                                    request.query.value
                                                                                 </code>
                                                                             </li>
                                                                             <li>
@@ -1153,6 +1153,31 @@ class CreateIncomingRequest extends Component {
                                                                                 </code>
                                                                             </li>
                                                                         </ul>
+                                                                    </p>
+                                                                    <p>
+                                                                        You can
+                                                                        pass the
+                                                                        value of{' '}
+                                                                        <code>
+                                                                            request
+                                                                        </code>{' '}
+                                                                        object
+                                                                        directly
+                                                                        or you
+                                                                        can
+                                                                        specify
+                                                                        the{' '}
+                                                                        <code>
+                                                                            request
+                                                                        </code>{' '}
+                                                                        body as
+                                                                        a
+                                                                        variable{' '}
+                                                                        <code>
+                                                                            {
+                                                                                '{{request.body.value}}'
+                                                                            }
+                                                                        </code>
                                                                     </p>
                                                                 </Tooltip>
                                                             </div>
@@ -1285,7 +1310,7 @@ class CreateIncomingRequest extends Component {
                                                                                       .fieldType
                                                                                 : 'text'
                                                                         }
-                                                                        placeholder="response.body.value"
+                                                                        placeholder="request.body.value"
                                                                         id="filterText"
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                         style={{
@@ -1371,7 +1396,7 @@ class CreateIncomingRequest extends Component {
                                                                                     <code>
                                                                                         2
                                                                                         |
-                                                                                        response.query.value
+                                                                                        request.query.value
                                                                                     </code>
                                                                                 </li>
                                                                                 <li>
@@ -1382,6 +1407,35 @@ class CreateIncomingRequest extends Component {
                                                                                     </code>
                                                                                 </li>
                                                                             </ul>
+                                                                        </p>
+                                                                        <p>
+                                                                            You
+                                                                            can
+                                                                            pass
+                                                                            the
+                                                                            value
+                                                                            of{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            object
+                                                                            directly
+                                                                            or
+                                                                            you
+                                                                            can
+                                                                            specify
+                                                                            the{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            body
+                                                                            as a
+                                                                            variable{' '}
+                                                                            <code>
+                                                                                {
+                                                                                    '{{request.body.value}}'
+                                                                                }
+                                                                            </code>
                                                                         </p>
                                                                     </Tooltip>
                                                                 </div>
@@ -1736,7 +1790,7 @@ class CreateIncomingRequest extends Component {
                                                                                       .fieldType
                                                                                 : 'text'
                                                                         }
-                                                                        placeholder="response.body.value"
+                                                                        placeholder="request.body.value"
                                                                         id="filterText"
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                         style={{
@@ -1822,7 +1876,7 @@ class CreateIncomingRequest extends Component {
                                                                                     <code>
                                                                                         2
                                                                                         |
-                                                                                        response.query.value
+                                                                                        request.query.value
                                                                                     </code>
                                                                                 </li>
                                                                                 <li>
@@ -1833,6 +1887,35 @@ class CreateIncomingRequest extends Component {
                                                                                     </code>
                                                                                 </li>
                                                                             </ul>
+                                                                        </p>
+                                                                        <p>
+                                                                            You
+                                                                            can
+                                                                            pass
+                                                                            the
+                                                                            value
+                                                                            of{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            object
+                                                                            directly
+                                                                            or
+                                                                            you
+                                                                            can
+                                                                            specify
+                                                                            the{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            body
+                                                                            as a
+                                                                            variable{' '}
+                                                                            <code>
+                                                                                {
+                                                                                    '{{request.body.value}}'
+                                                                                }
+                                                                            </code>
                                                                         </p>
                                                                     </Tooltip>
                                                                 </div>
