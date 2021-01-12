@@ -1,0 +1,254 @@
+[33mcommit b463b07de250d8ac054328ec4569d3ecaa784acd[m[33m ([m[1;36mHEAD -> [m[1;32meditable-incident-component[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m
+Merge: d5641381a b2849fcd1
+Author: Mohamed ABDELLANI <abdellani@gmail.com>
+Date:   Tue Jan 12 12:10:16 2021 +0000
+
+    Merge branch 'fix-ignore-eslintcache' into 'master'
+    
+    ignore .eslintcache
+    
+    See merge request fyipe-project/app!1459
+
+[33mcommit b2849fcd162865df391dc9de3eabae69bf0e74e7[m
+Author: Mohamed ABDELLANI <abdellani@gmail.com>
+Date:   Tue Jan 12 12:32:19 2021 +0100
+
+    ignore .eslintcache
+
+[33mcommit d5641381adfd8947f5a267e7241f2a4634161741[m
+Merge: 0ee1dc587 7346f77e8
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Tue Jan 12 10:34:26 2021 +0000
+
+    Merge branch 'incomingprobelog' into 'master'
+    
+    fixed http request name and monitor logs display for http request monitor
+    
+    See merge request fyipe-project/app!1458
+
+[33mcommit 7346f77e87570157301d8e0ac00650b42a224150[m
+Author: Nilanshu <nilanshu.kumar1994@gmail.com>
+Date:   Tue Jan 12 16:00:49 2021 +0530
+
+    fixed http request name and monitor logs display for http request monitor
+
+[33mcommit 0ee1dc5877600022cabcb50705dba2ad3a463f53[m
+Merge: 6050b1771 c4917e67b
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Tue Jan 12 08:57:14 2021 +0000
+
+    Merge branch 'fix-close-modal-on-click-outside' into 'master'
+    
+    closes a modal on clicking on a grey area
+    
+    See merge request fyipe-project/app!1457
+
+[33mcommit c4917e67bed0cf7562b78154ff915e768d748083[m
+Author: Baker Sekitoleko <b.alzawad@gmail.com>
+Date:   Tue Jan 12 11:42:44 2021 +0300
+
+    closes a modal on clicking on a grey area
+
+[33mcommit 6050b17717cd991b39984b8afd43399d18c17bbb[m
+Merge: 2704c9e00 b05147694
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Tue Jan 12 08:42:31 2021 +0000
+
+    Merge branch 'fix-investigation-ui' into 'master'
+    
+    Fix investigation ui
+    
+    See merge request fyipe-project/app!1456
+
+[33mcommit b0514769418f697c12326ebacd4a9303090f7e64[m
+Merge: aa623fcdf 2704c9e00
+Author: Igwe Augustine <augustusbest00@gmail.com>
+Date:   Tue Jan 12 09:36:16 2021 +0100
+
+    Merge branch 'master' of https://gitlab.com/fyipe-project/app into fix-investigation-ui
+
+[33mcommit aa623fcdf1a05ffb4435bfd7b3509e84c7a4850b[m
+Author: Igwe Augustine <augustusbest00@gmail.com>
+Date:   Tue Jan 12 09:35:47 2021 +0100
+
+    Investigation note UI redesign
+
+[33mcommit 2704c9e0012af745828231cc9a17f6d6871d3947[m
+Merge: 39f195c77 464634f0d
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Tue Jan 12 08:15:48 2021 +0000
+
+    Merge branch 'feature-error-tracking-member' into 'master'
+    
+    Feature error tracking member
+    
+    See merge request fyipe-project/app!1454
+
+[33mcommit 39f195c778ec0178e63d95f27599c3ef4cdd37a0[m
+Merge: a76c3ddba 422a8a82a
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Tue Jan 12 07:59:15 2021 +0000
+
+    Merge branch 'fix-smtp-settings-success-modal' into 'master'
+    
+    fixes the smtp settings success modal
+    
+    See merge request fyipe-project/app!1455
+
+[33mcommit 464634f0da8e5d2302739c2481eab5ff4444db89[m
+Author: Zadat Olayinka <bundayy@outlook.com>
+Date:   Tue Jan 12 08:27:59 2021 +0100
+
+    remove unused variables
+
+[33mcommit ec91594263303a767944e8ac0fcae1b3cd756358[m
+Merge: 66051f051 a76c3ddba
+Author: Zadat Olayinka <bundayy@outlook.com>
+Date:   Tue Jan 12 08:25:17 2021 +0100
+
+    Merge branch 'master' of https://gitlab.com/fyipe-project/app into feature-error-tracking-member
+
+[33mcommit 66051f0517d126f783467cb136693e060fb0fff1[m
+Author: Zadat Olayinka <bundayy@outlook.com>
+Date:   Tue Jan 12 08:09:50 2021 +0100
+
+    assigning team member refactored, UI + Process flow
+
+[33mcommit 422a8a82a511091f6b01f6440473757264ef5dad[m
+Author: Baker Sekitoleko <b.alzawad@gmail.com>
+Date:   Tue Jan 12 09:16:16 2021 +0300
+
+    fixes the smtp settings success modal
+
+[33mcommit a76c3ddba0c7293d089c446656d97a5157589702[m
+Merge: 21cec68e1 e8b4ea51d
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Tue Jan 12 04:58:26 2021 +0000
+
+    Merge branch 'feature-jira-integration' into 'master'
+    
+    Feature jira integration
+    
+    See merge request fyipe-project/app!1449
+
+[33mcommit e8b4ea51d79b0e7b89abcf3404a9423209907638[m
+Author: deityhub <judoc96@gmail.com>
+Date:   Mon Jan 11 20:37:50 2021 +0100
+
+    handle values passed on the request object
+
+[33mcommit d5d342dec7b7005cf42c30e99fa4a9eba4787f1d[m
+Author: deityhub <judoc96@gmail.com>
+Date:   Mon Jan 11 17:24:02 2021 +0100
+
+    minor fixes and show monitor custom fields on incoming http request form
+
+[33mcommit 2038bf15b66806626fe58c34bbb95e7d104865e6[m
+Author: deityhub <judoc96@gmail.com>
+Date:   Mon Jan 11 17:22:38 2021 +0100
+
+    refactor incident creation for incoming request to use monitor custom fields
+
+[33mcommit 59f4bf64c0acaa8336b22965c6a106a8fe8bfde1[m
+Author: deityhub <judoc96@gmail.com>
+Date:   Mon Jan 11 17:20:59 2021 +0100
+
+    enable both get and post request for incoming http request
+
+[33mcommit 21cec68e1e12415affb5ed71060242a6a86410fa[m
+Merge: f0e5f6ac6 80615f350
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Mon Jan 11 14:32:19 2021 +0000
+
+    Merge branch 'statusinitscript' into 'master'
+    
+    added init script for status bubble id
+    
+    See merge request fyipe-project/app!1453
+
+[33mcommit f0e5f6ac6cbe279067c623efd307ec35595bdcec[m
+Merge: a25401543 58973f455
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Mon Jan 11 14:31:39 2021 +0000
+
+    Merge branch 'fix-dashboard-audit' into 'master'
+    
+    fi-dashboard-audit
+    
+    See merge request fyipe-project/app!1452
+
+[33mcommit 80615f350ce2301da0f1c0b2f9bad4f1c2981415[m
+Author: Nilanshu <nilanshu.kumar1994@gmail.com>
+Date:   Mon Jan 11 19:57:21 2021 +0530
+
+    added init script for status bubble id
+
+[33mcommit 58973f455e93960807efe2033073e8b5bba4c038[m[33m ([m[1;31morigin/fix-dashboard-audit[m[33m, [m[1;32mfix-dashboard-audit[m[33m)[m
+Author: adeoluwadavid <adeoluwadavid@gmail.com>
+Date:   Mon Jan 11 15:04:40 2021 +0100
+
+    fi-dashboard-audit
+
+[33mcommit a2540154398d920a95428783014508a40c968dfa[m
+Merge: 287eef58d 69ea01486
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Mon Jan 11 13:55:56 2021 +0000
+
+    Merge branch 'embeddedcodefix' into 'master'
+    
+    fixed embedded code ui
+    
+    See merge request fyipe-project/app!1450
+
+[33mcommit 287eef58dc8a6020cfe9c60c0cd147cd40393bac[m
+Merge: 0f2f23008 635ec7f33
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Mon Jan 11 13:55:51 2021 +0000
+
+    Merge branch 'status-page-fix' into 'master'
+    
+    status-page
+    
+    See merge request fyipe-project/app!1451
+
+[33mcommit 635ec7f3315dda10de78e96191b7a00621556844[m[33m ([m[1;31morigin/status-page-fix[m[33m, [m[1;32mstatus-page-fix[m[33m)[m
+Author: adeoluwadavid <adeoluwadavid@gmail.com>
+Date:   Mon Jan 11 14:49:26 2021 +0100
+
+    status=page
+
+[33mcommit 69ea01486226ad55d076b337b1448da1cdc3ac6b[m
+Author: Nilanshu <nilanshu.kumar1994@gmail.com>
+Date:   Mon Jan 11 19:19:17 2021 +0530
+
+    fixed embedded code ui
+
+[33mcommit 0f2f23008cda70bef2c81b3748ff09c6d12b5efd[m
+Merge: ecea0a3c8 423a9ecde
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Mon Jan 11 13:25:30 2021 +0000
+
+    Merge branch 'server-monitor-test' into 'master'
+    
+    server-monitor-audit
+    
+    See merge request fyipe-project/app!1448
+
+[33mcommit 423a9ecde04489b7d32bad82488b32dc0715b298[m[33m ([m[1;31morigin/server-monitor-test[m[33m, [m[1;32mserver-monitor-test[m[33m)[m
+Author: adeoluwadavid <adeoluwadavid@gmail.com>
+Date:   Mon Jan 11 14:13:39 2021 +0100
+
+    server-monitor-audit
+
+[33mcommit ecea0a3c8a62c167e48279e40e8ee4852c1dfcb8[m
+Merge: 181902c5e d1d52968f
+Author: Nawaz Dhandala <nawazdhandala@outlook.com>
+Date:   Mon Jan 11 13:12:11 2021 +0000
+
+    Merge branch 'probe-test-fix' into 'master'
+    
+    probe-test-fix
+    
+    See merge request fyipe-project/app!1447
+
+[33mcommit d1d52968f30d937e428ce58be7c96a5cfdbfdd32[m[33m ([m[1;31morigin/probe-test-fix[m[33m, [
