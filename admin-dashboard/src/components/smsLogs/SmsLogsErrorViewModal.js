@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-class EmailLogsErrorViewModal extends Component {
+class SmsLogsErrorViewModal extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -23,7 +23,7 @@ class EmailLogsErrorViewModal extends Component {
     render() {
         const { isRequesting, error, closeThisDialog, content } = this.props;
         return (
-            <div className="db-EmailLogsContentViewModal ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
+            <div className="db-SmsLogsContentViewModal ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -39,8 +39,8 @@ class EmailLogsErrorViewModal extends Component {
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
-                                <div className="db-EmailLogsContentViewModal-ContentViewerWrapper">
-                                    <div className="db-EmailLogsContentViewModal-ContentViewerContainer">
+                                <div className="db-SmsLogsContentViewModal-ContentViewerWrapper">
+                                    <div className="db-SmsLogsContentViewModal-ContentViewerContainer">
                                         <span>{content}</span>
                                     </div>
                                 </div>
@@ -94,22 +94,22 @@ class EmailLogsErrorViewModal extends Component {
     }
 }
 
-EmailLogsErrorViewModal.displayName = 'EmailLogsErrorViewModal';
+SmsLogsErrorViewModal.displayName = 'SmsLogsErrorViewModal';
 
 const mapStateToProps = state => {
     return {
         isRequesting:
-            state.emailLogs &&
-            state.emailLogs.emailLogs &&
-            state.emailLogs.emailLogs.requesting,
+            state.smsLogs &&
+            state.smsLogs.smsLogs &&
+            state.smsLogs.smsLogs.requesting,
         error:
-            state.emailLogs &&
-            state.emailLogs.emailLogs &&
-            state.emailLogs.emailLogs.error,
+            state.smsLogs &&
+            state.smsLogs.smsLogs &&
+            state.smsLogs.smsLogs.error,
     };
 };
 
-EmailLogsErrorViewModal.propTypes = {
+SmsLogsErrorViewModal.propTypes = {
     isRequesting: PropTypes.oneOfType([
         PropTypes.bool,
         PropTypes.oneOf([null, undefined]),
@@ -122,4 +122,4 @@ EmailLogsErrorViewModal.propTypes = {
     ]),
 };
 
-export default connect(mapStateToProps)(EmailLogsErrorViewModal);
+export default connect(mapStateToProps)(SmsLogsErrorViewModal);
