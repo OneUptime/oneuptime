@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 
 const MessageModal = props => {
-    const { closeThisDialog, testError } = props;
+    const { closeThisDialog, testError, email } = props;
 
     return (
         <div
@@ -23,9 +23,11 @@ const MessageModal = props => {
                     >
                         <div className="bs-Modal-header">
                             <div className="bs-Modal-header-copy">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        {testError ? 'Test Failed' : 'Success'}
+                                        {testError
+                                            ? 'Test Failed'
+                                            : 'Test Email Sent'}
                                     </span>
                                 </span>
                             </div>
@@ -33,7 +35,7 @@ const MessageModal = props => {
                         <div className="Flex-flex bs-Modal-content">
                             <ShouldRender if={testError}>
                                 <span
-                                    className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-align--center Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                    className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                     style={{ flex: 1 }}
                                 >
                                     {testError}
@@ -41,10 +43,12 @@ const MessageModal = props => {
                             </ShouldRender>
                             <ShouldRender if={!testError}>
                                 <span
-                                    className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-align--center Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                    className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                     style={{ flex: 1 }}
                                 >
-                                    Test is successful
+                                    We&#39;ve successfully sent a test email to{' '}
+                                    {email}. If you do not see it, please check
+                                    spam.
                                 </span>
                             </ShouldRender>
                         </div>
@@ -71,6 +75,7 @@ MessageModal.displayName = 'MessageModal';
 MessageModal.propTypes = {
     closeThisDialog: PropTypes.func,
     testError: PropTypes.string,
+    email: PropTypes.string,
 };
 
 const mapStateToProps = state => {
