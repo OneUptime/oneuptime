@@ -9,6 +9,8 @@ const DOMPurify = createDOMPurify(window);
 const Handlebars = require('handlebars');
 const { isEmpty } = require('lodash');
 const IncidentMessageService = require('../services/incidentMessageService');
+const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
+const IncidentSettingsService = require('../services/incidentSettingsService');
 // const RealTimeService = require('./realTimeService');
 
 module.exports = {
@@ -535,27 +537,12 @@ module.exports = {
     handleIncomingRequestAction: async function(data) {
         const _this = this;
         try {
-            let incomingRequest = null;
-            if (isNaN(filter)) {
-                if (filter && filter.trim()) {
-                    incomingRequest = await _this.findOneBy({
-                        _id: data.requestId,
-                        projectId: data.projectId,
-                        filterText: filter,
-                    });
-                } else {
-                    incomingRequest = await _this.findOneBy({
-                        _id: data.requestId,
-                        projectId: data.projectId,
-                    });
-                }
-            } else {
-                incomingRequest = await _this.findOneBy({
-                    _id: data.requestId,
-                    projectId: data.projectId,
-                    filterText: Number(filter),
-                });
-            }
+            const incidentPriorities = await IncidentPrioritiesService.findBy({
+                projectId: data.projectId,
+            });
+            const incidentSettings = await IncidentSettingsService.findOne({
+                projectId: data.projectId,
+            });
 
             const incomingRequest = await _this.findOneBy({
                 _id: data.requestId,
@@ -651,50 +638,45 @@ module.exports = {
                         } else if (!isNaN(filterText)) {
                             // handle the case when filterText is a number
                             // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
-                            if (!isNaN(filter)) {
-                                if (filterCondition === 'lessThan') {
-                                    monitors = await MonitorService.findBy({
-                                        projectId: data.projectId,
-                                        'customFields.fieldName': filterCriteria,
-                                        'customFields.fieldValue': {
-                                            $lt: filterText,
-                                        },
-                                    });
-                                } else if (filterCondition === 'greaterThan') {
-                                    monitors = await MonitorService.findBy({
-                                        projectId: data.projectId,
-                                        'customFields.fieldName': filterCriteria,
-                                        'customFields.fieldValue': {
-                                            $gt: filterText,
-                                        },
-                                    });
-                                } else if (
-                                    filterCondition === 'lessThanOrEqualTo'
-                                ) {
-                                    monitors = await MonitorService.findBy({
-                                        projectId: data.projectId,
-                                        'customFields.fieldName': filterCriteria,
-                                        'customFields.fieldValue': {
-                                            $lte: filterText,
-                                        },
-                                    });
-                                } else if (
-                                    filterCondition === 'greaterThanOrEqualTo'
-                                ) {
-                                    monitors = await MonitorService.findBy({
-                                        projectId: data.projectId,
-                                        'customFields.fieldName': filterCriteria,
-                                        'customFields.fieldValue': {
-                                            $gte: filterText,
-                                        },
-                                    });
-                                }
+                            if (filterCondition === 'lessThan') {
+                                monitors = await MonitorService.findBy({
+                                    projectId: data.projectId,
+                                    'customFields.fieldName': filterCriteria,
+                                    'customFields.fieldValue': {
+                                        $lt: filterText,
+                                    },
+                                });
+                            } else if (filterCondition === 'greaterThan') {
+                                monitors = await MonitorService.findBy({
+                                    projectId: data.projectId,
+                                    'customFields.fieldName': filterCriteria,
+                                    'customFields.fieldValue': {
+                                        $gt: filterText,
+                                    },
+                                });
+                            } else if (
+                                filterCondition === 'lessThanOrEqualTo'
+                            ) {
+                                monitors = await MonitorService.findBy({
+                                    projectId: data.projectId,
+                                    'customFields.fieldName': filterCriteria,
+                                    'customFields.fieldValue': {
+                                        $lte: filterText,
+                                    },
+                                });
+                            } else if (
+                                filterCondition === 'greaterThanOrEqualTo'
+                            ) {
+                                monitors = await MonitorService.findBy({
+                                    projectId: data.projectId,
+                                    'customFields.fieldName': filterCriteria,
+                                    'customFields.fieldValue': {
+                                        $gte: filterText,
+                                    },
+                                });
                             }
                         }
 
-                        monitors = await MonitorService.findBy({
-                            projectId: data.projectId,
-                        });
                         for (const monitor of monitors) {
                             const dataConfig = {
                                 monitorName: monitor.name,
@@ -710,6 +692,32 @@ module.exports = {
                                 data.description = descriptionTemplate(
                                     dataConfig
                                 );
+                            }
+                            if (incidentTypeTemplate) {
+                                const incidentType = incidentTypeTemplate(
+                                    dataConfig
+                                );
+                                data.incidentType = [
+                                    'offline',
+                                    'online',
+                                    'degraded',
+                                ].includes(incidentType)
+                                    ? incidentType
+                                    : 'offline';
+                            }
+                            if (incidentPriorityTemplate) {
+                                const incidentPriority = incidentPriorityTemplate(
+                                    dataConfig
+                                );
+                                const priorityObj = {};
+                                incidentPriorities.forEach(
+                                    priority =>
+                                        (priorityObj[priority.name] =
+                                            priority._id)
+                                );
+                                data.incidentPriority =
+                                    priorityObj[incidentPriority] ||
+                                    incidentSettings.incidentPriority;
                             }
                             if (
                                 customFieldTemplates &&
@@ -769,82 +777,78 @@ module.exports = {
                         } else if (!isNaN(filterText)) {
                             // handle the case when filterText is a number
                             // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
-                            if (!isNaN(filter)) {
-                                if (filterCondition === 'lessThan') {
-                                    const matchedMonitor = [];
-                                    monitors.forEach(monitor => {
-                                        let added = false;
-                                        monitor.customFields.forEach(field => {
-                                            if (
-                                                field.fieldName ===
-                                                    filterCriteria &&
-                                                field.fieldValue < filterText &&
-                                                !added
-                                            ) {
-                                                matchedMonitor.push(monitor);
-                                                added = true;
-                                            }
-                                        });
+                            if (filterCondition === 'lessThan') {
+                                const matchedMonitor = [];
+                                monitors.forEach(monitor => {
+                                    let added = false;
+                                    monitor.customFields.forEach(field => {
+                                        if (
+                                            field.fieldName ===
+                                                filterCriteria &&
+                                            field.fieldValue < filterText &&
+                                            !added
+                                        ) {
+                                            matchedMonitor.push(monitor);
+                                            added = true;
+                                        }
                                     });
-                                    monitors = matchedMonitor;
-                                } else if (filterCondition === 'greaterThan') {
-                                    const matchedMonitor = [];
-                                    monitors.forEach(monitor => {
-                                        let added = false;
-                                        monitor.customFields.forEach(field => {
-                                            if (
-                                                field.fieldName ===
-                                                    filterCriteria &&
-                                                field.fieldValue > filterText &&
-                                                !added
-                                            ) {
-                                                matchedMonitor.push(monitor);
-                                                added = true;
-                                            }
-                                        });
+                                });
+                                monitors = matchedMonitor;
+                            } else if (filterCondition === 'greaterThan') {
+                                const matchedMonitor = [];
+                                monitors.forEach(monitor => {
+                                    let added = false;
+                                    monitor.customFields.forEach(field => {
+                                        if (
+                                            field.fieldName ===
+                                                filterCriteria &&
+                                            field.fieldValue > filterText &&
+                                            !added
+                                        ) {
+                                            matchedMonitor.push(monitor);
+                                            added = true;
+                                        }
                                     });
-                                    monitors = matchedMonitor;
-                                } else if (
-                                    filterCondition === 'lessThanOrEqualTo'
-                                ) {
-                                    const matchedMonitor = [];
-                                    monitors.forEach(monitor => {
-                                        let added = false;
-                                        monitor.customFields.forEach(field => {
-                                            if (
-                                                field.fieldName ===
-                                                    filterCriteria &&
-                                                field.fieldValue <=
-                                                    filterText &&
-                                                !added
-                                            ) {
-                                                matchedMonitor.push(monitor);
-                                                added = true;
-                                            }
-                                        });
+                                });
+                                monitors = matchedMonitor;
+                            } else if (
+                                filterCondition === 'lessThanOrEqualTo'
+                            ) {
+                                const matchedMonitor = [];
+                                monitors.forEach(monitor => {
+                                    let added = false;
+                                    monitor.customFields.forEach(field => {
+                                        if (
+                                            field.fieldName ===
+                                                filterCriteria &&
+                                            field.fieldValue <= filterText &&
+                                            !added
+                                        ) {
+                                            matchedMonitor.push(monitor);
+                                            added = true;
+                                        }
                                     });
-                                    monitors = matchedMonitor;
-                                } else if (
-                                    filterCondition === 'greaterThanOrEqualTo'
-                                ) {
-                                    const matchedMonitor = [];
-                                    monitors.forEach(monitor => {
-                                        let added = false;
-                                        monitor.customFields.forEach(field => {
-                                            if (
-                                                field.fieldName ===
-                                                    filterCriteria &&
-                                                field.fieldValue >=
-                                                    filterText &&
-                                                !added
-                                            ) {
-                                                matchedMonitor.push(monitor);
-                                                added = true;
-                                            }
-                                        });
+                                });
+                                monitors = matchedMonitor;
+                            } else if (
+                                filterCondition === 'greaterThanOrEqualTo'
+                            ) {
+                                const matchedMonitor = [];
+                                monitors.forEach(monitor => {
+                                    let added = false;
+                                    monitor.customFields.forEach(field => {
+                                        if (
+                                            field.fieldName ===
+                                                filterCriteria &&
+                                            field.fieldValue >= filterText &&
+                                            !added
+                                        ) {
+                                            matchedMonitor.push(monitor);
+                                            added = true;
+                                        }
                                     });
-                                    monitors = matchedMonitor;
-                                }
+                                });
+                                monitors = matchedMonitor;
                             }
                         }
 
@@ -903,6 +907,32 @@ module.exports = {
                                     dataConfig
                                 );
                             }
+                            if (incidentTypeTemplate) {
+                                const incidentType = incidentTypeTemplate(
+                                    dataConfig
+                                );
+                                data.incidentType = [
+                                    'offline',
+                                    'online',
+                                    'degraded',
+                                ].includes(incidentType)
+                                    ? incidentType
+                                    : 'offline';
+                            }
+                            if (incidentPriorityTemplate) {
+                                const incidentPriority = incidentPriorityTemplate(
+                                    dataConfig
+                                );
+                                const priorityObj = {};
+                                incidentPriorities.forEach(
+                                    priority =>
+                                        (priorityObj[priority.name] =
+                                            priority._id)
+                                );
+                                data.incidentPriority =
+                                    priorityObj[incidentPriority] ||
+                                    incidentSettings.incidentPriority;
+                            }
                             if (
                                 customFieldTemplates &&
                                 customFieldTemplates.length > 0
@@ -939,6 +969,32 @@ module.exports = {
                                 data.description = descriptionTemplate(
                                     dataConfig
                                 );
+                            }
+                            if (incidentTypeTemplate) {
+                                const incidentType = incidentTypeTemplate(
+                                    dataConfig
+                                );
+                                data.incidentType = [
+                                    'offline',
+                                    'online',
+                                    'degraded',
+                                ].includes(incidentType)
+                                    ? incidentType
+                                    : 'offline';
+                            }
+                            if (incidentPriorityTemplate) {
+                                const incidentPriority = incidentPriorityTemplate(
+                                    dataConfig
+                                );
+                                const priorityObj = {};
+                                incidentPriorities.forEach(
+                                    priority =>
+                                        (priorityObj[priority.name] =
+                                            priority._id)
+                                );
+                                data.incidentPriority =
+                                    priorityObj[incidentPriority] ||
+                                    incidentSettings.incidentPriority;
                             }
                             if (
                                 customFieldTemplates &&
@@ -980,9 +1036,19 @@ module.exports = {
                     : 'internal';
                 data.content = incomingRequest.noteContent;
 
+                if (incomingRequest.filterText) {
+                    const dataConfig = {
+                        request: data.request,
+                    };
+                    filterTextTemplate = Handlebars.compile(
+                        incomingRequest.filterText
+                    );
+                    filterTextTemplate = filterTextTemplate(dataConfig);
+                }
+
                 const filterCriteria = incomingRequest.filterCriteria,
                     filterCondition = incomingRequest.filterCondition,
-                    filterText = incomingRequest.filterText;
+                    filterText = filterTextTemplate;
 
                 const noteResponse = [];
                 if (
@@ -1077,9 +1143,19 @@ module.exports = {
                 (incomingRequest.acknowledgeIncident ||
                     incomingRequest.resolveIncident)
             ) {
+                if (incomingRequest.filterText) {
+                    const dataConfig = {
+                        request: data.request,
+                    };
+                    filterTextTemplate = Handlebars.compile(
+                        incomingRequest.filterText
+                    );
+                    filterTextTemplate = filterTextTemplate(dataConfig);
+                }
+
                 const filterCriteria = incomingRequest.filterCriteria,
                     filterCondition = incomingRequest.filterCondition,
-                    filterText = incomingRequest.filterText;
+                    filterText = filterTextTemplate;
 
                 const resolveResponse = [],
                     acknowledgeResponse = [];
