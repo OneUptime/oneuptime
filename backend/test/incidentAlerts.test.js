@@ -58,7 +58,6 @@ const { formatBalance } = require('../backend/utils/number');
 const TeamMembers = require('./utils/teamMembers');
 const MonitorCriteriaService = require('../backend/services/monitorCriteriaService');
 const { generateRandomString } = require('./utils/string');
-const generate = require('nanoid/generate');
 
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
