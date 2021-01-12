@@ -171,7 +171,8 @@ class NewMonitor extends Component {
                     values && values[`up_${this.props.index}_autoResolve`]
                         ? true
                         : false;
-            } else if (
+            }
+            if (
                 values &&
                 values[`degraded_${this.props.index}`] &&
                 values[`degraded_${this.props.index}`].length
@@ -190,22 +191,6 @@ class NewMonitor extends Component {
                         : false;
                 postObj.criteria.degraded.autoResolve =
                     values && values[`degraded_${this.props.index}_autoResolve`]
-                        ? true
-                        : false;
-            } else {
-                postObj.criteria.down = makeCriteria(
-                    values[`down_${this.props.index}`]
-                );
-                postObj.criteria.down.createAlert =
-                    values && values[`down_${this.props.index}_createAlert`]
-                        ? true
-                        : false;
-                postObj.criteria.down.autoAcknowledge =
-                    values && values[`down_${this.props.index}_autoAcknowledge`]
-                        ? true
-                        : false;
-                postObj.criteria.down.autoResolve =
-                    values && values[`down_${this.props.index}_autoResolve`]
                         ? true
                         : false;
             }
@@ -2339,6 +2324,7 @@ NewMonitor.propTypes = {
     project: PropTypes.object,
     currentPlanId: PropTypes.string,
     projectId: PropTypes.string,
+    componentId: PropTypes.string,
     subProjects: PropTypes.array,
     toggleEdit: PropTypes.func,
     logFile: PropTypes.func,
@@ -2350,17 +2336,9 @@ NewMonitor.propTypes = {
     uploadIdentityFile: PropTypes.func,
     fetchCommunicationSlas: PropTypes.func,
     incidentSlas: PropTypes.array,
-    fetchSlaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     requestingSla: PropTypes.bool,
     fetchMonitorSlas: PropTypes.func,
     monitorSlas: PropTypes.array,
-    fetchMonitorSlaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     requestingMonitorSla: PropTypes.bool,
 };
 

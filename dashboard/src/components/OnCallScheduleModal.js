@@ -50,14 +50,15 @@ class OnCallScheduleModal extends Component {
                                                         <b
                                                             onClick={() => {
                                                                 history.push(
-                                                                    `/dashboard/project/${this
-                                                                        .props
-                                                                        .data
-                                                                        .currentProjectId
+                                                                    `/dashboard/project/${
+                                                                        this
+                                                                            .props
+                                                                            .data
+                                                                            .currentProjectId
                                                                     }/sub-project/${schedule.projectId &&
-                                                                    schedule
-                                                                        .projectId
-                                                                        ._id}/schedule/${schedule.scheduleId &&
+                                                                        schedule
+                                                                            .projectId
+                                                                            ._id}/schedule/${schedule.scheduleId &&
                                                                         schedule
                                                                             .scheduleId
                                                                             ._id}`
@@ -95,36 +96,36 @@ class OnCallScheduleModal extends Component {
                                                             <span>
                                                                 {this.props.data
                                                                     .status ===
-                                                                    'active' ? (
-                                                                        <span>
-                                                                            Your
-                                                                            duty
+                                                                'active' ? (
+                                                                    <span>
+                                                                        Your
+                                                                        duty
                                                                         ends at{' '}
-                                                                            <b>
-                                                                                {moment(
-                                                                                    schedule.endTime,
-                                                                                    'HH:mm'
-                                                                                ).format(
-                                                                                    'hh:mm A'
-                                                                                )}
-                                                                                {schedule.timezone &&
-                                                                                    ` (${schedule.timezone})`}
-                                                                            </b>{' '}
+                                                                        <b>
+                                                                            {moment(
+                                                                                schedule.endTime,
+                                                                                'HH:mm'
+                                                                            ).format(
+                                                                                'hh:mm A'
+                                                                            )}
+                                                                            {schedule.timezone &&
+                                                                                ` (${schedule.timezone})`}
+                                                                        </b>{' '}
                                                                         and your
                                                                         next
                                                                         duty
                                                                         begins
                                                                         at
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span>
-                                                                            Your
-                                                                            next
-                                                                            duty
-                                                                            begins
-                                                                            at
-                                                                        </span>
-                                                                    )}{' '}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span>
+                                                                        Your
+                                                                        next
+                                                                        duty
+                                                                        begins
+                                                                        at
+                                                                    </span>
+                                                                )}{' '}
                                                                 <b>
                                                                     {moment(
                                                                         schedule.startTime,
@@ -149,18 +150,16 @@ class OnCallScheduleModal extends Component {
                                                                 </b>
                                                             </span>
                                                         ) : (
-                                                                <span>
-                                                                    You&#39;re
-                                                                    currently on
-                                                                call duty for {" "}
-                                                                    {
-                                                                        schedule.scheduleId &&
-                                                                        schedule
-                                                                            .scheduleId
-                                                                            .name
-                                                                    }
-                                                                </span>
-                                                            )}
+                                                            <span>
+                                                                You&#39;re
+                                                                currently on
+                                                                call duty for{' '}
+                                                                {schedule.scheduleId &&
+                                                                    schedule
+                                                                        .scheduleId
+                                                                        .name}
+                                                            </span>
+                                                        )}
                                                     </li>
                                                 );
                                             }

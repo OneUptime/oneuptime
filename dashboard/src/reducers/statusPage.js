@@ -65,6 +65,15 @@ import {
     FETCH_INCIDENT_STATUSPAGE_FAILURE,
     FETCH_INCIDENT_STATUSPAGE_SUCCESS,
     FETCH_INCIDENT_STATUSPAGE_RESET,
+    RESET_STATUS_BUBBLE_ID_REQUEST,
+    RESET_STATUS_BUBBLE_ID_SUCCESS,
+    RESET_STATUS_BUBBLE_ID_FAILURE,
+    UPDATE_STATUSPAGE_EMBEDDED_CSS_REQUEST,
+    UPDATE_STATUSPAGE_EMBEDDED_CSS_SUCCESS,
+    UPDATE_STATUSPAGE_EMBEDDED_CSS_FAILURE,
+    RESET_STATUSPAGE_EMBEDDED_CSS_REQUEST,
+    RESET_STATUSPAGE_EMBEDDED_CSS_SUCCESS,
+    RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE,
 } from '../constants/statusPage';
 
 import {
@@ -184,6 +193,21 @@ const INITIAL_STATE = {
     skip: null,
     pages: {
         counter: 1,
+    },
+    statusBubble: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    embeddedCss: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    resetEmbeddedCss: {
+        requesting: false,
+        success: false,
+        error: null,
     },
 };
 
@@ -1038,6 +1062,93 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     counter: 1,
                 },
             };
+
+        case RESET_STATUS_BUBBLE_ID_REQUEST:
+            return Object.assign({}, state, {
+                statusBubble: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case RESET_STATUS_BUBBLE_ID_SUCCESS:
+            status = action.payload;
+            return Object.assign({}, state, {
+                statusBubble: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status,
+            });
+
+        case RESET_STATUS_BUBBLE_ID_FAILURE:
+            return Object.assign({}, state, {
+                statusBubble: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case UPDATE_STATUSPAGE_EMBEDDED_CSS_REQUEST:
+            return Object.assign({}, state, {
+                embeddedCss: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case UPDATE_STATUSPAGE_EMBEDDED_CSS_SUCCESS:
+            status = action.payload;
+            return Object.assign({}, state, {
+                embeddedCss: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status,
+            });
+
+        case UPDATE_STATUSPAGE_EMBEDDED_CSS_FAILURE:
+            return Object.assign({}, state, {
+                embeddedCss: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case RESET_STATUSPAGE_EMBEDDED_CSS_REQUEST:
+            return Object.assign({}, state, {
+                resetEmbeddedCss: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case RESET_STATUSPAGE_EMBEDDED_CSS_SUCCESS:
+            status = action.payload;
+            return Object.assign({}, state, {
+                resetEmbeddedCss: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status,
+            });
+
+        case RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE:
+            return Object.assign({}, state, {
+                resetEmbeddedCss: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
 
         default:
             return state;

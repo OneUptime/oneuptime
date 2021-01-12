@@ -140,6 +140,7 @@ router.delete(
     }
 );
 
+// process incoming http request from post request
 router.post('/:projectId/request/:requestId', async function(req, res) {
     try {
         // target value key on request body, request query or request headers
@@ -149,20 +150,41 @@ router.post('/:projectId/request/:requestId', async function(req, res) {
 
         // request object for use in variables
         const request = {
-            body: { value: req.body.value },
-            query: { value: req.query.value },
-            headers: { value: req.headers.value },
+            body: { ...req.body },
+            query: { ...req.query },
+            headers: { ...req.headers },
         };
 
         const { projectId, requestId } = req.params;
         const data = { projectId, requestId, filter: externalFilter, request };
         await IncomingRequestService.handleIncomingRequestAction(data);
 
-        return sendItemResponse(
-            req,
-            res,
-            'Request accepted and handled appropriately ):'
-        );
+        return sendItemResponse(req, res, 'Success');
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// process incoming http request from get request
+router.get('/:projectId/request/:requestId', async function(req, res) {
+    try {
+        // target value key on request body, request query or request headers
+        // more may be added in the future
+        // request body won't be available on get request
+        const externalFilter = req.query.value || req.headers.value;
+
+        // request object for use in variables
+        const request = {
+            body: { ...req.body },
+            query: { ...req.query },
+            headers: { ...req.headers },
+        };
+
+        const { projectId, requestId } = req.params;
+        const data = { projectId, requestId, filter: externalFilter, request };
+        await IncomingRequestService.handleIncomingRequestAction(data);
+
+        return sendItemResponse(req, res, 'Success');
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

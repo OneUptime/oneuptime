@@ -14,6 +14,8 @@ import { RenderTextArea } from '../basic/RenderTextArea';
 import Tooltip from '../basic/Tooltip';
 import { incomingRequestVariables } from '../../config';
 import { fetchCustomFields } from '../../actions/customField';
+import { fetchCustomFields as fetchMonitorCustomFields } from '../../actions/monitorCustomField';
+import CodeEditor from '../basic/CodeEditor';
 
 function validate(values) {
     const errors = {};
@@ -37,9 +39,14 @@ class CreateIncomingRequest extends Component {
     };
 
     componentDidMount() {
-        const { fetchCustomFields, data } = this.props;
+        const {
+            fetchCustomFields,
+            data,
+            fetchMonitorCustomFields,
+        } = this.props;
         const { projectId } = data;
         fetchCustomFields(projectId);
+        fetchMonitorCustomFields(projectId);
 
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -61,49 +68,101 @@ class CreateIncomingRequest extends Component {
 
         postObj.name = values.name;
         postObj.isDefault = values.isDefault;
-        postObj.createIncident = values.createIncident;
 
-        postObj.filterCriteria = values.filterCriteria;
-        postObj.filterCondition = values.filterCondition;
-        if (isNaN(values.filterText)) {
-            postObj.filterText = values.filterText;
-        } else {
-            postObj.filterText = Number(values.filterText);
+        if (values.nextAction && values.nextAction === 'createIncident') {
+            postObj.createIncident = true;
+            postObj.filterCriteria = values.filterCriteria;
+            postObj.filterCondition = values.filterCondition;
+            if (isNaN(values.filterText)) {
+                postObj.filterText = values.filterText;
+            } else {
+                postObj.filterText = parseFloat(values.filterText);
+            }
+            postObj.incidentType = values.incidentType;
+            postObj.incidentTitle = values.incidentTitle;
+            postObj.incidentPriority = values.incidentPriority;
+            postObj.incidentDescription = values.incidentDescription;
+
+            postObj.customFields = customFields.map(field => ({
+                fieldName: field.fieldName,
+                fieldValue:
+                    field.fieldType === 'number'
+                        ? parseFloat(values[field.fieldName])
+                        : values[field.fieldName],
+            }));
+
+            postObj.monitors = [];
+            if (!postObj.isDefault) {
+                if (values.monitors && values.monitors.length > 0) {
+                    const monitors = values.monitors.filter(
+                        monitorId => typeof monitorId === 'string'
+                    );
+                    postObj.monitors = monitors;
+                }
+
+                const isDuplicate = postObj.monitors
+                    ? postObj.monitors.length === new Set(postObj.monitors).size
+                        ? false
+                        : true
+                    : false;
+
+                if (isDuplicate) {
+                    this.setState({
+                        monitorError: 'Duplicate monitor selection found',
+                    });
+                    postObj.monitors = [];
+                    return;
+                }
+            }
         }
-        postObj.incidentType = values.incidentType;
-        postObj.incidentTitle = values.incidentTitle;
-        postObj.incidentPriority = values.incidentPriority;
-        postObj.incidentDescription = values.incidentDescription;
 
-        postObj.customFields = customFields.map(field => ({
-            fieldName: field.fieldName,
-            fieldValue:
-                field.fieldType === 'number'
-                    ? parseFloat(values[field.fieldName])
-                    : values[field.fieldName],
-        }));
+        if (values.nextAction && values.nextAction === 'updateIncidentNote') {
+            postObj.updateIncidentNote = true;
+        }
 
-        postObj.monitors = [];
-        if (!postObj.isDefault) {
-            if (values.monitors && values.monitors.length > 0) {
-                const monitors = values.monitors.filter(
-                    monitorId => typeof monitorId === 'string'
-                );
-                postObj.monitors = monitors;
+        if (values.nextAction && values.nextAction === 'updateInternalNote') {
+            postObj.updateInternalNote = true;
+        }
+
+        if (
+            values.nextAction &&
+            (values.nextAction === 'updateIncidentNote' ||
+                values.nextAction === 'updateInternalNote')
+        ) {
+            postObj.filterCriteria = values.filterCriteria;
+            postObj.filterCondition = values.filterCondition;
+            if (isNaN(values.filterText)) {
+                postObj.filterText = values.filterText;
+            } else {
+                postObj.filterText = parseFloat(values.filterText);
             }
 
-            const isDuplicate = postObj.monitors
-                ? postObj.monitors.length === new Set(postObj.monitors).size
-                    ? false
-                    : true
-                : false;
+            postObj.noteContent = values.noteContent;
+            postObj.incidentState = values.incidentState;
+            if (values.incidentState === 'others') {
+                postObj.incidentState = values.customIncidentState;
+            }
+        }
 
-            if (isDuplicate) {
-                this.setState({
-                    monitorError: 'Duplicate monitor selection found',
-                });
-                postObj.monitors = [];
-                return;
+        if (values.nextAction && values.nextAction === 'acknowledgeIncident') {
+            postObj.acknowledgeIncident = true;
+        }
+
+        if (values.nextAction && values.nextAction === 'resolveIncident') {
+            postObj.resolveIncident = true;
+        }
+
+        if (
+            values.nextAction &&
+            (values.nextAction === 'acknowledgeIncident' ||
+                values.nextAction === 'resolveIncident')
+        ) {
+            postObj.filterCriteria = values.filterCriteria;
+            postObj.filterCondition = values.filterCondition;
+            if (isNaN(values.filterText)) {
+                postObj.filterText = values.filterText;
+            } else {
+                postObj.filterText = parseFloat(values.filterText);
             }
         }
 
@@ -264,6 +323,10 @@ class CreateIncomingRequest extends Component {
             !this.props.formValues.showAvailableVariables
         );
 
+    onContentChange = val => {
+        this.props.change('noteContent', val);
+    };
+
     render() {
         const {
             handleSubmit,
@@ -272,6 +335,7 @@ class CreateIncomingRequest extends Component {
             closeModal,
             incidentPriorities,
             customFields,
+            monitorCustomFields,
         } = this.props;
         const { projectId } = data;
 
@@ -292,7 +356,7 @@ class CreateIncomingRequest extends Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Create Incoming Request</span>
+                                    <span>Create Incoming http Request</span>
                                 </span>
                             </div>
                         </div>
@@ -347,49 +411,7 @@ class CreateIncomingRequest extends Component {
                                         </div>
                                     </fieldset>
 
-                                    {formValues && !formValues.isDefault && (
-                                        <fieldset className="Margin-bottom--16">
-                                            <div className="bs-Fieldset-rows">
-                                                <div
-                                                    className="bs-Fieldset-row"
-                                                    style={{ padding: 0 }}
-                                                >
-                                                    <label
-                                                        className="bs-Fieldset-label Text-align--left"
-                                                        style={{
-                                                            flexBasis: '20%',
-                                                        }}
-                                                    >
-                                                        <span>Monitors</span>
-                                                    </label>
-                                                    <div
-                                                        className="bs-Fieldset-fields"
-                                                        style={{
-                                                            flexBasis: '80%',
-                                                            maxWidth: '80%',
-                                                        }}
-                                                    >
-                                                        <div
-                                                            className="bs-Fieldset-field"
-                                                            style={{
-                                                                width: '100%',
-                                                            }}
-                                                        >
-                                                            <FieldArray
-                                                                name="monitors"
-                                                                component={
-                                                                    this
-                                                                        .renderMonitors
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </fieldset>
-                                    )}
-
-                                    <fieldset className="Margin-bottom--16">
+                                    <fieldset style={{ paddingTop: 0 }}>
                                         <div className="bs-Fieldset-rows">
                                             <div
                                                 className="bs-Fieldset-row"
@@ -397,61 +419,33 @@ class CreateIncomingRequest extends Component {
                                             >
                                                 <label
                                                     className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="isDefault"
-                                                    style={{ flexBasis: '20%' }}
-                                                >
-                                                    <span></span>
-                                                </label>
+                                                    style={{
+                                                        flexBasis: '20%',
+                                                    }}
+                                                ></label>
                                                 <div
                                                     className="bs-Fieldset-fields"
                                                     style={{
-                                                        paddingTop: '6px',
                                                         flexBasis: '80%',
                                                         maxWidth: '80%',
                                                     }}
                                                 >
-                                                    <div className="bs-Fieldset-field">
-                                                        <label
-                                                            className="Checkbox"
-                                                            style={{
-                                                                marginRight:
-                                                                    '12px',
-                                                            }}
-                                                            htmlFor="isDefault"
-                                                        >
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name="isDefault"
-                                                                className="Checkbox-source"
-                                                                id="isDefault"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    Use as
-                                                                    default
-                                                                    incoming
-                                                                    request
-                                                                </span>
-                                                            </div>
-                                                        </label>
+                                                    <div
+                                                        className="bs-Fieldset-field"
+                                                        style={{
+                                                            width: '100%',
+                                                            fontWeight: 500,
+                                                        }}
+                                                    >
+                                                        What would you like to
+                                                        do
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </fieldset>
-                                    <fieldset className="Margin-bottom--16">
+
+                                    <fieldset>
                                         <div className="bs-Fieldset-rows">
                                             <div
                                                 className="bs-Fieldset-row"
@@ -474,7 +468,7 @@ class CreateIncomingRequest extends Component {
                                                 >
                                                     <div className="bs-Fieldset-field">
                                                         <label
-                                                            className="Checkbox"
+                                                            className="bs-Radio"
                                                             style={{
                                                                 marginRight:
                                                                     '12px',
@@ -483,16 +477,16 @@ class CreateIncomingRequest extends Component {
                                                         >
                                                             <Field
                                                                 component="input"
-                                                                type="checkbox"
-                                                                name="createIncident"
-                                                                className="Checkbox-source"
+                                                                type="radio"
+                                                                name="nextAction"
+                                                                className="bs-Radio-source"
                                                                 id="createIncident"
+                                                                value="createIncident"
+                                                                style={{
+                                                                    width: 0,
+                                                                }}
                                                             />
-                                                            <div className="Checkbox-box Box-root Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
+                                                            <span className="bs-Radio-button"></span>
                                                             <div
                                                                 className="Box-root"
                                                                 style={{
@@ -511,6 +505,380 @@ class CreateIncomingRequest extends Component {
                                             </div>
                                         </div>
                                     </fieldset>
+
+                                    <fieldset>
+                                        <div className="bs-Fieldset-rows">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ padding: 0 }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label Text-align--left"
+                                                    htmlFor="acknowledgeIncident"
+                                                    style={{ flexBasis: '20%' }}
+                                                >
+                                                    <span></span>
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{
+                                                        paddingTop: '6px',
+                                                        flexBasis: '80%',
+                                                        maxWidth: '80%',
+                                                    }}
+                                                >
+                                                    <div className="bs-Fieldset-field">
+                                                        <label
+                                                            className="bs-Radio"
+                                                            style={{
+                                                                marginRight:
+                                                                    '12px',
+                                                            }}
+                                                            htmlFor="acknowledgeIncident"
+                                                        >
+                                                            <Field
+                                                                component="input"
+                                                                type="radio"
+                                                                name="nextAction"
+                                                                className="bs-Radio-source"
+                                                                id="acknowledgeIncident"
+                                                                value="acknowledgeIncident"
+                                                                style={{
+                                                                    width: 0,
+                                                                }}
+                                                            />
+                                                            <span className="bs-Radio-button"></span>
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    paddingLeft:
+                                                                        '5px',
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Acknowledge
+                                                                    Incident
+                                                                </span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+
+                                    <fieldset>
+                                        <div className="bs-Fieldset-rows">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ padding: 0 }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label Text-align--left"
+                                                    htmlFor="resolveIncident"
+                                                    style={{ flexBasis: '20%' }}
+                                                >
+                                                    <span></span>
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{
+                                                        paddingTop: '6px',
+                                                        flexBasis: '80%',
+                                                        maxWidth: '80%',
+                                                    }}
+                                                >
+                                                    <div className="bs-Fieldset-field">
+                                                        <label
+                                                            className="bs-Radio"
+                                                            style={{
+                                                                marginRight:
+                                                                    '12px',
+                                                            }}
+                                                            htmlFor="resolveIncident"
+                                                        >
+                                                            <Field
+                                                                component="input"
+                                                                type="radio"
+                                                                name="nextAction"
+                                                                className="bs-Radio-source"
+                                                                id="resolveIncident"
+                                                                value="resolveIncident"
+                                                                style={{
+                                                                    width: 0,
+                                                                }}
+                                                            />
+                                                            <span className="bs-Radio-button"></span>
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    paddingLeft:
+                                                                        '5px',
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Resolve
+                                                                    Incident
+                                                                </span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+
+                                    <fieldset>
+                                        <div className="bs-Fieldset-rows">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ padding: 0 }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label Text-align--left"
+                                                    htmlFor="updateIncidentNote"
+                                                    style={{ flexBasis: '20%' }}
+                                                >
+                                                    <span></span>
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{
+                                                        paddingTop: '6px',
+                                                        flexBasis: '80%',
+                                                        maxWidth: '80%',
+                                                    }}
+                                                >
+                                                    <div className="bs-Fieldset-field">
+                                                        <label
+                                                            className="bs-Radio"
+                                                            style={{
+                                                                marginRight:
+                                                                    '12px',
+                                                            }}
+                                                            htmlFor="updateIncidentNote"
+                                                        >
+                                                            <Field
+                                                                component="input"
+                                                                type="radio"
+                                                                name="nextAction"
+                                                                className="bs-Radio-source"
+                                                                id="updateIncidentNote"
+                                                                value="updateIncidentNote"
+                                                                style={{
+                                                                    width: 0,
+                                                                }}
+                                                            />
+                                                            <span className="bs-Radio-button"></span>
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    paddingLeft:
+                                                                        '5px',
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Update
+                                                                    Incident
+                                                                    Note
+                                                                </span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+
+                                    <fieldset className="Margin-bottom--16">
+                                        <div className="bs-Fieldset-rows">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ padding: 0 }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label Text-align--left"
+                                                    htmlFor="updateInternalNote"
+                                                    style={{ flexBasis: '20%' }}
+                                                >
+                                                    <span></span>
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{
+                                                        paddingTop: '6px',
+                                                        flexBasis: '80%',
+                                                        maxWidth: '80%',
+                                                    }}
+                                                >
+                                                    <div className="bs-Fieldset-field">
+                                                        <label
+                                                            className="bs-Radio"
+                                                            style={{
+                                                                marginRight:
+                                                                    '12px',
+                                                            }}
+                                                            htmlFor="updateInternalNote"
+                                                        >
+                                                            <Field
+                                                                component="input"
+                                                                type="radio"
+                                                                name="nextAction"
+                                                                className="bs-Radio-source"
+                                                                id="updateInternalNote"
+                                                                value="updateInternalNote"
+                                                                style={{
+                                                                    width: 0,
+                                                                }}
+                                                            />
+                                                            <span className="bs-Radio-button"></span>
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    paddingLeft:
+                                                                        '5px',
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Update
+                                                                    Internal
+                                                                    Note
+                                                                </span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+
+                                    {formValues &&
+                                        !formValues.isDefault &&
+                                        formValues.nextAction ===
+                                            'createIncident' && (
+                                            <>
+                                                <fieldset className="Margin-bottom--16">
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            <label
+                                                                className="bs-Fieldset-label Text-align--left"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '20%',
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Monitors
+                                                                </span>
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '80%',
+                                                                    maxWidth:
+                                                                        '80%',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                >
+                                                                    <FieldArray
+                                                                        name="monitors"
+                                                                        component={
+                                                                            this
+                                                                                .renderMonitors
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
+
+                                                <fieldset className="Margin-bottom--16">
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            <label
+                                                                className="bs-Fieldset-label Text-align--left"
+                                                                htmlFor="isDefault"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '20%',
+                                                                }}
+                                                            >
+                                                                <span></span>
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    paddingTop:
+                                                                        '6px',
+                                                                    flexBasis:
+                                                                        '80%',
+                                                                    maxWidth:
+                                                                        '80%',
+                                                                }}
+                                                            >
+                                                                <div className="bs-Fieldset-field">
+                                                                    <label
+                                                                        className="Checkbox"
+                                                                        style={{
+                                                                            marginRight:
+                                                                                '12px',
+                                                                        }}
+                                                                        htmlFor="isDefault"
+                                                                    >
+                                                                        <Field
+                                                                            component="input"
+                                                                            type="checkbox"
+                                                                            name="isDefault"
+                                                                            className="Checkbox-source"
+                                                                            id="isDefault"
+                                                                        />
+                                                                        <div className="Checkbox-box Box-root Margin-right--2">
+                                                                            <div className="Checkbox-target Box-root">
+                                                                                <div className="Checkbox-color Box-root"></div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div
+                                                                            className="Box-root"
+                                                                            style={{
+                                                                                paddingLeft:
+                                                                                    '5px',
+                                                                            }}
+                                                                        >
+                                                                            <span>
+                                                                                Use
+                                                                                as
+                                                                                default
+                                                                                incoming
+                                                                                request
+                                                                            </span>
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
+                                            </>
+                                        )}
+
                                     <fieldset style={{ paddingTop: 0 }}>
                                         <div className="bs-Fieldset-rows">
                                             <div
@@ -560,8 +928,236 @@ class CreateIncomingRequest extends Component {
                                             </div>
                                         </div>
                                     </fieldset>
+
                                     {formValues &&
-                                        formValues.showAdvancedOptions && (
+                                        formValues.showAdvancedOptions &&
+                                        (formValues.nextAction ===
+                                            'acknowledgeIncident' ||
+                                            formValues.nextAction ===
+                                                'resolveIncident') && (
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            padding: 0,
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            style={{
+                                                                flexBasis:
+                                                                    '20%',
+                                                            }}
+                                                        >
+                                                            <span>Filters</span>
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                flexBasis:
+                                                                    '80%',
+                                                                maxWidth: '80%',
+                                                            }}
+                                                        >
+                                                            <div
+                                                                className="bs-Fieldset-field"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    className="db-select-nw Table-cell--width--maximized"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="filterCriteria"
+                                                                    id="filterCriteria"
+                                                                    placeholder="Criteria"
+                                                                    style={{
+                                                                        height:
+                                                                            '28px',
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                'incidentId',
+                                                                            label:
+                                                                                'Incident ID',
+                                                                        },
+                                                                        ...customFields.map(
+                                                                            field => ({
+                                                                                value:
+                                                                                    field.fieldName,
+                                                                                label:
+                                                                                    field.fieldName,
+                                                                            })
+                                                                        ),
+                                                                    ]}
+                                                                />
+                                                                <Field
+                                                                    className="db-select-nw Table-cell--width--maximized"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="filterCondition"
+                                                                    id="filterCondition"
+                                                                    placeholder="Condition"
+                                                                    style={{
+                                                                        height:
+                                                                            '28px',
+                                                                        width:
+                                                                            '100%',
+                                                                        marginLeft: 5,
+                                                                    }}
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                'equalTo',
+                                                                            label:
+                                                                                'Equal To',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                'notEqualTo',
+                                                                            label:
+                                                                                'Not Equal To',
+                                                                        },
+                                                                    ]}
+                                                                />
+                                                                <Field
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    name="filterText"
+                                                                    type={
+                                                                        formValues.filterCriteria
+                                                                            ? (
+                                                                                  customFields.find(
+                                                                                      field =>
+                                                                                          field.fieldName ===
+                                                                                          formValues.filterCriteria
+                                                                                  ) || {
+                                                                                      fieldType:
+                                                                                          'text',
+                                                                                  }
+                                                                              )
+                                                                                  .fieldType
+                                                                            : 'text'
+                                                                    }
+                                                                    placeholder="response.body.value"
+                                                                    id="filterText"
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                        padding:
+                                                                            '3px 5px',
+                                                                        marginLeft: 5,
+                                                                    }}
+                                                                    parentStyle={{
+                                                                        marginRight: 5,
+                                                                    }}
+                                                                />
+                                                                <Tooltip title="Incoming http Request Filter">
+                                                                    <p>
+                                                                        Filter
+                                                                        exposes
+                                                                        the{' '}
+                                                                        <code>
+                                                                            request
+                                                                        </code>{' '}
+                                                                        object
+                                                                        of an
+                                                                        incoming
+                                                                        request.
+                                                                        The
+                                                                        value on
+                                                                        the{' '}
+                                                                        <code>
+                                                                            request
+                                                                        </code>{' '}
+                                                                        object
+                                                                        can
+                                                                        either
+                                                                        be a
+                                                                        string
+                                                                        or a
+                                                                        number
+                                                                    </p>
+                                                                    <p>
+                                                                        Example
+                                                                        properties
+                                                                        include
+                                                                        the
+                                                                        following:
+                                                                    </p>
+                                                                    <p>
+                                                                        <ul>
+                                                                            <li>
+                                                                                <code>
+                                                                                    request.body
+                                                                                </code>
+                                                                            </li>
+                                                                            <li>
+                                                                                <code>
+                                                                                    request.query
+                                                                                </code>
+                                                                            </li>
+                                                                            <li>
+                                                                                <code>
+                                                                                    request.headers
+                                                                                </code>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </p>
+                                                                    <p>
+                                                                        Usage
+                                                                        examples
+                                                                        include:
+                                                                    </p>
+                                                                    <p>
+                                                                        <ul>
+                                                                            <li>
+                                                                                <code>
+                                                                                    1
+                                                                                    |
+                                                                                    request.body.value
+                                                                                </code>
+                                                                            </li>
+                                                                            <li>
+                                                                                <code>
+                                                                                    2
+                                                                                    |
+                                                                                    response.query.value
+                                                                                </code>
+                                                                            </li>
+                                                                            <li>
+                                                                                <code>
+                                                                                    3
+                                                                                    |
+                                                                                    request.header.value
+                                                                                </code>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </p>
+                                                                </Tooltip>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        )}
+
+                                    {formValues &&
+                                        formValues.showAdvancedOptions &&
+                                        (formValues.nextAction ===
+                                            'updateInternalNote' ||
+                                            formValues.nextAction ===
+                                                'updateIncidentNote') && (
                                             <>
                                                 <fieldset className="Margin-bottom--16">
                                                     <div className="bs-Fieldset-rows">
@@ -615,10 +1211,445 @@ class CreateIncomingRequest extends Component {
                                                                         options={[
                                                                             {
                                                                                 value:
-                                                                                    'thirdPartyVariable',
+                                                                                    'incidentId',
                                                                                 label:
-                                                                                    'Third Party Variables',
+                                                                                    'Incident ID',
                                                                             },
+                                                                            ...customFields.map(
+                                                                                field => ({
+                                                                                    value:
+                                                                                        field.fieldName,
+                                                                                    label:
+                                                                                        field.fieldName,
+                                                                                })
+                                                                            ),
+                                                                        ]}
+                                                                    />
+                                                                    <Field
+                                                                        className="db-select-nw Table-cell--width--maximized"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="filterCondition"
+                                                                        id="filterCondition"
+                                                                        placeholder="Condition"
+                                                                        style={{
+                                                                            height:
+                                                                                '28px',
+                                                                            width:
+                                                                                '100%',
+                                                                            marginLeft: 5,
+                                                                        }}
+                                                                        options={[
+                                                                            {
+                                                                                value:
+                                                                                    'equalTo',
+                                                                                label:
+                                                                                    'Equal To',
+                                                                            },
+                                                                            {
+                                                                                value:
+                                                                                    'notEqualTo',
+                                                                                label:
+                                                                                    'Not Equal To',
+                                                                            },
+                                                                        ]}
+                                                                    />
+                                                                    <Field
+                                                                        component={
+                                                                            RenderField
+                                                                        }
+                                                                        name="filterText"
+                                                                        type={
+                                                                            formValues.filterCriteria
+                                                                                ? (
+                                                                                      customFields.find(
+                                                                                          field =>
+                                                                                              field.fieldName ===
+                                                                                              formValues.filterCriteria
+                                                                                      ) || {
+                                                                                          fieldType:
+                                                                                              'text',
+                                                                                      }
+                                                                                  )
+                                                                                      .fieldType
+                                                                                : 'text'
+                                                                        }
+                                                                        placeholder="response.body.value"
+                                                                        id="filterText"
+                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                        style={{
+                                                                            width:
+                                                                                '100%',
+                                                                            padding:
+                                                                                '3px 5px',
+                                                                            marginLeft: 5,
+                                                                        }}
+                                                                        parentStyle={{
+                                                                            marginRight: 5,
+                                                                        }}
+                                                                    />
+                                                                    <Tooltip title="Incoming http Request Filter">
+                                                                        <p>
+                                                                            Filter
+                                                                            exposes
+                                                                            the{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            object
+                                                                            of
+                                                                            an
+                                                                            incoming
+                                                                            request.
+                                                                            The
+                                                                            value
+                                                                            on
+                                                                            the{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            object
+                                                                            can
+                                                                            either
+                                                                            be a
+                                                                            string
+                                                                            or a
+                                                                            number
+                                                                        </p>
+                                                                        <p>
+                                                                            Example
+                                                                            properties
+                                                                            include
+                                                                            the
+                                                                            following:
+                                                                        </p>
+                                                                        <p>
+                                                                            <ul>
+                                                                                <li>
+                                                                                    <code>
+                                                                                        request.body
+                                                                                    </code>
+                                                                                </li>
+                                                                                <li>
+                                                                                    <code>
+                                                                                        request.query
+                                                                                    </code>
+                                                                                </li>
+                                                                                <li>
+                                                                                    <code>
+                                                                                        request.headers
+                                                                                    </code>
+                                                                                </li>
+                                                                            </ul>
+                                                                        </p>
+                                                                        <p>
+                                                                            Usage
+                                                                            examples
+                                                                            include:
+                                                                        </p>
+                                                                        <p>
+                                                                            <ul>
+                                                                                <li>
+                                                                                    <code>
+                                                                                        1
+                                                                                        |
+                                                                                        request.body.value
+                                                                                    </code>
+                                                                                </li>
+                                                                                <li>
+                                                                                    <code>
+                                                                                        2
+                                                                                        |
+                                                                                        response.query.value
+                                                                                    </code>
+                                                                                </li>
+                                                                                <li>
+                                                                                    <code>
+                                                                                        3
+                                                                                        |
+                                                                                        request.header.value
+                                                                                    </code>
+                                                                                </li>
+                                                                            </ul>
+                                                                        </p>
+                                                                    </Tooltip>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
+
+                                                <fieldset className="Margin-bottom--16">
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            <label
+                                                                className="bs-Fieldset-label Text-align--left"
+                                                                htmlFor="incidentState"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '20%',
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Incident
+                                                                    State
+                                                                </span>
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '80%',
+                                                                    maxWidth:
+                                                                        '80%',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                >
+                                                                    <Field
+                                                                        className="db-select-nw-300"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="incidentState"
+                                                                        id="incidentState"
+                                                                        placeholder="Incident State"
+                                                                        disabled={
+                                                                            false
+                                                                        }
+                                                                        style={{
+                                                                            width:
+                                                                                '100%',
+                                                                        }}
+                                                                        options={[
+                                                                            {
+                                                                                value:
+                                                                                    'investigating',
+                                                                                label:
+                                                                                    'Investigating',
+                                                                            },
+                                                                            {
+                                                                                value:
+                                                                                    'update',
+                                                                                label:
+                                                                                    'Update',
+                                                                            },
+                                                                            {
+                                                                                value:
+                                                                                    'others',
+                                                                                label:
+                                                                                    'Others',
+                                                                            },
+                                                                        ]}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
+
+                                                {formValues &&
+                                                    formValues.incidentState ===
+                                                        'others' && (
+                                                        <fieldset className="Margin-bottom--16">
+                                                            <div className="bs-Fieldset-rows">
+                                                                <div
+                                                                    className="bs-Fieldset-row"
+                                                                    style={{
+                                                                        padding: 0,
+                                                                    }}
+                                                                >
+                                                                    <label
+                                                                        className="bs-Fieldset-label Text-align--left"
+                                                                        htmlFor="customIncidentState"
+                                                                        style={{
+                                                                            flexBasis:
+                                                                                '20%',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Custom
+                                                                            Incident
+                                                                            State
+                                                                        </span>
+                                                                    </label>
+                                                                    <div
+                                                                        className="bs-Fieldset-fields"
+                                                                        style={{
+                                                                            flexBasis:
+                                                                                '80%',
+                                                                            maxWidth:
+                                                                                '80%',
+                                                                        }}
+                                                                    >
+                                                                        <div
+                                                                            className="bs-Fieldset-field"
+                                                                            style={{
+                                                                                width:
+                                                                                    '100%',
+                                                                            }}
+                                                                        >
+                                                                            <Field
+                                                                                className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                                                component={
+                                                                                    RenderField
+                                                                                }
+                                                                                type="text"
+                                                                                name={`customIncidentState`}
+                                                                                id="customIncidentState"
+                                                                                placeholder="Enter a custom incident state"
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                }}
+                                                                                required={
+                                                                                    true
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </fieldset>
+                                                    )}
+
+                                                <fieldset className="Margin-bottom--16">
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            <label
+                                                                className="bs-Fieldset-label Text-align--left"
+                                                                htmlFor="noteContent"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '20%',
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Investigation
+                                                                    Note
+                                                                </span>
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '80%',
+                                                                    maxWidth:
+                                                                        '80%',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                >
+                                                                    <CodeEditor
+                                                                        code={
+                                                                            formValues.noteContent
+                                                                        }
+                                                                        onCodeChange={
+                                                                            this
+                                                                                .onContentChange
+                                                                        }
+                                                                        textareaId="newNoteContent"
+                                                                        placeholder="This can be markdown"
+                                                                        style={{
+                                                                            width:
+                                                                                '100%',
+                                                                        }}
+                                                                        required={
+                                                                            true
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
+                                            </>
+                                        )}
+
+                                    {formValues &&
+                                        formValues.showAdvancedOptions &&
+                                        formValues.nextAction ===
+                                            'createIncident' && (
+                                            <>
+                                                <fieldset className="Margin-bottom--16">
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            <label
+                                                                className="bs-Fieldset-label Text-align--left"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '20%',
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Filters
+                                                                </span>
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '80%',
+                                                                    maxWidth:
+                                                                        '80%',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                >
+                                                                    <Field
+                                                                        className="db-select-nw Table-cell--width--maximized"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="filterCriteria"
+                                                                        id="filterCriteria"
+                                                                        placeholder="Criteria"
+                                                                        style={{
+                                                                            height:
+                                                                                '28px',
+                                                                            width:
+                                                                                '100%',
+                                                                        }}
+                                                                        options={[
+                                                                            ...monitorCustomFields.map(
+                                                                                field => ({
+                                                                                    value:
+                                                                                        field.fieldName,
+                                                                                    label:
+                                                                                        field.fieldName,
+                                                                                })
+                                                                            ),
                                                                         ]}
                                                                     />
                                                                     <Field
@@ -680,7 +1711,21 @@ class CreateIncomingRequest extends Component {
                                                                             RenderField
                                                                         }
                                                                         name="filterText"
-                                                                        type="input"
+                                                                        type={
+                                                                            formValues.filterCriteria
+                                                                                ? (
+                                                                                      monitorCustomFields.find(
+                                                                                          field =>
+                                                                                              field.fieldName ===
+                                                                                              formValues.filterCriteria
+                                                                                      ) || {
+                                                                                          fieldType:
+                                                                                              'text',
+                                                                                      }
+                                                                                  )
+                                                                                      .fieldType
+                                                                                : 'text'
+                                                                        }
                                                                         placeholder="response.body.value"
                                                                         id="filterText"
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
@@ -694,11 +1739,8 @@ class CreateIncomingRequest extends Component {
                                                                         parentStyle={{
                                                                             marginRight: 5,
                                                                         }}
-                                                                        autoFocus={
-                                                                            true
-                                                                        }
                                                                     />
-                                                                    <Tooltip title="Incoming Request Filter">
+                                                                    <Tooltip title="Incoming http Request Filter">
                                                                         <p>
                                                                             Filter
                                                                             exposes
@@ -1185,7 +2227,9 @@ class CreateIncomingRequest extends Component {
                                                         )
                                                     )}
                                                 <fieldset
-                                                    style={{ paddingTop: 0 }}
+                                                    style={{
+                                                        paddingTop: 0,
+                                                    }}
                                                 >
                                                     <div className="bs-Fieldset-rows">
                                                         <div
@@ -1406,6 +2450,8 @@ CreateIncomingRequest.propTypes = {
     change: PropTypes.func.isRequired, // to manually change redux form state
     fetchCustomFields: PropTypes.func,
     customFields: PropTypes.array,
+    fetchMonitorCustomFields: PropTypes.func,
+    monitorCustomFields: PropTypes.array,
 };
 
 const CreateIncomingRequestForm = reduxForm({
@@ -1417,7 +2463,13 @@ const CreateIncomingRequestForm = reduxForm({
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { createIncomingRequest, closeModal, openModal, fetchCustomFields },
+        {
+            createIncomingRequest,
+            closeModal,
+            openModal,
+            fetchCustomFields,
+            fetchMonitorCustomFields,
+        },
         dispatch
     );
 
@@ -1442,10 +2494,14 @@ const mapStateToProps = (state, ownProps) => {
             showAdvancedOptions: false,
             showAvailableVariables: false,
             incidentType: 'offline',
+            noteContent: '',
+            incidentState: 'update',
         },
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         customFields: state.customField.customFields.fields,
+        monitorCustomFields:
+            state.monitorCustomField.monitorCustomFields.fields,
     };
 };
 

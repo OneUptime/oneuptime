@@ -35062,6 +35062,13 @@ span.CodeMirror-selectedtext {
   margin-bottom: 8px
 }
 
+.bs-oncall-label {
+  margin-top: 10px;
+  color: #6b7c93;
+  font-size: 14px;
+  font-weight: 400;
+}
+
 @media (max-width: 768px) {
   .bs-Fieldset.bs-container, .bs-content-1 {
     width: 100%;

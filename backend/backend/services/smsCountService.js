@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function({ query, limit, skip }) {
+    findBy: async function(query, limit, skip) {
         try {
             if (!skip) skip = 0;
 
@@ -77,7 +77,7 @@ module.exports = {
             sendTo: { $regex: new RegExp(filter), $options: 'i' },
         };
 
-        const searchedSmsLogs = await _this.findBy({ query, skip, limit });
+        const searchedSmsLogs = await _this.findBy(query, skip, limit);
         const totalSearchCount = await _this.countBy({ query });
 
         return { searchedSmsLogs, totalSearchCount };
