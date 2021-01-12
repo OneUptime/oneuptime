@@ -121,7 +121,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             const newMonitor = await MonitorService.findOneBy({
                 _id: monitor._id,
             });
-            log = await ProbeService.probeHttpRequest(newMonitor);
+            const probeId = req.probe && req.probe.id ? req.probe.id : null;
+            log = await ProbeService.probeHttpRequest(newMonitor, probeId);
         } else {
             if (type === 'api' || type === 'url') {
                 const {

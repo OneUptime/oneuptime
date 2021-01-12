@@ -226,7 +226,8 @@ class Incident extends React.Component {
             null,
             null,
             null,
-            this.props.match.params.incidentId
+            this.props.match.params.incidentId,
+            this.props.monitor.type
         );
         this.props.fetchIncidentMessages(
             this.props.match.params.projectId,
