@@ -564,6 +564,9 @@ module.exports = {
 
             let titleTemplate,
                 descriptionTemplate,
+                incidentTypeTemplate,
+                incidentPriorityTemplate,
+                filterTextTemplate,
                 customFieldTemplates = [];
             if (incomingRequest && incomingRequest.createIncident) {
                 data.incidentType = incomingRequest.incidentType;
@@ -600,9 +603,29 @@ module.exports = {
                     }));
                 }
 
+                if (data.incidentType) {
+                    incidentTypeTemplate = Handlebars.compile(
+                        data.incidentType
+                    );
+                }
+                if (data.incidentPriority) {
+                    incidentPriorityTemplate = Handlebars.compile(
+                        data.incidentPriority
+                    );
+                }
+                if (incomingRequest.filterText) {
+                    const dataConfig = {
+                        request: data.request,
+                    };
+                    filterTextTemplate = Handlebars.compile(
+                        incomingRequest.filterText
+                    );
+                    filterTextTemplate = filterTextTemplate(dataConfig);
+                }
+
                 const filterCriteria = incomingRequest.filterCriteria,
                     filterCondition = incomingRequest.filterCondition,
-                    filterText = incomingRequest.filterText;
+                    filterText = filterTextTemplate;
 
                 if (
                     filterCriteria &&
