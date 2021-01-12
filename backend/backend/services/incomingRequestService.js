@@ -627,6 +627,7 @@ module.exports = {
                     filterCondition = incomingRequest.filterCondition,
                     filterText = filterTextTemplate;
 
+                const incidentResponse = [];
                 if (
                     filterCriteria &&
                     filterCondition &&
@@ -725,7 +726,8 @@ module.exports = {
                             }
 
                             data.monitorId = monitor._id;
-                            await IncidentService.create(data);
+                            const incident = await IncidentService.create(data);
+                            incidentResponse.push(incident);
                         }
                     } else {
                         // grab the monitor from monitorId {_id, name, customFields}
@@ -876,7 +878,8 @@ module.exports = {
                             }
 
                             data.monitorId = monitor._id;
-                            await IncidentService.create(data);
+                            const incident = await IncidentService.create(data);
+                            incidentResponse.push(incident);
                         }
                     }
                 } else {
@@ -914,7 +917,8 @@ module.exports = {
                                 );
                             }
                             data.monitorId = monitor._id;
-                            await IncidentService.create(data);
+                            const incident = await IncidentService.create(data);
+                            incidentResponse.push(incident);
                         }
                     } else {
                         // grab the monitor from monitorId {_id, name}
@@ -951,10 +955,18 @@ module.exports = {
                             }
 
                             data.monitorId = monitor._id;
-                            await IncidentService.create(data);
+                            const incident = await IncidentService.create(data);
+                            incidentResponse.push(incident);
                         }
                     }
                 }
+
+                return {
+                    status: 'success',
+                    created_incidents: incidentResponse.map(
+                        response => response.idNumber
+                    ),
+                };
             }
 
             if (
@@ -972,6 +984,7 @@ module.exports = {
                     filterCondition = incomingRequest.filterCondition,
                     filterText = incomingRequest.filterText;
 
+                const noteResponse = [];
                 if (
                     filterCriteria &&
                     filterCondition &&
@@ -1036,6 +1049,7 @@ module.exports = {
                         for (const incident of incidents) {
                             data.incidentId = incident._id;
                             await IncidentMessageService.create(data);
+                            noteResponse.push(incident);
                         }
                     }
                 } else {
@@ -1046,8 +1060,16 @@ module.exports = {
                     for (const incident of incidents) {
                         data.incidentId = incident._id;
                         await IncidentMessageService.create(data);
+                        noteResponse.push(incident);
                     }
                 }
+
+                return {
+                    status: 'success',
+                    internalNotes_addedTo: noteResponse.map(
+                        res => res.idNumber
+                    ),
+                };
             }
 
             if (
@@ -1059,6 +1081,8 @@ module.exports = {
                     filterCondition = incomingRequest.filterCondition,
                     filterText = incomingRequest.filterText;
 
+                const resolveResponse = [],
+                    acknowledgeResponse = [];
                 if (
                     filterCriteria &&
                     filterCondition &&
@@ -1122,18 +1146,20 @@ module.exports = {
                     if (incidents && incidents.length > 0) {
                         for (const incident of incidents) {
                             if (incomingRequest.acknowledgeIncident) {
-                                await IncidentService.acknowledge(
+                                const incidentData = await IncidentService.acknowledge(
                                     incident._id,
                                     null,
                                     'fyipe'
                                 );
+                                acknowledgeResponse.push(incidentData);
                             }
                             if (incomingRequest.resolveIncident) {
-                                await IncidentService.resolve(
+                                const incidentData = await IncidentService.resolve(
                                     incident._id,
                                     null,
                                     'fyipe'
                                 );
+                                resolveResponse.push(incidentData);
                             }
                         }
                     }
@@ -1144,20 +1170,39 @@ module.exports = {
 
                     for (const incident of incidents) {
                         if (incomingRequest.acknowledgeIncident) {
-                            await IncidentService.acknowledge(
+                            const incidentData = await IncidentService.acknowledge(
                                 incident._id,
                                 null,
                                 'fyipe'
                             );
+                            acknowledgeResponse.push(incidentData);
                         }
                         if (incomingRequest.resolveIncident) {
-                            await IncidentService.resolve(
+                            const incidentData = await IncidentService.resolve(
                                 incident._id,
                                 null,
                                 'fyipe'
                             );
+                            resolveResponse.push(incidentData);
                         }
                     }
+                }
+
+                if (resolveResponse && resolveResponse.length > 0) {
+                    return {
+                        status: 'success',
+                        resolved_incidents: resolveResponse.map(
+                            res => res.idNumber
+                        ),
+                    };
+                }
+                if (acknowledgeResponse && acknowledgeResponse.length > 0) {
+                    return {
+                        status: 'success',
+                        acknowledged_incidents: acknowledgeResponse.map(
+                            res => res.idNumber
+                        ),
+                    };
                 }
             }
         } catch (error) {
