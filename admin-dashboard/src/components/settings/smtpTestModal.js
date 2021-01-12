@@ -28,7 +28,7 @@ const SmtpTestModal = ({
                     <div className="bs-Modal bs-Modal--medium">
                         <div className="bs-Modal-header">
                             <div className="bs-Modal-header-copy">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>Test SMTP Settings</span>
                                 </span>
                             </div>
@@ -46,13 +46,12 @@ const SmtpTestModal = ({
                                         <div className="bs-Fieldset-rows">
                                             <div className="Margin-bottom--20 Margin-top--20">
                                                 <div
-                                                    className="bs-Fieldset-fields"
                                                     style={{
                                                         paddingTop: 3,
                                                     }}
                                                 >
                                                     <Field
-                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        className="db-BusinessSettings-input-wide TextInput bs-TextInput"
                                                         type="text"
                                                         name="test-email"
                                                         id="testEmail"
