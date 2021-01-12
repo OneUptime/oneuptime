@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { destroy } from 'redux-form';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
+import MonitorStats from '../components/monitor/MonitorStats';
 import NewMonitor from '../components/monitor/NewMonitor';
 import MonitorList from '../components/monitor/MonitorList';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -332,6 +333,27 @@ class DashboardView extends Component {
                                                         <div className="Box-root Margin-bottom--12">
                                                             {incidentslist}
                                                         </div>
+
+                                                        <MonitorStats
+                                                            stats={[
+                                                                {
+                                                                    name:
+                                                                        'Websites',
+                                                                },
+                                                                {
+                                                                    name:
+                                                                        'APIs',
+                                                                },
+                                                                {
+                                                                    name:
+                                                                        'Manuals',
+                                                                },
+                                                                {
+                                                                    name:
+                                                                        'Servers',
+                                                                },
+                                                            ]}
+                                                        />
 
                                                         {monitors}
 
