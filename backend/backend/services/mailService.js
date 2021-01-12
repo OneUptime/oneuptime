@@ -8,6 +8,8 @@ const GlobalConfigService = require('./globalConfigService');
 const EmailSmtpService = require('./emailSmtpService');
 const EmailStatusService = require('./emailStatusService');
 const DateTime = require('../utils/DateTime');
+const fs = require('fs');
+const Path = require('path');
 
 const helpers = {
     year: DateTime.getCurrentYear,
@@ -59,6 +61,20 @@ const _this = {
         return { user, pass, host, port, from, name, secure };
     },
 
+    getEmailBody: async function(mailOptions) {
+        const data = fs.readFileSync(
+            Path.resolve(
+                process.cwd(),
+                'views',
+                'email',
+                `${mailOptions.template}.hbs`
+            ),
+            { encoding: 'utf8', flag: 'r' }
+        );
+        let emailBody = Handlebars.compile(data);
+        emailBody = emailBody(mailOptions.context);
+        return emailBody;
+    },
     createMailer: async function({ host, port, user, pass, secure }) {
         if (!host || !user || !pass) {
             const settings = await _this.getSmtpSettings();
@@ -153,7 +169,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -161,6 +177,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -173,6 +190,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
 
             return info;
@@ -210,7 +228,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -218,6 +236,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -230,6 +249,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
 
             return info;
@@ -261,6 +281,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -268,6 +289,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -279,6 +301,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -309,7 +332,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -317,6 +340,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -329,6 +353,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -360,7 +385,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -368,6 +393,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -379,6 +405,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -410,7 +437,7 @@ const _this = {
                     subject: 'Thank you for your demo request.',
                     template: 'request_demo_body',
                 };
-
+                const EmailBody = await _this.getEmailBody(mailOptions);
                 const mailer = await _this.createMailer({});
 
                 if (!mailer) {
@@ -420,6 +447,7 @@ const _this = {
                         subject: mailOptions.subject,
                         template: mailOptions.template,
                         status: 'Email not enabled.',
+                        content: EmailBody,
                     });
                     return;
                 }
@@ -431,6 +459,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Success',
+                    content: EmailBody,
                 });
                 return info;
             }
@@ -484,7 +513,7 @@ const _this = {
                     };
 
                     const mailer = await _this.createMailer({});
-
+                    const EmailBody = await _this.getEmailBody(mailOptions);
                     if (!mailer) {
                         await EmailStatusService.create({
                             from: mailOptions.from,
@@ -492,6 +521,7 @@ const _this = {
                             subject: mailOptions.subject,
                             template: mailOptions.template,
                             status: 'Email not enabled.',
+                            content: EmailBody,
                         });
                         return;
                     }
@@ -503,6 +533,7 @@ const _this = {
                         subject: mailOptions.subject,
                         template: mailOptions.template,
                         status: 'Success',
+                        content: EmailBody,
                     });
                     return info;
                 }
@@ -543,7 +574,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -551,6 +582,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -562,6 +594,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -597,7 +630,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -605,6 +638,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -616,6 +650,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -657,6 +692,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -664,6 +700,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -675,6 +712,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -714,6 +752,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -721,6 +760,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -732,6 +772,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -770,6 +811,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -777,6 +819,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -788,6 +831,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -827,6 +871,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -834,6 +879,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -845,6 +891,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -880,6 +927,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -887,6 +935,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -898,6 +947,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -937,7 +987,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -945,6 +995,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -956,6 +1007,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -993,7 +1045,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1001,6 +1053,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1012,6 +1065,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1052,7 +1106,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1060,6 +1114,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1071,6 +1126,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1163,6 +1219,7 @@ const _this = {
                     dashboardURL: global.dashboardHost,
                 },
             };
+            const EmailBody = await _this.getEmailBody(mailOptions);
             const mailer = await _this.createMailer(accountMail);
             if (!mailer) {
                 await EmailStatusService.create({
@@ -1171,6 +1228,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1182,6 +1240,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1267,7 +1326,7 @@ const _this = {
                     },
                 };
             }
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1278,7 +1337,7 @@ const _this = {
                     ...(mailOptions.replyTo && {
                         replyTo: mailOptions.replyTo,
                     }),
-                    content: mailOptions.context.body,
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1290,7 +1349,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Success',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
-                content: mailOptions.context.body,
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1305,8 +1364,6 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
-                content: mailOptions.context.body,
-                error: error.message,
             });
             throw error;
         }
@@ -1363,6 +1420,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer(accountMail);
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1370,6 +1428,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1381,6 +1440,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1445,6 +1505,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer(accountMail);
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1452,6 +1513,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1463,6 +1525,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1548,6 +1611,7 @@ const _this = {
                     },
                 };
             }
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1558,7 +1622,7 @@ const _this = {
                     ...(mailOptions.replyTo && {
                         replyTo: mailOptions.replyTo,
                     }),
-                    content: mailOptions.context.body,
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1570,7 +1634,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Success',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
-                content: mailOptions.context.body,
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1585,8 +1649,6 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
-                content: mailOptions.context.body,
-                error: error.message,
             });
             throw error;
         }
@@ -1651,6 +1713,7 @@ const _this = {
                 },
             };
             const info = await privateMailer.sendMail(mailOptions);
+            const EmailBody = await _this.getEmailBody(mailOptions);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -1658,7 +1721,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Success',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
-                content: mailOptions.context.body,
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1673,8 +1736,6 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
-                content: mailOptions.context.body,
-                error: error.message,
             });
             throw error;
         }
@@ -1752,7 +1813,7 @@ const _this = {
                     },
                 };
             }
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1763,7 +1824,7 @@ const _this = {
                     ...(mailOptions.replyTo && {
                         replyTo: mailOptions.replyTo,
                     }),
-                    content: mailOptions.context.body,
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1775,7 +1836,7 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Success',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
-                content: mailOptions.context.body,
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1790,8 +1851,6 @@ const _this = {
                 template: mailOptions.template,
                 status: 'Error',
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
-                content: mailOptions.context.body,
-                error: error.message,
             });
             throw error;
         }
@@ -1811,6 +1870,7 @@ const _this = {
                     ...data,
                 },
             };
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1818,6 +1878,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1828,6 +1889,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1875,7 +1937,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1883,6 +1945,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1894,6 +1957,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1927,7 +1991,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1935,6 +1999,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1946,6 +2011,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -1977,7 +2043,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1985,6 +2051,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -1996,6 +2063,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -2034,6 +2102,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2041,6 +2110,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -2052,6 +2122,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -2090,6 +2161,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2097,6 +2169,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -2108,6 +2181,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
             return info;
         } catch (error) {
@@ -2170,6 +2244,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer(smtpSettings);
+            const EmailBody = await _this.getEmailBody(mailOptions);
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -2178,6 +2253,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -2190,6 +2266,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
 
             return info;
@@ -2241,7 +2318,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer(smtpSettings);
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2249,6 +2326,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -2261,6 +2339,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
 
             return info;
@@ -2305,7 +2384,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2313,6 +2392,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -2325,6 +2405,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
 
             return info;
@@ -2370,7 +2451,7 @@ const _this = {
             };
 
             const mailer = await _this.createMailer({});
-
+            const EmailBody = await _this.getEmailBody(mailOptions);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2378,6 +2459,7 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    content: EmailBody,
                 });
                 return;
             }
@@ -2390,6 +2472,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                content: EmailBody,
             });
 
             return info;
