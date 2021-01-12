@@ -98,6 +98,20 @@ module.exports = {
                 );
             }
 
+            if (data.filterText) {
+                data.filterText = DOMPurify.sanitize(data.filterText);
+            }
+
+            if (data.dynamicIncidentType) {
+                data.incidentType = DOMPurify.sanitize(data.customIncidentType);
+            }
+
+            if (data.dynamicIncidentPriority) {
+                data.incidentPriority = DOMPurify.sanitize(
+                    data.customIncidentPriority
+                );
+            }
+
             if (data.customFields && data.customFields.length > 0) {
                 const customFields = [...data.customFields];
                 data.customFields = customFields.map(field => ({
@@ -247,6 +261,20 @@ module.exports = {
             if (data.incidentDescription) {
                 data.incidentDescription = DOMPurify.sanitize(
                     data.incidentDescription
+                );
+            }
+
+            if (data.filterText) {
+                data.filterText = DOMPurify.sanitize(data.filterText);
+            }
+
+            if (data.dynamicIncidentType) {
+                data.incidentType = DOMPurify.sanitize(data.customIncidentType);
+            }
+
+            if (data.dynamicIncidentPriority) {
+                data.incidentPriority = DOMPurify.sanitize(
+                    data.customIncidentPriority
                 );
             }
 
