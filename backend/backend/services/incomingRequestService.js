@@ -572,6 +572,11 @@ module.exports = {
                 data.description = incomingRequest.incidentDescription;
                 data.customFields = incomingRequest.customFields;
 
+                data.reason = [
+                    `Created by: ${incomingRequest.name}`,
+                    `Reason: This incident was created by incoming HTTP request`,
+                ];
+
                 if (
                     data.title &&
                     data.title.trim() &&
