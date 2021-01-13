@@ -10,6 +10,7 @@ import {
     formValueSelector,
     change,
     isValid,
+    FieldArray,
 } from 'redux-form';
 import {
     createMonitor,
@@ -57,6 +58,7 @@ import { UploadFile } from '../basic/UploadFile';
 import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import Fade from 'react-reveal/Fade';
+import ScheduleInput from '../schedule/ScheduleInput';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
 
@@ -340,7 +342,17 @@ class NewMonitor extends Component {
             : this.props.type;
         postObj.resourceCategory =
             values[`resourceCategory_${this.props.index}`];
-        postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
+        const callSchedules = values[`callSchedules_${this.props.index}`];
+        let monitorSchedules = [];
+        if (callSchedules && callSchedules.length) {
+            monitorSchedules = callSchedules
+                .filter(schedule => Object.values(schedule)[0] === true)
+                .map(schedule => {
+                    return Object.keys(schedule)[0];
+                });
+        }
+
+        postObj.callScheduleIds = monitorSchedules;
         if (postObj.type === 'manual')
             postObj.data.description =
                 values[`description_${this.props.index}`] || null;
@@ -596,7 +608,7 @@ class NewMonitor extends Component {
             this.props.name,
             this.props.category,
             this.props.subProject,
-            this.props.schedule,
+            this.props.monitorSchedules,
             this.props.monitorSla,
             this.props.incidentCommunicationSla,
             value
@@ -1856,7 +1868,7 @@ class NewMonitor extends Component {
                                                                     Call Duties
                                                                 </span>
                                                             </span>
-                                                            <p>
+                                                            <p className="Flex-flex Flex-alignItems--center">
                                                                 <span>
                                                                     Set the
                                                                     configuration
@@ -1864,55 +1876,7 @@ class NewMonitor extends Component {
                                                                     Monitor&apos;s
                                                                     Call duties.
                                                                 </span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="nm-Fieldset-row">
-                                                        <label className="bs-Fieldset-label" />
-                                                        <label className="new-monitor-label">
-                                                            Call Schedule
-                                                        </label>
-                                                    </div>
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label" />
-                                                        <div className="bs-Fieldset-fields">
-                                                            <span className="flex">
-                                                                <Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name={`callSchedule_${this.props.index}`}
-                                                                    id="callSchedule"
-                                                                    placeholder="Call Duty"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    style={{
-                                                                        height:
-                                                                            '28px',
-                                                                    }}
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select call schedule',
-                                                                        },
-                                                                        ...(schedules &&
-                                                                        schedules.length >
-                                                                            0
-                                                                            ? schedules.map(
-                                                                                  schedule => ({
-                                                                                      value:
-                                                                                          schedule._id,
-                                                                                      label:
-                                                                                          schedule.name,
-                                                                                  })
-                                                                              )
-                                                                            : []),
-                                                                    ]}
-                                                                />
+
                                                                 <Tooltip title="Call Schedule">
                                                                     <div>
                                                                         <p>
@@ -1947,6 +1911,40 @@ class NewMonitor extends Component {
                                                                         </p>
                                                                     </div>
                                                                 </Tooltip>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label"></label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <FieldArray
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        ScheduleInput
+                                                                    }
+                                                                    name={`callSchedules_${this.props.index}`}
+                                                                    id="callSchedule"
+                                                                    placeholder="Call Duty"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    style={{
+                                                                        height:
+                                                                            '28px',
+                                                                    }}
+                                                                    schedules={
+                                                                        this
+                                                                            .props
+                                                                            .schedules
+                                                                    }
+                                                                    currentProject={
+                                                                        this
+                                                                            .props
+                                                                            .currentProject
+                                                                    }
+                                                                />
                                                             </span>
                                                         </div>
                                                     </div>
@@ -2620,7 +2618,7 @@ const mapStateToProps = (state, ownProps) => {
     const mode = selector(state, 'mode_1000');
     const authentication = selector(state, 'authentication_1000');
     const category = selector(state, 'resourceCategory_1000');
-    const schedule = selector(state, 'callSchedule_1000');
+    const monitorSchedules = selector(state, 'callSchedules_1000');
     const monitorSla = selector(state, 'monitorSla');
     const incidentCommunicationSla = selector(
         state,
@@ -2663,7 +2661,7 @@ const mapStateToProps = (state, ownProps) => {
             category,
             identityFile: state.monitor.file,
             uploadingIdentityFile: state.monitor.uploadFileRequest,
-            schedule,
+            monitorSchedules,
             monitorSla,
             incidentCommunicationSla,
             subProjects: state.subProject.subProjects.subProjects,
@@ -2699,7 +2697,7 @@ const mapStateToProps = (state, ownProps) => {
             category,
             identityFile: state.monitor.file,
             uploadingIdentityFile: state.monitor.uploadFileRequest,
-            schedule,
+            monitorSchedules,
             monitorSla,
             incidentCommunicationSla,
             resourceCategoryList:
@@ -2747,7 +2745,7 @@ NewMonitor.propTypes = {
     authentication: PropTypes.string,
     category: PropTypes.string,
     subProject: PropTypes.string,
-    schedule: PropTypes.string,
+    monitorSchedules: PropTypes.array,
     monitorSla: PropTypes.string,
     incidentCommunicationSla: PropTypes.string,
     resourceCategoryList: PropTypes.array,

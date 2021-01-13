@@ -981,7 +981,7 @@ describe('SMS/Calls Incident Alerts', function() {
             const newMonitorId = newMonitor.body._id;
 
             // let the probe server generate incident
-            await sleep(60 * 1000);
+            await sleep(120 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
                 monitorId: newMonitorId,
@@ -1034,7 +1034,7 @@ describe('SMS/Calls Incident Alerts', function() {
             /*
              * run the probe server for this test
              */
-            this.timeout(120 * 1000);
+            this.timeout(180 * 1000);
             // first add a team member
             const userData = {
                 email: `${generateRandomString}@fyipe.com`,
@@ -1133,7 +1133,7 @@ describe('SMS/Calls Incident Alerts', function() {
             const newMonitorId = newMonitor.body._id;
 
             // let the probe server generate incident
-            await sleep(30 * 1000);
+            await sleep(120 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
                 monitorId: newMonitorId,

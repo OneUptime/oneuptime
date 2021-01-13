@@ -753,7 +753,7 @@ export function setMonitorCriteria(
     monitorName,
     monitorCategory,
     monitorSubProject,
-    monitorCallSchedule,
+    monitorCallSchedules,
     monitorSla,
     incidentCommunicationSla,
     monitorType
@@ -765,7 +765,7 @@ export function setMonitorCriteria(
                 name: monitorName,
                 category: monitorCategory,
                 subProject: monitorSubProject,
-                schedule: monitorCallSchedule,
+                schedules: monitorCallSchedules,
                 type: monitorType,
                 monitorSla,
                 incidentCommunicationSla,

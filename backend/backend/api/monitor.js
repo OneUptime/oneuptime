@@ -238,23 +238,10 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         data.projectId = projectId;
         data.thirdPartyVariable = [data.name];
         const monitor = await MonitorService.create(data);
-        if (data.callScheduleId) {
-            const schedule = await ScheduleService.findOneBy({
-                _id: data.callScheduleId,
-            });
-            let monitors = schedule.monitorIds;
-            if (monitors.length > 0) {
-                monitors.push({ _id: monitor._id, name: monitor.name });
-            } else {
-                monitors = Array(monitor._id);
-            }
-            const scheduleData = {
-                projectId: projectId,
-                monitorIds: monitors,
-            };
-            await ScheduleService.updateOneBy(
-                { _id: data.callScheduleId },
-                scheduleData
+        if (data.callScheduleIds && data.callScheduleIds.length) {
+            await ScheduleService.addMonitorToSchedules(
+                data.callScheduleIds,
+                monitor._id
             );
         }
 
@@ -360,6 +347,15 @@ router.put(
                     });
                 }
             }
+
+            await ScheduleService.deleteMonitor(req.params.monitorId);
+            if (data.callScheduleIds && data.callScheduleIds.length) {
+                await ScheduleService.addMonitorToSchedules(
+                    data.callScheduleIds,
+                    req.params.monitorId
+                );
+            }
+
             let unsetData;
             if (!data.resourceCategory || data.resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
@@ -369,6 +365,7 @@ router.put(
                 data,
                 unsetData
             );
+
             if (monitor) {
                 return sendItemResponse(req, res, monitor);
             } else {

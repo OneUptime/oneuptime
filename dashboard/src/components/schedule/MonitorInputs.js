@@ -19,12 +19,27 @@ function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
                           ...monitor.criteria.up,
                           ...monitor.criteria.degraded,
                           ...monitor.criteria.down,
-                      ].forEach(criterion => {
+                      ].forEach((criterion, index) => {
+                          const monitorUpCriteriaCount =
+                              monitor.criteria.up.length;
+                          const monitorDegradedCriteriaCount =
+                              monitor.criteria.degraded.length;
+                          const type =
+                              index < monitorUpCriteriaCount
+                                  ? 'Up'
+                                  : index <
+                                    monitorUpCriteriaCount +
+                                        monitorDegradedCriteriaCount
+                                  ? 'Degraded'
+                                  : 'Down';
+
                           if (criterion.scheduleIds.includes(schedule._id)) {
                               criteriaUsingSchedule.push({
                                   id: criterion.id,
-                                  name: `${criterion.name ||
-                                      'Unnamed Criterion'}`,
+                                  name: criterion.default
+                                      ? 'Default Criterion'
+                                      : `${criterion.name ||
+                                            'Unnamed Criterion'} (${type})`,
                               });
                           }
                       });
@@ -77,16 +92,19 @@ function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
                               </div>
                           </div>
                           <div className="Box-root Margin-left--32">
-                              {criteriaUsingSchedule.map(criterion => {
-                                  return (
-                                      <span
-                                          key={criterion.id}
-                                          className="bs-Fieldset-explanation"
-                                      >
-                                          {criterion.name}
-                                      </span>
-                                  );
-                              })}
+                              <ul>
+                                  {criteriaUsingSchedule.map(
+                                      (criterion, index) => {
+                                          return (
+                                              <li key={index}>
+                                                  <span className="bs-Fieldset-explanation">
+                                                      {criterion.name}
+                                                  </span>
+                                              </li>
+                                          );
+                                      }
+                                  )}
+                              </ul>
                           </div>
                       </div>
                   );

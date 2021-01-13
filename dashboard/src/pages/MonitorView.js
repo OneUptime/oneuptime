@@ -762,6 +762,7 @@ class MonitorView extends React.Component {
 const mapStateToProps = (state, props) => {
     const scheduleWarning = [];
     const { projectId, componentId, monitorId } = props.match.params;
+    const schedules = state.schedule.schedules;
 
     state.schedule.subProjectSchedules.forEach(item => {
         item.schedules.forEach(item => {
@@ -804,6 +805,18 @@ const mapStateToProps = (state, props) => {
         initialValues[`subProject_${monitor._id}`] = monitor.projectId._id;
         initialValues[`resourceCategory_${monitor._id}`] =
             monitor.resourceCategory && monitor.resourceCategory._id;
+
+        const monitorSchedules = [];
+        if (schedules && schedules.data) {
+            schedules.data.forEach(schedule => {
+                monitorSchedules.push({
+                    [schedule._id]: schedule.monitorIds.some(
+                        monitorId => monitorId._id === monitor._id
+                    ),
+                });
+            });
+        }
+        initialValues[`callSchedules_${monitor._id}`] = monitorSchedules;
         if (
             monitor.incidentCommunicationSla &&
             monitor.incidentCommunicationSla._id
@@ -874,7 +887,6 @@ const mapStateToProps = (state, props) => {
                         /**
                          * @type { {data : Array}}
                          */
-                        const schedules = state.schedule.schedules;
 
                         if (
                             criterionScheduleIds &&
@@ -886,7 +898,7 @@ const mapStateToProps = (state, props) => {
 
                             // for each schedule, check if the criterion is already associated with it
                             schedules.data.forEach(schedule => {
-                                const scheduleId = schedule._id.toString();
+                                const scheduleId = schedule._id;
                                 criterionSchedules.push({
                                     [scheduleId]: criterionScheduleIds.includes(
                                         scheduleId
