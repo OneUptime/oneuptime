@@ -52,7 +52,7 @@ deploy_production_js-sdk:
         - git init
         - git add .
         - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
-        # - git checkout -f master
+        - git checkout -f master
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe"'
