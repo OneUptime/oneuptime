@@ -35,6 +35,7 @@ deploy_staging_js-sdk:
         refs:
             - master
             - hotfix-master
+            - feature-error-tracker-fixes
     environment:
         name: staging
 
