@@ -1,4 +1,10 @@
-import { getApi, getApiDocs, getApiHelm, getApiDashboard } from '../api';
+import {
+    getApi,
+    getApiDocs,
+    getApiHelm,
+    getApiDashboard,
+    getApiProbe,
+} from '../api';
 import * as types from '../constants/version';
 
 export function getVersionRequest(promise) {
@@ -35,17 +41,20 @@ export function getVersion() {
         let helmChartPromise = null;
         let docsPromise = null;
         let dashboardPromise = null;
+        let probePromise = null;
 
         backendPromise = getApi('version');
         helmChartPromise = getApiHelm('version');
         docsPromise = getApiDocs('version');
         dashboardPromise = getApiDashboard('version');
+        probePromise = getApiProbe('version');
 
         promise = Promise.all([
             backendPromise,
-            helmChartPromise,
+            // helmChartPromise,
             docsPromise,
-            dashboardPromise,
+            // dashboardPromise,
+            probePromise,
         ]);
 
         dispatch(getVersionRequest(promise));
@@ -56,6 +65,7 @@ export function getVersion() {
                 versions.forEach(version => {
                     versionsObject = { ...versionsObject, ...version.data };
                 });
+                console.log('versionsObject', versionsObject);
 
                 dispatch(getVersionSuccess(versionsObject));
             },

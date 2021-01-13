@@ -174,6 +174,29 @@ class About extends Component {
                                             </td>
                                         </tr>
                                         <tr>
+                                            <td>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Probe version
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    style={{
+                                                        paddingLeft: '15px',
+                                                    }}
+                                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                >
+                                                    {versions.probeVersion ? (
+                                                        <strong id="probe-version">
+                                                            {
+                                                                versions.probeVersion
+                                                            }
+                                                        </strong>
+                                                    ) : null}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
                                             <td
                                                 style={{ paddingTop: '20px' }}
                                                 colSpan={2}
