@@ -612,16 +612,21 @@ router.get(
         }
         try {
             const incidentId = req.params.incidentId;
-            const incidentMessages = await IncidentMessageService.findBy(
-                { incidentId, type },
-                req.query.skip || 0,
-                req.query.limit || 10
+            let incidentMessages = await IncidentMessageService.findBy(
+                { incidentId, type }
+            );
+            const timeline = await IncidentTimelineService.findBy(
+                { incidentId }
             );
             const count = await IncidentMessageService.countBy({
                 incidentId,
                 type,
             });
-            return sendListResponse(req, res, incidentMessages, count);
+            incidentMessages = incidentMessages.concat(timeline);
+            incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
+            const result = incidentMessages.filter(a => a.status !== "internal notes added")
+            console.log(result)
+            return sendListResponse(req, res, result, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
