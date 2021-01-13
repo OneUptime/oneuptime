@@ -11,10 +11,7 @@ deploy_staging_js-sdk:
         - sudo apt-get install -y nodejs
         - cd js-sdk
         - npm install
-        - npm run build
         - sudo npm install -g json
-        - git config --global user.email "gitlab-runner@gitlab-shell-runner-02.com"
-        - git config --global user.name "Gitlab Runner"
         - git init
         - git add .
         - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
@@ -22,6 +19,7 @@ deploy_staging_js-sdk:
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe-staging"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+        - npm run build
         - npm publish
         - git init
         - git add .
@@ -50,7 +48,6 @@ deploy_production_js-sdk:
         - sudo apt-get install -y nodejs
         - cd js-sdk
         - npm install
-        - npm run build
         - sudo npm install -g json
         - git init
         - git add .
@@ -60,6 +57,7 @@ deploy_production_js-sdk:
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+        - npm run build
         - npm publish
         - git add .
         - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
