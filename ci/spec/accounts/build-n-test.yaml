@@ -19,8 +19,9 @@ build_n_test_accounts:
         - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
         - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
         - sudo docker ps
-        - cd accounts
         - npm ci
+        - cd accounts
+        - npm ci --only=production
         # try building, if there are warnings then this will fail
         - npm run build
         - npm run test
