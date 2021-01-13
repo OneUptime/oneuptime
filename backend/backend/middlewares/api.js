@@ -131,6 +131,16 @@ module.exports = {
         return statusPageId;
     },
 
+    getStatusPageUrl: function(req) {
+        const statusPageUrl =
+            req.params.url ||
+            req.query.url ||
+            req.headers['url'] ||
+            req.body.url;
+
+        return statusPageUrl;
+    },
+
     isValidMonitor: async function(req, res, next) {
         const id = req.params.id;
         let monitor = await MonitorService.findBy({

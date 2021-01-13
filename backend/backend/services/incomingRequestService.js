@@ -561,6 +561,7 @@ module.exports = {
                 data.title = incomingRequest.incidentTitle;
                 data.description = incomingRequest.incidentDescription;
                 data.customFields = incomingRequest.customFields;
+                data.createdByIncomingHttpRequest = incomingRequest._id;
 
                 data.reason = [
                     `Created by: ${incomingRequest.name}`,
@@ -1225,7 +1226,10 @@ module.exports = {
                                 const incidentData = await IncidentService.acknowledge(
                                     incident._id,
                                     null,
-                                    'fyipe'
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
                                 );
                                 acknowledgeResponse.push(incidentData);
                             }
@@ -1233,7 +1237,10 @@ module.exports = {
                                 const incidentData = await IncidentService.resolve(
                                     incident._id,
                                     null,
-                                    'fyipe'
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
                                 );
                                 resolveResponse.push(incidentData);
                             }
@@ -1249,7 +1256,10 @@ module.exports = {
                             const incidentData = await IncidentService.acknowledge(
                                 incident._id,
                                 null,
-                                'fyipe'
+                                null,
+                                null,
+                                null,
+                                incomingRequest
                             );
                             acknowledgeResponse.push(incidentData);
                         }
@@ -1257,7 +1267,10 @@ module.exports = {
                             const incidentData = await IncidentService.resolve(
                                 incident._id,
                                 null,
-                                'fyipe'
+                                null,
+                                null,
+                                null,
+                                incomingRequest
                             );
                             resolveResponse.push(incidentData);
                         }

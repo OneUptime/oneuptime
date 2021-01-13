@@ -906,12 +906,17 @@ export class IncidentStatus extends Component {
                                                                                         .acknowledgedBy ===
                                                                                     null ? (
                                                                                         <span>
-                                                                                            {!this
+                                                                                            {this
                                                                                                 .props
                                                                                                 .incident
                                                                                                 .acknowledgedByZapier
-                                                                                                ? 'Fyipe'
-                                                                                                : 'Zapier'}
+                                                                                                ? 'Zapier'
+                                                                                                : this
+                                                                                                      .props
+                                                                                                      .incident
+                                                                                                      .acknowledgedByIncomingHttpRequest
+                                                                                                ? `Incoming HTTP Request ${this.props.incident.acknowledgedByIncomingHttpRequest.name}`
+                                                                                                : 'Fyipe'}
                                                                                         </span>
                                                                                     ) : (
                                                                                         <Link
@@ -1041,12 +1046,17 @@ export class IncidentStatus extends Component {
                                                                                         .resolvedBy ===
                                                                                     null ? (
                                                                                         <span>
-                                                                                            {!this
+                                                                                            {this
                                                                                                 .props
                                                                                                 .incident
                                                                                                 .resolvedByZapier
-                                                                                                ? 'Fyipe'
-                                                                                                : 'Zapier'}
+                                                                                                ? 'Zapier'
+                                                                                                : this
+                                                                                                      .props
+                                                                                                      .incident
+                                                                                                      .resolvedByIncomingHttpRequest
+                                                                                                ? `Incoming HTTP Request ${this.props.incident.resolvedByIncomingHttpRequest.name}`
+                                                                                                : 'Fyipe'}
                                                                                         </span>
                                                                                     ) : (
                                                                                         <Link
