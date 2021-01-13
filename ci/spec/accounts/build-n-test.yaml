@@ -21,7 +21,6 @@ build_n_test_accounts:
         - sudo docker ps
         - npm ci
         - cd accounts
-        - npm ci --only=production
         # try building, if there are warnings then this will fail
         - npm run build
         - npm run test
