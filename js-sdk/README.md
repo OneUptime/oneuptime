@@ -22,7 +22,15 @@ $ npm install fyipe
 ### In a Node.js Project
 
 ```javascript
+// In a FrontEnd Environment
 import { Logger } from 'fyipe';
+
+// In a Node Environment
+const { Logger } = require('fyipe');
+
+// in a Node Environment with ES6
+import Fyipe from 'fyipe';
+const { Logger } = Fyipe;
 
 // constructor
 
@@ -86,14 +94,21 @@ logger.log(item, tag);
 ### Error Tracking APIs
 
 ```javascript
+// In a FrontEnd Environment
 import { ErrorTracker } from 'fyipe';
 
-// constructor
+// In a Node Environment
+const { ErrorTracker } = require('fyipe');
+
+// in a Node Environment with ES6
+import Fyipe from 'fyipe';
+const { ErrorTracker } = Fyipe;
 
 // set up tracking configurations
 const options = {
     maxTimeline: 10,
 };
+// constructor
 const tracker = new ErrorTracker(
     'API_URL', // https://fyipe.com/api
     'ERROR_TRACKER_ID',
