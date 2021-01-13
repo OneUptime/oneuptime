@@ -37,6 +37,7 @@
         "redux-logger": "^3.0.6",
         "redux-thunk": "^2.2.0",
         "sane-email-validation": "^1.1.0",
+        "should": "^13.2.3",
         "universal-cookie": "^4.0.0",
         "valid-url": "^1.0.9",
         "workbox-build": "^4.3.1"
@@ -58,8 +59,7 @@
         "commander": "^4.0.1",
         "depcheck": "^0.9.2",
         "lighthouse": "^6.2.0",
-        "ora": "^4.0.3",
-        "should": "^13.2.3"
+        "ora": "^4.0.3"
     },
     "jest": {
         "collectCoverageFrom": [
