@@ -240,20 +240,17 @@ export class MonitorLighthouseLogsList extends Component {
                                                 </div>
                                             </td>
 
-                                            {(!lighthouseScanStatus ||
-                                                (lighthouseScanStatus &&
-                                                    (lighthouseScanStatus ===
-                                                        'scan' ||
-                                                        lighthouseScanStatus ===
-                                                            'scanning'))) &&
-                                            monitor &&
-                                            monitor.siteUrls &&
-                                            monitor.siteUrls.length > 0 &&
-                                            (log.scanning ||
-                                                log.scanning == null) ? (
+                                            {!lighthouseScanStatus ||
+                                            (lighthouseScanStatus &&
+                                                lighthouseScanStatus ===
+                                                    'scan' &&
+                                                monitor &&
+                                                monitor.siteUrls &&
+                                                monitor.siteUrls.length > 0) ? (
                                                 <>
-                                                    <td colSpan="5"
-                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    <td
+                                                        colSpan="5"
+                                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     >
                                                         <div
                                                             className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Padding-vertical--2"
@@ -295,7 +292,80 @@ export class MonitorLighthouseLogsList extends Component {
                                                                                         width: 10,
                                                                                     }}
                                                                                 />
-                                                                                We
+                                                                                Your
+                                                                                website
+                                                                                scan
+                                                                                will
+                                                                                begin
+                                                                                in
+                                                                                few
+                                                                                seconds
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </>
+                                            ) : (!lighthouseScanStatus ||
+                                                  (lighthouseScanStatus &&
+                                                      lighthouseScanStatus ===
+                                                          'scanning')) &&
+                                              monitor &&
+                                              monitor.siteUrls &&
+                                              monitor.siteUrls.length > 0 &&
+                                              (log.scanning ||
+                                                  log.scanning == null) ? (
+                                                <>
+                                                    <td
+                                                        colSpan="5"
+                                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    >
+                                                        <div
+                                                            className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Padding-vertical--2"
+                                                            style={{
+                                                                boxShadow:
+                                                                    'none',
+                                                            }}
+                                                        >
+                                                            <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                                                <div
+                                                                    className="db-Trend"
+                                                                    style={{
+                                                                        height:
+                                                                            '100%',
+                                                                        cursor:
+                                                                            'pointer',
+                                                                    }}
+                                                                >
+                                                                    <div className="block-chart-side line-chart">
+                                                                        <div className="db-TrendRow">
+                                                                            <div
+                                                                                className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
+                                                                                style={{
+                                                                                    textAlign:
+                                                                                        'center',
+                                                                                    width:
+                                                                                        '100%',
+                                                                                    fontSize: 14,
+                                                                                }}
+                                                                            >
+                                                                                <Spinner
+                                                                                    style={{
+                                                                                        stroke:
+                                                                                            '#8898aa',
+                                                                                    }}
+                                                                                />{' '}
+                                                                                <span
+                                                                                    style={{
+                                                                                        width: 10,
+                                                                                    }}
+                                                                                />
+                                                                                {lighthouseScanStatus ===
+                                                                                'scan'
+                                                                                    ? 'website scan will begin in a few seconds'
+                                                                                    : `We
                                                                                 are
                                                                                 currently
                                                                                 scanning
@@ -307,7 +377,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                                 will
                                                                                 take
                                                                                 few
-                                                                                minutes.
+                                                                                minutes.`}
                                                                             </div>
                                                                         </div>
                                                                     </div>

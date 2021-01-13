@@ -204,6 +204,30 @@ module.exports = {
             throw error;
         }
     },
+    async updateAllLighthouseLogs(projectId, monitorId) {
+        try {
+            await this.updateManyBy(
+                { monitorId: monitorId },
+                { scanning: true }
+            );
+            const logs = await this.findLastestScan({
+                monitorId,
+                url: null,
+                limit: 5,
+                skip: 0,
+            });
+            await RealTimeService.updateAllLighthouseLog(projectId, {
+                monitorId,
+                logs,
+            });
+        } catch (error) {
+            ErrorService.log(
+                'lighthouseLogService.updateAllLighthouseLog',
+                error
+            );
+            throw error;
+        }
+    },
 };
 
 const LighthouseLogModel = require('../models/lighthouseLog');
