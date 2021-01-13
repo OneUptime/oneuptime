@@ -91,7 +91,7 @@ export class SmsLogsList extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>User name</span>
+                                            <span>Users</span>
                                         </span>
                                     </div>
                                 </td>
