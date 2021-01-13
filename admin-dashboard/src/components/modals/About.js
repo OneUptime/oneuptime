@@ -186,11 +186,9 @@ class About extends Component {
                                                     }}
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
-                                                    {versions.probeVersion ? (
+                                                    {versions.probe ? (
                                                         <strong id="probe-version">
-                                                            {
-                                                                versions.probeVersion
-                                                            }
+                                                            {versions.probe}
                                                         </strong>
                                                     ) : null}
                                                 </span>

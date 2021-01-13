@@ -51,9 +51,9 @@ export function getVersion() {
 
         promise = Promise.all([
             backendPromise,
-            // helmChartPromise,
+            helmChartPromise,
             docsPromise,
-            // dashboardPromise,
+            dashboardPromise,
             probePromise,
         ]);
 
