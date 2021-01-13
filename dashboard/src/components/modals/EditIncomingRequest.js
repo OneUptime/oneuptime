@@ -2231,7 +2231,7 @@ class EditIncomingRequest extends Component {
                                                                     onClick={() =>
                                                                         this.props.change(
                                                                             'dynamicIncidentType',
-                                                                            true
+                                                                            !formValues.dynamicIncidentType
                                                                         )
                                                                     }
                                                                     style={{
@@ -2242,8 +2242,9 @@ class EditIncomingRequest extends Component {
                                                                             'underline',
                                                                     }}
                                                                 >
-                                                                    use dynamic
-                                                                    values
+                                                                    {formValues.dynamicIncidentType
+                                                                        ? 'use predefined values'
+                                                                        : 'use dynamic values'}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2342,7 +2343,7 @@ class EditIncomingRequest extends Component {
                                                                         onClick={() =>
                                                                             this.props.change(
                                                                                 'dynamicIncidentPriority',
-                                                                                true
+                                                                                !formValues.dynamicIncidentPriority
                                                                             )
                                                                         }
                                                                         style={{
@@ -2353,9 +2354,9 @@ class EditIncomingRequest extends Component {
                                                                                 'underline',
                                                                         }}
                                                                     >
-                                                                        use
-                                                                        dynamic
-                                                                        values
+                                                                        {formValues.dynamicIncidentPriority
+                                                                            ? 'use predefined values'
+                                                                            : 'use dynamic values'}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -2801,8 +2802,11 @@ const mapStateToProps = state => {
             initialValues.dynamicIncidentPriority = !priorityIds.includes(
                 incomingRequestToBeUpdated.incidentPriority
             );
-            initialValues.customIncidentPriority =
-                incomingRequestToBeUpdated.incidentPriority;
+
+            if (initialValues.dynamicIncidentPriority) {
+                initialValues.customIncidentPriority =
+                    incomingRequestToBeUpdated.incidentPriority;
+            }
         }
         if (!initialValues.dynamicIncidentPriority) {
             initialValues.incidentPriority =
@@ -2815,8 +2819,11 @@ const mapStateToProps = state => {
                 'online',
                 'degraded',
             ].includes(incomingRequestToBeUpdated.incidentType);
-            initialValues.customIncidentType =
-                incomingRequestToBeUpdated.incidentType;
+
+            if (initialValues.dynamicIncidentType) {
+                initialValues.customIncidentType =
+                    incomingRequestToBeUpdated.incidentType;
+            }
         }
         if (!initialValues.dynamicIncidentType) {
             initialValues.incidentType =
