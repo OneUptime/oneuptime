@@ -338,19 +338,19 @@ class DashboardView extends Component {
                                                             stats={[
                                                                 {
                                                                     name:
-                                                                        'Websites',
+                                                                        'Website Monitors',
                                                                 },
                                                                 {
                                                                     name:
-                                                                        'APIs',
+                                                                        'API Monitors',
                                                                 },
                                                                 {
                                                                     name:
-                                                                        'Manuals',
+                                                                        'Manual Monitors',
                                                                 },
                                                                 {
                                                                     name:
-                                                                        'Servers',
+                                                                        'Server Monitors',
                                                                 },
                                                             ]}
                                                         />

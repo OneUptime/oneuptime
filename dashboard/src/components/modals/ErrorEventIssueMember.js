@@ -3,9 +3,6 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
 class ErrorEventIssueMember extends Component {
-    constructor(props) {
-        super(props);
-    }
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
