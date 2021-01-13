@@ -7,7 +7,7 @@ const serverBuild = {
     output: {
         path: path.resolve('dist'),
         filename: 'fyipe.js',
-        library: 'FyipeLogger',
+        library: 'Fyipe',
         libraryExport: 'default',
         libraryTarget: 'umd',
         globalObject: 'this',

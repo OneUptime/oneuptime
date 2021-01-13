@@ -25,10 +25,10 @@ $ npm install fyipe
 // In a FrontEnd Environment
 import { Logger } from 'fyipe';
 
-// In a Node Environment
+// In a Backend Environment
 const { Logger } = require('fyipe');
 
-// in a Node Environment with ES6
+// in a Backend Environment with ES6
 import Fyipe from 'fyipe';
 const { Logger } = Fyipe;
 
@@ -72,7 +72,7 @@ logger.log(item, tag);
 <script>
     function logError() {
         // constructor
-        const logger = new Logger(
+        const logger = new Fyipe.Logger(
             'API_URL', // https://fyipe.com/api
             'APPLICATION_LOG_ID',
             'APPLICATION_LOG_KEY'
@@ -97,10 +97,10 @@ logger.log(item, tag);
 // In a FrontEnd Environment
 import { ErrorTracker } from 'fyipe';
 
-// In a Node Environment
+// In a Backend Environment
 const { ErrorTracker } = require('fyipe');
 
-// in a Node Environment with ES6
+// in a Backend Environment with ES6
 import Fyipe from 'fyipe';
 const { ErrorTracker } = Fyipe;
 
