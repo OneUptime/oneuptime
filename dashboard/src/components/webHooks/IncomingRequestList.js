@@ -87,24 +87,6 @@ class IncomingRequestList extends React.Component {
         fetchAllIncomingRequest(projectId, skip + limit, limit);
     };
 
-    handleMonitorList = monitors => {
-        if (!monitors || monitors.length === 0) {
-            return 'No monitor in this event';
-        }
-        if (monitors.length === 1) {
-            return monitors[0].name;
-        }
-        if (monitors.length === 2) {
-            return `${monitors[0].name} and ${monitors[1].name}`;
-        }
-        if (monitors.length === 3) {
-            return `${monitors[0].name}, ${monitors[1].name} and ${monitors[2].name}`;
-        }
-
-        return `${monitors[0].name}, ${monitors[1].name} and ${monitors.length -
-            2} others`;
-    };
-
     handleIncomingRequests = () => {
         const { projectId, openModal, incomingRequestList } = this.props;
 
@@ -112,13 +94,6 @@ class IncomingRequestList extends React.Component {
             incomingRequestList &&
             incomingRequestList.length > 0 &&
             incomingRequestList.map((incomingRequest, index) => {
-                const requestMonitors =
-                    incomingRequest.monitors &&
-                    incomingRequest.monitors.map(monitor => ({
-                        name: monitor.monitorId.name,
-                        _id: monitor.monitorId._id,
-                    }));
-
                 return (
                     <div
                         key={incomingRequest._id}
@@ -173,20 +148,6 @@ class IncomingRequestList extends React.Component {
                             <div className="bs-ObjectList-cell-row">
                                 {incomingRequest.url}
                             </div>
-                        </div>
-                        <div
-                            className="bs-ObjectList-cell bs-u-v-middle"
-                            style={{ width: '25vw' }}
-                        >
-                            {incomingRequest.isDefault ? (
-                                <div className="bs-ObjectList-cell-row">
-                                    All monitors without request
-                                </div>
-                            ) : (
-                                <div className="bs-ObjectList-cell-row">
-                                    {this.handleMonitorList(requestMonitors)}
-                                </div>
-                            )}
                         </div>
                         <div
                             className="bs-ObjectList-cell bs-u-v-middle"
@@ -307,10 +268,7 @@ class IncomingRequestList extends React.Component {
                             <header className="bs-ObjectList-row bs-ObjectList-row--header">
                                 <div className="bs-ObjectList-cell">Name</div>
                                 <div className="bs-ObjectList-cell">
-                                    Incoming Request URL
-                                </div>
-                                <div className="bs-ObjectList-cell">
-                                    Monitor(s)
+                                    Incoming HTTP Request URL
                                 </div>
                                 <div
                                     className="bs-ObjectList-cell"

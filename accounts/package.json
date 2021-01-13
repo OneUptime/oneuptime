@@ -6,7 +6,7 @@
     "dependencies": {
         "@beam-australia/react-env": "^2.1.2",
         "amplitude-js": "^5.8.0",
-        "axios": "^0.18.0",
+        "axios": "^0.21.1",
         "browserslist": "^4.6.1",
         "card-validator": "^4.3.0",
         "cli-table": "^0.3.1",

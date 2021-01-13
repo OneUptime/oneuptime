@@ -170,7 +170,7 @@ describe('SMTP Settings API', () => {
                 elem = await elem.getProperty('innerText');
                 elem = await elem.jsonValue();
 
-                expect(elem).toEqual('Success');
+                expect(elem).toEqual('Test Email Sent');
             });
         },
         operationTimeOut

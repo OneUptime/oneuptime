@@ -13,6 +13,7 @@ import { RenderTextArea } from '../basic/RenderTextArea';
 import Tooltip from '../basic/Tooltip';
 import { incomingRequestVariables } from '../../config';
 import { fetchCustomFields } from '../../actions/customField';
+import { fetchCustomFields as fetchMonitorCustomFields } from '../../actions/monitorCustomField';
 import CodeEditor from '../basic/CodeEditor';
 
 function validate(values) {
@@ -37,8 +38,13 @@ class EditIncomingRequest extends Component {
     };
 
     componentDidMount() {
-        const { fetchCustomFields, projectId } = this.props;
+        const {
+            fetchCustomFields,
+            projectId,
+            fetchMonitorCustomFields,
+        } = this.props;
         fetchCustomFields(projectId);
+        fetchMonitorCustomFields(projectId);
 
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -60,24 +66,30 @@ class EditIncomingRequest extends Component {
         const postObj = {};
 
         postObj.name = values.name;
-        postObj.isDefault = values.isDefault;
 
         if (values.nextAction && values.nextAction === 'createIncident') {
+            postObj.isDefault = values.isDefault;
             postObj.createIncident = true;
             postObj.filterCriteria = values.filterCriteria;
             postObj.filterCondition = values.filterCondition;
             if (isNaN(values.filterText)) {
                 postObj.filterText = values.filterText;
             } else {
-                if (typeof values.filterText === 'string') {
-                    postObj.filterText = values.filterText;
-                } else {
-                    postObj.filterText = Number(values.filterText);
-                }
+                postObj.filterText = parseFloat(values.filterText);
             }
             postObj.incidentTitle = values.incidentTitle;
             postObj.incidentType = values.incidentType;
+            if (values.dynamicIncidentType) {
+                postObj.customIncidentType = values.customIncidentType;
+                postObj.dynamicIncidentType = values.dynamicIncidentType;
+            }
             postObj.incidentPriority = values.incidentPriority;
+            if (values.dynamicIncidentPriority) {
+                // create this incident priority on the BE
+                postObj.customIncidentPriority = values.customIncidentPriority;
+                postObj.dynamicIncidentPriority =
+                    values.dynamicIncidentPriority;
+            }
             postObj.incidentDescription = values.incidentDescription;
 
             postObj.customFields = customFields.map(field => ({
@@ -131,11 +143,7 @@ class EditIncomingRequest extends Component {
             if (isNaN(values.filterText)) {
                 postObj.filterText = values.filterText;
             } else {
-                if (typeof values.filterText === 'string') {
-                    postObj.filterText = values.filterText;
-                } else {
-                    postObj.filterText = Number(values.filterText);
-                }
+                postObj.filterText = parseFloat(values.filterText);
             }
 
             postObj.noteContent = values.noteContent;
@@ -440,6 +448,7 @@ class EditIncomingRequest extends Component {
             incidentPriorities,
             destroy,
             customFields,
+            monitorCustomFields,
         } = this.props;
 
         return (
@@ -459,7 +468,7 @@ class EditIncomingRequest extends Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Edit Incoming Request</span>
+                                    <span>Edit Incoming HTTP Request</span>
                                 </span>
                             </div>
                         </div>
@@ -510,69 +519,6 @@ class EditIncomingRequest extends Component {
                                                             }}
                                                             autoFocus={true}
                                                         />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="isDefault"
-                                                    style={{ flexBasis: '20%' }}
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        paddingTop: '6px',
-                                                        flexBasis: '80%',
-                                                        maxWidth: '80%',
-                                                    }}
-                                                >
-                                                    <div className="bs-Fieldset-field">
-                                                        <label
-                                                            className="Checkbox"
-                                                            style={{
-                                                                marginRight:
-                                                                    '12px',
-                                                            }}
-                                                            htmlFor="isDefault"
-                                                        >
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name="isDefault"
-                                                                className="Checkbox-source"
-                                                                id="isDefault"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    Use as
-                                                                    default
-                                                                    incoming
-                                                                    request
-                                                                </span>
-                                                            </div>
-                                                        </label>
                                                     </div>
                                                 </div>
                                             </div>
@@ -972,6 +918,81 @@ class EditIncomingRequest extends Component {
                                             </fieldset>
                                         )}
 
+                                    {formValues &&
+                                        formValues.nextAction ===
+                                            'createIncident' && (
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            padding: 0,
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="isDefault"
+                                                            style={{
+                                                                flexBasis:
+                                                                    '20%',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop:
+                                                                    '6px',
+                                                                flexBasis:
+                                                                    '80%',
+                                                                maxWidth: '80%',
+                                                            }}
+                                                        >
+                                                            <div className="bs-Fieldset-field">
+                                                                <label
+                                                                    className="Checkbox"
+                                                                    style={{
+                                                                        marginRight:
+                                                                            '12px',
+                                                                    }}
+                                                                    htmlFor="isDefault"
+                                                                >
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name="isDefault"
+                                                                        className="Checkbox-source"
+                                                                        id="isDefault"
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Use
+                                                                            as
+                                                                            default
+                                                                            incoming
+                                                                            request
+                                                                        </span>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        )}
+
                                     <fieldset style={{ paddingTop: 0 }}>
                                         <div className="bs-Fieldset-rows">
                                             <div
@@ -1141,7 +1162,7 @@ class EditIncomingRequest extends Component {
                                                                                   .fieldType
                                                                             : 'text'
                                                                     }
-                                                                    placeholder="response.body.value"
+                                                                    placeholder="request.body.value"
                                                                     id="filterText"
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                     style={{
@@ -1225,7 +1246,7 @@ class EditIncomingRequest extends Component {
                                                                                 <code>
                                                                                     2
                                                                                     |
-                                                                                    response.query.value
+                                                                                    request.query.value
                                                                                 </code>
                                                                             </li>
                                                                             <li>
@@ -1236,6 +1257,31 @@ class EditIncomingRequest extends Component {
                                                                                 </code>
                                                                             </li>
                                                                         </ul>
+                                                                    </p>
+                                                                    <p>
+                                                                        You can
+                                                                        pass the
+                                                                        value of{' '}
+                                                                        <code>
+                                                                            request
+                                                                        </code>{' '}
+                                                                        object
+                                                                        directly
+                                                                        or you
+                                                                        can
+                                                                        specify
+                                                                        the{' '}
+                                                                        <code>
+                                                                            request
+                                                                        </code>{' '}
+                                                                        body as
+                                                                        a
+                                                                        variable{' '}
+                                                                        <code>
+                                                                            {
+                                                                                '{{request.body.value}}'
+                                                                            }
+                                                                        </code>
                                                                     </p>
                                                                 </Tooltip>
                                                             </div>
@@ -1368,7 +1414,7 @@ class EditIncomingRequest extends Component {
                                                                                       .fieldType
                                                                                 : 'text'
                                                                         }
-                                                                        placeholder="response.body.value"
+                                                                        placeholder="request.body.value"
                                                                         id="filterText"
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                         style={{
@@ -1454,7 +1500,7 @@ class EditIncomingRequest extends Component {
                                                                                     <code>
                                                                                         2
                                                                                         |
-                                                                                        response.query.value
+                                                                                        request.query.value
                                                                                     </code>
                                                                                 </li>
                                                                                 <li>
@@ -1465,6 +1511,35 @@ class EditIncomingRequest extends Component {
                                                                                     </code>
                                                                                 </li>
                                                                             </ul>
+                                                                        </p>
+                                                                        <p>
+                                                                            You
+                                                                            can
+                                                                            pass
+                                                                            the
+                                                                            value
+                                                                            of{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            object
+                                                                            directly
+                                                                            or
+                                                                            you
+                                                                            can
+                                                                            specify
+                                                                            the{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            body
+                                                                            as a
+                                                                            variable{' '}
+                                                                            <code>
+                                                                                {
+                                                                                    '{{request.body.value}}'
+                                                                                }
+                                                                            </code>
                                                                         </p>
                                                                     </Tooltip>
                                                                 </div>
@@ -1656,7 +1731,8 @@ class EditIncomingRequest extends Component {
                                                                 >
                                                                     <CodeEditor
                                                                         code={
-                                                                            formValues.noteContent
+                                                                            formValues.noteContent ||
+                                                                            ''
                                                                         }
                                                                         onCodeChange={
                                                                             this
@@ -1735,12 +1811,14 @@ class EditIncomingRequest extends Component {
                                                                                 '100%',
                                                                         }}
                                                                         options={[
-                                                                            {
-                                                                                value:
-                                                                                    'thirdPartyVariable',
-                                                                                label:
-                                                                                    'Third Party Variables',
-                                                                            },
+                                                                            ...monitorCustomFields.map(
+                                                                                field => ({
+                                                                                    value:
+                                                                                        field.fieldName,
+                                                                                    label:
+                                                                                        field.fieldName,
+                                                                                })
+                                                                            ),
                                                                         ]}
                                                                     />
                                                                     <Field
@@ -1802,8 +1880,22 @@ class EditIncomingRequest extends Component {
                                                                             RenderField
                                                                         }
                                                                         name="filterText"
-                                                                        type="input"
-                                                                        placeholder="Text to filter"
+                                                                        type={
+                                                                            formValues.filterCriteria
+                                                                                ? (
+                                                                                      monitorCustomFields.find(
+                                                                                          field =>
+                                                                                              field.fieldName ===
+                                                                                              formValues.filterCriteria
+                                                                                      ) || {
+                                                                                          fieldType:
+                                                                                              'text',
+                                                                                      }
+                                                                                  )
+                                                                                      .fieldType
+                                                                                : 'text'
+                                                                        }
+                                                                        placeholder="request.body.value"
                                                                         id="filterText"
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                         style={{
@@ -1820,7 +1912,7 @@ class EditIncomingRequest extends Component {
                                                                             true
                                                                         }
                                                                     />
-                                                                    <Tooltip title="Incoming Request Filter">
+                                                                    <Tooltip title="Incoming http Request Filter">
                                                                         <p>
                                                                             Filter
                                                                             exposes
@@ -1892,7 +1984,7 @@ class EditIncomingRequest extends Component {
                                                                                     <code>
                                                                                         2
                                                                                         |
-                                                                                        response.query.value
+                                                                                        request.query.value
                                                                                     </code>
                                                                                 </li>
                                                                                 <li>
@@ -1903,6 +1995,35 @@ class EditIncomingRequest extends Component {
                                                                                     </code>
                                                                                 </li>
                                                                             </ul>
+                                                                        </p>
+                                                                        <p>
+                                                                            You
+                                                                            can
+                                                                            pass
+                                                                            the
+                                                                            value
+                                                                            of{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            object
+                                                                            directly
+                                                                            or
+                                                                            you
+                                                                            can
+                                                                            specify
+                                                                            the{' '}
+                                                                            <code>
+                                                                                request
+                                                                            </code>{' '}
+                                                                            body
+                                                                            as a
+                                                                            variable{' '}
+                                                                            <code>
+                                                                                {
+                                                                                    '{{request.body.value}}'
+                                                                                }
+                                                                            </code>
                                                                         </p>
                                                                     </Tooltip>
                                                                 </div>
@@ -2053,40 +2174,76 @@ class EditIncomingRequest extends Component {
                                                                             '100%',
                                                                     }}
                                                                 >
-                                                                    <Field
-                                                                        className="db-select-nw"
-                                                                        component={
-                                                                            RenderSelect
-                                                                        }
-                                                                        name="incidentType"
-                                                                        id="incidentType"
-                                                                        placeholder="Incident type"
-                                                                        disabled={
-                                                                            this
-                                                                                .props
-                                                                                .requesting
-                                                                        }
-                                                                        options={[
-                                                                            {
-                                                                                value:
-                                                                                    'online',
-                                                                                label:
-                                                                                    'Online',
-                                                                            },
-                                                                            {
-                                                                                value:
-                                                                                    'offline',
-                                                                                label:
-                                                                                    'Offline',
-                                                                            },
-                                                                            {
-                                                                                value:
-                                                                                    'degraded',
-                                                                                label:
-                                                                                    'Degraded',
-                                                                            },
-                                                                        ]}
-                                                                    />
+                                                                    {formValues &&
+                                                                    !formValues.dynamicIncidentType ? (
+                                                                        <Field
+                                                                            className="db-select-nw"
+                                                                            component={
+                                                                                RenderSelect
+                                                                            }
+                                                                            name="incidentType"
+                                                                            id="incidentType"
+                                                                            placeholder="Incident type"
+                                                                            disabled={
+                                                                                this
+                                                                                    .props
+                                                                                    .requesting
+                                                                            }
+                                                                            options={[
+                                                                                {
+                                                                                    value:
+                                                                                        'online',
+                                                                                    label:
+                                                                                        'Online',
+                                                                                },
+                                                                                {
+                                                                                    value:
+                                                                                        'offline',
+                                                                                    label:
+                                                                                        'Offline',
+                                                                                },
+                                                                                {
+                                                                                    value:
+                                                                                        'degraded',
+                                                                                    label:
+                                                                                        'Degraded',
+                                                                                },
+                                                                            ]}
+                                                                        />
+                                                                    ) : (
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderField
+                                                                            }
+                                                                            type="text"
+                                                                            name="customIncidentType"
+                                                                            id="incidentType"
+                                                                            placeholder="Incident Type"
+                                                                            style={{
+                                                                                width:
+                                                                                    '100%',
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                                <div
+                                                                    onClick={() =>
+                                                                        this.props.change(
+                                                                            'dynamicIncidentType',
+                                                                            true
+                                                                        )
+                                                                    }
+                                                                    style={{
+                                                                        cursor:
+                                                                            'pointer',
+                                                                        marginTop: 5,
+                                                                        textDecoration:
+                                                                            'underline',
+                                                                    }}
+                                                                >
+                                                                    use dynamic
+                                                                    values
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2135,35 +2292,70 @@ class EditIncomingRequest extends Component {
                                                                                 '100%',
                                                                         }}
                                                                     >
-                                                                        <Field
-                                                                            style={{
-                                                                                width:
-                                                                                    '100%',
-                                                                                padding:
-                                                                                    '3px 5px',
-                                                                            }}
-                                                                            className="db-select-nw"
-                                                                            component={
-                                                                                RenderSelect
-                                                                            }
-                                                                            name="incidentPriority"
-                                                                            id="incidentPriority"
-                                                                            disabled={
-                                                                                this
-                                                                                    .props
-                                                                                    .requesting
-                                                                            }
-                                                                            options={[
-                                                                                ...incidentPriorities.map(
-                                                                                    incidentPriority => ({
-                                                                                        value:
-                                                                                            incidentPriority._id,
-                                                                                        label:
-                                                                                            incidentPriority.name,
-                                                                                    })
-                                                                                ),
-                                                                            ]}
-                                                                        />
+                                                                        {formValues &&
+                                                                        !formValues.dynamicIncidentPriority ? (
+                                                                            <Field
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                }}
+                                                                                className="db-select-nw"
+                                                                                component={
+                                                                                    RenderSelect
+                                                                                }
+                                                                                name="incidentPriority"
+                                                                                id="incidentPriority"
+                                                                                disabled={
+                                                                                    this
+                                                                                        .props
+                                                                                        .requesting
+                                                                                }
+                                                                                options={[
+                                                                                    ...incidentPriorities.map(
+                                                                                        incidentPriority => ({
+                                                                                            value:
+                                                                                                incidentPriority._id,
+                                                                                            label:
+                                                                                                incidentPriority.name,
+                                                                                        })
+                                                                                    ),
+                                                                                ]}
+                                                                            />
+                                                                        ) : (
+                                                                            <Field
+                                                                                className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                                                component={
+                                                                                    RenderField
+                                                                                }
+                                                                                type="text"
+                                                                                name="customIncidentPriority"
+                                                                                id="incidentPriority"
+                                                                                placeholder="Incident Priority"
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                }}
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                    <div
+                                                                        onClick={() =>
+                                                                            this.props.change(
+                                                                                'dynamicIncidentPriority',
+                                                                                true
+                                                                            )
+                                                                        }
+                                                                        style={{
+                                                                            cursor:
+                                                                                'pointer',
+                                                                            marginTop: 5,
+                                                                            textDecoration:
+                                                                                'underline',
+                                                                        }}
+                                                                    >
+                                                                        use
+                                                                        dynamic
+                                                                        values
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -2528,6 +2720,8 @@ EditIncomingRequest.propTypes = {
     destroy: PropTypes.func.isRequired, // to manually destroy the redux form state
     customFields: PropTypes.array,
     fetchCustomFields: PropTypes.func,
+    fetchMonitorCustomFields: PropTypes.func,
+    monitorCustomFields: PropTypes.array,
 };
 
 const EditIncomingRequestForm = reduxForm({
@@ -2539,13 +2733,20 @@ const EditIncomingRequestForm = reduxForm({
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { editIncomingRequest, closeModal, fetchCustomFields },
+        {
+            editIncomingRequest,
+            closeModal,
+            fetchCustomFields,
+            fetchMonitorCustomFields,
+        },
         dispatch
     );
 
 const mapStateToProps = state => {
     const incomingRequestToBeUpdated = state.modal.modals[0].incomingRequest;
     const projectId = state.modal.modals[0].projectId;
+    const incidentPriorities =
+        state.incidentPriorities.incidentPrioritiesList.incidentPriorities;
 
     const initialValues = {};
 
@@ -2593,10 +2794,34 @@ const mapStateToProps = state => {
         initialValues.filterCondition =
             incomingRequestToBeUpdated.filterCondition;
         initialValues.filterText = incomingRequestToBeUpdated.filterText;
-        initialValues.incidentPriority =
-            incomingRequestToBeUpdated.incidentPriority;
+        if (incomingRequestToBeUpdated.createIncident) {
+            const priorityIds = incidentPriorities.map(priority =>
+                String(priority._id)
+            );
+            initialValues.dynamicIncidentPriority = !priorityIds.includes(
+                incomingRequestToBeUpdated.incidentPriority
+            );
+            initialValues.customIncidentPriority =
+                incomingRequestToBeUpdated.incidentPriority;
+        }
+        if (!initialValues.dynamicIncidentPriority) {
+            initialValues.incidentPriority =
+                incomingRequestToBeUpdated.incidentPriority;
+        }
         initialValues.incidentTitle = incomingRequestToBeUpdated.incidentTitle;
-        initialValues.incidentType = incomingRequestToBeUpdated.incidentType;
+        if (incomingRequestToBeUpdated.createIncident) {
+            initialValues.dynamicIncidentType = ![
+                'offline',
+                'online',
+                'degraded',
+            ].includes(incomingRequestToBeUpdated.incidentType);
+            initialValues.customIncidentType =
+                incomingRequestToBeUpdated.incidentType;
+        }
+        if (!initialValues.dynamicIncidentType) {
+            initialValues.incidentType =
+                incomingRequestToBeUpdated.incidentType;
+        }
         initialValues.incidentDescription =
             incomingRequestToBeUpdated.incidentDescription;
         if (
@@ -2632,9 +2857,10 @@ const mapStateToProps = state => {
             state.form.editIncomingRequestForm.values,
         initialValues,
         projectId,
-        incidentPriorities:
-            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        incidentPriorities,
         customFields: state.customField.customFields.fields,
+        monitorCustomFields:
+            state.monitorCustomField.monitorCustomFields.fields,
     };
 };
 

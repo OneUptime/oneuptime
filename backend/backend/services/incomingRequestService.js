@@ -9,6 +9,8 @@ const DOMPurify = createDOMPurify(window);
 const Handlebars = require('handlebars');
 const { isEmpty } = require('lodash');
 const IncidentMessageService = require('../services/incidentMessageService');
+const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
+const IncidentSettingsService = require('../services/incidentSettingsService');
 // const RealTimeService = require('./realTimeService');
 
 module.exports = {
@@ -22,7 +24,7 @@ module.exports = {
             const incomingRequest = await IncomingRequestModel.findOne(query)
                 .populate({
                     path: 'monitors.monitorId',
-                    select: 'name thirdPartyVariable componentId',
+                    select: 'name customFields componentId',
                     populate: {
                         path: 'componentId',
                         select: 'name',
@@ -95,6 +97,20 @@ module.exports = {
             if (data.incidentDescription) {
                 data.incidentDescription = DOMPurify.sanitize(
                     data.incidentDescription
+                );
+            }
+
+            if (data.filterText) {
+                data.filterText = DOMPurify.sanitize(data.filterText);
+            }
+
+            if (data.dynamicIncidentType) {
+                data.incidentType = DOMPurify.sanitize(data.customIncidentType);
+            }
+
+            if (data.dynamicIncidentPriority) {
+                data.incidentPriority = DOMPurify.sanitize(
+                    data.customIncidentPriority
                 );
             }
 
@@ -207,6 +223,7 @@ module.exports = {
                     incidentType: '',
                     incidentDescription: '',
                     customFields: '',
+                    isDefault: '',
                 };
             }
 
@@ -235,6 +252,7 @@ module.exports = {
                     customFields: '',
                     acknowledgeIncident: '',
                     resolveIncident: '',
+                    isDefault: '',
                 };
             }
 
@@ -245,6 +263,20 @@ module.exports = {
             if (data.incidentDescription) {
                 data.incidentDescription = DOMPurify.sanitize(
                     data.incidentDescription
+                );
+            }
+
+            if (data.filterText) {
+                data.filterText = DOMPurify.sanitize(data.filterText);
+            }
+
+            if (data.dynamicIncidentType) {
+                data.incidentType = DOMPurify.sanitize(data.customIncidentType);
+            }
+
+            if (data.dynamicIncidentPriority) {
+                data.incidentPriority = DOMPurify.sanitize(
+                    data.customIncidentPriority
                 );
             }
 
@@ -259,7 +291,7 @@ module.exports = {
                 }));
             }
 
-            if (data.isDefault) {
+            if (data.isDefault && data.createIncident) {
                 const incomingRequest = await _this.findOneBy({
                     isDefault: true,
                     projectId: query.projectId,
@@ -339,7 +371,14 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate('monitors.monitorId', 'name')
+                .populate({
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name',
+                    },
+                })
                 .populate('projectId', 'name')
                 .lean();
 
@@ -497,43 +536,24 @@ module.exports = {
 
     handleIncomingRequestAction: async function(data) {
         const _this = this;
-        const filter = data.filter;
         try {
-            let incomingRequest = null;
-            if (isNaN(filter)) {
-                if (filter && filter.trim()) {
-                    incomingRequest = await _this.findOneBy({
-                        _id: data.requestId,
-                        projectId: data.projectId,
-                        filterText: filter,
-                    });
-                } else {
-                    incomingRequest = await _this.findOneBy({
-                        _id: data.requestId,
-                        projectId: data.projectId,
-                    });
-                }
-            } else {
-                incomingRequest = await _this.findOneBy({
-                    _id: data.requestId,
-                    projectId: data.projectId,
-                    filterText: Number(filter),
-                });
-            }
+            const incidentPriorities = await IncidentPrioritiesService.findBy({
+                projectId: data.projectId,
+            });
+            const incidentSettings = await IncidentSettingsService.findOne({
+                projectId: data.projectId,
+            });
 
-            if (!incomingRequest) {
-                incomingRequest = await _this.findOneBy({
-                    _id: data.requestId,
-                    projectId: data.projectId,
-                    $or: [
-                        { filterText: { $exists: false } },
-                        { filterText: '' },
-                    ],
-                });
-            }
+            const incomingRequest = await _this.findOneBy({
+                _id: data.requestId,
+                projectId: data.projectId,
+            });
 
             let titleTemplate,
                 descriptionTemplate,
+                incidentTypeTemplate,
+                incidentPriorityTemplate,
+                filterTextTemplate,
                 customFieldTemplates = [];
             if (incomingRequest && incomingRequest.createIncident) {
                 data.incidentType = incomingRequest.incidentType;
@@ -541,6 +561,11 @@ module.exports = {
                 data.title = incomingRequest.incidentTitle;
                 data.description = incomingRequest.incidentDescription;
                 data.customFields = incomingRequest.customFields;
+
+                data.reason = [
+                    `Created by: ${incomingRequest.name}`,
+                    `Reason: This incident was created by incoming HTTP request`,
+                ];
 
                 if (
                     data.title &&
@@ -565,10 +590,31 @@ module.exports = {
                     }));
                 }
 
+                if (data.incidentType) {
+                    incidentTypeTemplate = Handlebars.compile(
+                        data.incidentType
+                    );
+                }
+                if (data.incidentPriority) {
+                    incidentPriorityTemplate = Handlebars.compile(
+                        data.incidentPriority
+                    );
+                }
+                if (incomingRequest.filterText) {
+                    const dataConfig = {
+                        request: data.request,
+                    };
+                    filterTextTemplate = Handlebars.compile(
+                        incomingRequest.filterText
+                    );
+                    filterTextTemplate = filterTextTemplate(dataConfig);
+                }
+
                 const filterCriteria = incomingRequest.filterCriteria,
                     filterCondition = incomingRequest.filterCondition,
-                    filterText = incomingRequest.filterText;
+                    filterText = filterTextTemplate;
 
+                const incidentResponse = [];
                 if (
                     filterCriteria &&
                     filterCondition &&
@@ -576,9 +622,61 @@ module.exports = {
                         (filterText && filterText.trim()))
                 ) {
                     if (incomingRequest.isDefault) {
-                        const monitors = await MonitorService.findBy({
-                            projectId: data.projectId,
-                        });
+                        let monitors = [];
+                        if (filterCondition === 'equalTo') {
+                            monitors = await MonitorService.findBy({
+                                projectId: data.projectId,
+                                'customFields.fieldName': filterCriteria,
+                                'customFields.fieldValue': filterText,
+                            });
+                        } else if (filterCondition === 'notEqualTo') {
+                            monitors = await MonitorService.findBy({
+                                projectId: data.projectId,
+                                'customFields.fieldName': filterCriteria,
+                                'customFields.fieldValue': { $ne: filterText },
+                            });
+                        } else if (!isNaN(filterText)) {
+                            // handle the case when filterText is a number
+                            // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                            if (filterCondition === 'lessThan') {
+                                monitors = await MonitorService.findBy({
+                                    projectId: data.projectId,
+                                    'customFields.fieldName': filterCriteria,
+                                    'customFields.fieldValue': {
+                                        $lt: filterText,
+                                    },
+                                });
+                            } else if (filterCondition === 'greaterThan') {
+                                monitors = await MonitorService.findBy({
+                                    projectId: data.projectId,
+                                    'customFields.fieldName': filterCriteria,
+                                    'customFields.fieldValue': {
+                                        $gt: filterText,
+                                    },
+                                });
+                            } else if (
+                                filterCondition === 'lessThanOrEqualTo'
+                            ) {
+                                monitors = await MonitorService.findBy({
+                                    projectId: data.projectId,
+                                    'customFields.fieldName': filterCriteria,
+                                    'customFields.fieldValue': {
+                                        $lte: filterText,
+                                    },
+                                });
+                            } else if (
+                                filterCondition === 'greaterThanOrEqualTo'
+                            ) {
+                                monitors = await MonitorService.findBy({
+                                    projectId: data.projectId,
+                                    'customFields.fieldName': filterCriteria,
+                                    'customFields.fieldValue': {
+                                        $gte: filterText,
+                                    },
+                                });
+                            }
+                        }
+
                         for (const monitor of monitors) {
                             const dataConfig = {
                                 monitorName: monitor.name,
@@ -595,6 +693,32 @@ module.exports = {
                                     dataConfig
                                 );
                             }
+                            if (incidentTypeTemplate) {
+                                const incidentType = incidentTypeTemplate(
+                                    dataConfig
+                                );
+                                data.incidentType = [
+                                    'offline',
+                                    'online',
+                                    'degraded',
+                                ].includes(incidentType)
+                                    ? incidentType
+                                    : 'offline';
+                            }
+                            if (incidentPriorityTemplate) {
+                                const incidentPriority = incidentPriorityTemplate(
+                                    dataConfig
+                                );
+                                const priorityObj = {};
+                                incidentPriorities.forEach(
+                                    priority =>
+                                        (priorityObj[priority.name] =
+                                            priority._id)
+                                );
+                                data.incidentPriority =
+                                    priorityObj[incidentPriority] ||
+                                    incidentSettings.incidentPriority;
+                            }
                             if (
                                 customFieldTemplates &&
                                 customFieldTemplates.length > 0
@@ -609,60 +733,125 @@ module.exports = {
                                 );
                             }
 
-                            const filterArray = monitor[filterCriteria];
-                            if (
-                                filterCondition === 'equalTo' &&
-                                filterArray.includes(filterText)
-                            ) {
-                                data.monitorId = monitor._id;
-                                await IncidentService.create(data);
-                            } else if (
-                                filterCondition === 'notEqualTo' &&
-                                !filterArray.includes(filterText)
-                            ) {
-                                data.monitorId = monitor._id;
-                                await IncidentService.create(data);
-                            } else if (!isNaN(filterText)) {
-                                // handle the case when filterText is a number
-                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
-                                for (const filter of filterArray) {
-                                    if (!isNaN(filter)) {
-                                        if (
-                                            filterCondition === 'lessThan' &&
-                                            filter < filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition === 'greaterThan' &&
-                                            filter > filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition ===
-                                                'lessThanOrEqualTo' &&
-                                            filter <= filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition ===
-                                                'greaterThanOrEqualTo' &&
-                                            filter >= filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        }
-                                    }
-                                }
-                            }
+                            data.monitorId = monitor._id;
+                            const incident = await IncidentService.create(data);
+                            incidentResponse.push(incident);
                         }
                     } else {
-                        // grab the monitor from monitorId {_id, name, thirdPartyVariable}
-                        const monitors = incomingRequest.monitors.map(
+                        // grab the monitor from monitorId {_id, name, customFields}
+                        let monitors = incomingRequest.monitors.map(
                             monitor => monitor.monitorId
                         );
+                        if (filterCondition === 'equalTo') {
+                            const matchedMonitor = [];
+                            monitors.forEach(monitor => {
+                                let added = false;
+                                monitor.customFields.forEach(field => {
+                                    if (
+                                        field.fieldName === filterCriteria &&
+                                        field.fieldValue === filterText &&
+                                        !added
+                                    ) {
+                                        matchedMonitor.push(monitor);
+                                        added = true;
+                                    }
+                                });
+                            });
+                            monitors = matchedMonitor;
+                        } else if (filterCondition === 'notEqualTo') {
+                            const matchedMonitor = [];
+                            monitors.forEach(monitor => {
+                                let added = false;
+                                monitor.customFields.forEach(field => {
+                                    if (
+                                        field.fieldName === filterCriteria &&
+                                        field.fieldValue !== filterText &&
+                                        !added
+                                    ) {
+                                        matchedMonitor.push(monitor);
+                                        added = true;
+                                    }
+                                });
+                            });
+                            monitors = matchedMonitor;
+                        } else if (!isNaN(filterText)) {
+                            // handle the case when filterText is a number
+                            // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                            if (filterCondition === 'lessThan') {
+                                const matchedMonitor = [];
+                                monitors.forEach(monitor => {
+                                    let added = false;
+                                    monitor.customFields.forEach(field => {
+                                        if (
+                                            field.fieldName ===
+                                                filterCriteria &&
+                                            field.fieldValue < filterText &&
+                                            !added
+                                        ) {
+                                            matchedMonitor.push(monitor);
+                                            added = true;
+                                        }
+                                    });
+                                });
+                                monitors = matchedMonitor;
+                            } else if (filterCondition === 'greaterThan') {
+                                const matchedMonitor = [];
+                                monitors.forEach(monitor => {
+                                    let added = false;
+                                    monitor.customFields.forEach(field => {
+                                        if (
+                                            field.fieldName ===
+                                                filterCriteria &&
+                                            field.fieldValue > filterText &&
+                                            !added
+                                        ) {
+                                            matchedMonitor.push(monitor);
+                                            added = true;
+                                        }
+                                    });
+                                });
+                                monitors = matchedMonitor;
+                            } else if (
+                                filterCondition === 'lessThanOrEqualTo'
+                            ) {
+                                const matchedMonitor = [];
+                                monitors.forEach(monitor => {
+                                    let added = false;
+                                    monitor.customFields.forEach(field => {
+                                        if (
+                                            field.fieldName ===
+                                                filterCriteria &&
+                                            field.fieldValue <= filterText &&
+                                            !added
+                                        ) {
+                                            matchedMonitor.push(monitor);
+                                            added = true;
+                                        }
+                                    });
+                                });
+                                monitors = matchedMonitor;
+                            } else if (
+                                filterCondition === 'greaterThanOrEqualTo'
+                            ) {
+                                const matchedMonitor = [];
+                                monitors.forEach(monitor => {
+                                    let added = false;
+                                    monitor.customFields.forEach(field => {
+                                        if (
+                                            field.fieldName ===
+                                                filterCriteria &&
+                                            field.fieldValue >= filterText &&
+                                            !added
+                                        ) {
+                                            matchedMonitor.push(monitor);
+                                            added = true;
+                                        }
+                                    });
+                                });
+                                monitors = matchedMonitor;
+                            }
+                        }
+
                         for (const monitor of monitors) {
                             const dataConfig = {
                                 monitorName: monitor.name,
@@ -692,54 +881,9 @@ module.exports = {
                                 );
                             }
 
-                            const filterArray = monitor[filterCriteria];
-                            if (
-                                filterCondition === 'equalTo' &&
-                                filterArray.includes(filterText)
-                            ) {
-                                data.monitorId = monitor._id;
-                                await IncidentService.create(data);
-                            } else if (
-                                filterCondition === 'notEqualTo' &&
-                                !filterArray.includes(filterText)
-                            ) {
-                                data.monitorId = monitor._id;
-                                await IncidentService.create(data);
-                            } else if (!isNaN(filterText)) {
-                                // handle the case when filterText is a number
-                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
-                                for (const filter of filterArray) {
-                                    if (!isNaN(filter)) {
-                                        if (
-                                            filterCondition === 'lessThan' &&
-                                            filter < filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition === 'greaterThan' &&
-                                            filter > filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition ===
-                                                'lessThanOrEqualTo' &&
-                                            filter <= filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        } else if (
-                                            filterCondition ===
-                                                'greaterThanOrEqualTo' &&
-                                            filter >= filterText
-                                        ) {
-                                            data.monitorId = monitor._id;
-                                            await IncidentService.create(data);
-                                        }
-                                    }
-                                }
-                            }
+                            data.monitorId = monitor._id;
+                            const incident = await IncidentService.create(data);
+                            incidentResponse.push(incident);
                         }
                     }
                 } else {
@@ -763,6 +907,32 @@ module.exports = {
                                     dataConfig
                                 );
                             }
+                            if (incidentTypeTemplate) {
+                                const incidentType = incidentTypeTemplate(
+                                    dataConfig
+                                );
+                                data.incidentType = [
+                                    'offline',
+                                    'online',
+                                    'degraded',
+                                ].includes(incidentType)
+                                    ? incidentType
+                                    : 'offline';
+                            }
+                            if (incidentPriorityTemplate) {
+                                const incidentPriority = incidentPriorityTemplate(
+                                    dataConfig
+                                );
+                                const priorityObj = {};
+                                incidentPriorities.forEach(
+                                    priority =>
+                                        (priorityObj[priority.name] =
+                                            priority._id)
+                                );
+                                data.incidentPriority =
+                                    priorityObj[incidentPriority] ||
+                                    incidentSettings.incidentPriority;
+                            }
                             if (
                                 customFieldTemplates &&
                                 customFieldTemplates.length > 0
@@ -777,7 +947,8 @@ module.exports = {
                                 );
                             }
                             data.monitorId = monitor._id;
-                            await IncidentService.create(data);
+                            const incident = await IncidentService.create(data);
+                            incidentResponse.push(incident);
                         }
                     } else {
                         // grab the monitor from monitorId {_id, name}
@@ -799,6 +970,32 @@ module.exports = {
                                     dataConfig
                                 );
                             }
+                            if (incidentTypeTemplate) {
+                                const incidentType = incidentTypeTemplate(
+                                    dataConfig
+                                );
+                                data.incidentType = [
+                                    'offline',
+                                    'online',
+                                    'degraded',
+                                ].includes(incidentType)
+                                    ? incidentType
+                                    : 'offline';
+                            }
+                            if (incidentPriorityTemplate) {
+                                const incidentPriority = incidentPriorityTemplate(
+                                    dataConfig
+                                );
+                                const priorityObj = {};
+                                incidentPriorities.forEach(
+                                    priority =>
+                                        (priorityObj[priority.name] =
+                                            priority._id)
+                                );
+                                data.incidentPriority =
+                                    priorityObj[incidentPriority] ||
+                                    incidentSettings.incidentPriority;
+                            }
                             if (
                                 customFieldTemplates &&
                                 customFieldTemplates.length > 0
@@ -814,10 +1011,18 @@ module.exports = {
                             }
 
                             data.monitorId = monitor._id;
-                            await IncidentService.create(data);
+                            const incident = await IncidentService.create(data);
+                            incidentResponse.push(incident);
                         }
                     }
                 }
+
+                return {
+                    status: 'success',
+                    created_incidents: incidentResponse.map(
+                        response => response.idNumber
+                    ),
+                };
             }
 
             if (
@@ -831,10 +1036,21 @@ module.exports = {
                     : 'internal';
                 data.content = incomingRequest.noteContent;
 
+                if (incomingRequest.filterText) {
+                    const dataConfig = {
+                        request: data.request,
+                    };
+                    filterTextTemplate = Handlebars.compile(
+                        incomingRequest.filterText
+                    );
+                    filterTextTemplate = filterTextTemplate(dataConfig);
+                }
+
                 const filterCriteria = incomingRequest.filterCriteria,
                     filterCondition = incomingRequest.filterCondition,
-                    filterText = incomingRequest.filterText;
+                    filterText = filterTextTemplate;
 
+                const noteResponse = [];
                 if (
                     filterCriteria &&
                     filterCondition &&
@@ -899,6 +1115,7 @@ module.exports = {
                         for (const incident of incidents) {
                             data.incidentId = incident._id;
                             await IncidentMessageService.create(data);
+                            noteResponse.push(incident);
                         }
                     }
                 } else {
@@ -909,8 +1126,16 @@ module.exports = {
                     for (const incident of incidents) {
                         data.incidentId = incident._id;
                         await IncidentMessageService.create(data);
+                        noteResponse.push(incident);
                     }
                 }
+
+                return {
+                    status: 'success',
+                    internalNotes_addedTo: noteResponse.map(
+                        res => res.idNumber
+                    ),
+                };
             }
 
             if (
@@ -918,10 +1143,22 @@ module.exports = {
                 (incomingRequest.acknowledgeIncident ||
                     incomingRequest.resolveIncident)
             ) {
+                if (incomingRequest.filterText) {
+                    const dataConfig = {
+                        request: data.request,
+                    };
+                    filterTextTemplate = Handlebars.compile(
+                        incomingRequest.filterText
+                    );
+                    filterTextTemplate = filterTextTemplate(dataConfig);
+                }
+
                 const filterCriteria = incomingRequest.filterCriteria,
                     filterCondition = incomingRequest.filterCondition,
-                    filterText = incomingRequest.filterText;
+                    filterText = filterTextTemplate;
 
+                const resolveResponse = [],
+                    acknowledgeResponse = [];
                 if (
                     filterCriteria &&
                     filterCondition &&
@@ -985,18 +1222,20 @@ module.exports = {
                     if (incidents && incidents.length > 0) {
                         for (const incident of incidents) {
                             if (incomingRequest.acknowledgeIncident) {
-                                await IncidentService.acknowledge(
+                                const incidentData = await IncidentService.acknowledge(
                                     incident._id,
                                     null,
                                     'fyipe'
                                 );
+                                acknowledgeResponse.push(incidentData);
                             }
                             if (incomingRequest.resolveIncident) {
-                                await IncidentService.resolve(
+                                const incidentData = await IncidentService.resolve(
                                     incident._id,
                                     null,
                                     'fyipe'
                                 );
+                                resolveResponse.push(incidentData);
                             }
                         }
                     }
@@ -1007,20 +1246,39 @@ module.exports = {
 
                     for (const incident of incidents) {
                         if (incomingRequest.acknowledgeIncident) {
-                            await IncidentService.acknowledge(
+                            const incidentData = await IncidentService.acknowledge(
                                 incident._id,
                                 null,
                                 'fyipe'
                             );
+                            acknowledgeResponse.push(incidentData);
                         }
                         if (incomingRequest.resolveIncident) {
-                            await IncidentService.resolve(
+                            const incidentData = await IncidentService.resolve(
                                 incident._id,
                                 null,
                                 'fyipe'
                             );
+                            resolveResponse.push(incidentData);
                         }
                     }
+                }
+
+                if (resolveResponse && resolveResponse.length > 0) {
+                    return {
+                        status: 'success',
+                        resolved_incidents: resolveResponse.map(
+                            res => res.idNumber
+                        ),
+                    };
+                }
+                if (acknowledgeResponse && acknowledgeResponse.length > 0) {
+                    return {
+                        status: 'success',
+                        acknowledged_incidents: acknowledgeResponse.map(
+                            res => res.idNumber
+                        ),
+                    };
                 }
             }
         } catch (error) {
