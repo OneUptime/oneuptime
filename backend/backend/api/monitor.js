@@ -369,15 +369,15 @@ router.put(
                 data,
                 unsetData
             );
-            if (
-                data.lighthouseScanStatus &&
-                data.lighthouseScanStatus === 'scan'
-            ) {
-                await LighthouseLogService.updateManyBy(
-                    { monitorId: req.params.monitorId },
-                    { scanning: true }
-                );
-            }
+            // if (
+            //     data.lighthouseScanStatus &&
+            //     data.lighthouseScanStatus === 'scan'
+            // ) {
+            //     await LighthouseLogService.updateManyBy(
+            //         { monitorId: req.params.monitorId },
+            //         { scanning: true }
+            //     );
+            // }
             if (monitor) {
                 return sendItemResponse(req, res, monitor);
             } else {
