@@ -658,7 +658,12 @@ const _this = {
                         to,
                     };
                     await twilioClient.messages.create(options);
-                    await SmsCountService.create(userId, to, projectId);
+                    await SmsCountService.create(
+                        userId,
+                        to,
+                        projectId,
+                        options.body
+                    );
                     await UserService.updateOneBy(
                         { _id: userId },
                         {

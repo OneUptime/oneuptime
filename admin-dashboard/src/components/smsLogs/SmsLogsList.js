@@ -187,7 +187,7 @@ export class SmsLogsList extends Component {
                                                                     ? smsLog
                                                                           .userId
                                                                           .name
-                                                                    : 'N/A'}
+                                                                    : 'Not Added Yet'}
                                                             </span>
                                                         </div>
                                                     </span>
