@@ -145,8 +145,6 @@ export class DashboardApp extends Component {
 
                 <DeleteProjectModal />
 
-                {/* <ClickOutside onClickOutside={this.closeModal} /> */}
-
                 <ClickOutside onClickOutside={this.hideProfileMenu}>
                     <ProfileMenu visible={this.props.profile.menuVisible} />
                 </ClickOutside>
