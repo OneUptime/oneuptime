@@ -155,7 +155,7 @@ class About extends Component {
                                         <tr>
                                             <td>
                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                    Helm chart version
+                                                    Helm Chart Version
                                                 </span>
                                             </td>
                                             <td>
@@ -176,7 +176,7 @@ class About extends Component {
                                         <tr>
                                             <td>
                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                    Probe version
+                                                    Probe Version
                                                 </span>
                                             </td>
                                             <td>

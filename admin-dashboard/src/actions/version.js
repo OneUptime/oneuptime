@@ -65,7 +65,6 @@ export function getVersion() {
                 versions.forEach(version => {
                     versionsObject = { ...versionsObject, ...version.data };
                 });
-                console.log('versionsObject', versionsObject);
 
                 dispatch(getVersionSuccess(versionsObject));
             },
