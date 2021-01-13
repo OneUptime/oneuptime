@@ -775,7 +775,7 @@ module.exports = {
         eventType,
     }) {
         const _this = this;
-        let alert, balanceStatus;
+        let alert;
         const date = new Date();
         const monitorId = monitor._id;
         const accessToken = UserService.getAccessToken({
@@ -963,7 +963,7 @@ module.exports = {
         eventType,
     }) {
         const _this = this;
-        let alert, balanceStatus;
+        let alert;
         const projectId = project._id;
         const date = new Date();
         const monitorId = monitor._id;
