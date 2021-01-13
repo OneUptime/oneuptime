@@ -2123,7 +2123,7 @@ class CreateIncomingRequest extends Component {
                                                                     onClick={() =>
                                                                         this.props.change(
                                                                             'dynamicIncidentType',
-                                                                            true
+                                                                            !formValues.dynamicIncidentType
                                                                         )
                                                                     }
                                                                     style={{
@@ -2134,8 +2134,9 @@ class CreateIncomingRequest extends Component {
                                                                             'underline',
                                                                     }}
                                                                 >
-                                                                    use dynamic
-                                                                    values
+                                                                    {formValues.dynamicIncidentType
+                                                                        ? 'use predefined values'
+                                                                        : 'use dynamic values'}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2234,7 +2235,7 @@ class CreateIncomingRequest extends Component {
                                                                         onClick={() =>
                                                                             this.props.change(
                                                                                 'dynamicIncidentPriority',
-                                                                                true
+                                                                                !formValues.dynamicIncidentPriority
                                                                             )
                                                                         }
                                                                         style={{
@@ -2245,9 +2246,9 @@ class CreateIncomingRequest extends Component {
                                                                                 'underline',
                                                                         }}
                                                                     >
-                                                                        use
-                                                                        dynamic
-                                                                        values
+                                                                        {formValues.dynamicIncidentPriority
+                                                                            ? 'use predefined values'
+                                                                            : 'use dynamic values'}
                                                                     </div>
                                                                 </div>
                                                             </div>
