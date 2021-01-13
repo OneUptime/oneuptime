@@ -17,7 +17,8 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('userIds', 'name');
+                .populate('userId', 'name')
+                .populate('projectId', 'name');
             return SmsCount;
         } catch (error) {
             ErrorService.log('smsCountService.findBy', error);
@@ -34,7 +35,8 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             const SmsCount = await SmsCountModel.findOne(query)
                 .sort([['createdAt', -1]])
-                .populate('userIds', 'name');
+                .populate('userId', 'name')
+                .populate('projectId', 'name');
             return SmsCount;
         } catch (error) {
             ErrorService.log('smsCountService.findOneBy', error);

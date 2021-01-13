@@ -165,7 +165,9 @@ export class SmsLogsList extends Component {
                                                             <div className="Box-root">
                                                                 <span>
                                                                     {smsLog.projectId
-                                                                        ? smsLog.projectId
+                                                                        ? smsLog
+                                                                              .projectId
+                                                                              .name
                                                                         : 'N/A'}
                                                                 </span>
                                                             </div>
@@ -182,7 +184,9 @@ export class SmsLogsList extends Component {
                                                         <div className="Box-root Margin-right--16">
                                                             <span>
                                                                 {smsLog.userId
-                                                                    ? smsLog.userId
+                                                                    ? smsLog
+                                                                          .userId
+                                                                          .name
                                                                     : 'N/A'}
                                                             </span>
                                                         </div>

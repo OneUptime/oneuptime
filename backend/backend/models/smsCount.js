@@ -6,6 +6,7 @@ const smsCountSchema = new Schema({
     sentTo: String,
     createdAt: { type: Date, default: Date.now },
     projectId: { type: String, ref: 'Project' },
+    parentProjectId: { type: String, ref: 'Project' },
     deleted: { type: Boolean, default: false },
     deletedAt: {
         type: Date,
