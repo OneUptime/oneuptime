@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 
 import Dashboard from '../components/Dashboard';
 import SMTP from '../components/settings/smtp';
 import Twilio from '../components/settings/twilio';
 import Sso from '../components/settings/sso';
+import SsoDefaultRoles from '../components/settings/ssoDefaultRoles';
 import AuditLog from '../components/settings/auditLog';
 import EmailLog from '../components/settings/emailLog';
 import SmsLog from '../components/settings/smsLog';
@@ -17,7 +18,12 @@ const getChild = key => {
         case '/admin/settings/twilio':
             return <Twilio />;
         case '/admin/settings/sso':
-            return <Sso />;
+            return (
+                <Fragment>
+                    <Sso />
+                    <SsoDefaultRoles />
+                </Fragment>
+            );
         case '/admin/settings/audit-logs':
             return <AuditLog />;
         case '/admin/settings/email-logs':
