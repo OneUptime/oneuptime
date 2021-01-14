@@ -35160,6 +35160,14 @@ span.CodeMirror-selectedtext {
   height: 16px;
 }
 
+.bs-note-offline-o {
+  background-color: rgb(0,0,0);
+}
+
+.custom-tab, #tab-slider {
+  width: 20% !important
+}
+
 @media (max-width: 768px) {
   .bs-thread-container {
     margin-top: 20px
