@@ -286,12 +286,9 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
         if (!issue) {
             issue = await IssueService.create(data);
         } else {
-            // issue exist but checked if it is resolved or igored so to uresolve it
-            if (issue.resolved || issue.ignored) {
+            // issue exist but checked if it is resolved so to uresolve it
+            if (issue.resolved) {
                 const updateData = {
-                    ignored: false,
-                    ignoredAt: '',
-                    ignoredById: null,
                     resolved: false,
                     resolvedAt: '',
                     resolvedById: null,
