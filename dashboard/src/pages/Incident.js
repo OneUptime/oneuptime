@@ -24,7 +24,6 @@ import PropTypes from 'prop-types';
 import IncidentDeleteBox from '../components/incident/IncidentDeleteBox';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
-import IncidentTimelineBox from '../components/incident/IncidentTimelineBox';
 import { getMonitorLogs } from '../actions/monitor';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
