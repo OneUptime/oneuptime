@@ -53,6 +53,14 @@ export class AlertAdvanceOption extends Component {
                         formValues.rechargeToBalance
                     )}`,
                 });
+            } else {
+                alertOptionsUpdate(projectId, value).then(() => {
+                    const { paymentIntent } = this.props;
+                    if (paymentIntent) {
+                        //init payment
+                        this.handlePaymentIntent(paymentIntent);
+                    }
+                });
             }
         } else {
             openModal({

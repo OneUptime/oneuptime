@@ -276,9 +276,9 @@ export class IncidentMessageThread extends Component {
                                                                     if={
                                                                         incidentMessage.createdById &&
                                                                         User.getUserId() ===
-                                                                        incidentMessage
-                                                                            .createdById
-                                                                            ._id
+                                                                            incidentMessage
+                                                                                .createdById
+                                                                                ._id
                                                                     }
                                                                 >
                                                                     <div className="db-ListViewItem-link">
@@ -837,17 +837,17 @@ export class IncidentMessageThread extends Component {
                 {requesting ? <ListLoader /> : null}
 
                 {incidentMessages &&
-                    incidentMessages.incidentMessages &&
-                    incidentMessages.incidentMessages.length < 1 ? (
-                        <div
-                            style={{
-                                textAlign: 'center',
-                                padding: '25px',
-                            }}
-                        >
-                            {`You don't have any messages yet, start up a conversation`}
-                        </div>
-                    ) : null}
+                incidentMessages.incidentMessages &&
+                incidentMessages.incidentMessages.length < 1 ? (
+                    <div
+                        style={{
+                            textAlign: 'center',
+                            padding: '25px',
+                        }}
+                    >
+                        {`You don't have any messages yet, start up a conversation`}
+                    </div>
+                ) : null}
                 {error}
 
                 {

@@ -226,7 +226,8 @@ class Incident extends React.Component {
             null,
             null,
             null,
-            this.props.match.params.incidentId
+            this.props.match.params.incidentId,
+            this.props.type
         );
         this.props.fetchIncidentMessages(
             this.props.match.params.projectId,
@@ -633,6 +634,7 @@ const mapStateToProps = (state, props) => {
         defaultSchedule,
         scheduleWarning,
         monitor,
+        type: monitor && monitor.type ? monitor.type : null,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
         incidentTimeline: state.incident.incident,
@@ -711,6 +713,7 @@ Incident.propTypes = {
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
     defaultSchedule: PropTypes.bool,
+    type: PropTypes.string,
 };
 
 Incident.displayName = 'Incident';

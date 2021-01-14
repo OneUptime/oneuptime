@@ -17,7 +17,6 @@ const LogService = require('../services/logService');
 const ApplicationSecurityLogService = require('../services/applicationSecurityLogService');
 const ContainerSecurityLogService = require('../services/containerSecurityLogService');
 const ErrorTrackerService = require('../services/errorTrackerService');
-const IssueService = require('../services/issueService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;

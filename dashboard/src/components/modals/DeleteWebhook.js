@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 
 class DeleteWebhook extends Component {
@@ -23,7 +24,7 @@ class DeleteWebhook extends Component {
     };
 
     render() {
-        const { data } = this.props;
+        const { data, closeThisDialog } = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -34,50 +35,54 @@ class DeleteWebhook extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Confirm Deletion</span>
+                            <ClickOutside onClickOutside={closeThisDialog}>
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Confirm Deletion</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        Are you sure you want to delete this
+                                        webhook connection ?
                                     </span>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Are you sure you want to delete this webhook
-                                    connection ?
-                                </span>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
-                                        type="button"
-                                        onClick={this.props.closeThisDialog}
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
-                                        type="button"
-                                        onClick={this.props.confirmThisDialog}
-                                        disabled={data.deleting}
-                                        autoFocus={true}
-                                    >
-                                        {!data.deleting && (
-                                            <>
-                                                <span>Delete</span>
-                                                <span className="delete-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </>
-                                        )}
-                                        {data.deleting && <FormLoader />}
-                                    </button>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
+                                            type="button"
+                                            onClick={this.props.closeThisDialog}
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
+                                            type="button"
+                                            onClick={
+                                                this.props.confirmThisDialog
+                                            }
+                                            disabled={data.deleting}
+                                            autoFocus={true}
+                                        >
+                                            {!data.deleting && (
+                                                <>
+                                                    <span>Delete</span>
+                                                    <span className="delete-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
+                                            )}
+                                            {data.deleting && <FormLoader />}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

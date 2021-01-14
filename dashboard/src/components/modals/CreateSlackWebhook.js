@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import ClickOutside from 'react-click-outside';
 import { Validate } from '../../config';
 import { reduxForm, Field } from 'redux-form';
 import { createSlack } from '../../actions/slackWebhook';
@@ -95,79 +96,149 @@ class CreateSlack extends React.Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal">
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy bs-u-flex Flex-direction--column"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap Margin-bottom--4">
-                                    <span>Create Slack Webhook</span>
-                                </span>
-                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    <span>
-                                        Click{' '}
-                                        <a
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            href="https://github.com/Fyipe/feature-docs/blob/master/Webhooks.md#slack"
-                                            style={{
-                                                textDecoration: 'underline',
-                                            }}
-                                        >
-                                            here
-                                        </a>{' '}
-                                        to check documentation on how to
-                                        integrate Slack with Fyipe.
+                        <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy bs-u-flex Flex-direction--column"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap Margin-bottom--4">
+                                        <span>Create Slack Webhook</span>
                                     </span>
-                                </span>
-                            </div>
-                        </div>
-                        <form onSubmit={handleSubmit(this.submitForm)}>
-                            <div className="bs-Modal-content">
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
+                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            Click{' '}
+                                            <a
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                href="https://github.com/Fyipe/feature-docs/blob/master/Webhooks.md#slack"
+                                                style={{
+                                                    textDecoration: 'underline',
+                                                }}
                                             >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="endpoint"
+                                                here
+                                            </a>{' '}
+                                            to check documentation on how to
+                                            integrate Slack with Fyipe.
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                            <form onSubmit={handleSubmit(this.submitForm)}>
+                                <div className="bs-Modal-content">
+                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
                                                 >
-                                                    <span>Endpoint URL</span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{ width: '70%' }}
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="endpoint"
                                                     >
-                                                        <Field
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            name="endpoint"
-                                                            type="url"
-                                                            placeholder="Enter Slack Webhook URL"
-                                                            id="endpoint"
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        <span>
+                                                            Endpoint URL
+                                                        </span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
                                                             style={{
-                                                                width: 250,
-                                                                padding:
-                                                                    '3px 5px',
+                                                                width: '70%',
                                                             }}
-                                                            autoFocus={true}
-                                                        />
+                                                        >
+                                                            <Field
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="endpoint"
+                                                                type="url"
+                                                                placeholder="Enter Slack Webhook URL"
+                                                                id="endpoint"
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                style={{
+                                                                    width: 250,
+                                                                    padding:
+                                                                        '3px 5px',
+                                                                }}
+                                                                autoFocus={true}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </fieldset>
+                                        </fieldset>
 
-                                    <ShouldRender if={!monitorId}>
+                                        <ShouldRender if={!monitorId}>
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="monitorId"
+                                                        >
+                                                            <span>Monitor</span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <div
+                                                                className="bs-Fieldset-field"
+                                                                style={{
+                                                                    width:
+                                                                        '250px',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="monitorId"
+                                                                    id="monitorId"
+                                                                    placeholder="Select monitor"
+                                                                    disabled={
+                                                                        this
+                                                                            .props
+                                                                            .newSlack
+                                                                            .requesting
+                                                                    }
+                                                                    validate={
+                                                                        ValidateField.select
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select monitor',
+                                                                        },
+                                                                        ...(monitorList &&
+                                                                        monitorList.length >
+                                                                            0
+                                                                            ? monitorList.map(
+                                                                                  monitor => ({
+                                                                                      value:
+                                                                                          monitor.value,
+                                                                                      label:
+                                                                                          monitor.label,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
+                                                                    className="db-select-nw db-MultiSelect-input"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        </ShouldRender>
+
                                         <fieldset className="Margin-bottom--16">
                                             <div className="bs-Fieldset-rows">
                                                 <div
@@ -178,311 +249,256 @@ class CreateSlack extends React.Component {
                                                         className="bs-Fieldset-label Text-align--left"
                                                         htmlFor="monitorId"
                                                     >
-                                                        <span>Monitor</span>
+                                                        <span></span>
                                                     </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <div
-                                                            className="bs-Fieldset-field"
-                                                            style={{
-                                                                width: '250px',
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                component={
-                                                                    RenderSelect
-                                                                }
-                                                                name="monitorId"
-                                                                id="monitorId"
-                                                                placeholder="Select monitor"
-                                                                disabled={
-                                                                    this.props
-                                                                        .newSlack
-                                                                        .requesting
-                                                                }
-                                                                validate={
-                                                                    ValidateField.select
-                                                                }
-                                                                options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select monitor',
-                                                                    },
-                                                                    ...(monitorList &&
-                                                                    monitorList.length >
-                                                                        0
-                                                                        ? monitorList.map(
-                                                                              monitor => ({
-                                                                                  value:
-                                                                                      monitor.value,
-                                                                                  label:
-                                                                                      monitor.label,
-                                                                              })
-                                                                          )
-                                                                        : []),
-                                                                ]}
-                                                                className="db-select-nw db-MultiSelect-input"
-                                                            />
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            paddingTop: '6px',
+                                                        }}
+                                                    >
+                                                        <div className="bs-Fieldset-field">
+                                                            <label
+                                                                className="Checkbox"
+                                                                style={{
+                                                                    marginRight:
+                                                                        '12px',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name="incidentCreated"
+                                                                    className="Checkbox-source"
+                                                                    id="incidentCreated"
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <label>
+                                                                        <span>
+                                                                            Ping
+                                                                            when
+                                                                            incident
+                                                                            is
+                                                                            Created
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            </label>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </fieldset>
-                                    </ShouldRender>
 
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorId"
-                                                >
-                                                    <span></span>
-                                                </label>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
                                                 <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        paddingTop: '6px',
-                                                    }}
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
                                                 >
-                                                    <div className="bs-Fieldset-field">
-                                                        <label
-                                                            className="Checkbox"
-                                                            style={{
-                                                                marginRight:
-                                                                    '12px',
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name="incidentCreated"
-                                                                className="Checkbox-source"
-                                                                id="incidentCreated"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <label>
-                                                                    <span>
-                                                                        Ping
-                                                                        when
-                                                                        incident
-                                                                        is
-                                                                        Created
-                                                                    </span>
-                                                                </label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorId"
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        paddingTop: '6px',
-                                                    }}
-                                                >
-                                                    <div className="bs-Fieldset-field">
-                                                        <label
-                                                            className="Checkbox"
-                                                            style={{
-                                                                marginRight:
-                                                                    '12px',
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name="incidentAcknowledged"
-                                                                className="Checkbox-source"
-                                                                id="incidentAcknowledged"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <label>
-                                                                    <span>
-                                                                        Ping
-                                                                        when
-                                                                        incident
-                                                                        is
-                                                                        Acknowledged
-                                                                    </span>
-                                                                </label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorId"
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        paddingTop: '6px',
-                                                    }}
-                                                >
-                                                    <div className="bs-Fieldset-field">
-                                                        <label
-                                                            className="Checkbox"
-                                                            style={{
-                                                                marginRight:
-                                                                    '12px',
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name="incidentResolved"
-                                                                className="Checkbox-source"
-                                                                id="incidentResolved"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <label>
-                                                                    <span>
-                                                                        Ping
-                                                                        when
-                                                                        incident
-                                                                        is
-                                                                        Resolved
-                                                                    </span>
-                                                                </label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender
-                                        if={
-                                            this.props.newSlack &&
-                                            this.props.newSlack.error
-                                        }
-                                    >
-                                        <div className="bs-Tail-copy">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitorId"
                                                     >
-                                                        {
-                                                            this.props.newSlack
-                                                                .error
-                                                        }
-                                                    </span>
+                                                        <span></span>
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            paddingTop: '6px',
+                                                        }}
+                                                    >
+                                                        <div className="bs-Fieldset-field">
+                                                            <label
+                                                                className="Checkbox"
+                                                                style={{
+                                                                    marginRight:
+                                                                        '12px',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name="incidentAcknowledged"
+                                                                    className="Checkbox-source"
+                                                                    id="incidentAcknowledged"
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <label>
+                                                                        <span>
+                                                                            Ping
+                                                                            when
+                                                                            incident
+                                                                            is
+                                                                            Acknowledged
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton btn__modal"
-                                        type="button"
-                                        onClick={closeThisDialog}
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                        disabled={
-                                            this.props.newSlack &&
-                                            this.props.newSlack.requesting
-                                        }
-                                        type="submit"
-                                        id="createSlack"
-                                    >
-                                        {this.props.newSlack &&
-                                            !this.props.newSlack.requesting && (
-                                                <>
-                                                    <span>Create</span>
-                                                    <span className="create-btn__keycode">
-                                                        <span className="keycode__icon keycode__icon--enter" />
-                                                    </span>
-                                                </>
-                                            )}
-                                        {this.props.newSlack &&
-                                            this.props.newSlack.requesting && (
-                                                <FormLoader />
-                                            )}
-                                    </button>
+                                        </fieldset>
+
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitorId"
+                                                    >
+                                                        <span></span>
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            paddingTop: '6px',
+                                                        }}
+                                                    >
+                                                        <div className="bs-Fieldset-field">
+                                                            <label
+                                                                className="Checkbox"
+                                                                style={{
+                                                                    marginRight:
+                                                                        '12px',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name="incidentResolved"
+                                                                    className="Checkbox-source"
+                                                                    id="incidentResolved"
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <label>
+                                                                        <span>
+                                                                            Ping
+                                                                            when
+                                                                            incident
+                                                                            is
+                                                                            Resolved
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender
+                                            if={
+                                                this.props.newSlack &&
+                                                this.props.newSlack.error
+                                            }
+                                        >
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {
+                                                                this.props
+                                                                    .newSlack
+                                                                    .error
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
+                                            type="button"
+                                            onClick={closeThisDialog}
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            disabled={
+                                                this.props.newSlack &&
+                                                this.props.newSlack.requesting
+                                            }
+                                            type="submit"
+                                            id="createSlack"
+                                        >
+                                            {this.props.newSlack &&
+                                                !this.props.newSlack
+                                                    .requesting && (
+                                                    <>
+                                                        <span>Create</span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
+                                                )}
+                                            {this.props.newSlack &&
+                                                this.props.newSlack
+                                                    .requesting && (
+                                                    <FormLoader />
+                                                )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

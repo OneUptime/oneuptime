@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
@@ -32,17 +33,22 @@ class EditContainerSecurity extends Component {
     }
 
     handleKeyBoard = e => {
-        const { closeModal, propArr } = this.props;
-        const { containerSecurityId } = propArr[0];
-
         switch (e.key) {
             case 'Escape':
-                return closeModal({ id: containerSecurityId });
+                return this.handleCloseModal();
             case 'Enter':
                 return document.getElementById('editContainerBtn').click();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        const { propArr } = this.props;
+        const { containerSecurityId } = propArr[0];
+        this.props.closeModal({
+            id: containerSecurityId,
+        });
     };
 
     submitForm = values => {
@@ -83,63 +89,107 @@ class EditContainerSecurity extends Component {
                             className="bs-Modal bs-Modal--medium"
                             style={{ width: 600 }}
                         >
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Edit Container Security</span>
-                                    </span>
-                                </div>
-                            </div>
-                            <form
-                                id="editContainerSecurityForm"
-                                onSubmit={handleSubmit(this.submitForm)}
+                            <ClickOutside
+                                onClickOutside={this.handleCloseModal}
                             >
-                                <div className="bs-Modal-content">
-                                    <div
-                                        className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
-                                        style={{ boxShadow: 'none' }}
-                                    >
-                                        <div>
-                                            <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                                <fieldset className="bs-Fieldset">
-                                                    <div className="bs-Fieldset-rows">
-                                                        <div className="bs-Fieldset-row bs-u-justify--center">
-                                                            <label className="bs-Fieldset-label">
-                                                                Name
-                                                            </label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderField
-                                                                    }
-                                                                    type="text"
-                                                                    name="name"
-                                                                    id="name"
-                                                                    placeholder="Container name"
-                                                                    disabled={
-                                                                        isRequesting
-                                                                    }
-                                                                    validate={
-                                                                        ValidateField.text
-                                                                    }
-                                                                    autoFocus={
-                                                                        true
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <ShouldRender
-                                                            if={
-                                                                resourceCategoryList &&
-                                                                resourceCategoryList.length >
-                                                                    0
-                                                            }
-                                                        >
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Edit Container Security</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <form
+                                    id="editContainerSecurityForm"
+                                    onSubmit={handleSubmit(this.submitForm)}
+                                >
+                                    <div className="bs-Modal-content">
+                                        <div
+                                            className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
+                                            style={{ boxShadow: 'none' }}
+                                        >
+                                            <div>
+                                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                                    <fieldset className="bs-Fieldset">
+                                                        <div className="bs-Fieldset-rows">
                                                             <div className="bs-Fieldset-row bs-u-justify--center">
                                                                 <label className="bs-Fieldset-label">
-                                                                    Resource
-                                                                    Category
+                                                                    Name
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                        component={
+                                                                            RenderField
+                                                                        }
+                                                                        type="text"
+                                                                        name="name"
+                                                                        id="name"
+                                                                        placeholder="Container name"
+                                                                        disabled={
+                                                                            isRequesting
+                                                                        }
+                                                                        validate={
+                                                                            ValidateField.text
+                                                                        }
+                                                                        autoFocus={
+                                                                            true
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <ShouldRender
+                                                                if={
+                                                                    resourceCategoryList &&
+                                                                    resourceCategoryList.length >
+                                                                        0
+                                                                }
+                                                            >
+                                                                <div className="bs-Fieldset-row bs-u-justify--center">
+                                                                    <label className="bs-Fieldset-label">
+                                                                        Resource
+                                                                        Category
+                                                                    </label>
+                                                                    <div className="bs-Fieldset-fields">
+                                                                        <Field
+                                                                            className="db-select-nw"
+                                                                            component={
+                                                                                RenderSelect
+                                                                            }
+                                                                            name="resourceCategory"
+                                                                            id="resourceCategory"
+                                                                            placeholder="Choose Category"
+                                                                            disabled={
+                                                                                isRequesting
+                                                                            }
+                                                                            options={[
+                                                                                {
+                                                                                    value:
+                                                                                        '',
+                                                                                    label:
+                                                                                        'Select category',
+                                                                                },
+                                                                                ...(resourceCategoryList &&
+                                                                                resourceCategoryList.length >
+                                                                                    0
+                                                                                    ? resourceCategoryList.map(
+                                                                                          category => ({
+                                                                                              value:
+                                                                                                  category._id,
+                                                                                              label:
+                                                                                                  category.name,
+                                                                                          })
+                                                                                      )
+                                                                                    : []),
+                                                                            ]}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </ShouldRender>
+                                                            <div className="bs-Fieldset-row bs-u-justify--center">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Docker
+                                                                    Credential
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
                                                                     <Field
@@ -147,28 +197,30 @@ class EditContainerSecurity extends Component {
                                                                         component={
                                                                             RenderSelect
                                                                         }
-                                                                        name="resourceCategory"
-                                                                        id="resourceCategory"
-                                                                        placeholder="Choose Category"
-                                                                        disabled={
-                                                                            isRequesting
-                                                                        }
+                                                                        name="dockerCredential"
+                                                                        id="dockerCredential"
+                                                                        placeholder="Docker Credential"
+                                                                        required="required"
+                                                                        style={{
+                                                                            height:
+                                                                                '28px',
+                                                                        }}
                                                                         options={[
                                                                             {
                                                                                 value:
                                                                                     '',
                                                                                 label:
-                                                                                    'Select category',
+                                                                                    'Select a Docker Credential',
                                                                             },
-                                                                            ...(resourceCategoryList &&
-                                                                            resourceCategoryList.length >
+                                                                            ...(dockerCredentials &&
+                                                                            dockerCredentials.length >
                                                                                 0
-                                                                                ? resourceCategoryList.map(
-                                                                                      category => ({
+                                                                                ? dockerCredentials.map(
+                                                                                      dockerCredential => ({
                                                                                           value:
-                                                                                              category._id,
+                                                                                              dockerCredential._id,
                                                                                           label:
-                                                                                              category.name,
+                                                                                              dockerCredential.dockerRegistryUrl,
                                                                                       })
                                                                                   )
                                                                                 : []),
@@ -176,172 +228,131 @@ class EditContainerSecurity extends Component {
                                                                     />
                                                                 </div>
                                                             </div>
-                                                        </ShouldRender>
-                                                        <div className="bs-Fieldset-row bs-u-justify--center">
-                                                            <label className="bs-Fieldset-label">
-                                                                Docker
-                                                                Credential
-                                                            </label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="dockerCredential"
-                                                                    id="dockerCredential"
-                                                                    placeholder="Docker Credential"
-                                                                    required="required"
-                                                                    style={{
-                                                                        height:
-                                                                            '28px',
-                                                                    }}
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select a Docker Credential',
-                                                                        },
-                                                                        ...(dockerCredentials &&
-                                                                        dockerCredentials.length >
-                                                                            0
-                                                                            ? dockerCredentials.map(
-                                                                                  dockerCredential => ({
-                                                                                      value:
-                                                                                          dockerCredential._id,
-                                                                                      label:
-                                                                                          dockerCredential.dockerRegistryUrl,
-                                                                                  })
-                                                                              )
-                                                                            : []),
-                                                                    ]}
-                                                                />
+                                                            <div className="bs-Fieldset-row bs-u-justify--center">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Image Path
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                        component={
+                                                                            RenderField
+                                                                        }
+                                                                        type="text"
+                                                                        name="imagePath"
+                                                                        id="imagePath"
+                                                                        placeholder="fyipeproject/home"
+                                                                        disabled={
+                                                                            isRequesting
+                                                                        }
+                                                                        validate={
+                                                                            ValidateField.text
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="bs-Fieldset-row bs-u-justify--center">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Image Tags
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                        component={
+                                                                            RenderField
+                                                                        }
+                                                                        type="text"
+                                                                        name="imageTags"
+                                                                        id="imageTags"
+                                                                        placeholder="latest"
+                                                                        disabled={
+                                                                            isRequesting
+                                                                        }
+                                                                    />
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <div className="bs-Fieldset-row bs-u-justify--center">
-                                                            <label className="bs-Fieldset-label">
-                                                                Image Path
-                                                            </label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderField
-                                                                    }
-                                                                    type="text"
-                                                                    name="imagePath"
-                                                                    id="imagePath"
-                                                                    placeholder="fyipeproject/home"
-                                                                    disabled={
-                                                                        isRequesting
-                                                                    }
-                                                                    validate={
-                                                                        ValidateField.text
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="bs-Fieldset-row bs-u-justify--center">
-                                                            <label className="bs-Fieldset-label">
-                                                                Image Tags
-                                                            </label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderField
-                                                                    }
-                                                                    type="text"
-                                                                    name="imageTags"
-                                                                    id="imageTags"
-                                                                    placeholder="latest"
-                                                                    disabled={
-                                                                        isRequesting
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </fieldset>
+                                                    </fieldset>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="bs-Modal-footer">
-                                    <div
-                                        className="bs-Modal-footer-actions"
-                                        style={{ width: 280 }}
-                                    >
-                                        <ShouldRender
-                                            if={!isRequesting && editError}
+                                    <div className="bs-Modal-footer">
+                                        <div
+                                            className="bs-Modal-footer-actions"
+                                            style={{ width: 280 }}
                                         >
-                                            <div
-                                                id="addCredentialError"
-                                                className="bs-Tail-copy"
+                                            <ShouldRender
+                                                if={!isRequesting && editError}
                                             >
                                                 <div
-                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                    style={{
-                                                        marginTop: '10px',
-                                                    }}
+                                                    id="addCredentialError"
+                                                    className="bs-Tail-copy"
                                                 >
-                                                    <div className="Box-root Margin-right--8">
-                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                    </div>
-                                                    <div className="Box-root">
-                                                        <span
-                                                            style={{
-                                                                color: 'red',
-                                                            }}
-                                                        >
-                                                            {editError}
-                                                        </span>
+                                                    <div
+                                                        className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                        style={{
+                                                            marginTop: '10px',
+                                                        }}
+                                                    >
+                                                        <div className="Box-root Margin-right--8">
+                                                            <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                        </div>
+                                                        <div className="Box-root">
+                                                            <span
+                                                                style={{
+                                                                    color:
+                                                                        'red',
+                                                                }}
+                                                            >
+                                                                {editError}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </ShouldRender>
+                                            </ShouldRender>
+                                        </div>
+                                        <div className="bs-Modal-footer-actions">
+                                            <button
+                                                className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
+                                                type="button"
+                                                onClick={e => {
+                                                    e.preventDefault();
+                                                    closeModal({
+                                                        id: containerSecurityId,
+                                                    });
+                                                }}
+                                                id="cancelEditContainerBtn"
+                                                disabled={isRequesting}
+                                            >
+                                                <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
+                                            </button>
+                                            <button
+                                                id="editContainerBtn"
+                                                className="bs-Button bs-Button bs-Button--blue btn__modal"
+                                                type="submit"
+                                                disabled={isRequesting}
+                                            >
+                                                {!isRequesting && (
+                                                    <>
+                                                        <span>
+                                                            Update Container
+                                                            Security
+                                                        </span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
+                                                )}
+                                                {isRequesting && <FormLoader />}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="bs-Modal-footer-actions">
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
-                                            type="button"
-                                            onClick={e => {
-                                                e.preventDefault();
-                                                closeModal({
-                                                    id: containerSecurityId,
-                                                });
-                                            }}
-                                            id="cancelEditContainerBtn"
-                                            disabled={isRequesting}
-                                        >
-                                            <span>Cancel</span>
-                                            <span className="cancel-btn__keycode">
-                                                Esc
-                                            </span>
-                                        </button>
-                                        <button
-                                            id="editContainerBtn"
-                                            className="bs-Button bs-Button bs-Button--blue btn__modal"
-                                            type="submit"
-                                            disabled={isRequesting}
-                                        >
-                                            {!isRequesting && (
-                                                <>
-                                                    <span>
-                                                        Update Container
-                                                        Security
-                                                    </span>
-                                                    <span className="create-btn__keycode">
-                                                        <span className="keycode__icon keycode__icon--enter" />
-                                                    </span>
-                                                </>
-                                            )}
-                                            {isRequesting && <FormLoader />}
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
+                                </form>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

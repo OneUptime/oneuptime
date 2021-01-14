@@ -5,6 +5,7 @@ import { FormLoader } from '../basic/Loader';
 import { ValidateField, SHOULD_LOG_ANALYTICS } from '../../config';
 import { Field, reduxForm, change } from 'redux-form';
 import { connect } from 'react-redux';
+import ClickOutside from 'react-click-outside';
 import {
     setInvestigationNote,
     editIncidentMessageSwitch,
@@ -132,6 +133,7 @@ class NewIncidentMessage extends Component {
             incidentMessageState,
             incident_state,
             content,
+            closeThisDialog,
         } = this.props;
         const { edit, type } = this.props.data;
         return (
@@ -142,295 +144,319 @@ class NewIncidentMessage extends Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--large">
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span id="incidentMessageTitleLabel">
-                                        {`${
-                                            edit ? 'Edit' : 'Add New'
-                                        } ${type
-                                            .charAt(0)
-                                            .toUpperCase()}${type.slice(
-                                            1
-                                        )} Note`}
+                        <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span id="incidentMessageTitleLabel">
+                                            {`${
+                                                edit ? 'Edit' : 'Add New'
+                                            } ${type
+                                                .charAt(0)
+                                                .toUpperCase()}${type.slice(
+                                                1
+                                            )} Note`}
+                                        </span>
                                     </span>
-                                </span>
+                                </div>
                             </div>
-                        </div>
-                        <form
-                            id={`form-new-incident-${type}-message`}
-                            onSubmit={handleSubmit(this.submitForm)}
-                        >
-                            <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                                <div>
-                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                        <fieldset className="bs-Fieldset">
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
-                                                    Incident State
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <Field
-                                                        className="db-select-nw-300"
-                                                        component={RenderSelect}
-                                                        name="incident_state"
-                                                        id="incident_state"
-                                                        placeholder="Incident State"
-                                                        disabled={false}
-                                                        validate={
-                                                            ValidateField.select
-                                                        }
-                                                        style={{
-                                                            width: '300px',
-                                                        }}
-                                                        options={[
-                                                            {
-                                                                value:
-                                                                    'investigating',
-                                                                label:
-                                                                    'Investigating',
-                                                            },
-                                                            {
-                                                                value: 'update',
-                                                                label: 'Update',
-                                                            },
-                                                            {
-                                                                value: 'others',
-                                                                label: 'Others',
-                                                            },
-                                                        ]}
-                                                        autoFocus={true}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <ShouldRender
-                                                if={incident_state === 'others'}
-                                            >
+                            <form
+                                id={`form-new-incident-${type}-message`}
+                                onSubmit={handleSubmit(this.submitForm)}
+                            >
+                                <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                                    <div>
+                                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                            <fieldset className="bs-Fieldset">
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
-                                                        Custom Incident State
+                                                        Incident State
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
-                                                            className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                            className="db-select-nw-300"
                                                             component={
-                                                                RenderField
+                                                                RenderSelect
                                                             }
-                                                            type="text"
-                                                            name={`custom_incident_state`}
-                                                            id="custom_incident_state"
-                                                            placeholder="Enter a custom incident state"
+                                                            name="incident_state"
+                                                            id="incident_state"
+                                                            placeholder="Incident State"
+                                                            disabled={false}
                                                             validate={
-                                                                ValidateField.text
+                                                                ValidateField.select
                                                             }
+                                                            style={{
+                                                                width: '300px',
+                                                            }}
+                                                            options={[
+                                                                {
+                                                                    value:
+                                                                        'investigating',
+                                                                    label:
+                                                                        'Investigating',
+                                                                },
+                                                                {
+                                                                    value:
+                                                                        'update',
+                                                                    label:
+                                                                        'Update',
+                                                                },
+                                                                {
+                                                                    value:
+                                                                        'others',
+                                                                    label:
+                                                                        'Others',
+                                                                },
+                                                            ]}
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
-                                            </ShouldRender>
-                                            <div className="bs-Fieldset-rows">
-                                                <div className="bs-Fieldset-row">
-                                                    <ShouldRender if={!edit}>
+                                                <ShouldRender
+                                                    if={
+                                                        incident_state ===
+                                                        'others'
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
-                                                            {`${type
-                                                                .charAt(0)
-                                                                .toUpperCase()}${type.slice(
-                                                                1
-                                                            )} Notes`}
+                                                            Custom Incident
+                                                            State
                                                         </label>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={edit}>
-                                                        <label className="bs-Fieldset-label">
-                                                            {`Update your ${type
-                                                                .charAt(0)
-                                                                .toUpperCase()}${type.slice(
-                                                                1
-                                                            )} Note`}
-                                                        </label>
-                                                    </ShouldRender>
-                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                        <CodeEditor
-                                                            code={content}
-                                                            onCodeChange={
-                                                                this
-                                                                    .onContentChange
-                                                            }
-                                                            textareaId={`${
-                                                                edit
-                                                                    ? 'edit'
-                                                                    : 'new'
-                                                            }-${type}`}
-                                                            placeholder="This can be markdown"
-                                                        />
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name={`custom_incident_state`}
+                                                                id="custom_incident_state"
+                                                                placeholder="Enter a custom incident state"
+                                                                validate={
+                                                                    ValidateField.text
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <div className="bs-Fieldset-rows">
+                                                    <div className="bs-Fieldset-row">
+                                                        <ShouldRender
+                                                            if={!edit}
+                                                        >
+                                                            <label className="bs-Fieldset-label">
+                                                                {`${type
+                                                                    .charAt(0)
+                                                                    .toUpperCase()}${type.slice(
+                                                                    1
+                                                                )} Notes`}
+                                                            </label>
+                                                        </ShouldRender>
+                                                        <ShouldRender if={edit}>
+                                                            <label className="bs-Fieldset-label">
+                                                                {`Update your ${type
+                                                                    .charAt(0)
+                                                                    .toUpperCase()}${type.slice(
+                                                                    1
+                                                                )} Note`}
+                                                            </label>
+                                                        </ShouldRender>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <CodeEditor
+                                                                code={content}
+                                                                onCodeChange={
+                                                                    this
+                                                                        .onContentChange
+                                                                }
+                                                                textareaId={`${
+                                                                    edit
+                                                                        ? 'edit'
+                                                                        : 'new'
+                                                                }-${type}`}
+                                                                placeholder="This can be markdown"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </fieldset>
+                                            </fieldset>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                                <div className="bs-Tail-copy">
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                        <ShouldRender
-                                            if={
-                                                edit &&
-                                                this.props.incidentMessageState
-                                                    .edit.error
-                                            }
-                                        >
-                                            <div className="Box-root Margin-right--8">
-                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                            </div>
-                                            <div className="Box-root">
-                                                <span style={{ color: 'red' }}>
-                                                    {
-                                                        this.props
-                                                            .incidentMessageState
-                                                            .edit.error
-                                                    }
-                                                </span>
-                                            </div>
-                                        </ShouldRender>
-                                        <ShouldRender
-                                            if={
-                                                !edit &&
-                                                this.props.incidentMessageState
-                                                    .create.error
-                                            }
-                                        >
-                                            <div className="Box-root Margin-right--8">
-                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                            </div>
-                                            <div className="Box-root">
-                                                <span style={{ color: 'red' }}>
-                                                    {
-                                                        this.props
-                                                            .incidentMessageState
-                                                            .create.error
-                                                    }
-                                                </span>
-                                            </div>
-                                        </ShouldRender>
+                                <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                    <div className="bs-Tail-copy">
+                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                            <ShouldRender
+                                                if={
+                                                    edit &&
+                                                    this.props
+                                                        .incidentMessageState
+                                                        .edit.error
+                                                }
+                                            >
+                                                <div className="Box-root Margin-right--8">
+                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                </div>
+                                                <div className="Box-root">
+                                                    <span
+                                                        style={{ color: 'red' }}
+                                                    >
+                                                        {
+                                                            this.props
+                                                                .incidentMessageState
+                                                                .edit.error
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </ShouldRender>
+                                            <ShouldRender
+                                                if={
+                                                    !edit &&
+                                                    this.props
+                                                        .incidentMessageState
+                                                        .create.error
+                                                }
+                                            >
+                                                <div className="Box-root Margin-right--8">
+                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                </div>
+                                                <div className="Box-root">
+                                                    <span
+                                                        style={{ color: 'red' }}
+                                                    >
+                                                        {
+                                                            this.props
+                                                                .incidentMessageState
+                                                                .create.error
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </ShouldRender>
+                                        </div>
                                     </div>
+                                    <ShouldRender if={!edit}>
+                                        <div style={{ display: 'flex' }}>
+                                            <button
+                                                className="bs-Button bs-DeprecatedButton btn__modal"
+                                                type="button"
+                                                onClick={
+                                                    this.props.closeThisDialog
+                                                }
+                                            >
+                                                <ShouldRender
+                                                    if={
+                                                        !incidentMessageState
+                                                            .create.requesting
+                                                    }
+                                                >
+                                                    <span>Cancel</span>
+                                                    <span className="cancel-btn__keycode">
+                                                        Esc
+                                                    </span>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
+                                                        incidentMessageState
+                                                            .create.requesting
+                                                    }
+                                                >
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                            <button
+                                                id={`${type}-addButton`}
+                                                className="bs-Button bs-Button--blue btn__modal"
+                                                type="submit"
+                                            >
+                                                <ShouldRender
+                                                    if={
+                                                        !incidentMessageState
+                                                            .create.requesting
+                                                    }
+                                                >
+                                                    <span>Save </span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </ShouldRender>
+
+                                                <ShouldRender
+                                                    if={
+                                                        incidentMessageState
+                                                            .create.requesting
+                                                    }
+                                                >
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                        </div>
+                                    </ShouldRender>
+                                    <ShouldRender if={edit}>
+                                        <div style={{ display: 'flex' }}>
+                                            <button
+                                                className="bs-Button bs-DeprecatedButton btn__modal"
+                                                type="button"
+                                                onClick={
+                                                    this.props.closeThisDialog
+                                                }
+                                            >
+                                                <ShouldRender
+                                                    if={
+                                                        !incidentMessageState
+                                                            .create.requesting
+                                                    }
+                                                >
+                                                    <span>Cancel</span>
+                                                    <span className="cancel-btn__keycode">
+                                                        Esc
+                                                    </span>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
+                                                        incidentMessageState
+                                                            .create.requesting
+                                                    }
+                                                >
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                            <button
+                                                id={`${type}-editButton`}
+                                                className="bs-Button bs-Button--blue btn__modal"
+                                                type="submit"
+                                            >
+                                                <ShouldRender
+                                                    if={
+                                                        !incidentMessageState
+                                                            .edit.requesting
+                                                    }
+                                                >
+                                                    <span>Update </span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </ShouldRender>
+
+                                                <ShouldRender
+                                                    if={
+                                                        incidentMessageState
+                                                            .edit.requesting
+                                                    }
+                                                >
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                        </div>
+                                    </ShouldRender>
                                 </div>
-                                <ShouldRender if={!edit}>
-                                    <div style={{ display: 'flex' }}>
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton btn__modal"
-                                            type="button"
-                                            onClick={this.props.closeThisDialog}
-                                        >
-                                            <ShouldRender
-                                                if={
-                                                    !incidentMessageState.create
-                                                        .requesting
-                                                }
-                                            >
-                                                <span>Cancel</span>
-                                                <span className="cancel-btn__keycode">
-                                                    Esc
-                                                </span>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    incidentMessageState.create
-                                                        .requesting
-                                                }
-                                            >
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
-                                        <button
-                                            id={`${type}-addButton`}
-                                            className="bs-Button bs-Button--blue btn__modal"
-                                            type="submit"
-                                        >
-                                            <ShouldRender
-                                                if={
-                                                    !incidentMessageState.create
-                                                        .requesting
-                                                }
-                                            >
-                                                <span>Save </span>
-                                                <span className="create-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </ShouldRender>
-
-                                            <ShouldRender
-                                                if={
-                                                    incidentMessageState.create
-                                                        .requesting
-                                                }
-                                            >
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender if={edit}>
-                                    <div style={{ display: 'flex' }}>
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton btn__modal"
-                                            type="button"
-                                            onClick={this.props.closeThisDialog}
-                                        >
-                                            <ShouldRender
-                                                if={
-                                                    !incidentMessageState.create
-                                                        .requesting
-                                                }
-                                            >
-                                                <span>Cancel</span>
-                                                <span className="cancel-btn__keycode">
-                                                    Esc
-                                                </span>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    incidentMessageState.create
-                                                        .requesting
-                                                }
-                                            >
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
-                                        <button
-                                            id={`${type}-editButton`}
-                                            className="bs-Button bs-Button--blue btn__modal"
-                                            type="submit"
-                                        >
-                                            <ShouldRender
-                                                if={
-                                                    !incidentMessageState.edit
-                                                        .requesting
-                                                }
-                                            >
-                                                <span>Update </span>
-                                                <span className="create-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </ShouldRender>
-
-                                            <ShouldRender
-                                                if={
-                                                    incidentMessageState.edit
-                                                        .requesting
-                                                }
-                                            >
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
-                                    </div>
-                                </ShouldRender>
-                            </div>
-                        </form>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>
