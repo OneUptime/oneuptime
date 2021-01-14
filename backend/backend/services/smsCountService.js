@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function({ query, limit, skip }) {
+    findBy: async function(query, limit, skip) {
         try {
             if (!skip) skip = 0;
 
@@ -47,9 +47,9 @@ module.exports = {
     create: async function(userId, sentTo, projectId, content) {
         try {
             const smsCountModel = new SmsCountModel();
-            smsCountModel.userId._id = userId ? userId._id : null;
+            smsCountModel.userId = userId || null;
             smsCountModel.sentTo = sentTo || null;
-            smsCountModel.projectId._id = projectId ? projectId._id : null;
+            smsCountModel.projectId = projectId || null;
             smsCountModel.content = content || null;
             const smsCount = await smsCountModel.save();
             return smsCount;
