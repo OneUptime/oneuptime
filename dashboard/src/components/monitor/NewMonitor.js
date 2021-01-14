@@ -328,11 +328,9 @@ class NewMonitor extends Component {
         }
     };
 
-    cancelEdit = (changePage = false) => {
+    cancelEdit = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (changePage) {
-            this.props.toggleEdit(false);
-        }
+        this.props.toggleEdit(false);
     };
 
     componentWillUnmount() {
@@ -2093,9 +2091,7 @@ class NewMonitor extends Component {
                                         <button
                                             className="bs-Button"
                                             disabled={requesting}
-                                            onClick={() =>
-                                                this.cancelEdit(true)
-                                            }
+                                            onClick={this.cancelEdit}
                                         >
                                             <span>Cancel</span>
                                         </button>
