@@ -27,7 +27,9 @@ export const fetchSsoDefaultRoles = (skip, limit) => async dispatch => {
     limit = limit ? parseInt(limit) : 10;
     dispatch(fetchSsoDefaultRolesRequest());
     try {
-        const response = await getApi(`ssoDefaultRoles/?skip=${skip}&limit=${limit}`);
+        const response = await getApi(
+            `ssoDefaultRoles/?skip=${skip}&limit=${limit}`
+        );
         dispatch(fetchSsoDefaultRolesSuccess(response.data));
     } catch (error) {
         let errorMsg;
@@ -92,10 +94,10 @@ export const deleteSsoDefaultRoleRequest = () => {
     };
 };
 
-export const deleteSsoDefaultRoleSuccess = (payload) => {
+export const deleteSsoDefaultRoleSuccess = payload => {
     return {
         type: types.DELETE_SSO_DEFAULT_ROLE_SUCCESS,
-        payload
+        payload,
     };
 };
 
