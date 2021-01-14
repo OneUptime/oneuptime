@@ -228,7 +228,6 @@ export function editMonitorSuccess(newMonitor) {
     if (newMonitor.lighthouseScanStatus === 'scanning') {
         fetchLighthouseLogs(newMonitor.projectId._id, newMonitor._id, 0, 5);
     }
-    console.log(newMonitor.lighthouseScanStatus, 'edit monitor');
     return {
         type: types.EDIT_MONITOR_SUCCESS,
         payload: newMonitor,
@@ -854,7 +853,6 @@ export function getMonitorLogsFailure(error) {
 
 // Fetch Lighthouse Logs list
 export function fetchLighthouseLogs(projectId, monitorId, skip, limit, url) {
-    console.log('running')
     return function(dispatch) {
         const promise = getApi(
             url

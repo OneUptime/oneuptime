@@ -1086,6 +1086,14 @@ export default function monitor(state = INITIAL_STATE, action) {
                             monitor._id === action.payload.projectId
                                 ? monitor.monitors.map(monitor => {
                                       if (
+                                          monitor.data &&
+                                          monitor.data.url ===
+                                              action.payload.data.url
+                                      ) {
+                                          monitor.currentLighthouseLog =
+                                              action.payload.data;
+                                      }
+                                      if (
                                           monitor._id ===
                                           action.payload.monitorId
                                       ) {
