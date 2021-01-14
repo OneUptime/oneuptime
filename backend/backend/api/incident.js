@@ -290,7 +290,20 @@ router.post(
                 userId,
                 req.user.name
             );
-            return sendItemResponse(req, res, incident);
+            let incidentMessages = await IncidentMessageService.findBy(
+                { incidentId: incident._id, type: "internal" }
+            );
+            const timeline = await IncidentTimelineService.findBy(
+                { incidentId: incident._id }
+            );
+            incidentMessages = incidentMessages.concat(timeline);
+            incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
+            const result = {
+                data: incidentMessages,
+                incident,
+                type: "internal"
+            }
+            return sendItemResponse(req, res, result);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -314,8 +327,21 @@ router.post(
                 req.params.incidentId,
                 userId
             );
+            let incidentMessages = await IncidentMessageService.findBy(
+                { incidentId: incident._id, type: "internal" }
+            );
+            const timeline = await IncidentTimelineService.findBy(
+                { incidentId: incident._id }
+            );
+            incidentMessages = incidentMessages.concat(timeline);
+            incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
+            const result = {
+                data: incidentMessages,
+                incident,
+                type: "internal"
+            }
 
-            return sendItemResponse(req, res, incident);
+            return sendItemResponse(req, res, result);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -530,10 +556,25 @@ router.post(
                     status,
                 });
 
-                incidentMessage = await IncidentMessageService.findOneBy({
-                    _id: incidentMessage._id,
-                    incidentId: incidentMessage.incidentId,
-                });
+                if(data.type === "internal" || (data.type === "internal" && data.incident_state === 'update')) {
+                    let incidentMessages = await IncidentMessageService.findBy(
+                        { incidentId: incident._id, type: data.type }
+                    );
+                    const timeline = await IncidentTimelineService.findBy(
+                        { incidentId: incident._id }
+                    );
+                    incidentMessages = incidentMessages.concat(timeline);
+                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
+                    incidentMessage = {
+                        type: data.type,
+                        data: incidentMessages
+                    }
+                } else {
+                    incidentMessage = await IncidentMessageService.findOneBy({
+                        _id: incidentMessage._id,
+                        incidentId: incidentMessage.incidentId,
+                    });
+                }
             }
             return sendItemResponse(req, res, incidentMessage);
         } catch (error) {
@@ -572,6 +613,10 @@ router.delete(
     async function(req, res) {
         try {
             const { incidentId, incidentMessageId } = req.params;
+            const checkMsg = await IncidentMessageService.findOneBy(
+                { _id: incidentMessageId }
+            );
+            let result;
             const incidentMessage = await IncidentMessageService.deleteBy(
                 {
                     _id: incidentMessageId,
@@ -589,7 +634,23 @@ router.delete(
                 });
 
                 await RealTimeService.deleteIncidentNote(incidentMessage);
-                return sendItemResponse(req, res, incidentMessage);
+                if(checkMsg.type === 'investigation') {
+                    result = incidentMessage
+                } else {
+                    let incidentMessages = await IncidentMessageService.findBy(
+                        { incidentId, type: checkMsg.type }
+                    );
+                    const timeline = await IncidentTimelineService.findBy(
+                        { incidentId }
+                    );
+                    incidentMessages = incidentMessages.concat(timeline);
+                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
+                    result = {
+                        type: checkMsg.type,
+                        data: incidentMessages
+                    };
+                }
+                return sendItemResponse(req, res, result);
             } else {
                 return sendErrorResponse(req, res, {
                     code: 404,
@@ -611,10 +672,19 @@ router.get(
             type = 'internal';
         }
         try {
+            let incidentMessages, result;
             const incidentId = req.params.incidentId;
-            let incidentMessages = await IncidentMessageService.findBy(
-                { incidentId, type }
-            );
+            if(type === 'investigation') {
+                incidentMessages = await IncidentMessageService.findBy(
+                    { incidentId, type },
+                    req.query.skip || 0,
+                    req.query.limit || 10
+                );
+            } else {
+                incidentMessages = await IncidentMessageService.findBy(
+                    { incidentId, type }
+                );
+            }
             const timeline = await IncidentTimelineService.findBy(
                 { incidentId }
             );
@@ -622,10 +692,13 @@ router.get(
                 incidentId,
                 type,
             });
-            incidentMessages = incidentMessages.concat(timeline);
-            incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-            const result = incidentMessages.filter(a => a.status !== "internal notes added")
-            console.log(result)
+            if(type === 'investigation') {
+                result = incidentMessages;
+            } else {
+                incidentMessages = incidentMessages.concat(timeline);
+                incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
+                result = incidentMessages;
+            }
             return sendListResponse(req, res, result, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
