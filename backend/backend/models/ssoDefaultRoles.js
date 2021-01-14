@@ -6,19 +6,16 @@ const ssoDefaultRoleSchema = new Schema({
         type: Schema.Types.ObjectId,
         required: true,
         ref: 'Sso',
-        index: true
     },
     project: {
         type: Schema.Types.ObjectId,
         ref: 'Project',
         required: true,
-        index: true
     },
     role: {
         type: String,
         required: true,
         enum: ['Owner', 'Administrator', 'Member', 'Viewer'],
-        index: true
     },
     createdAt: {
         type: Date,
@@ -36,6 +33,5 @@ const ssoDefaultRoleSchema = new Schema({
         ref: 'User',
     },
 });
-ssoDefaultRoleSchema.index({domain:1,project:1,role:1},{unique:1})
 
 module.exports = mongoose.model('SsoDefaultRole', ssoDefaultRoleSchema);
