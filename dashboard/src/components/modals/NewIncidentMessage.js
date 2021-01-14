@@ -57,10 +57,10 @@ class NewIncidentMessage extends Component {
                 ? values[`custom_incident_state`]
                 : values[`incident_state`];
         let mode = 'NEW';
+        postObj.type = this.props.data.type;
         if (this.props.data.edit) {
             postObj.id = this.props.data.incidentMessage._id;
         } else {
-            postObj.type = this.props.data.type;
             mode = 'EDIT';
         }
 
