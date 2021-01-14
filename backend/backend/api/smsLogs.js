@@ -39,47 +39,33 @@ router.post('/', getUser, isUserMasterAdmin, async (req, res) => {
             });
         }
 
-        // if (!data.status || !data.status.trim()) {
-        //     return sendErrorResponse(req, res, {
-        //         code: 400,
-        //         message: 'Email Log Status is required',
-        //     });
-        // }
+        if (!data.userId || !data.userId.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SMS Log UserId is required',
+            });
+        }
 
-        // if (!data.from || !data.from.trim()) {
-        //     return sendErrorResponse(req, res, {
-        //         code: 400,
-        //         message: 'Email Log Sender name is required',
-        //     });
-        // }
+        if (!data.sentTo || !data.sendTo.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Email Log Recipient name is required',
+            });
+        }
 
-        // if (!data.to || !data.to.trim()) {
-        //     return sendErrorResponse(req, res, {
-        //         code: 400,
-        //         message: 'Email Log Recipient is required',
-        //     });
-        // }
+        if (!data.projectId || !data.projectId.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SMS Log ProjectId is required',
+            });
+        }
 
-        // if (!data.subject || !data.subject.trim()) {
-        //     return sendErrorResponse(req, res, {
-        //         code: 400,
-        //         message: 'Email Log Subject is required',
-        //     });
-        // }
-
-        // if (!data.body || !data.body.trim()) {
-        //     return sendErrorResponse(req, res, {
-        //         code: 400,
-        //         message: 'Email Log Body is required',
-        //     });
-        // }
-
-        // if (!data.template || !data.template.trim()) {
-        //     return sendErrorResponse(req, res, {
-        //         code: 400,
-        //         message: 'Email Log Template is required',
-        //     });
-        // }
+        if (!data.content || !data.content.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SMS Log Content is required',
+            });
+        }
         const smsLog = await SmsLogsService.create(data);
         return sendItemResponse(req, res, smsLog);
     } catch (error) {
