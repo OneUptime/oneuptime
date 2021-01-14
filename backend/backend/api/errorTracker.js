@@ -290,6 +290,15 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
         data.issueId = issue._id;
         data.fingerprintHash = issue.fingerprintHash;
 
+        // get the issue in the format that the fronnted will want for the real time update
+        const errorTrackerIssue = await ErrorEventService.findDistinct(
+            { _id: data.issueId, errorTrackerId: data.errorTrackerId },
+            1,
+            0
+        );
+
+        issue = errorTrackerIssue.totalErrorEvents[0];
+
         const errorEvent = await ErrorEventService.create(data);
         await RealTimeService.sendErrorEventCreated({ errorEvent, issue });
         return sendItemResponse(req, res, errorEvent);
