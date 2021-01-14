@@ -35,6 +35,7 @@ class ErrorTrackerHeader extends Component {
             handleStartDateTimeChange,
             handleEndDateTimeChange,
             handleFilterUpdate,
+            showComponentWithIssue,
         } = this.props;
         let deleting = false;
         if (
@@ -70,7 +71,14 @@ class ErrorTrackerHeader extends Component {
                                 <span
                                     id={`error-tracker-title-${errorTracker.name}`}
                                 >
-                                    {`${errorTracker.name} (${
+                                    {`${
+                                        showComponentWithIssue
+                                            ? errorTracker.componentId
+                                                ? errorTracker.componentId
+                                                      .name + '/'
+                                                : ''
+                                            : ''
+                                    }${errorTracker.name} (${
                                         errorTrackerIssue
                                             ? errorTrackerIssue
                                                   .errorTrackerIssues.length
@@ -283,5 +291,6 @@ ErrorTrackerHeader.propTypes = {
     handleStartDateTimeChange: PropTypes.func,
     handleEndDateTimeChange: PropTypes.func,
     handleFilterUpdate: PropTypes.func,
+    showComponentWithIssue: PropTypes.bool,
 };
 export default connect(mapStateToProps)(ErrorTrackerHeader);
