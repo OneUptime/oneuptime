@@ -28,6 +28,9 @@ module.exports = {
                     select: '_id name type',
                     populate: { path: 'componentId', select: '_id name' },
                 })
+                .populate('acknowledgedByIncomingHttpRequest', 'name')
+                .populate('resolvedByIncomingHttpRequest', 'name')
+                .populate('createdByIncomingHttpRequest', 'name')
                 .sort({ createdAt: 'desc' });
             return incidents;
         } catch (error) {
@@ -81,6 +84,8 @@ module.exports = {
                         deletedIncidentsCountInProject +
                         1;
                     incident.customFields = data.customFields;
+                    incident.createdByIncomingHttpRequest =
+                        data.createdByIncomingHttpRequest;
 
                     if (!incident.manuallyCreated) {
                         const incidentSettings = await IncidentSettingsService.findOne(
@@ -244,7 +249,10 @@ module.exports = {
                     path: 'monitorId',
                     select: '_id name',
                     populate: { path: 'componentId', select: '_id name' },
-                });
+                })
+                .populate('acknowledgedByIncomingHttpRequest', 'name')
+                .populate('resolvedByIncomingHttpRequest', 'name')
+                .populate('createdByIncomingHttpRequest', 'name');
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.findOne', error);
@@ -292,6 +300,9 @@ module.exports = {
                     select: '_id name',
                     populate: { path: 'componentId', select: '_id name' },
                 })
+                .populate('acknowledgedByIncomingHttpRequest', 'name')
+                .populate('resolvedByIncomingHttpRequest', 'name')
+                .populate('createdByIncomingHttpRequest', 'name')
                 .execPopulate();
 
             RealTimeService.updateIncident(updatedIncident);
@@ -375,14 +386,25 @@ module.exports = {
             );
 
             if (!incident.createdById) {
-                const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by Fyipe`;
-                notification = await NotificationService.create(
-                    incident.projectId,
-                    msg,
-                    'fyipe',
-                    'warning',
-                    meta
-                );
+                if (incident.createdByIncomingHttpRequest) {
+                    const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by Incoming HTTP Request`;
+                    notification = await NotificationService.create(
+                        incident.projectId,
+                        msg,
+                        'incoming http request',
+                        'warning',
+                        meta
+                    );
+                } else {
+                    const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by Fyipe`;
+                    notification = await NotificationService.create(
+                        incident.projectId,
+                        msg,
+                        'fyipe',
+                        'warning',
+                        meta
+                    );
+                }
             } else {
                 const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
                 notification = await NotificationService.create(
@@ -409,7 +431,14 @@ module.exports = {
      * @param {string} name Name of user performing the action.
      * @returns {object} Promise with incident or error.
      */
-    acknowledge: async function(incidentId, userId, name, probeId, zapier) {
+    acknowledge: async function(
+        incidentId,
+        userId,
+        name,
+        probeId,
+        zapier,
+        httpRequest = {}
+    ) {
         try {
             const _this = this;
             let incident = await _this.findOneBy({
@@ -426,6 +455,7 @@ module.exports = {
                         acknowledgedBy: userId,
                         acknowledgedAt: Date.now(),
                         acknowledgedByZapier: zapier,
+                        acknowledgedByIncomingHttpRequest: httpRequest._id,
                     }
                 );
 
@@ -444,12 +474,21 @@ module.exports = {
                     incident.createdAt
                 );
 
-                NotificationService.create(
-                    incident.projectId,
-                    `An Incident was acknowledged by ${name}`,
-                    userId,
-                    'acknowledge'
-                );
+                if (isEmpty(httpRequest)) {
+                    NotificationService.create(
+                        incident.projectId,
+                        `An Incident was acknowledged by ${name}`,
+                        userId,
+                        'acknowledge'
+                    );
+                } else {
+                    NotificationService.create(
+                        incident.projectId,
+                        `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
+                        userId,
+                        'acknowledge'
+                    );
+                }
                 // Ping webhook
                 const monitor = await MonitorService.findOneBy({
                     _id: incident.monitorId,
@@ -520,7 +559,14 @@ module.exports = {
     // Params:
     // Param 1: data: {incidentId}
     // Returns: promise with incident or error.
-    resolve: async function(incidentId, userId, name, probeId, zapier) {
+    resolve: async function(
+        incidentId,
+        userId,
+        name,
+        probeId,
+        zapier,
+        httpRequest = {}
+    ) {
         try {
             const _this = this;
             const data = {};
@@ -535,6 +581,7 @@ module.exports = {
                 data.acknowledgedBy = userId;
                 data.acknowledgedAt = Date.now();
                 data.acknowledgedByZapier = zapier;
+                data.acknowledgedByIncomingHttpRequest = httpRequest._id;
 
                 await IncidentTimelineService.create({
                     incidentId: incidentId,
@@ -548,6 +595,7 @@ module.exports = {
             data.resolvedBy = userId;
             data.resolvedAt = Date.now();
             data.resolvedByZapier = zapier;
+            data.resolvedByIncomingHttpRequest = httpRequest._id;
 
             incident = await _this.updateOneBy({ _id: incidentId }, data);
 
@@ -935,3 +983,4 @@ const {
 } = require('../constants/incidentEvents');
 const IncidentUtilitiy = require('../utils/incident');
 const IncidentCommunicationSlaService = require('./incidentCommunicationSlaService');
+const { isEmpty } = require('lodash');

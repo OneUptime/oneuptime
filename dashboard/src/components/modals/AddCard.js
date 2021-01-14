@@ -6,6 +6,7 @@ import {
     injectStripe,
 } from 'react-stripe-elements';
 import PropTypes from 'prop-types';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { bindActionCreators } from 'redux';
@@ -63,14 +64,18 @@ class _CardForm extends React.Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({
-                    id: this.props.CreateCardModalId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return document.getElementById('addCardButtonSubmit').click();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.CreateCardModalId,
+        });
     };
 
     handleSubmit = async e => {
@@ -137,96 +142,105 @@ class _CardForm extends React.Component {
                     tabIndex="-1"
                     style={{ marginTop: '40px' }}
                 >
-                    <div className="bs-BIM">
-                        <div className="bs-Modal">
-                            <div className="bs-Modal-header">
-                                <div
-                                    className="bs-Modal-header-copy"
-                                    style={{
-                                        marginBottom: '10px',
-                                        marginTop: '10px',
-                                    }}
-                                >
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Add Card</span>
-                                    </span>
-                                    <p>
-                                        <span>
-                                            We will charge 1$ to make sure this
-                                            card is billable.
+                    <ClickOutside onClickOutside={this.handleCloseModal}>
+                        <div className="bs-BIM">
+                            <div className="bs-Modal">
+                                <div className="bs-Modal-header">
+                                    <div
+                                        className="bs-Modal-header-copy"
+                                        style={{
+                                            marginBottom: '10px',
+                                            marginTop: '10px',
+                                        }}
+                                    >
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Add Card</span>
                                         </span>
-                                    </p>
+                                        <p>
+                                            <span>
+                                                We will charge 1$ to make sure
+                                                this card is billable.
+                                            </span>
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--20i">
-                                    <label>
-                                        <CardElement
-                                            {...createOptions(elementFontSize)}
-                                            ref={this.setRef}
-                                        />
-                                    </label>
+                                <div className="bs-Modal-content">
+                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--20i">
+                                        <label>
+                                            <CardElement
+                                                {...createOptions(
+                                                    elementFontSize
+                                                )}
+                                                ref={this.setRef}
+                                            />
+                                        </label>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div
-                                    className="bs-Modal-footer-actions Flex-flex--1"
-                                    style={{ width: 280 }}
-                                >
-                                    <ShouldRender if={error}>
-                                        <div className="bs-Tail-copy Flex-flex--1">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                        id="cardError"
-                                                    >
-                                                        {error}
-                                                    </span>
+                                <div className="bs-Modal-footer">
+                                    <div
+                                        className="bs-Modal-footer-actions Flex-flex--1"
+                                        style={{ width: 280 }}
+                                    >
+                                        <ShouldRender if={error}>
+                                            <div className="bs-Tail-copy Flex-flex--1">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                            id="cardError"
+                                                        >
+                                                            {error}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
+                                        </ShouldRender>
+                                    </div>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
+                                        type="button"
+                                        onClick={() =>
+                                            this.props.closeModal({
+                                                id: this.props
+                                                    .CreateCardModalId,
+                                            })
+                                        }
+                                    >
+                                        <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
+                                    </button>
+                                    <button
+                                        id="addCardButtonSubmit"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                        disabled={requesting}
+                                        type="submit"
+                                    >
+                                        {!requesting && (
+                                            <>
+                                                <span>Add</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </>
+                                        )}
+                                        {requesting && <FormLoader />}
+                                    </button>
                                 </div>
-                                <button
-                                    className="bs-Button bs-DeprecatedButton btn__modal"
-                                    type="button"
-                                    onClick={() =>
-                                        this.props.closeModal({
-                                            id: this.props.CreateCardModalId,
-                                        })
-                                    }
-                                >
-                                    <span>Cancel</span>
-                                    <span className="cancel-btn__keycode">
-                                        Esc
-                                    </span>
-                                </button>
-                                <button
-                                    id="addCardButtonSubmit"
-                                    className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                    disabled={requesting}
-                                    type="submit"
-                                >
-                                    {!requesting && (
-                                        <>
-                                            <span>Add</span>
-                                            <span className="create-btn__keycode">
-                                                <span className="keycode__icon keycode__icon--enter" />
-                                            </span>
-                                        </>
-                                    )}
-                                    {requesting && <FormLoader />}
-                                </button>
                             </div>
                         </div>
-                    </div>
+                    </ClickOutside>
                 </div>
             </form>
         );
