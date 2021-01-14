@@ -291,7 +291,7 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
         data.fingerprintHash = issue.fingerprintHash;
 
         const errorEvent = await ErrorEventService.create(data);
-        await RealTimeService.sendErrorEventCreated(errorEvent);
+        await RealTimeService.sendErrorEventCreated({ errorEvent, issue });
         return sendItemResponse(req, res, errorEvent);
     } catch (error) {
         return sendErrorResponse(req, res, error);
