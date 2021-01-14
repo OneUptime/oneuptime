@@ -597,6 +597,7 @@ const _this = {
         projectId,
         validationResult
     ) {
+        let options;
         try {
             const customTwilioSettings = await _this.findByOne({
                 projectId,
@@ -652,7 +653,7 @@ const _this = {
                         throw error;
                     }
                     const template = `Your verification code: ${alertPhoneVerificationCode}`;
-                    const options = {
+                    options = {
                         body: template,
                         from: creds.phone,
                         to,
@@ -684,6 +685,13 @@ const _this = {
             }
         } catch (error) {
             ErrorService.log('twillioService.sendVerificationSMS', error);
+            await SmsCountService.create(
+                userId,
+                to,
+                projectId,
+                options.body,
+                'Error'
+            );
             throw error;
         }
     },

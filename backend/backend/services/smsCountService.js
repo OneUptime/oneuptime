@@ -44,7 +44,7 @@ module.exports = {
         }
     },
 
-    create: async function(userId, sentTo, projectId, content, status) {
+    create: async function(userId, sentTo, projectId, content, status, error) {
         try {
             const smsCountModel = new SmsCountModel();
             smsCountModel.userId = userId || null;
@@ -52,6 +52,7 @@ module.exports = {
             smsCountModel.projectId = projectId || null;
             smsCountModel.content = content || null;
             smsCountModel.status = status || null;
+            smsCountModel.error = error || null;
             const smsCount = await smsCountModel.save();
             return smsCount;
         } catch (error) {
