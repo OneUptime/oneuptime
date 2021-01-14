@@ -92,9 +92,10 @@ export const deleteSsoDefaultRoleRequest = () => {
     };
 };
 
-export const deleteSsoDefaultRoleSuccess = () => {
+export const deleteSsoDefaultRoleSuccess = (payload) => {
     return {
         type: types.DELETE_SSO_DEFAULT_ROLE_SUCCESS,
+        payload
     };
 };
 
@@ -108,8 +109,8 @@ export const deleteSsoDefaultRoleError = payload => {
 export const deleteSsoDefaultRole = ssoId => async dispatch => {
     dispatch(deleteSsoDefaultRoleRequest());
     try {
-        await deleteApi(`ssoDefaultRoles/${ssoId}`);
-        dispatch(deleteSsoDefaultRoleSuccess());
+        const response = await deleteApi(`ssoDefaultRoles/${ssoId}`);
+        dispatch(deleteSsoDefaultRoleSuccess(response.data));
     } catch (error) {
         let errorMsg;
         if (error && error.response && error.response.data)
