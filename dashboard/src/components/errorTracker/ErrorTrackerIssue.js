@@ -218,39 +218,39 @@ function ErrorTrackerIssue({
                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                 style={{
                     height: '1px',
+                    minWidth: '250px',
                 }}
             >
                 <div className="db-ListViewItem-link Flex-flex Flex-justifyContent--center  Flex-alignItems--center">
                     <div className="Padding-all--8">
-                        {errorTrackerIssue.members.length > 0 ? (
-                            errorTrackerIssue.members.map((member, i) => {
-                                return (
-                                    <div
-                                        key={i}
-                                        className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-all--2"
-                                        onClick={e => {
-                                            e.stopPropagation();
-                                            history.push(
-                                                '/dashboard/profile/' +
-                                                    member.userId._id
-                                            );
-                                        }}
-                                    >
-                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                        <div className="">
+                            {errorTrackerIssue.members.length > 0 ? (
+                                errorTrackerIssue.members.map((member, i) => {
+                                    return (
+                                        <span
+                                            key={i}
+                                            className="Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper"
+                                        >
                                             <span>
                                                 {member.userId.name
                                                     ? member.userId.name
                                                     : member.userId.email
                                                     ? member.userId.email
                                                     : 'N/A'}
+                                                {i <
+                                                errorTrackerIssue.members
+                                                    .length -
+                                                    1
+                                                    ? ', '
+                                                    : null}
                                             </span>
                                         </span>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <div> - </div>
-                        )}
+                                    );
+                                })
+                            ) : (
+                                <div> - </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </td>
