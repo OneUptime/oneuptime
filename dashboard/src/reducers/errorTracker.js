@@ -696,7 +696,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                     }
                     return issue;
                 });
-            } else if (!temporaryIssue) {
+            } else if (temporaryIssue.length < 1) {
                 temporaryIssues = [action.payload.issue].concat(
                     state.errorTrackerIssues[
                         action.payload.errorEvent.errorTrackerId
