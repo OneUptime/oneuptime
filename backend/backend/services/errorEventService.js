@@ -171,6 +171,10 @@ module.exports = {
                 // increment index
                 index = index + 1;
             }
+            // sort total error events by latest occurence date
+            totalErrorEvents.sort((eventA, eventB) =>
+                moment(eventB.latestOccurennce).isAfter(eventA.latestOccurennce)
+            );
             let dateRange = { startDate: '', endDate: '' };
             // set the date time range
             if (query.createdAt) {
@@ -341,3 +345,4 @@ const ErrorEventModel = require('../models/errorEvent');
 const ErrorService = require('./errorService');
 const IssueService = require('./issueService');
 const IssueMemberService = require('./issueMemberService');
+const moment = require('moment');
