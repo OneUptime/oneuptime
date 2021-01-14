@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
+import ClickOutside from 'react-click-outside';
 
 class DeleteComponent extends Component {
     componentDidMount() {
@@ -24,6 +25,7 @@ class DeleteComponent extends Component {
     };
 
     render() {
+        const { closeThisDialog } = this.props;
         let deleting = false;
         if (
             this.props.componentState &&
@@ -43,64 +45,66 @@ class DeleteComponent extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Confirm Deletion</span>
+                            <ClickOutside onClickOutside={closeThisDialog}>
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Confirm Deletion</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        Are you sure you want to delete this
+                                        component ?
                                     </span>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Are you sure you want to delete this
-                                    component ?
-                                </span>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
-                                        type="button"
-                                        onClick={this.props.closeThisDialog}
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    {!deleting && (
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
                                         <button
-                                            id="deleteComponent"
-                                            className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
-                                            onClick={
-                                                this.props.confirmThisDialog
-                                            }
-                                            disabled={deleting}
-                                            autoFocus={true}
+                                            onClick={this.props.closeThisDialog}
                                         >
-                                            <span>Delete</span>
-                                            <span className="delete-btn__keycode">
-                                                <span className="keycode__icon keycode__icon--enter" />
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
                                             </span>
                                         </button>
-                                    )}
-                                    {deleting && (
-                                        <button
-                                            id="deleteComponent"
-                                            className="bs-Button bs-DeprecatedButton bs-Button--red"
-                                            type="button"
-                                            onClick={
-                                                this.props.confirmThisDialog
-                                            }
-                                            disabled={deleting}
-                                            autoFocus={true}
-                                        >
-                                            <FormLoader />
-                                        </button>
-                                    )}
+                                        {!deleting && (
+                                            <button
+                                                id="deleteComponent"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
+                                                type="button"
+                                                onClick={
+                                                    this.props.confirmThisDialog
+                                                }
+                                                disabled={deleting}
+                                                autoFocus={true}
+                                            >
+                                                <span>Delete</span>
+                                                <span className="delete-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </button>
+                                        )}
+                                        {deleting && (
+                                            <button
+                                                id="deleteComponent"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                                type="button"
+                                                onClick={
+                                                    this.props.confirmThisDialog
+                                                }
+                                                disabled={deleting}
+                                                autoFocus={true}
+                                            >
+                                                <FormLoader />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>
