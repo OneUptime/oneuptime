@@ -41,6 +41,7 @@ function ErrorTrackerIssue({
     selectErrorEvent,
     selectedErrorEvents,
     openEventMemberModal,
+    resolveSingleIssue,
 }) {
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
@@ -219,55 +220,72 @@ function ErrorTrackerIssue({
                     height: '1px',
                 }}
             >
-                <div className="db-ListViewItem-link Flex-flex  Flex-alignItems--center">
+                <div className="db-ListViewItem-link Flex-flex Flex-justifyContent--center  Flex-alignItems--center">
                     <div className="Padding-all--8">
-                        {errorTrackerIssue.members.length > 0
-                            ? errorTrackerIssue.members.map((member, i) => {
-                                  return (
-                                      <div
-                                          key={i}
-                                          className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-all--2"
-                                          onClick={e => {
-                                              e.stopPropagation();
-                                              history.push(
-                                                  '/dashboard/profile/' +
-                                                      member.userId._id
-                                              );
-                                          }}
-                                      >
-                                          <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                              <span>
-                                                  {member.userId.name
-                                                      ? member.userId.name
-                                                      : member.userId.email
-                                                      ? member.userId.email
-                                                      : 'N/A'}
-                                              </span>
-                                          </span>
-                                      </div>
-                                  );
-                              })
-                            : null}
-
-                        <div
-                            className="Badge Badge--color--orange Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-all--2"
+                        {errorTrackerIssue.members.length > 0 ? (
+                            errorTrackerIssue.members.map((member, i) => {
+                                return (
+                                    <div
+                                        key={i}
+                                        className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-all--2"
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            history.push(
+                                                '/dashboard/profile/' +
+                                                    member.userId._id
+                                            );
+                                        }}
+                                    >
+                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                            <span>
+                                                {member.userId.name
+                                                    ? member.userId.name
+                                                    : member.userId.email
+                                                    ? member.userId.email
+                                                    : 'N/A'}
+                                            </span>
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div> - </div>
+                        )}
+                    </div>
+                </div>
+            </td>
+            <td
+                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                style={{
+                    height: '1px',
+                    minWidth: '250px',
+                }}
+            >
+                <div className="db-ListViewItem-link Flex-flex Flex-justifyContent--center Flex-alignItems--center">
+                    <div className="Padding-all--8">
+                        <button
+                            className="bs-Button"
+                            type="button"
                             onClick={() =>
                                 openEventMemberModal(errorTrackerIssue)
                             }
                         >
-                            <span className="Badge-text Text-color--orange Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                <img
-                                    src="/dashboard/assets/img/user.svg"
-                                    alt=""
-                                    style={{
-                                        height: '10px',
-                                        width: '10px',
-                                        marginRight: '5px',
-                                    }}
-                                />
-                                <span>Manage </span>
+                            <span>
+                                {errorTrackerIssue.members.length > 0
+                                    ? 'Assign More'
+                                    : 'Assign'}{' '}
                             </span>
-                        </div>
+                        </button>
+                        <button
+                            className="bs-Button bs-Button--icon bs-Button--check"
+                            type="button"
+                            disabled={errorTrackerIssue.resolved}
+                            onClick={() =>
+                                resolveSingleIssue(errorTrackerIssue._id)
+                            }
+                        >
+                            <span>Resolve</span>
+                        </button>
                     </div>
                 </div>
             </td>
@@ -282,6 +300,7 @@ ErrorTrackerIssue.propTypes = {
     selectErrorEvent: PropTypes.func,
     selectedErrorEvents: PropTypes.array,
     openEventMemberModal: PropTypes.func,
+    resolveSingleIssue: PropTypes.func,
 };
 ErrorTrackerIssue.displayName = 'ErrorTrackerIssue';
 export default ErrorTrackerIssue;
