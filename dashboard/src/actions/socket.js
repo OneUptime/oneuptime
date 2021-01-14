@@ -89,7 +89,6 @@ export function updatelighthouselogbysocket(log) {
 }
 
 export function updateAlllighthouselogbysocket(log) {
-    console.log(log, 'all lighthouse logs')
     return function(dispatch) {
         dispatch({
             type: 'UPDATE_ALL_LIGHTHOUSE_LOG',

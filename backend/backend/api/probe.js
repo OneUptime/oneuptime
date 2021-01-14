@@ -336,7 +336,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     );
                     await LighthouseLogService.updateAllLighthouseLogs(
                         data.monitor.projectId,
-                        data.monitorId
+                        data.monitorId,
+                        { scanning: true }
                     );
                 } else {
                     await MonitorService.updateOneBy(
