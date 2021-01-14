@@ -21,7 +21,9 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
 
 router.delete('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     try {
-        const sso = await SsoDefaultRolesService.deleteBy({ _id: req.params.id });
+        const sso = await SsoDefaultRolesService.deleteBy({
+            _id: req.params.id,
+        });
         return sendItemResponse(req, res, sso);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -40,7 +42,9 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
 
 router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     try {
-        const sso = await SsoDefaultRolesService.findOneBy({ _id: req.params.id });
+        const sso = await SsoDefaultRolesService.findOneBy({
+            _id: req.params.id,
+        });
         return sendItemResponse(req, res, sso);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -50,7 +54,10 @@ router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
 router.put('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const data = req.body;
-        const sso = await SsoDefaultRolesService.updateBy({ _id: req.params.id }, data);
+        const sso = await SsoDefaultRolesService.updateBy(
+            { _id: req.params.id },
+            data
+        );
         return sendItemResponse(req, res, sso);
     } catch (error) {
         return sendErrorResponse(req, res, error);
