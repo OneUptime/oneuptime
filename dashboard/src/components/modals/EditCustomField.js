@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -57,14 +58,18 @@ class UpdateCustomField extends React.Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({
-                    id: this.props.updateCustomFieldModalId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return document.getElementById('updateCustomField').click();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.updateCustomFieldModalId,
+        });
     };
 
     render() {
@@ -83,172 +88,181 @@ class UpdateCustomField extends React.Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal" style={{ width: 600 }}>
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
+                        <ClickOutside onClickOutside={this.handleCloseModal}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>Update Custom Field</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <form
+                                id="customFieldForm"
+                                onSubmit={handleSubmit(this.submitForm)}
                             >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Update Custom Field</span>
-                                </span>
-                            </div>
-                        </div>
-                        <form
-                            id="customFieldForm"
-                            onSubmit={handleSubmit(this.submitForm)}
-                        >
-                            <div className="bs-Modal-content">
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="fieldName"
+                                <div className="bs-Modal-content">
+                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
                                                 >
-                                                    <span>Field Name</span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            width: '100%',
-                                                        }}
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="fieldName"
                                                     >
-                                                        <Field
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            name="fieldName"
-                                                            placeholder="Field name"
-                                                            id="fieldName"
-                                                            className="bs-TextInput"
+                                                        <span>Field Name</span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
                                                             style={{
                                                                 width: '100%',
-                                                                padding:
-                                                                    '3px 5px',
                                                             }}
-                                                            autoFocus={true}
-                                                        />
+                                                        >
+                                                            <Field
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="fieldName"
+                                                                placeholder="Field name"
+                                                                id="fieldName"
+                                                                className="bs-TextInput"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                    padding:
+                                                                        '3px 5px',
+                                                                }}
+                                                                autoFocus={true}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </fieldset>
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="fieldType"
+                                        </fieldset>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
                                                 >
-                                                    <span>Field Type</span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            width: '100%',
-                                                        }}
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="fieldType"
                                                     >
-                                                        <Field
-                                                            className="db-select-nw Table-cell--width--maximized"
-                                                            component={
-                                                                RenderSelect
-                                                            }
-                                                            name="fieldType"
-                                                            id="fieldType"
-                                                            placeholder="Field type"
+                                                        <span>Field Type</span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
                                                             style={{
-                                                                height: '28px',
                                                                 width: '100%',
                                                             }}
-                                                            options={[
-                                                                {
-                                                                    value:
-                                                                        'text',
-                                                                    label:
-                                                                        'Text',
-                                                                },
-                                                                {
-                                                                    value:
-                                                                        'number',
-                                                                    label:
-                                                                        'Number',
-                                                                },
-                                                            ]}
-                                                        />
+                                                        >
+                                                            <Field
+                                                                className="db-select-nw Table-cell--width--maximized"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="fieldType"
+                                                                id="fieldType"
+                                                                placeholder="Field type"
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                    width:
+                                                                        '100%',
+                                                                }}
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            'text',
+                                                                        label:
+                                                                            'Text',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'number',
+                                                                        label:
+                                                                            'Number',
+                                                                    },
+                                                                ]}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </fieldset>
+                                        </fieldset>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender if={updateFieldError}>
-                                        <div className="bs-Tail-copy">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender if={updateFieldError}>
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {updateFieldError}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {updateFieldError}
+                                            </div>
+                                        </ShouldRender>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
+                                            type="button"
+                                            onClick={() =>
+                                                closeModal({
+                                                    id: this.props
+                                                        .updateCustomFieldModalId,
+                                                })
+                                            }
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            id="updateCustomField"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            disabled={requesting}
+                                            type="submit"
+                                        >
+                                            {!requesting && (
+                                                <>
+                                                    <span>Update</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
                                                     </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton btn__modal"
-                                        type="button"
-                                        onClick={() =>
-                                            closeModal({
-                                                id: this.props
-                                                    .updateCustomFieldModalId,
-                                            })
-                                        }
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        id="updateCustomField"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                        disabled={requesting}
-                                        type="submit"
-                                    >
-                                        {!requesting && (
-                                            <>
-                                                <span>Update</span>
-                                                <span className="create-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </>
-                                        )}
-                                        {requesting && <FormLoader />}
-                                    </button>
+                                                </>
+                                            )}
+                                            {requesting && <FormLoader />}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

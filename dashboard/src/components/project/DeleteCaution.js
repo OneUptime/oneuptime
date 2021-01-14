@@ -134,7 +134,7 @@ class DeleteCaution extends Component {
                                         </span>
                                     </button>
                                     <button
-                                        className={`bs-Button bs-Button--red Box-background--red btn__modal ${requesting &&
+                                        className={`bs-Button bs-Button--red Box-background--red delete_btn__modal ${requesting &&
                                             'bs-is-disabled'}`}
                                         disabled={requesting}
                                         type="submit"

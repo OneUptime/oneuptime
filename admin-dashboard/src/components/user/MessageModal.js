@@ -1,5 +1,6 @@
 import React from 'react';
 import { PropTypes } from 'prop-types';
+import ClickOutside from 'react-click-outside';
 
 const MessageModal = props => {
     const { closeThisDialog } = props;
@@ -16,29 +17,31 @@ const MessageModal = props => {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--medium">
-                        <div className="bs-Modal-header">
-                            <div className="bs-Modal-header-copy">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Info</span>
+                        <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div className="bs-Modal-header-copy">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>Info</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="bs-Modal-content">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    Only the user can turn on 2FA not the admin
                                 </span>
                             </div>
-                        </div>
-                        <div className="bs-Modal-content">
-                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                Only the user can turn on 2FA not the admin
-                            </span>
-                        </div>
-                        <div className="bs-Modal-footer">
-                            <div className="bs-Modal-footer-actions">
-                                <button
-                                    id="confirmDelete"
-                                    className="bs-Button"
-                                    onClick={closeThisDialog}
-                                >
-                                    <span>Ok</span>
-                                </button>
+                            <div className="bs-Modal-footer">
+                                <div className="bs-Modal-footer-actions">
+                                    <button
+                                        id="confirmDelete"
+                                        className="bs-Button"
+                                        onClick={closeThisDialog}
+                                    >
+                                        <span>Ok</span>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

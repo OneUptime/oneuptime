@@ -17,7 +17,7 @@ class IncomingRequestBox extends Component {
                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                         <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                             <span>
-                                                Incoming http Request
+                                                Incoming HTTP Request
                                                 Integration
                                             </span>
                                         </span>
@@ -25,7 +25,7 @@ class IncomingRequestBox extends Component {
                                             <span>
                                                 Integrate Fyipe with any
                                                 external service that support
-                                                http request.
+                                                HTTP request.
                                             </span>
                                         </span>
                                     </div>

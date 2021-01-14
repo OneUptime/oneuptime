@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
 import { deleteEmailLogs } from '../../actions/emailLogs';
@@ -47,79 +48,86 @@ class DeleteConfirmationModal extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Delete Email Log</span>
+                            <ClickOutside onClickOutside={closeThisDialog}>
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Delete Email Log</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        Do you want to delete all the logs?
                                     </span>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Do you want to delete all the logs?
-                                </span>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender if={error}>
-                                        <div className="bs-Tail-copy">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div
-                                                        className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
-                                                        style={{
-                                                            marginTop: '2px',
-                                                        }}
-                                                    ></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {error}
-                                                    </span>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender if={error}>
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div
+                                                            className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
+                                                            style={{
+                                                                marginTop:
+                                                                    '2px',
+                                                            }}
+                                                        ></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {error}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        id="cancelEmailDelete"
-                                        className={`bs-Button btn__modal ${deleteRequest &&
-                                            'bs-is-disabled'}`}
-                                        type="button"
-                                        onClick={closeThisDialog}
-                                        disabled={deleteRequest}
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        id="confirmDelete"
-                                        className={`bs-Button bs-Button--red Box-background--red btn__modal ${deleteRequest &&
-                                            'bs-is-disabled'}`}
-                                        onClick={this.handleDelete}
-                                        disabled={deleteRequest}
-                                        autoFocus={true}
-                                    >
-                                        <ShouldRender if={!deleteRequest}>
-                                            <span>Delete Logs</span>
-                                            <span className="delete-btn__keycode">
-                                                <span className="keycode__icon keycode__icon--enter" />
-                                            </span>
                                         </ShouldRender>
-                                        <ShouldRender if={deleteRequest}>
-                                            <span>
-                                                <FormLoader />
+                                        <button
+                                            id="cancelEmailDelete"
+                                            className={`bs-Button btn__modal ${deleteRequest &&
+                                                'bs-is-disabled'}`}
+                                            type="button"
+                                            onClick={closeThisDialog}
+                                            disabled={deleteRequest}
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
                                             </span>
-                                        </ShouldRender>
-                                    </button>
+                                        </button>
+                                        <button
+                                            id="confirmDelete"
+                                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${deleteRequest &&
+                                                'bs-is-disabled'}`}
+                                            onClick={this.handleDelete}
+                                            disabled={deleteRequest}
+                                            autoFocus={true}
+                                        >
+                                            <ShouldRender if={!deleteRequest}>
+                                                <span>Delete Logs</span>
+                                                <span className="delete-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </ShouldRender>
+                                            <ShouldRender if={deleteRequest}>
+                                                <span>
+                                                    <FormLoader />
+                                                </span>
+                                            </ShouldRender>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

@@ -99,7 +99,7 @@ export class DashboardApp extends Component {
 
     closeModal = () =>
         this.props.closeModal({
-            id: Object.values(this.props.currentModal)[0],
+            id: this.props.currentModal ? this.props.currentModal.id : '',
         });
 
     render() {

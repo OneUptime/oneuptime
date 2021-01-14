@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Validate } from '../../config';
 import { reduxForm, Field } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 import {
     createWebHookRequest,
     createWebHook,
@@ -97,62 +98,138 @@ class CreateWebHook extends React.Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal">
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Create Webhook</span>
-                                </span>
+                        <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>Create Webhook</span>
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                        <form onSubmit={handleSubmit(this.submitForm)}>
-                            <div className="bs-Modal-content">
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="endpoint"
+                            <form onSubmit={handleSubmit(this.submitForm)}>
+                                <div className="bs-Modal-content">
+                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
                                                 >
-                                                    <span>Endpoint URL</span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{ width: '70%' }}
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="endpoint"
                                                     >
-                                                        <Field
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            name="endpoint"
-                                                            type="url"
-                                                            placeholder="Enter Webhook URL"
-                                                            id="endpoint"
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        <span>
+                                                            Endpoint URL
+                                                        </span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
                                                             style={{
-                                                                width: 250,
-                                                                padding:
-                                                                    '3px 5px',
+                                                                width: '70%',
                                                             }}
-                                                            autoFocus={true}
-                                                        />
+                                                        >
+                                                            <Field
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="endpoint"
+                                                                type="url"
+                                                                placeholder="Enter Webhook URL"
+                                                                id="endpoint"
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                style={{
+                                                                    width: 250,
+                                                                    padding:
+                                                                        '3px 5px',
+                                                                }}
+                                                                autoFocus={true}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </fieldset>
+                                        </fieldset>
 
-                                    <ShouldRender if={!monitorId}>
+                                        <ShouldRender if={!monitorId}>
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="monitorId"
+                                                        >
+                                                            <span>Monitor</span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <div
+                                                                className="bs-Fieldset-field"
+                                                                style={{
+                                                                    width:
+                                                                        '250px',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="monitorId"
+                                                                    id="monitorId"
+                                                                    placeholder="Select monitor"
+                                                                    disabled={
+                                                                        this
+                                                                            .props
+                                                                            .newWebHook
+                                                                            .requesting
+                                                                    }
+                                                                    validate={
+                                                                        ValidateField.select
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select monitor',
+                                                                        },
+                                                                        ...(allMonitors &&
+                                                                        allMonitors.length >
+                                                                            0
+                                                                            ? allMonitors.map(
+                                                                                  monitor => ({
+                                                                                      value:
+                                                                                          monitor._id,
+                                                                                      label: `${
+                                                                                          getParentComponent(
+                                                                                              monitor
+                                                                                          )
+                                                                                              .name
+                                                                                      } / ${
+                                                                                          monitor.name
+                                                                                      }`,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
+                                                                    className="db-select-nw db-MultiSelect-input"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        </ShouldRender>
+
                                         <fieldset className="Margin-bottom--16">
                                             <div className="bs-Fieldset-rows">
                                                 <div
@@ -163,7 +240,9 @@ class CreateWebHook extends React.Component {
                                                         className="bs-Fieldset-label Text-align--left"
                                                         htmlFor="monitorId"
                                                     >
-                                                        <span>Monitor</span>
+                                                        <span>
+                                                            Endpoint Type
+                                                        </span>
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <div
@@ -176,9 +255,9 @@ class CreateWebHook extends React.Component {
                                                                 component={
                                                                     RenderSelect
                                                                 }
-                                                                name="monitorId"
-                                                                id="monitorId"
-                                                                placeholder="Select monitor"
+                                                                name="endpointType"
+                                                                id="endpointType"
+                                                                placeholder="Select endpoint type"
                                                                 disabled={
                                                                     this.props
                                                                         .newWebHook
@@ -192,26 +271,20 @@ class CreateWebHook extends React.Component {
                                                                         value:
                                                                             '',
                                                                         label:
-                                                                            'Select monitor',
+                                                                            'Select endpoint type',
                                                                     },
-                                                                    ...(allMonitors &&
-                                                                    allMonitors.length >
-                                                                        0
-                                                                        ? allMonitors.map(
-                                                                              monitor => ({
-                                                                                  value:
-                                                                                      monitor._id,
-                                                                                  label: `${
-                                                                                      getParentComponent(
-                                                                                          monitor
-                                                                                      )
-                                                                                          .name
-                                                                                  } / ${
-                                                                                      monitor.name
-                                                                                  }`,
-                                                                              })
-                                                                          )
-                                                                        : []),
+                                                                    {
+                                                                        value:
+                                                                            'get',
+                                                                        label:
+                                                                            'GET',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'post',
+                                                                        label:
+                                                                            'POST',
+                                                                    },
                                                                 ]}
                                                                 className="db-select-nw db-MultiSelect-input"
                                                             />
@@ -220,322 +293,267 @@ class CreateWebHook extends React.Component {
                                                 </div>
                                             </div>
                                         </fieldset>
-                                    </ShouldRender>
 
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorId"
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
                                                 >
-                                                    <span>Endpoint Type</span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitorId"
+                                                    >
+                                                        <span></span>
+                                                    </label>
                                                     <div
-                                                        className="bs-Fieldset-field"
+                                                        className="bs-Fieldset-fields"
                                                         style={{
-                                                            width: '250px',
+                                                            paddingTop: '6px',
                                                         }}
                                                     >
-                                                        <Field
-                                                            component={
-                                                                RenderSelect
-                                                            }
-                                                            name="endpointType"
-                                                            id="endpointType"
-                                                            placeholder="Select endpoint type"
-                                                            disabled={
+                                                        <div className="bs-Fieldset-field">
+                                                            <label
+                                                                className="Checkbox"
+                                                                style={{
+                                                                    marginRight:
+                                                                        '12px',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name="incidentCreated"
+                                                                    className="Checkbox-source"
+                                                                    id="incidentCreated"
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <label>
+                                                                        <span>
+                                                                            Ping
+                                                                            when
+                                                                            incident
+                                                                            is
+                                                                            Created
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitorId"
+                                                    >
+                                                        <span></span>
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            paddingTop: '6px',
+                                                        }}
+                                                    >
+                                                        <div className="bs-Fieldset-field">
+                                                            <label
+                                                                className="Checkbox"
+                                                                style={{
+                                                                    marginRight:
+                                                                        '12px',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name="incidentAcknowledged"
+                                                                    className="Checkbox-source"
+                                                                    id="incidentAcknowledged"
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <label>
+                                                                        <span>
+                                                                            Ping
+                                                                            when
+                                                                            incident
+                                                                            is
+                                                                            Acknowledged
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitorId"
+                                                    >
+                                                        <span></span>
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            paddingTop: '6px',
+                                                        }}
+                                                    >
+                                                        <div className="bs-Fieldset-field">
+                                                            <label
+                                                                className="Checkbox"
+                                                                style={{
+                                                                    marginRight:
+                                                                        '12px',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component="input"
+                                                                    type="checkbox"
+                                                                    name="incidentResolved"
+                                                                    className="Checkbox-source"
+                                                                    id="incidentResolved"
+                                                                />
+                                                                <div className="Checkbox-box Box-root Margin-right--2">
+                                                                    <div className="Checkbox-target Box-root">
+                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <label>
+                                                                        <span>
+                                                                            Ping
+                                                                            when
+                                                                            incident
+                                                                            is
+                                                                            Resolved
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender
+                                            if={
+                                                this.props.newWebHook &&
+                                                this.props.newWebHook.error
+                                            }
+                                        >
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {
                                                                 this.props
                                                                     .newWebHook
-                                                                    .requesting
+                                                                    .error
                                                             }
-                                                            validate={
-                                                                ValidateField.select
-                                                            }
-                                                            options={[
-                                                                {
-                                                                    value: '',
-                                                                    label:
-                                                                        'Select endpoint type',
-                                                                },
-                                                                {
-                                                                    value:
-                                                                        'get',
-                                                                    label:
-                                                                        'GET',
-                                                                },
-                                                                {
-                                                                    value:
-                                                                        'post',
-                                                                    label:
-                                                                        'POST',
-                                                                },
-                                                            ]}
-                                                            className="db-select-nw db-MultiSelect-input"
-                                                        />
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </fieldset>
-
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorId"
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        paddingTop: '6px',
-                                                    }}
-                                                >
-                                                    <div className="bs-Fieldset-field">
-                                                        <label
-                                                            className="Checkbox"
-                                                            style={{
-                                                                marginRight:
-                                                                    '12px',
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name="incidentCreated"
-                                                                className="Checkbox-source"
-                                                                id="incidentCreated"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <label>
-                                                                    <span>
-                                                                        Ping
-                                                                        when
-                                                                        incident
-                                                                        is
-                                                                        Created
-                                                                    </span>
-                                                                </label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorId"
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        paddingTop: '6px',
-                                                    }}
-                                                >
-                                                    <div className="bs-Fieldset-field">
-                                                        <label
-                                                            className="Checkbox"
-                                                            style={{
-                                                                marginRight:
-                                                                    '12px',
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name="incidentAcknowledged"
-                                                                className="Checkbox-source"
-                                                                id="incidentAcknowledged"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <label>
-                                                                    <span>
-                                                                        Ping
-                                                                        when
-                                                                        incident
-                                                                        is
-                                                                        Acknowledged
-                                                                    </span>
-                                                                </label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorId"
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        paddingTop: '6px',
-                                                    }}
-                                                >
-                                                    <div className="bs-Fieldset-field">
-                                                        <label
-                                                            className="Checkbox"
-                                                            style={{
-                                                                marginRight:
-                                                                    '12px',
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                component="input"
-                                                                type="checkbox"
-                                                                name="incidentResolved"
-                                                                className="Checkbox-source"
-                                                                id="incidentResolved"
-                                                            />
-                                                            <div className="Checkbox-box Box-root Margin-right--2">
-                                                                <div className="Checkbox-target Box-root">
-                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    paddingLeft:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <label>
-                                                                    <span>
-                                                                        Ping
-                                                                        when
-                                                                        incident
-                                                                        is
-                                                                        Resolved
-                                                                    </span>
-                                                                </label>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
+                                        </ShouldRender>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
+                                            type="button"
+                                            onClick={closeThisDialog}
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            disabled={
+                                                this.props.newWebHook &&
+                                                this.props.newWebHook.requesting
+                                            }
+                                            type="submit"
+                                            id="createWebhook"
+                                        >
+                                            {this.props.newWebHook &&
+                                                !this.props.newWebHook
+                                                    .requesting && (
+                                                    <>
+                                                        <span>Create</span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
+                                                )}
+                                            {this.props.newWebHook &&
+                                                this.props.newWebHook
+                                                    .requesting && (
+                                                    <FormLoader />
+                                                )}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender
-                                        if={
-                                            this.props.newWebHook &&
-                                            this.props.newWebHook.error
-                                        }
-                                    >
-                                        <div className="bs-Tail-copy">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {
-                                                            this.props
-                                                                .newWebHook
-                                                                .error
-                                                        }
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton btn__modal"
-                                        type="button"
-                                        onClick={closeThisDialog}
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                        disabled={
-                                            this.props.newWebHook &&
-                                            this.props.newWebHook.requesting
-                                        }
-                                        type="submit"
-                                        id="createWebhook"
-                                    >
-                                        {this.props.newWebHook &&
-                                            !this.props.newWebHook
-                                                .requesting && (
-                                                <>
-                                                    <span>Create</span>
-                                                    <span className="create-btn__keycode">
-                                                        <span className="keycode__icon keycode__icon--enter" />
-                                                    </span>
-                                                </>
-                                            )}
-                                        {this.props.newWebHook &&
-                                            this.props.newWebHook
-                                                .requesting && <FormLoader />}
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

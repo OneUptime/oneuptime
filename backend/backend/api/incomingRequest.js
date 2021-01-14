@@ -157,9 +157,11 @@ router.post('/:projectId/request/:requestId', async function(req, res) {
 
         const { projectId, requestId } = req.params;
         const data = { projectId, requestId, filter: externalFilter, request };
-        await IncomingRequestService.handleIncomingRequestAction(data);
 
-        return sendItemResponse(req, res, 'Success');
+        const response = await IncomingRequestService.handleIncomingRequestAction(
+            data
+        );
+        return sendItemResponse(req, res, response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -182,9 +184,11 @@ router.get('/:projectId/request/:requestId', async function(req, res) {
 
         const { projectId, requestId } = req.params;
         const data = { projectId, requestId, filter: externalFilter, request };
-        await IncomingRequestService.handleIncomingRequestAction(data);
 
-        return sendItemResponse(req, res, 'Success');
+        const response = await IncomingRequestService.handleIncomingRequestAction(
+            data
+        );
+        return sendItemResponse(req, res, response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
