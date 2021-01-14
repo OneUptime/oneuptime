@@ -614,7 +614,7 @@ module.exports = {
                             : hasGlobalSmtpSettings &&
                               !areEmailAlertsEnabledInGlobalSettings
                             ? 'Alert Disabled on Admin Dashboard'
-                            : 'Error.',
+                            : 'Network error ocurred',
                 });
             }
             const incidentcreatedBy =
@@ -1511,7 +1511,7 @@ module.exports = {
                             : hasGlobalSmtpSettings &&
                               !areEmailAlertsEnabledInGlobalSettings
                             ? 'Alert Disabled on Admin Dashboard'
-                            : 'Error.',
+                            : 'Network error ocurred',
                 });
             }
             const incidentcreatedBy =
@@ -1808,7 +1808,7 @@ module.exports = {
                             : hasGlobalSmtpSettings &&
                               !areEmailAlertsEnabledInGlobalSettings
                             ? 'Alert Disabled on Admin Dashboard'
-                            : 'Error.',
+                            : 'Network error ocurred',
                 });
             }
             const incidentcreatedBy =
@@ -2152,7 +2152,7 @@ module.exports = {
                                 ? 'Alert Disabled on Admin Dashboard'
                                 : investigationNoteNotificationEmailDisabled
                                 ? 'Investigation Note Email Notification Disabled'
-                                : 'Error',
+                                : 'Network error ocurred',
                     });
                 }
                 const emailTemplate = await EmailTemplateService.findOneBy({
