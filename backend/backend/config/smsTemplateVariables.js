@@ -6,6 +6,8 @@ module.exports = {
         '{{incidentType}} : Type of incident.',
         '{{componentName}} : Name of the component the monitor belongs to',
         '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+        '{{incident.customFields.*}} : The value of any incident custom field',
+        '{{monitor.customFields.*}} : The value of any monitor custom field',
     ],
     'Subscriber Incident Acknowldeged': [
         '{{incidentTime}} : Time at which this incident occured.',
@@ -14,6 +16,8 @@ module.exports = {
         '{{incidentType}} : Type of incident.',
         '{{componentName}} : Name of the component the monitor belongs to',
         '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+        '{{incident.customFields.*}} : The value of any incident custom field',
+        '{{monitor.customFields.*}} : The value of any monitor custom field',
     ],
     'Subscriber Incident Resolved': [
         '{{incidentTime}} : Time at which this incident occured.',
@@ -22,5 +26,7 @@ module.exports = {
         '{{incidentType}} : Type of incident.',
         '{{componentName}} : Name of the component the monitor belongs to',
         '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+        '{{incident.customFields.*}} : The value of any incident custom field',
+        '{{monitor.customFields.*}} : The value of any monitor custom field',
     ],
 };

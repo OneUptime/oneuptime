@@ -1835,6 +1835,21 @@ module.exports = {
                 }
             }
 
+            const monitorCustomFields = {},
+                incidentCustomFields = {};
+            monitor.customFields.forEach(
+                field =>
+                    (monitorCustomFields[field.fieldName] = field.fieldValue)
+            );
+            incident.customFields.forEach(
+                field =>
+                    (incidentCustomFields[field.fieldName] = field.fieldValue)
+            );
+            const customFields = {
+                monitor: { customFields: monitorCustomFields },
+                incident: { customFields: incidentCustomFields },
+            };
+
             let webhookNotificationSent = true;
 
             if (subscriber.alertVia === AlertType.Webhook) {
@@ -1997,7 +2012,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
 
                                 alertStatus = 'Sent';
@@ -2014,7 +2030,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
 
                                 alertStatus = 'Sent';
@@ -2039,7 +2056,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2055,7 +2073,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -2077,7 +2096,8 @@ module.exports = {
                             component.name,
                             note,
                             statusUrl,
-                            statusNoteStatus
+                            statusNoteStatus,
+                            customFields
                         );
                         alertStatus = 'Sent';
                     } else {
@@ -2095,7 +2115,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2111,7 +2132,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -2292,7 +2314,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             } else {
@@ -2305,7 +2328,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             }
@@ -2326,7 +2350,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             } else {
@@ -2339,7 +2364,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             }
@@ -2358,7 +2384,8 @@ module.exports = {
                             project.name,
                             incident.projectId,
                             component.name,
-                            statusUrl
+                            statusUrl,
+                            customFields
                         );
                         alertStatus = 'Success';
                     } else {
@@ -2373,7 +2400,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             } else {
@@ -2386,7 +2414,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             }

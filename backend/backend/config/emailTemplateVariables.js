@@ -9,6 +9,8 @@ module.exports = {
         '{{projectId}} : Unique identifier for the current project.',
         "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
         '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+        '{{incident.customFields.*}} : The value of any incident custom field',
+        '{{monitor.customFields.*}} : The value of any monitor custom field',
     ],
     'Subscriber Incident Acknowldeged': [
         '{{userName}} : User display name.',
@@ -20,6 +22,8 @@ module.exports = {
         '{{projectId}} : Unique identifier for the current project.',
         "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
         '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+        '{{incident.customFields.*}} : The value of any incident custom field',
+        '{{monitor.customFields.*}} : The value of any monitor custom field',
     ],
     'Subscriber Incident Resolved': [
         '{{userName}} : User display name.',
@@ -31,6 +35,8 @@ module.exports = {
         '{{projectId}} : Unique identifier for the current project.',
         "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
         '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+        '{{incident.customFields.*}} : The value of any incident custom field',
+        '{{monitor.customFields.*}} : The value of any monitor custom field',
     ],
     'Team Member Incident': [
         '{{ incidentTime }} : Time at which this incident occured.',
