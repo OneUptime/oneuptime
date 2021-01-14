@@ -80,6 +80,16 @@ export class SmsLogsList extends Component {
                                     style={{ height: '1px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Status</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Project name</span>
                                         </span>
@@ -155,6 +165,40 @@ export class SmsLogsList extends Component {
                                             key={smsLog._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent"
                                         >
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <div className="Box-root Margin-right--16">
+                                                            <div
+                                                                className={`Badge Badge--color--${
+                                                                    smsLog.status ===
+                                                                    'Success'
+                                                                        ? 'green'
+                                                                        : 'red'
+                                                                } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                            >
+                                                                <span
+                                                                    className={`Badge-text Text-color--${
+                                                                        smsLog.status ===
+                                                                        'Success'
+                                                                            ? 'green'
+                                                                            : 'red'
+                                                                    } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                >
+                                                                    <span>
+                                                                        {smsLog.status
+                                                                            ? smsLog.status
+                                                                            : 'N/A'}
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </span>
+                                                </div>
+                                            </td>
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
                                                 style={{ height: '1px' }}

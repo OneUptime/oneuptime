@@ -14,5 +14,6 @@ const smsCountSchema = new Schema({
 
     deletedById: { type: String, ref: 'User' },
     content: String,
+    status: String,
 });
 module.exports = mongoose.model('SmsCount', smsCountSchema);

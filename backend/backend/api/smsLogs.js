@@ -38,7 +38,12 @@ router.post('/', getUser, isUserMasterAdmin, async (req, res) => {
                 message: 'Values should not be null',
             });
         }
-
+        if (!data.status || !data.status.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SMS Log Status is required',
+            });
+        }
         if (!data.userId || !data.userId.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,

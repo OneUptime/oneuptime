@@ -44,13 +44,14 @@ module.exports = {
         }
     },
 
-    create: async function(userId, sentTo, projectId, content) {
+    create: async function(userId, sentTo, projectId, content, status) {
         try {
             const smsCountModel = new SmsCountModel();
             smsCountModel.userId = userId || null;
             smsCountModel.sentTo = sentTo || null;
             smsCountModel.projectId = projectId || null;
             smsCountModel.content = content || null;
+            smsCountModel.status = status || null;
             const smsCount = await smsCountModel.save();
             return smsCount;
         } catch (error) {

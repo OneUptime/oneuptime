@@ -662,7 +662,8 @@ const _this = {
                         userId,
                         to,
                         projectId,
-                        options.body
+                        options.body,
+                        'Success'
                     );
                     await UserService.updateOneBy(
                         { _id: userId },
