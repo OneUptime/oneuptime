@@ -143,6 +143,10 @@ There are two types of admin dashboard test, saas and enterprise test.
 -   Backend
 -   Accounts
 -   Admin Dashboard
+-   Dashboard
+-   Helm Chart
+-   Api Docs
+-   Licensing
 
 To run saas test, add the following line in the `.env` file in the backend project (`app/backend/.env`), accounts project (`app/accounts/.env`), and admin dashboard project (`app/admin-dashboard/.env`); this line is not required to run enterprise test:
 
@@ -157,6 +161,14 @@ sudo docker build -t fyipeproject/backend ./backend
 sudo docker run --name backend --env-file ./backend/.env --net=host -d fyipeproject/backend
 sudo docker build -t fyipeproject/accounts ./accounts
 sudo docker run --name accounts --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts
+sudo docker build -t fyipeproject/licensing ./licensing
+sudo docker run --name licensing --env-file ./licensing/.env -p 3004:3004 -d fyipeproject/licensing
+sudo docker build -t fyipeproject/dashboard ./dashboard
+sudo docker run --name dashboard --env-file ./dashboard/.env -p 3000:3000 -d fyipeproject/dashboard
+sudo docker build -t fyipeproject/helm-chart ./helm-chart
+sudo docker run --name helm-chart --env-file ./helm-chart/.env -p 3423:3423 -d fyipeproject/helm-chart
+sudo docker build -t fyipeproject/api-docs ./api-docs
+sudo docker run --name api-docs --env-file ./api-docs/.env -p 1445:1445 -d fyipeproject/api-docs
 sudo docker build -t fyipeproject/admin-dashboard ./admin-dashboard
 sudo docker run --name admin-dashboard --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard
 ```
