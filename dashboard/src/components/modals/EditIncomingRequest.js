@@ -476,6 +476,124 @@ class EditIncomingRequest extends Component {
                                     {formValues &&
                                     formValues.nextAction ===
                                         'createIncident' ? (
+                                        (formValues.filters[index]
+                                            ? (
+                                                  monitorCustomFields.find(
+                                                      field =>
+                                                          field.fieldName ===
+                                                          formValues.filters[
+                                                              index
+                                                          ].filterCriteria
+                                                  ) || {
+                                                      fieldType: 'text',
+                                                  }
+                                              ).fieldType
+                                            : 'text') === 'text' ? (
+                                            <Field
+                                                className="db-select-nw Table-cell--width--maximized"
+                                                component={RenderSelect}
+                                                name={`${field}.filterCondition`}
+                                                id={`${field}.filterCondition`}
+                                                placeholder="Condition"
+                                                style={{
+                                                    height: '28px',
+                                                    width: '100%',
+                                                    marginLeft: 5,
+                                                }}
+                                                options={[
+                                                    {
+                                                        value: 'equalTo',
+                                                        label: 'Equal To',
+                                                    },
+                                                    {
+                                                        value: 'notEqualTo',
+                                                        label: 'Not Equal To',
+                                                    },
+                                                ]}
+                                            />
+                                        ) : (
+                                            <Field
+                                                className="db-select-nw Table-cell--width--maximized"
+                                                component={RenderSelect}
+                                                name={`${field}.filterCondition`}
+                                                id={`${field}.filterCondition`}
+                                                placeholder="Condition"
+                                                style={{
+                                                    height: '28px',
+                                                    width: '100%',
+                                                    marginLeft: 5,
+                                                }}
+                                                options={[
+                                                    {
+                                                        value: 'equalTo',
+                                                        label: 'Equal To',
+                                                    },
+                                                    {
+                                                        value: 'notEqualTo',
+                                                        label: 'Not Equal To',
+                                                    },
+                                                    {
+                                                        value: 'greaterThan',
+                                                        label: 'Greater Than',
+                                                    },
+                                                    {
+                                                        value: 'lessThan',
+                                                        label: 'Less Than',
+                                                    },
+                                                    {
+                                                        value:
+                                                            'lessThanOrEqualTo',
+                                                        label:
+                                                            'Less Than Or Equal To',
+                                                    },
+                                                    {
+                                                        value:
+                                                            'greaterThanOrEqualTo',
+                                                        label:
+                                                            'Greater Than Or Equal To',
+                                                    },
+                                                ]}
+                                            />
+                                        )
+                                    ) : (formValues.filters[index]
+                                          ? formValues.filters[index]
+                                                .filterCriteria === 'incidentId'
+                                              ? 'number'
+                                              : (
+                                                    customFields.find(
+                                                        field =>
+                                                            field.fieldName ===
+                                                            formValues.filters[
+                                                                index
+                                                            ].filterCriteria
+                                                    ) || {
+                                                        fieldType: 'text',
+                                                    }
+                                                ).fieldType
+                                          : 'text') === 'text' ? (
+                                        <Field
+                                            className="db-select-nw Table-cell--width--maximized"
+                                            component={RenderSelect}
+                                            name={`${field}.filterCondition`}
+                                            id={`${field}.filterCondition`}
+                                            placeholder="Condition"
+                                            style={{
+                                                height: '28px',
+                                                width: '100%',
+                                                marginLeft: 5,
+                                            }}
+                                            options={[
+                                                {
+                                                    value: 'equalTo',
+                                                    label: 'Equal To',
+                                                },
+                                                {
+                                                    value: 'notEqualTo',
+                                                    label: 'Not Equal To',
+                                                },
+                                            ]}
+                                        />
+                                    ) : (
                                         <Field
                                             className="db-select-nw Table-cell--width--maximized"
                                             component={RenderSelect}
@@ -514,29 +632,6 @@ class EditIncomingRequest extends Component {
                                                         'greaterThanOrEqualTo',
                                                     label:
                                                         'Greater Than Or Equal To',
-                                                },
-                                            ]}
-                                        />
-                                    ) : (
-                                        <Field
-                                            className="db-select-nw Table-cell--width--maximized"
-                                            component={RenderSelect}
-                                            name={`${field}.filterCondition`}
-                                            id={`${field}.filterCondition`}
-                                            placeholder="Condition"
-                                            style={{
-                                                height: '28px',
-                                                width: '100%',
-                                                marginLeft: 5,
-                                            }}
-                                            options={[
-                                                {
-                                                    value: 'equalTo',
-                                                    label: 'Equal To',
-                                                },
-                                                {
-                                                    value: 'notEqualTo',
-                                                    label: 'Not Equal To',
                                                 },
                                             ]}
                                         />
@@ -583,19 +678,24 @@ class EditIncomingRequest extends Component {
                                             name={`${field}.filterText`}
                                             type={
                                                 formValues.filters[index]
-                                                    ? (
-                                                          customFields.find(
-                                                              field =>
-                                                                  field.fieldName ===
-                                                                  formValues
-                                                                      .filters[
-                                                                      index
-                                                                  ]
-                                                                      .filterCriteria
-                                                          ) || {
-                                                              fieldType: 'text',
-                                                          }
-                                                      ).fieldType
+                                                    ? formValues.filters[index]
+                                                          .filterCriteria ===
+                                                      'incidentId'
+                                                        ? 'number'
+                                                        : (
+                                                              customFields.find(
+                                                                  field =>
+                                                                      field.fieldName ===
+                                                                      formValues
+                                                                          .filters[
+                                                                          index
+                                                                      ]
+                                                                          .filterCriteria
+                                                              ) || {
+                                                                  fieldType:
+                                                                      'text',
+                                                              }
+                                                          ).fieldType
                                                     : 'text'
                                             }
                                             placeholder="request.body.value"

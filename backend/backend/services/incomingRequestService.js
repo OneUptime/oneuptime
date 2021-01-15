@@ -664,7 +664,7 @@ module.exports = {
                                         $ne: filterText,
                                     },
                                 });
-                            } else if (!isNaN(filterText)) {
+                            } else if (!isNaN(parseFloat(filterText))) {
                                 // handle the case when filterText is a number
                                 // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
                                 if (filterCondition === 'lessThan') {
@@ -1225,6 +1225,101 @@ module.exports = {
                             }
                         }
 
+                        if (!isNaN(parseFloat(filterText))) {
+                            // handle the case when filterText is a number
+                            // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                            data.fieldValue = Number(filterText);
+                            if (filterCondition === 'lessThan') {
+                                if (
+                                    data.incidentId &&
+                                    filterCriteria === 'incidentId'
+                                ) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        idNumber: { $lt: data.incidentId },
+                                    });
+                                }
+
+                                if (data.fieldName && data.fieldValue) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        'customFields.fieldName':
+                                            data.fieldName,
+                                        'customFields.fieldValue': {
+                                            $lt: data.fieldValue,
+                                        },
+                                    });
+                                }
+                            } else if (filterCondition === 'greaterThan') {
+                                if (
+                                    data.incidentId &&
+                                    filterCriteria === 'incidentId'
+                                ) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        idNumber: { $gt: data.incidentId },
+                                    });
+                                }
+
+                                if (data.fieldName && data.fieldValue) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        'customFields.fieldName':
+                                            data.fieldName,
+                                        'customFields.fieldValue': {
+                                            $gt: data.fieldValue,
+                                        },
+                                    });
+                                }
+                            } else if (
+                                filterCondition === 'lessThanOrEqualTo'
+                            ) {
+                                if (
+                                    data.incidentId &&
+                                    filterCriteria === 'incidentId'
+                                ) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        idNumber: { $lte: data.incidentId },
+                                    });
+                                }
+
+                                if (data.fieldName && data.fieldValue) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        'customFields.fieldName':
+                                            data.fieldName,
+                                        'customFields.fieldValue': {
+                                            $lte: data.fieldValue,
+                                        },
+                                    });
+                                }
+                            } else if (
+                                filterCondition === 'greaterThanOrEqualTo'
+                            ) {
+                                if (
+                                    data.incidentId &&
+                                    filterCriteria === 'incidentId'
+                                ) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        idNumber: { $gte: data.incidentId },
+                                    });
+                                }
+
+                                if (data.fieldName && data.fieldValue) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        'customFields.fieldName':
+                                            data.fieldName,
+                                        'customFields.fieldValue': {
+                                            $gte: data.fieldValue,
+                                        },
+                                    });
+                                }
+                            }
+                        }
+
                         if (incidents && incidents.length > 0) {
                             for (const incident of incidents) {
                                 data.incidentId = incident._id;
@@ -1374,6 +1469,106 @@ module.exports = {
                                     },
                                     ...incidentQuery,
                                 });
+                            }
+                        }
+
+                        if (!isNaN(parseFloat(filterText))) {
+                            // handle the case when filterText is a number
+                            // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                            data.fieldValue = Number(filterText);
+                            if (filterCondition === 'lessThan') {
+                                if (
+                                    data.incidentId &&
+                                    filterCriteria === 'incidentId'
+                                ) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        idNumber: { $lt: data.incidentId },
+                                        ...incidentQuery,
+                                    });
+                                }
+
+                                if (data.fieldName && data.fieldValue) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        'customFields.fieldName':
+                                            data.fieldName,
+                                        'customFields.fieldValue': {
+                                            $lt: data.fieldValue,
+                                        },
+                                        ...incidentQuery,
+                                    });
+                                }
+                            } else if (filterCondition === 'greaterThan') {
+                                if (
+                                    data.incidentId &&
+                                    filterCriteria === 'incidentId'
+                                ) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        idNumber: { $gt: data.incidentId },
+                                        ...incidentQuery,
+                                    });
+                                }
+
+                                if (data.fieldName && data.fieldValue) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        'customFields.fieldName':
+                                            data.fieldName,
+                                        'customFields.fieldValue': {
+                                            $gt: data.fieldValue,
+                                        },
+                                        ...incidentQuery,
+                                    });
+                                }
+                            } else if (
+                                filterCondition === 'lessThanOrEqualTo'
+                            ) {
+                                if (
+                                    data.incidentId &&
+                                    filterCriteria === 'incidentId'
+                                ) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        idNumber: { $lte: data.incidentId },
+                                        ...incidentQuery,
+                                    });
+                                }
+
+                                if (data.fieldName && data.fieldValue) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        'customFields.fieldName':
+                                            data.fieldName,
+                                        'customFields.fieldValue': {
+                                            $lte: data.fieldValue,
+                                        },
+                                        ...incidentQuery,
+                                    });
+                                }
+                            } else if (
+                                filterCondition === 'greaterThanOrEqualTo'
+                            ) {
+                                if (data.incidentId) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        idNumber: { $gte: data.incidentId },
+                                        ...incidentQuery,
+                                    });
+                                }
+
+                                if (data.fieldName && data.fieldValue) {
+                                    incidents = await IncidentService.findBy({
+                                        projectId: incomingRequest.projectId,
+                                        'customFields.fieldName':
+                                            data.fieldName,
+                                        'customFields.fieldValue': {
+                                            $gte: data.fieldValue,
+                                        },
+                                        ...incidentQuery,
+                                    });
+                                }
                             }
                         }
 
