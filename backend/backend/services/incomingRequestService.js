@@ -24,7 +24,7 @@ module.exports = {
             const incomingRequest = await IncomingRequestModel.findOne(query)
                 .populate({
                     path: 'monitors.monitorId',
-                    select: 'name customFields componentId',
+                    select: 'name customFields componentId deleted',
                     populate: {
                         path: 'componentId',
                         select: 'name',
@@ -215,6 +215,12 @@ module.exports = {
                 };
             }
 
+            if (data.resolveIncident) {
+                unsetData = {
+                    acknowledgeIncident: '',
+                };
+            }
+
             if (data.acknowledgeIncident || data.resolveIncident) {
                 unsetData = {
                     ...unsetData,
@@ -339,7 +345,7 @@ module.exports = {
             }
 
             updatedIncomingRequest = await updatedIncomingRequest
-                .populate('monitors.monitorId', 'name')
+                .populate('monitors.monitorId', 'name deleted')
                 .populate('projectId', 'name')
                 .execPopulate();
 
@@ -385,7 +391,7 @@ module.exports = {
                 .sort({ createdAt: -1 })
                 .populate({
                     path: 'monitors.monitorId',
-                    select: 'name customFields componentId',
+                    select: 'name customFields componentId deleted',
                     populate: {
                         path: 'componentId',
                         select: 'name',
@@ -572,7 +578,8 @@ module.exports = {
             const filters = incomingRequest.filters;
 
             if (incomingRequest && incomingRequest.createIncident) {
-                const incidentResponse = [];
+                const incidentResponse = [],
+                    monitorsWithIncident = [];
                 for (const filter of filters) {
                     data.incidentType = incomingRequest.incidentType;
                     data.incidentPriority = incomingRequest.incidentPriority;
@@ -635,7 +642,6 @@ module.exports = {
                         filterCondition = filter.filterCondition,
                         filterText = filterTextTemplate;
 
-                    // const incidentResponse = [];
                     if (
                         filterCriteria &&
                         filterCondition &&
@@ -757,16 +763,32 @@ module.exports = {
                                 }
 
                                 data.monitorId = monitor._id;
-                                const incident = await IncidentService.create(
-                                    data
-                                );
-                                incidentResponse.push(incident);
+                                if (filterMatch === 'any') {
+                                    if (
+                                        !monitorsWithIncident.includes(
+                                            String(monitor._id)
+                                        )
+                                    ) {
+                                        const incident = await IncidentService.create(
+                                            data
+                                        );
+                                        incidentResponse.push(incident);
+                                        monitorsWithIncident.push(
+                                            String(monitor._id)
+                                        );
+                                    }
+                                } else {
+                                    const incident = await IncidentService.create(
+                                        data
+                                    );
+                                    incidentResponse.push(incident);
+                                }
                             }
                         } else {
                             // grab the monitor from monitorId {_id, name, customFields}
-                            let monitors = incomingRequest.monitors.map(
-                                monitor => monitor.monitorId
-                            );
+                            let monitors = incomingRequest.monitors
+                                .map(monitor => monitor.monitorId)
+                                .filter(monitor => !monitor.deleted);
                             if (filterCondition === 'equalTo') {
                                 const matchedMonitor = [];
                                 monitors.forEach(monitor => {
@@ -911,10 +933,26 @@ module.exports = {
                                 }
 
                                 data.monitorId = monitor._id;
-                                const incident = await IncidentService.create(
-                                    data
-                                );
-                                incidentResponse.push(incident);
+                                if (filterMatch === 'any') {
+                                    if (
+                                        !monitorsWithIncident.includes(
+                                            String(monitor._id)
+                                        )
+                                    ) {
+                                        const incident = await IncidentService.create(
+                                            data
+                                        );
+                                        incidentResponse.push(incident);
+                                        monitorsWithIncident.push(
+                                            String(monitor._id)
+                                        );
+                                    }
+                                } else {
+                                    const incident = await IncidentService.create(
+                                        data
+                                    );
+                                    incidentResponse.push(incident);
+                                }
                             }
                         }
                     } else {
@@ -978,16 +1016,32 @@ module.exports = {
                                     );
                                 }
                                 data.monitorId = monitor._id;
-                                const incident = await IncidentService.create(
-                                    data
-                                );
-                                incidentResponse.push(incident);
+                                if (filterMatch === 'any') {
+                                    if (
+                                        !monitorsWithIncident.includes(
+                                            String(monitor._id)
+                                        )
+                                    ) {
+                                        const incident = await IncidentService.create(
+                                            data
+                                        );
+                                        incidentResponse.push(incident);
+                                        monitorsWithIncident.push(
+                                            String(monitor._id)
+                                        );
+                                    }
+                                } else {
+                                    const incident = await IncidentService.create(
+                                        data
+                                    );
+                                    incidentResponse.push(incident);
+                                }
                             }
                         } else {
                             // grab the monitor from monitorId {_id, name}
-                            const monitors = incomingRequest.monitors.map(
-                                monitor => monitor.monitorId
-                            );
+                            const monitors = incomingRequest.monitors
+                                .map(monitor => monitor.monitorId)
+                                .filter(monitor => !monitor.deleted);
                             for (const monitor of monitors) {
                                 const dataConfig = {
                                     monitorName: monitor.name,
@@ -1044,10 +1098,26 @@ module.exports = {
                                 }
 
                                 data.monitorId = monitor._id;
-                                const incident = await IncidentService.create(
-                                    data
-                                );
-                                incidentResponse.push(incident);
+                                if (filterMatch === 'any') {
+                                    if (
+                                        !monitorsWithIncident.includes(
+                                            String(monitor._id)
+                                        )
+                                    ) {
+                                        const incident = await IncidentService.create(
+                                            data
+                                        );
+                                        incidentResponse.push(incident);
+                                        monitorsWithIncident.push(
+                                            String(monitor._id)
+                                        );
+                                    }
+                                } else {
+                                    const incident = await IncidentService.create(
+                                        data
+                                    );
+                                    incidentResponse.push(incident);
+                                }
                             }
                         }
                     }
@@ -1066,7 +1136,8 @@ module.exports = {
                 (incomingRequest.updateIncidentNote ||
                     incomingRequest.updateInternalNote)
             ) {
-                const noteResponse = [];
+                const noteResponse = [],
+                    incidentsWithNote = [];
                 for (const filter of filters) {
                     data.incident_state = incomingRequest.incidentState;
                     data.type = incomingRequest.updateIncidentNote
@@ -1157,8 +1228,24 @@ module.exports = {
                         if (incidents && incidents.length > 0) {
                             for (const incident of incidents) {
                                 data.incidentId = incident._id;
-                                await IncidentMessageService.create(data);
-                                noteResponse.push(incident);
+                                if (filterMatch === 'any') {
+                                    if (
+                                        !incidentsWithNote.includes(
+                                            String(incident._id)
+                                        )
+                                    ) {
+                                        await IncidentMessageService.create(
+                                            data
+                                        );
+                                        noteResponse.push(incident);
+                                        incidentsWithNote.push(
+                                            String(incident._id)
+                                        );
+                                    }
+                                } else {
+                                    await IncidentMessageService.create(data);
+                                    noteResponse.push(incident);
+                                }
                             }
                         }
                     } else {
@@ -1168,17 +1255,29 @@ module.exports = {
 
                         for (const incident of incidents) {
                             data.incidentId = incident._id;
-                            await IncidentMessageService.create(data);
-                            noteResponse.push(incident);
+                            if (filterMatch === 'any') {
+                                if (
+                                    !incidentsWithNote.includes(
+                                        String(incident._id)
+                                    )
+                                ) {
+                                    await IncidentMessageService.create(data);
+                                    noteResponse.push(incident);
+                                    incidentsWithNote.push(
+                                        String(incident._id)
+                                    );
+                                }
+                            } else {
+                                await IncidentMessageService.create(data);
+                                noteResponse.push(incident);
+                            }
                         }
                     }
                 }
 
                 return {
                     status: 'success',
-                    internalNotes_addedTo: noteResponse.map(
-                        res => res.idNumber
-                    ),
+                    notes_addedTo: noteResponse.map(res => res.idNumber),
                 };
             }
 
@@ -1187,6 +1286,10 @@ module.exports = {
                 (incomingRequest.acknowledgeIncident ||
                     incomingRequest.resolveIncident)
             ) {
+                const resolveResponse = [],
+                    acknowledgeResponse = [],
+                    resolvedIncidents = [],
+                    acknowledgedIncidents = [];
                 for (const filter of filters) {
                     if (filter.filterText) {
                         const dataConfig = {
@@ -1202,8 +1305,14 @@ module.exports = {
                         filterCondition = filter.filterCondition,
                         filterText = filterTextTemplate;
 
-                    const resolveResponse = [],
-                        acknowledgeResponse = [];
+                    let incidentQuery = {};
+                    if (incomingRequest.resolveIncident) {
+                        incidentQuery = { resolvedAt: { $exists: false } };
+                    }
+                    if (incomingRequest.acknowledgeIncident) {
+                        incidentQuery = { acknowledgedAt: { $exists: false } };
+                    }
+
                     if (
                         filterCriteria &&
                         filterCondition &&
@@ -1233,6 +1342,7 @@ module.exports = {
                                 incidents = await IncidentService.findBy({
                                     projectId: incomingRequest.projectId,
                                     idNumber: data.incidentId,
+                                    ...incidentQuery,
                                 });
                             }
 
@@ -1241,6 +1351,7 @@ module.exports = {
                                     projectId: incomingRequest.projectId,
                                     'customFields.fieldName': data.fieldName,
                                     'customFields.fieldValue': data.fieldValue,
+                                    ...incidentQuery,
                                 });
                             }
                         }
@@ -1250,6 +1361,7 @@ module.exports = {
                                 incidents = await IncidentService.findBy({
                                     projectId: incomingRequest.projectId,
                                     idNumber: { $ne: data.incidentId },
+                                    ...incidentQuery,
                                 });
                             }
 
@@ -1260,6 +1372,7 @@ module.exports = {
                                     'customFields.fieldValue': {
                                         $ne: data.fieldValue,
                                     },
+                                    ...incidentQuery,
                                 });
                             }
                         }
@@ -1267,6 +1380,101 @@ module.exports = {
                         if (incidents && incidents.length > 0) {
                             for (const incident of incidents) {
                                 if (incomingRequest.acknowledgeIncident) {
+                                    if (filterMatch === 'any') {
+                                        if (
+                                            !acknowledgedIncidents.includes(
+                                                String(incident._id)
+                                            )
+                                        ) {
+                                            const incidentData = await IncidentService.acknowledge(
+                                                incident._id,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                incomingRequest
+                                            );
+                                            acknowledgeResponse.push(
+                                                incidentData
+                                            );
+                                            acknowledgedIncidents.push(
+                                                String(incident._id)
+                                            );
+                                        }
+                                    } else {
+                                        const incidentData = await IncidentService.acknowledge(
+                                            incident._id,
+                                            null,
+                                            null,
+                                            null,
+                                            null,
+                                            incomingRequest
+                                        );
+                                        acknowledgeResponse.push(incidentData);
+                                    }
+                                }
+                                if (incomingRequest.resolveIncident) {
+                                    if (filterMatch === 'any') {
+                                        if (
+                                            !resolvedIncidents.includes(
+                                                String(incident._id)
+                                            )
+                                        ) {
+                                            const incidentData = await IncidentService.resolve(
+                                                incident._id,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                incomingRequest
+                                            );
+                                            resolveResponse.push(incidentData);
+                                            resolvedIncidents.push(
+                                                String(incident._id)
+                                            );
+                                        }
+                                    } else {
+                                        const incidentData = await IncidentService.resolve(
+                                            incident._id,
+                                            null,
+                                            null,
+                                            null,
+                                            null,
+                                            incomingRequest
+                                        );
+                                        resolveResponse.push(incidentData);
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        const incidents = await IncidentService.findBy({
+                            projectId: incomingRequest.projectId,
+                            ...incidentQuery,
+                        });
+
+                        for (const incident of incidents) {
+                            if (incomingRequest.acknowledgeIncident) {
+                                if (filterMatch === 'any') {
+                                    if (
+                                        !acknowledgedIncidents.includes(
+                                            String(incident._id)
+                                        )
+                                    ) {
+                                        const incidentData = await IncidentService.acknowledge(
+                                            incident._id,
+                                            null,
+                                            null,
+                                            null,
+                                            null,
+                                            incomingRequest
+                                        );
+                                        acknowledgeResponse.push(incidentData);
+                                        acknowledgedIncidents.push(
+                                            String(incident._id)
+                                        );
+                                    }
+                                } else {
                                     const incidentData = await IncidentService.acknowledge(
                                         incident._id,
                                         null,
@@ -1277,7 +1485,28 @@ module.exports = {
                                     );
                                     acknowledgeResponse.push(incidentData);
                                 }
-                                if (incomingRequest.resolveIncident) {
+                            }
+                            if (incomingRequest.resolveIncident) {
+                                if (filterMatch === 'any') {
+                                    if (
+                                        !resolvedIncidents.includes(
+                                            String(incident._id)
+                                        )
+                                    ) {
+                                        const incidentData = await IncidentService.resolve(
+                                            incident._id,
+                                            null,
+                                            null,
+                                            null,
+                                            null,
+                                            incomingRequest
+                                        );
+                                        resolveResponse.push(incidentData);
+                                        resolvedIncidents.push(
+                                            String(incident._id)
+                                        );
+                                    }
+                                } else {
                                     const incidentData = await IncidentService.resolve(
                                         incident._id,
                                         null,
@@ -1290,35 +1519,6 @@ module.exports = {
                                 }
                             }
                         }
-                    } else {
-                        const incidents = await IncidentService.findBy({
-                            projectId: incomingRequest.projectId,
-                        });
-
-                        for (const incident of incidents) {
-                            if (incomingRequest.acknowledgeIncident) {
-                                const incidentData = await IncidentService.acknowledge(
-                                    incident._id,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    incomingRequest
-                                );
-                                acknowledgeResponse.push(incidentData);
-                            }
-                            if (incomingRequest.resolveIncident) {
-                                const incidentData = await IncidentService.resolve(
-                                    incident._id,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    incomingRequest
-                                );
-                                resolveResponse.push(incidentData);
-                            }
-                        }
                     }
                 }
 
@@ -1329,13 +1529,27 @@ module.exports = {
                             res => res.idNumber
                         ),
                     };
+                } else if (resolveResponse && resolveResponse.length === 0) {
+                    return {
+                        status: 'success',
+                        resolved_incidents: [],
+                    };
                 }
+
                 if (acknowledgeResponse && acknowledgeResponse.length > 0) {
                     return {
                         status: 'success',
                         acknowledged_incidents: acknowledgeResponse.map(
                             res => res.idNumber
                         ),
+                    };
+                } else if (
+                    acknowledgeResponse &&
+                    acknowledgeResponse.length === 0
+                ) {
+                    return {
+                        status: 'success',
+                        acknowledged_incidents: [],
                     };
                 }
             }
