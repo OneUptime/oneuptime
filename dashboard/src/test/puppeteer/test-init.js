@@ -252,8 +252,8 @@ module.exports = {
     },
     addSchedule: async function(callSchedule, page) {
         await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector('#onCallSchedules');
-        await page.click('#onCallSchedules');
+        await page.waitForSelector('#onCallDuty');
+        await page.click('#onCallDuty');
         await page.evaluate(() => {
             document.querySelector('.ActionIconParent').click();
         });

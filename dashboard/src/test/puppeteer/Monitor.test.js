@@ -49,10 +49,8 @@ describe('Monitor API', () => {
 
     const componentName = utils.generateRandomString();
     const monitorName = utils.generateRandomString();
-    const callScheduleMonitorName = utils.generateRandomString();
-
     test(
-        'Should create new monitor with correct details',
+        'Should create new monitor with default criteria settings',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Create Component first
@@ -62,7 +60,7 @@ describe('Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
@@ -78,6 +76,142 @@ describe('Monitor API', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Should create new monitor with edited criteria names',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Create Component first
+                // Redirects automatically component to details page
+                await init.addComponent(componentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', monitorName);
+                await page.click('input[data-testId=type_url]');
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', 'https://google.com');
+
+                // change up criterion's name
+                await page.click('#advanceOptions');
+                await page.waitForSelector('input[id^=name_up]');
+                await page.focus('input[id^=name_up]');
+                await page.keyboard.down('Control');
+                await page.keyboard.press('A');
+                await page.keyboard.up('Control');
+                await page.keyboard.press('Backspace');
+                const upCriterionName = 'Monitor Online';
+                await page.keyboard.type(upCriterionName);
+
+                await page.click('button[type=submit]');
+
+                let spanElement = await page.waitForSelector(
+                    `#monitor-title-${monitorName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(monitorName);
+
+                await page.click(`#edit_${monitorName}`);
+                await page.click('#advanceOptions');
+                await page.waitForSelector('input[id^=name_up]');
+                const criterionName = await page.$eval(
+                    'input[id^=name_up]',
+                    el => el.value
+                );
+                expect(criterionName).toEqual(upCriterionName);
+            });
+        },
+        operationTimeOut
+    );
+
+    test('Should create new monitor with multiple criteria on each category', async () => {
+        return await cluster.execute(null, async ({ page }) => {
+            // Create Component first
+            // Redirects automatically component to details page
+            await init.addComponent(componentName, page);
+
+            await page.waitForSelector('#form-new-monitor');
+            await page.click('input[id=name]');
+            await page.type('input[id=name]', monitorName);
+            await page.click('input[data-testId=type_url]');
+            await page.waitForSelector('#url');
+            await page.click('#url');
+            await page.type('#url', 'https://google.com');
+
+            // add up criterion
+            await page.click('#advanceOptions');
+            await page.waitForSelector('[data-testId^=single_criterion_up]');
+
+            expect(
+                (await page.$$('[data-testId^=single_criterion_up')).length
+            ).toEqual(1);
+            await page.click('[data-testId=add_criteria_up]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_up')).length
+            ).toEqual(2);
+            // add degraded criterion
+            await page.click('[data-testId=criteria_tab_degraded]');
+            await page.waitForSelector(
+                '[data-testId^=single_criterion_degraded]'
+            );
+            expect(
+                (await page.$$('[data-testId^=single_criterion_degraded]'))
+                    .length
+            ).toEqual(1);
+            await page.click('[data-testId=add_criteria_degraded]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_degraded]'))
+                    .length
+            ).toEqual(2);
+            // add down criterion
+            // * down criteria has a default criterion too
+            await page.click('[data-testId=criteria_tab_down]');
+            await page.waitForSelector('[data-testId^=single_criterion_down]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_down]')).length
+            ).toEqual(2);
+            await page.click('[data-testId=add_criteria_down]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_down]')).length
+            ).toEqual(3);
+
+            // add the monitor and check if the criteria are persisted
+            await page.click('button[type=submit]');
+
+            let spanElement = await page.waitForSelector(
+                `#monitor-title-${monitorName}`
+            );
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            spanElement.should.be.exactly(monitorName);
+
+            await page.click(`#edit_${monitorName}`);
+            await page.click('#advanceOptions');
+            // for up criteria
+            await page.waitForSelector('[data-testId^=single_criterion_up]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_up')).length
+            ).toEqual(2);
+
+            // for degraded criteria
+            await page.click('[data-testId=criteria_tab_degraded]');
+            await page.waitForSelector(
+                '[data-testId^=single_criterion_degraded]'
+            );
+            expect(
+                (await page.$$('[data-testId^=single_criterion_degraded]'))
+                    .length
+            ).toEqual(2);
+            // for down criteria
+            await page.click('[data-testId=criteria_tab_down]');
+            await page.waitForSelector('[data-testId^=single_criterion_down]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_down]')).length
+            ).toEqual(3);
+        });
+    });
 
     test(
         'should display lighthouse scores',
@@ -181,28 +315,46 @@ describe('Monitor API', () => {
     );
 
     test(
-        'Should create new monitor with call schedule',
+        'Should create new monitor with call schedules',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Component details
-                await init.navigateToComponentDetails(componentName, page);
+                // Create Component first
+                // Redirects automatically component to details page
+                await init.addComponent(componentName, page);
 
                 await page.waitForSelector('#form-new-monitor');
-                await page.waitForSelector('#name');
                 await page.click('input[id=name]');
-                await page.type('input[id=name]', callScheduleMonitorName);
-                await init.selectByText('#type', 'url', page);
-                await init.selectByText('#callSchedule', callSchedule, page);
+                await page.type('input[id=name]', monitorName);
+                // await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
+                await page.click('#url');
                 await page.type('#url', 'https://google.com');
+                // select multiple schedules
+                await page.$$eval('[data-testId^=callSchedules_]', schedules =>
+                    schedules.forEach(schedule => schedule.click())
+                );
+
                 await page.click('button[type=submit]');
 
                 let spanElement = await page.waitForSelector(
-                    `#monitor-title-${callScheduleMonitorName}`
+                    `#monitor-title-${monitorName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(callScheduleMonitorName);
+                spanElement.should.be.exactly(monitorName);
+
+                await page.click(`#edit_${monitorName}`);
+
+                const checkboxValues = await page.$$eval(
+                    '[data-testId^=callSchedules_]',
+                    schedules => schedules.map(schedule => schedule.checked)
+                );
+
+                const areAllChecked = checkboxValues.every(
+                    checked => checked === true
+                );
+                expect(areAllChecked).toEqual(true);
             });
         },
         operationTimeOut
@@ -213,15 +365,15 @@ describe('Monitor API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
-                await init.navigateToComponentDetails(componentName, page);
 
-                // await page.waitForSelector('#monitors');
-                // await page.click('#monitors');
+                await init.addComponent(componentName, page);
+
                 await page.waitForSelector('#form-new-monitor');
-                await page.waitForSelector('#name');
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
+                await page.click('#url');
                 await page.type('#url', 'https://google.com');
+
                 await page.click('button[type=submit]');
 
                 let spanElement = await page.waitForSelector(

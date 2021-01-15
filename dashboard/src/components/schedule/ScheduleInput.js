@@ -42,6 +42,11 @@ const ScheduleInput = ({ schedules = [], fields, currentProject = {} }) => {
                                             : index
                                     }`}
                                     defaultChecked={true}
+                                    data-testId={`${fieldName}.${
+                                        schedules[index]
+                                            ? schedules[index]._id.toString()
+                                            : index
+                                    }`}
                                     data-test="RetrySettings-failedPaymentsCheckbox"
                                     className="Checkbox-source"
                                     id={`${fieldName}.${

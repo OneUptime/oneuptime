@@ -28,6 +28,12 @@ const responsestyle = {
 };
 
 export class ResponseComponent extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            showAdvancedOption: false,
+        };
+    }
     handleAddFilterCriteria() {
         const criterionFieldName = `${this.props.criterion.type}_${this.props.criterion.id}`;
 
@@ -38,6 +44,13 @@ export class ResponseComponent extends Component {
             field1: '',
             field2: '',
             field3: false,
+        });
+    }
+
+    toggleAdvancedOption() {
+        this.setState({
+            ...this.state,
+            showAdvancedOption: !this.state.showAdvancedOption,
         });
     }
 
@@ -105,6 +118,7 @@ export class ResponseComponent extends Component {
             <div
                 className="bs-ContentSection Card-root Card-shadow--medium"
                 style={responsestyle}
+                data-testId={`single_criterion_${criterionType}`}
             >
                 <div className="Box-root">
                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -115,6 +129,8 @@ export class ResponseComponent extends Component {
                                     {criterion.default
                                         ? 'Default Criteria'
                                         : head}
+                                    {this.props.criterionName &&
+                                        ` - ${this.props.criterionName}`}
                                 </span>
                             </span>
                             <p>
@@ -125,67 +141,9 @@ export class ResponseComponent extends Component {
                                 </span>
                             </p>
                         </div>
-
-                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                            <div>
-                                <button
-                                    className="Button bs-ButtonLegacy ActionIconParent"
-                                    type="button"
-                                    // onClick={this.addValue}
-                                    onClick={() =>
-                                        this.handleAddCriterion(criterionType)
-                                    }
-                                >
-                                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                        <span>Add Criteria</span>
-                                    </span>
-                                </button>
-                            </div>
-                            {!criterion.default && (
-                                <div className="Margin-left--16">
-                                    <button
-                                        className="bs-Button bs-Button--red Box-background--red"
-                                        type="button"
-                                        // onClick={this.addValue}
-                                        onClick={() =>
-                                            this.handleRemoveCriterion(
-                                                criterionId
-                                            )
-                                        }
-                                    >
-                                        <span>
-                                            <span>Remove This Criteria</span>
-                                        </span>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
                     </div>
 
-                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                        <ShouldRender if={!criterion.default}>
-                            <div
-                                className="bs-Fieldset-row Flex-alignItems--flexCenter"
-                                style={{ gap: '1rem' }}
-                            >
-                                <label
-                                    style={{ flex: '0 0 6rem' }}
-                                    htmlFor={`name_${criterionFieldName}`}
-                                >
-                                    Name
-                                </label>
-                                <div className="bs-Fieldset-fields">
-                                    <Field
-                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                        component={RenderField}
-                                        name={`name_${criterionFieldName}`}
-                                        id={`name_${criterionFieldName}`}
-                                        validate={[ValidateField.required]}
-                                        placeholder="Name for the criterion"
-                                    />
-                                </div>
-                            </div>
-                        </ShouldRender>
+                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--16">
                         <div>
                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                 <fieldset className="bs-Fieldset">
@@ -252,57 +210,7 @@ export class ResponseComponent extends Component {
                                         </div>
                                     </label>
                                 </div>
-                                <ShouldRender
-                                    if={
-                                        this.props
-                                            .incidentCreatedAlertEnabledForCriterion
-                                    }
-                                >
-                                    <div className="Flex-flex Flex-direction--column">
-                                        <div
-                                            className="bs-Fieldset-row Flex-alignItems--flexStart"
-                                            style={{ gap: '1rem' }}
-                                        >
-                                            <label
-                                                style={{ flex: '0 0 6rem' }}
-                                                htmlFor={`incidentTitle_${criterionFieldName}`}
-                                            >
-                                                Incident title
-                                            </label>
-                                            <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    component={RenderField}
-                                                    name={`incidentTitle_${criterionFieldName}`}
-                                                    id={`incidentTitle_${criterionFieldName}`}
-                                                    placeholder="Custom Incident title"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div
-                                            className="bs-Fieldset-row  Flex-alignItems--flexStart"
-                                            style={{ gap: '1rem' }}
-                                        >
-                                            <label
-                                                style={{ flex: '0 0 6rem' }}
-                                                htmlFor={`incidentDescription_${criterionFieldName}`}
-                                            >
-                                                Description
-                                            </label>
-                                            <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    name={`incidentDescription_${criterionFieldName}`}
-                                                    id={`incidentDescription_${criterionFieldName}`}
-                                                    component={RenderCodeEditor}
-                                                    height="100px"
-                                                    width="100%"
-                                                    placeholder="Custom Incident Description"
-                                                    wrapEnabled={true}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </ShouldRender>
+
                                 <ShouldRender
                                     if={criterionType !== CRITERIA_TYPES.UP}
                                 >
@@ -367,6 +275,155 @@ export class ResponseComponent extends Component {
                                                 </span>
                                             </div>
                                         </label>
+                                    </div>
+                                </ShouldRender>
+
+                                <div className="bs-Fieldset-row Flex-flex Flex-justifyContent--flexEnd Margin-right--32 Margin-bottom--16">
+                                    <button
+                                        id="advanceOptions"
+                                        className="button-as-anchor"
+                                        onClick={() =>
+                                            this.toggleAdvancedOption()
+                                        }
+                                    >
+                                        {this.state.showAdvancedOption
+                                            ? 'Hide'
+                                            : 'Show'}{' '}
+                                        Advanced Options
+                                    </button>
+                                </div>
+
+                                <ShouldRender
+                                    if={this.state.showAdvancedOption}
+                                >
+                                    <div>
+                                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Margin-right--32">
+                                            <div>
+                                                <button
+                                                    className="Button bs-ButtonLegacy ActionIconParent"
+                                                    type="button"
+                                                    data-testId={`add_criteria_${criterionType}`}
+                                                    // onClick={this.addValue}
+                                                    onClick={() =>
+                                                        this.handleAddCriterion(
+                                                            criterionType
+                                                        )
+                                                    }
+                                                >
+                                                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                        <span>
+                                                            Add Criteria
+                                                        </span>
+                                                    </span>
+                                                </button>
+                                            </div>
+                                            {!criterion.default && (
+                                                <div className="Margin-left--16">
+                                                    <button
+                                                        className="bs-Button bs-Button--red Box-background--red"
+                                                        type="button"
+                                                        // onClick={this.addValue}
+                                                        onClick={() =>
+                                                            this.handleRemoveCriterion(
+                                                                criterionId
+                                                            )
+                                                        }
+                                                    >
+                                                        <span>
+                                                            <span>
+                                                                Remove This
+                                                                Criteria
+                                                            </span>
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <ShouldRender if={!criterion.default}>
+                                            <div className="Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Margin-right--32 Margin-top--32">
+                                                <label
+                                                    htmlFor={`name_${criterionFieldName}`}
+                                                    style={{
+                                                        flex: '0 0 8rem',
+                                                    }}
+                                                >
+                                                    Criteria Name
+                                                </label>
+                                                <div>
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        component={RenderField}
+                                                        name={`name_${criterionFieldName}`}
+                                                        id={`name_${criterionFieldName}`}
+                                                        validate={[
+                                                            ValidateField.required,
+                                                        ]}
+                                                        placeholder="Name for the criterion"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
+
+                                        <ShouldRender
+                                            if={
+                                                this.props
+                                                    .incidentCreatedAlertEnabledForCriterion
+                                            }
+                                        >
+                                            <div className="Flex-flex Flex-direction--column Flex-alignItems--flexEnd">
+                                                <div
+                                                    className="bs-Fieldset-row Flex-alignItems--flexStart Margin-right--16"
+                                                    style={{ gap: '1rem' }}
+                                                >
+                                                    <label
+                                                        style={{
+                                                            flex: '0 0 6rem',
+                                                            textAlign: 'right',
+                                                        }}
+                                                        htmlFor={`incidentTitle_${criterionFieldName}`}
+                                                    >
+                                                        Incident title
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            component={
+                                                                RenderField
+                                                            }
+                                                            name={`incidentTitle_${criterionFieldName}`}
+                                                            id={`incidentTitle_${criterionFieldName}`}
+                                                            placeholder="Custom Incident title"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    className="bs-Fieldset-row  Flex-alignItems--flexStart Margin-right--24"
+                                                    style={{ gap: '1rem' }}
+                                                >
+                                                    <label
+                                                        style={{
+                                                            flex: '0 0 6em',
+                                                        }}
+                                                        htmlFor={`incidentDescription_${criterionFieldName}`}
+                                                    >
+                                                        Description
+                                                    </label>
+                                                    <div className="Flex-flex">
+                                                        <Field
+                                                            name={`incidentDescription_${criterionFieldName}`}
+                                                            id={`incidentDescription_${criterionFieldName}`}
+                                                            component={
+                                                                RenderCodeEditor
+                                                            }
+                                                            height="100px"
+                                                            width="250px"
+                                                            placeholder="Custom Incident Description"
+                                                            wrapEnabled={true}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
                                     </div>
                                 </ShouldRender>
                             </div>
@@ -435,6 +492,7 @@ ResponseComponent.propTypes = {
         name: PropTypes.string.isRequired,
     }).isRequired,
     arrayPush: PropTypes.func.isRequired,
+    criterionName: PropTypes.string.isRequired,
 };
 
 function mapStateToProps(state, ownProps) {
@@ -447,6 +505,10 @@ function mapStateToProps(state, ownProps) {
         criterionBodyField: newSelector(
             state,
             `${ownProps.criterion.type}_${ownProps.criterion.id}`
+        ),
+        criterionName: newSelector(
+            state,
+            `name_${ownProps.criterion.type}_${ownProps.criterion.id}`
         ),
     };
 }

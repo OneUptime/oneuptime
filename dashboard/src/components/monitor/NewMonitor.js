@@ -972,9 +972,7 @@ class NewMonitor extends Component {
                                                                                     key={
                                                                                         el.value
                                                                                     }
-                                                                                    htmlFor={
-                                                                                        el.value
-                                                                                    }
+                                                                                    htmlFor={`type_${el.value}`}
                                                                                     style={{
                                                                                         cursor:
                                                                                             'pointer',
@@ -1000,9 +998,8 @@ class NewMonitor extends Component {
                                                                                                 }
                                                                                                 component="input"
                                                                                                 type="radio"
-                                                                                                id={
-                                                                                                    el.value
-                                                                                                }
+                                                                                                data-testId={`type_${el.value}`}
+                                                                                                id={`type_${el.value}`}
                                                                                                 name={`type_${this.props.index}`}
                                                                                                 className="Margin-left--4 Margin-top--4"
                                                                                                 validate={
@@ -1925,7 +1922,7 @@ class NewMonitor extends Component {
                                                                         ScheduleInput
                                                                     }
                                                                     name={`callSchedules_${this.props.index}`}
-                                                                    id="callSchedule"
+                                                                    id={`callSchedules_${this.props.index}`}
                                                                     placeholder="Call Duty"
                                                                     disabled={
                                                                         requesting
@@ -2295,176 +2292,103 @@ class NewMonitor extends Component {
                                                         />
                                                     </ShouldRender>
 
-                                                    <Tabs
-                                                        selectedTabClassName={
-                                                            'custom-tab-selected'
-                                                        }
-                                                        onSelect={tabIndex =>
-                                                            this.criteriaTabSelected(
-                                                                tabIndex
-                                                            )
-                                                        }
-                                                        selectedIndex={
-                                                            this.state
-                                                                .criteriaTabIndex
-                                                        }
-                                                    >
-                                                        <div className="Flex-flex Flex-direction--columnReverse">
-                                                            <TabList
-                                                                id="customTabList"
-                                                                className={
-                                                                    'custom-tab-list'
+                                                    {Object.values(
+                                                        CRITERIA_TYPES
+                                                    ).map(criterionType => {
+                                                        const criteria = [
+                                                            ...this.state.criteria.filter(
+                                                                criterion =>
+                                                                    criterion.type ===
+                                                                    criterionType.type
+                                                            ),
+                                                        ];
+                                                        return (
+                                                            <div
+                                                                key={
+                                                                    criterionType.type
                                                                 }
                                                             >
-                                                                {Object.keys(
-                                                                    CRITERIA_TYPES
-                                                                ).map(
-                                                                    category => {
-                                                                        return (
-                                                                            <Tab
-                                                                                key={
-                                                                                    category
-                                                                                }
-                                                                                className={
-                                                                                    'custom-tab custom-tab-3 uppercase Text-typeface--capitalize'
-                                                                                }
-                                                                            >
-                                                                                <span>
-                                                                                    {
-                                                                                        category
-                                                                                    }
-                                                                                </span>
-                                                                            </Tab>
-                                                                        );
-                                                                    }
-                                                                )}
-
-                                                                <div
-                                                                    ref={
-                                                                        this
-                                                                            .tabIndexRef
-                                                                    }
-                                                                    style={{
-                                                                        transform: `translate(${this
-                                                                            .state
-                                                                            .criteriaTabIndex *
-                                                                            (this
-                                                                                .tabIndexRef
-                                                                                .current
-                                                                                ? this
-                                                                                      .tabIndexRef
-                                                                                      .current
-                                                                                      .offsetWidth
-                                                                                : 0)}px)`,
-                                                                    }}
-                                                                    id="tab-slider"
-                                                                    className="custom-tab-3"
-                                                                ></div>
-                                                            </TabList>
-                                                        </div>
-
-                                                        {Object.values(
-                                                            CRITERIA_TYPES
-                                                        ).map(criterionType => {
-                                                            const criteria = [
-                                                                ...this.state.criteria.filter(
-                                                                    criterion =>
-                                                                        criterion.type ===
-                                                                        criterionType.type
-                                                                ),
-                                                            ];
-                                                            return (
-                                                                <TabPanel
-                                                                    key={
-                                                                        criterionType.type
-                                                                    }
-                                                                >
-                                                                    <Fade>
-                                                                        <div>
-                                                                            {[
-                                                                                criteria.map(
-                                                                                    (
-                                                                                        criterion,
+                                                                {[
+                                                                    criteria.map(
+                                                                        (
+                                                                            criterion,
+                                                                            index
+                                                                        ) => {
+                                                                            return (
+                                                                                <ResponseComponent
+                                                                                    key={
                                                                                         index
-                                                                                    ) => {
-                                                                                        return (
-                                                                                            <ResponseComponent
-                                                                                                key={
-                                                                                                    index
-                                                                                                }
-                                                                                                type={
-                                                                                                    this
-                                                                                                        .state
-                                                                                                        .type
-                                                                                                }
-                                                                                                addCriterion={data =>
-                                                                                                    this.addCriterion(
-                                                                                                        data
-                                                                                                    )
-                                                                                                }
-                                                                                                removeCriterion={id =>
-                                                                                                    this.removeCriterion(
-                                                                                                        id
-                                                                                                    )
-                                                                                                }
-                                                                                                criterion={
-                                                                                                    criterion
-                                                                                                }
-                                                                                                schedules={
-                                                                                                    this
-                                                                                                        .props
-                                                                                                        .schedules
-                                                                                                }
-                                                                                            />
-                                                                                        );
                                                                                     }
-                                                                                ),
-                                                                            ]}
+                                                                                    type={
+                                                                                        this
+                                                                                            .state
+                                                                                            .type
+                                                                                    }
+                                                                                    addCriterion={data =>
+                                                                                        this.addCriterion(
+                                                                                            data
+                                                                                        )
+                                                                                    }
+                                                                                    removeCriterion={id =>
+                                                                                        this.removeCriterion(
+                                                                                            id
+                                                                                        )
+                                                                                    }
+                                                                                    criterion={
+                                                                                        criterion
+                                                                                    }
+                                                                                    schedules={
+                                                                                        this
+                                                                                            .props
+                                                                                            .schedules
+                                                                                    }
+                                                                                />
+                                                                            );
+                                                                        }
+                                                                    ),
+                                                                ]}
 
-                                                                            {criteria.length ===
-                                                                                0 && (
-                                                                                <div className="Flex-flex Flex-direction--column Margin-all--32 Flex-alignItems--center">
-                                                                                    <div className="Margin-bottom--16">
-                                                                                        <span>
-                                                                                            There
-                                                                                            are
-                                                                                            no
-                                                                                            criteria
-                                                                                            specified
-                                                                                            for
-                                                                                            this
-                                                                                            monitor
-                                                                                            event
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <button
-                                                                                        className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
-                                                                                        type="button"
-                                                                                        // onClick={this.addValue}
-                                                                                        onClick={() =>
-                                                                                            this.addCriterion(
-                                                                                                {
-                                                                                                    type:
-                                                                                                        criterionType.type,
-                                                                                                    id: uuid.v4(),
-                                                                                                }
-                                                                                            )
-                                                                                        }
-                                                                                    >
-                                                                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                                                            <span>
-                                                                                                {`Add ${criterionType.type.toUpperCase()} Criteria`}
-                                                                                            </span>
-                                                                                        </span>
-                                                                                    </button>
-                                                                                </div>
-                                                                            )}
+                                                                {criteria.length ===
+                                                                    0 && (
+                                                                    <div className="Flex-flex Flex-direction--column Margin-all--32 Flex-alignItems--center">
+                                                                        <div className="Margin-bottom--16">
+                                                                            <span>
+                                                                                There
+                                                                                are
+                                                                                no
+                                                                                criteria
+                                                                                specified
+                                                                                for
+                                                                                this
+                                                                                monitor
+                                                                                event
+                                                                            </span>
                                                                         </div>
-                                                                    </Fade>
-                                                                </TabPanel>
-                                                            );
-                                                        })}
-                                                    </Tabs>
+                                                                        <button
+                                                                            className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
+                                                                            type="button"
+                                                                            // onClick={this.addValue}
+                                                                            onClick={() =>
+                                                                                this.addCriterion(
+                                                                                    {
+                                                                                        type:
+                                                                                            criterionType.type,
+                                                                                        id: uuid.v4(),
+                                                                                    }
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                <span>
+                                                                                    {`Add ${criterionType.type.toUpperCase()} Criteria`}
+                                                                                </span>
+                                                                            </span>
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </ShouldRender>
                                             </div>
                                         </fieldset>
@@ -2514,21 +2438,7 @@ class NewMonitor extends Component {
                                     <button
                                         id="addMonitorButton"
                                         className="bs-Button bs-Button--blue"
-                                        disabled={
-                                            requesting ||
-                                            !this.props.isValid ||
-                                            (this.state.criteriaTabIndex === 0
-                                                ? !this.state.tabValidity
-                                                      .degraded ||
-                                                  !this.state.tabValidity.down
-                                                : this.state
-                                                      .criteriaTabIndex === 1
-                                                ? !this.state.tabValidity.up ||
-                                                  !this.state.tabValidity.down
-                                                : !this.state.tabValidity.up ||
-                                                  !this.state.tabValidity
-                                                      .degraded)
-                                        }
+                                        disabled={requesting}
                                         type="submit"
                                     >
                                         <PricingPlan

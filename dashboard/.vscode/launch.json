@@ -14,9 +14,11 @@
             "request": "launch",
             "runtimeArgs": [
                 "--inspect-brk",
-                "${workspaceRoot}/node_modules/.bin/jest",
+                "${workspaceRoot}/node_modules/jest/bin/jest.js",
                 "--runInBand",
-                "./src/test/puppeteer/MonitorDetail.test.js" ///change this to any other file you like to debug.
+                "./src/test/puppeteer/Monitor.test.js", ///change this to any other file you like to debug.
+                "-t",
+                "Should not create new monitor when details are incorrect"
             ],
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
