@@ -107,11 +107,18 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                     '#admin-dashboard-version',
                     elem => elem.textContent
                 );
+
+                const probeVersion = await page.$eval(
+                    '#probe-version',
+                    elem => elem.textContent
+                );
+
                 expect(serverVersion).toBeDefined();
                 expect(docsVersion).toBeDefined();
                 expect(helmVersion).toBeDefined();
                 expect(dashboardVersion).toBeDefined();
                 expect(adminDashboardVersion).toBeDefined();
+                expect(probeVersion).toBeDefined();
             });
         },
         operationTimeOut
