@@ -679,6 +679,14 @@ const _this = {
                     const error = new Error(
                         'Alerts limit reached for the day.'
                     );
+                    await SmsCountService.create(
+                        userId,
+                        to,
+                        projectId,
+                        options.body,
+                        'Error',
+                        error.message
+                    );
                     error.code = 400;
                     throw error;
                 }
@@ -690,7 +698,8 @@ const _this = {
                 to,
                 projectId,
                 options.body,
-                'Error'
+                'Error',
+                error.message
             );
             throw error;
         }
