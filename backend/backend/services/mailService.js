@@ -1333,7 +1333,8 @@ const _this = {
         trackEmailAsViewedUrl,
         componentName,
         statusPageUrl,
-        replyAddress
+        replyAddress,
+        customFields
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -1354,6 +1355,7 @@ const _this = {
                 componentName,
                 statusPageUrl,
                 year: DateTime.getCurrentYear,
+                ...customFields,
             };
             template = template(data);
             subject = subject(data);
@@ -1627,7 +1629,8 @@ const _this = {
         trackEmailAsViewedUrl,
         componentName,
         statusPageUrl,
-        replyAddress
+        replyAddress,
+        customFields
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -1648,6 +1651,7 @@ const _this = {
                 componentName,
                 statusPageUrl,
                 year: DateTime.getCurrentYear,
+                ...customFields,
             };
             template = template(data);
             subject = subject(data);
@@ -1744,7 +1748,8 @@ const _this = {
         componentName,
         incidentNote,
         statusPageUrl,
-        statusNoteStatus
+        statusNoteStatus,
+        customFields
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -1765,6 +1770,7 @@ const _this = {
                 incidentNote,
                 statusPageUrl,
                 statusNoteStatus,
+                ...customFields,
             };
             template = template(data);
             subject = subject(data);
@@ -1833,7 +1839,8 @@ const _this = {
         trackEmailAsViewedUrl,
         componentName,
         statusPageUrl,
-        replyAddress
+        replyAddress,
+        customFields
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -1854,6 +1861,7 @@ const _this = {
                 componentName,
                 statusPageUrl,
                 year: DateTime.getCurrentYear,
+                ...customFields,
             };
             template = template(data);
             subject = subject(data);
