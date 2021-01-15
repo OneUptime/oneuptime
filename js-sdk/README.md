@@ -130,8 +130,8 @@ tracker.setTags([
     { key: 'location', value: 'online' },
 ]); // an array of tags
 
-// capturing error exception authomatically
-NonExistingMethodCall(); // this is authomatically captured and sent to your fyipe dashboard
+// capturing error exception automatically
+NonExistingMethodCall(); // this is automatically captured and sent to your fyipe dashboard
 
 // capturing error exception manually
 try {
