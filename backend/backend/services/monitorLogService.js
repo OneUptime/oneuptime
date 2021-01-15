@@ -1,5 +1,6 @@
 module.exports = {
     create: async function(data) {
+        console.log(data);
         try {
             const Log = new MonitorLogModel();
 
@@ -8,6 +9,7 @@ module.exports = {
             Log.status = data.status;
             Log.responseTime = data.responseTime;
             Log.responseStatus = data.responseStatus;
+            Log.responseBody = data.resp.body;
             Log.cpuLoad = data.cpuLoad;
             Log.avgCpuLoad = data.avgCpuLoad;
             Log.cpuCores = data.cpuCores;
