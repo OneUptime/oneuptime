@@ -236,7 +236,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
         data.projectId = projectId;
-        data.thirdPartyVariable = [data.name];
         const monitor = await MonitorService.create(data);
         if (data.callScheduleIds && data.callScheduleIds.length) {
             await ScheduleService.addMonitorToSchedules(
@@ -471,12 +470,14 @@ router.post(
                 endDate,
                 probeValue,
                 incidentId,
+                type,
             } = req.body;
             const monitorId = req.params.monitorId;
             const query = {};
             if (monitorId && !incidentId) query.monitorId = monitorId;
             if (incidentId) query.incidentIds = incidentId;
             if (probeValue) query.probeId = probeValue;
+            if (type === 'incomingHttpRequest') query.probeId = null;
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 

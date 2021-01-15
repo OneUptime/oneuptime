@@ -17,7 +17,7 @@
     "author": "HackerBay, Inc.",
     "license": "ISC",
     "dependencies": {
-        "axios": "^0.18.1",
+        "axios": "^0.21.1",
         "commander": "^2.20.0",
         "cron": "^1.7.2",
         "dotenv": "^8.1.0",

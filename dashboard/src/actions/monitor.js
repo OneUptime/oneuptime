@@ -783,7 +783,8 @@ export function getMonitorLogs(
     startDate,
     endDate,
     probeValue,
-    incidentId
+    incidentId,
+    type
 ) {
     return function(dispatch) {
         const promise = postApi(
@@ -795,6 +796,7 @@ export function getMonitorLogs(
                 endDate,
                 probeValue,
                 incidentId: incidentId ? incidentId : null,
+                type,
             }
         );
         dispatch(getMonitorLogsRequest({ monitorId }));

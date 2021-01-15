@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes, { string } from 'prop-types';
+import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
 
@@ -15,17 +16,20 @@ class AlertBilling extends Component {
     }
 
     handleKeyBoard = e => {
-        const { closeModal, messageBoxId } = this.props;
         switch (e.key) {
             case 'Escape':
-                return closeModal({
-                    id: messageBoxId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return this.props.confirmThisDialog();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.messageBoxId,
+        });
     };
 
     render() {
@@ -42,62 +46,64 @@ class AlertBilling extends Component {
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
-                <div className="bs-BIM">
-                    <div className="bs-Modal bs-Modal--medium">
-                        <div className="bs-Modal-header">
-                            <div className="bs-Modal-header-copy">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>{title}</span>
+                <ClickOutside onClickOutside={this.handleCloseModal}>
+                    <div className="bs-BIM">
+                        <div className="bs-Modal bs-Modal--medium">
+                            <div className="bs-Modal-header">
+                                <div className="bs-Modal-header-copy">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>{title}</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="bs-Modal-content">
+                                <span
+                                    id="message-modal-message"
+                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                >
+                                    {message}
                                 </span>
                             </div>
-                        </div>
-                        <div className="bs-Modal-content">
-                            <span
-                                id="message-modal-message"
-                                className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                            >
-                                {message}
-                            </span>
-                        </div>
-                        <div className="bs-Modal-footer">
-                            <div className="bs-Modal-footer-actions">
-                                <button
-                                    className="bs-Button bs-DeprecatedButton btn__modal"
-                                    type="button"
-                                    onClick={() => {
-                                        this.props.closeModal({
-                                            id: messageBoxId,
-                                        });
-                                        return false;
-                                    }}
-                                >
-                                    <span>Cancel</span>
-                                    <span className="cancel-btn__keycode">
-                                        Esc
-                                    </span>
-                                </button>
-                                <button
-                                    className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                    type="button"
-                                    id="modal-ok"
-                                    onClick={confirmThisDialog}
-                                    disabled={isRequesting}
-                                    autoFocus={true}
-                                >
-                                    {!isRequesting && (
-                                        <>
-                                            <span>OK</span>
-                                            <span className="create-btn__keycode">
-                                                <span className="keycode__icon keycode__icon--enter" />
-                                            </span>
-                                        </>
-                                    )}
-                                    {isRequesting && <FormLoader />}
-                                </button>
+                            <div className="bs-Modal-footer">
+                                <div className="bs-Modal-footer-actions">
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
+                                        type="button"
+                                        onClick={() => {
+                                            this.props.closeModal({
+                                                id: messageBoxId,
+                                            });
+                                            return false;
+                                        }}
+                                    >
+                                        <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
+                                    </button>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                        type="button"
+                                        id="modal-ok"
+                                        onClick={confirmThisDialog}
+                                        disabled={isRequesting}
+                                        autoFocus={true}
+                                    >
+                                        {!isRequesting && (
+                                            <>
+                                                <span>OK</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </>
+                                        )}
+                                        {isRequesting && <FormLoader />}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </ClickOutside>
             </div>
         );
     }

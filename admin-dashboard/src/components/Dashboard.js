@@ -18,6 +18,7 @@ import { fetchLicense } from '../actions/license';
 import { IS_SAAS_SERVICE, IS_THIRD_PARTY_BILLING } from '../config';
 import { fetchSettings } from '../actions/settings';
 import AlertPanel from './basic/AlertPanel';
+import { closeModal } from '../actions/modal';
 
 export class DashboardApp extends Component {
     componentDidMount() {
@@ -82,6 +83,11 @@ export class DashboardApp extends Component {
                 return false;
         }
     };
+
+    closeModal = () =>
+        this.props.closeModal({
+            id: this.props.currentModal ? this.props.currentModal.id : '',
+        });
 
     render() {
         const { user, children, license, settings, twilio, smtp } = this.props;
@@ -254,6 +260,8 @@ DashboardApp.propTypes = {
     settings: PropTypes.object.isRequired,
     twilio: PropTypes.object.isRequired,
     smtp: PropTypes.object.isRequired,
+    currentModal: PropTypes.object,
+    closeModal: PropTypes.func,
 };
 
 const mapStateToProps = state => ({
@@ -264,6 +272,10 @@ const mapStateToProps = state => ({
     settings: state.settings,
     twilio: state.settings.twilio,
     smtp: state.settings.smtp,
+    currentModal:
+        state.modal.modals && state.modal.modals.length > 0
+            ? state.modal.modals[state.modal.modals.length - 1]
+            : '',
 });
 
 const mapDispatchToProps = dispatch =>
@@ -274,6 +286,7 @@ const mapDispatchToProps = dispatch =>
             fetchUsers,
             fetchLicense,
             fetchSettings,
+            closeModal,
         },
         dispatch
     );

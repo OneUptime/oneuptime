@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import ErrorEventHeader from './ErrorEventHeader';
-import ErrorEventDevice from './ErrorEventDevice';
 import ErrorEventMiniTag from './ErrorEventMiniTag';
 import ErrorEventStackTrace from './ErrorEventStackTrace';
 import ErrorEventTimeline from './ErrorEventTimeline';
@@ -63,7 +62,6 @@ class ErrorEventDetail extends Component {
                                             this.resolveErrorEvent
                                         }
                                     />
-                                    <ErrorEventDevice errorEvent={errorEvent} />
                                     <ErrorEventMiniTag
                                         errorEvent={errorEvent}
                                     />

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { Field, reduxForm } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 import { Validate } from '../../config';
@@ -35,14 +36,18 @@ class EditComponent extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({
-                    id: this.props.editComponentModalId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return document.getElementById('editComponentButton').click();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.editComponentModalId,
+        });
     };
 
     submitForm = values => {
@@ -141,9 +146,13 @@ class EditComponent extends Component {
                     >
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--medium">
-                                {this.renderFormHeader()}
-                                {this.renderFormBody()}
-                                {this.renderFormFooter()}
+                                <ClickOutside
+                                    onClickOutside={this.handleCloseModal}
+                                >
+                                    {this.renderFormHeader()}
+                                    {this.renderFormBody()}
+                                    {this.renderFormFooter()}
+                                </ClickOutside>
                             </div>
                         </div>
                     </div>

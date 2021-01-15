@@ -88,7 +88,6 @@ module.exports = {
                     monitor.incidentCommunicationSla =
                         data.incidentCommunicationSla;
                     monitor.createdById = data.createdById;
-                    monitor.thirdPartyVariable = data.thirdPartyVariable;
                     if (data.type === 'url' || data.type === 'api') {
                         monitor.data = {};
                         monitor.data.url = data.data.url;
@@ -175,20 +174,6 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             await this.updateMonitorSlaStat(query);
-
-            if (data.name) {
-                const monitor = await this.findOneBy(query);
-
-                if (data.name !== monitor.name) {
-                    const initialThirdPartyVariables = monitor.thirdPartyVariable
-                        ? monitor.thirdPartyVariable
-                        : [];
-                    data.thirdPartyVariable = [
-                        ...initialThirdPartyVariables,
-                        data.name,
-                    ];
-                }
-            }
 
             if (data) {
                 await MonitorModel.findOneAndUpdate(

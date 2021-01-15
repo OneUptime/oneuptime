@@ -6,13 +6,22 @@ const ipaddr = require('ipaddr.js');
 const _this = {
     ipWhitelist: async function(req, res, next) {
         const statusPageId = apiMiddleware.getStatusPageId(req);
-        const statusPage = await StatusPageService.findOneBy({
-            _id: statusPageId,
-        });
+        const statusPageUrl = apiMiddleware.getStatusPageUrl(req);
+        let statusPage;
+
+        if (statusPageId && statusPageId.length && statusPageId !== 'null') {
+            statusPage = await StatusPageService.findOneBy({
+                _id: statusPageId,
+            });
+        } else {
+            statusPage = await StatusPageService.findOneBy({
+                domains: { $elemMatch: { domain: statusPageUrl } },
+            });
+        }
+
         if (!statusPage.enableIpWhitelist) {
             return next();
         }
-
         const ipWhitelist = statusPage.ipWhitelist
             ? [...statusPage.ipWhitelist]
             : [];

@@ -101,7 +101,10 @@ class MonitorView extends React.Component {
                 moment()
                     .subtract(1, 'd')
                     .utc(),
-                moment().utc()
+                moment().utc(),
+                null,
+                null,
+                monitor.type
             ); //0 -> skip, 5-> limit.
 
             this.props.fetchMonitorSlas(subProjectId);
@@ -141,7 +144,10 @@ class MonitorView extends React.Component {
             moment()
                 .subtract(1, 'd')
                 .utc(),
-            moment().utc()
+            moment().utc(),
+            null,
+            null,
+            monitor.type
         ); //0 -> skip, 5-> limit.
 
         this.props.fetchMonitorSlas(subProjectId);
@@ -664,6 +670,11 @@ class MonitorView extends React.Component {
                                                                                 }
                                                                             />
                                                                         </div>
+                                                                    </Fade>
+                                                                </TabPanel>
+
+                                                                <TabPanel>
+                                                                    <Fade>
                                                                         <div>
                                                                             <ThirdPartyVariables
                                                                                 monitor={
@@ -678,11 +689,6 @@ class MonitorView extends React.Component {
                                                                                 }
                                                                             />
                                                                         </div>
-                                                                    </Fade>
-                                                                </TabPanel>
-
-                                                                <TabPanel>
-                                                                    <Fade>
                                                                         <RenderIfSubProjectAdmin
                                                                             subProjectId={
                                                                                 subProjectId
@@ -792,7 +798,6 @@ const mapStateToProps = (state, props) => {
             monitor.monitors.find(monitor => monitor._id === monitorId)
         )
         .filter(monitor => monitor)[0];
-    const editMode = monitor && monitor.editMode ? true : false;
     const initialValues = {};
     let currentMonitorCriteria = [];
     if (monitor) {
@@ -941,7 +946,7 @@ const mapStateToProps = (state, props) => {
         monitorId,
         componentId,
         monitor,
-        edit: state.monitor.monitorsList.editMode && editMode ? true : false,
+        edit: state.monitor.monitorsList.editMode ? true : false,
         initialValues,
         currentMonitorCriteria,
         match: props.match,

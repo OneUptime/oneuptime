@@ -970,14 +970,14 @@ module.exports = {
             throw error;
         }
     },
-    sendErrorEventCreated: async errorEvent => {
+    sendErrorEventCreated: async data => {
         try {
             if (!global || !global.io) {
                 return;
             }
-            const errorTrackerId = errorEvent.errorTrackerId._id;
+            const errorTrackerId = data.errorEvent.errorTrackerId._id;
 
-            global.io.emit(`createErrorEvent-${errorTrackerId}`, errorEvent);
+            global.io.emit(`createErrorEvent-${errorTrackerId}`, data);
         } catch (error) {
             ErrorService.log('realTimeService.sendErrorEventCreated', error);
             throw error;

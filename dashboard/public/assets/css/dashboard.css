@@ -35069,8 +35069,116 @@ span.CodeMirror-selectedtext {
   font-weight: 400;
 }
 
+/* Investigation notes */
+.bs-thread-container {
+  position: relative;
+  padding: 20px;
+  /* z-index: -2; */
+}
+
+.bs-thread-card {
+  width: 100%;
+  height: auto;
+  min-height: 100px;
+  box-shadow: 0 0 0 1px rgba(69,79,91,0.05), 0 1px 3px 0 rgba(69,79,91,0.15);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bs-thread-line-up, .bs-thread-line-down {
+  width: 3px;
+  left: 40px;
+  position: relative;
+  height: 8px;
+  background: #dfe3e8;
+}
+
+.bs-thread-display {
+  display: flex;
+  width: 100%;
+}
+
+.bs-ma-10 {
+  margin-left: 10px;
+}
+
+.bs-thread-content {
+  width: 65%;
+}
+
+.bs-action-side > div {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bs-incident-notes {
+  width: 18px;
+  height: 18px;
+  border-radius: 50px;
+  margin-left: 32px;
+}
+
+.bs-note-display-flex {
+  display: flex;
+  align-items: center;
+}
+
+.bs-incident-notes-content {
+  /* margin-left: 10px; */
+  display: flex;
+  /* width: 100%; */
+  justify-content: space-between;
+  padding-right: 20px;
+  align-items: center;
+  position: absolute;
+  margin-left: 70px;
+  width: calc(100% - 92px);
+}
+
+.bs-note-offline {
+  background-color: rgb(255, 0, 0);
+  border: 1px solid rgb(255, 0, 0);
+}
+
+.bs-note-acknowleged {
+  background-color: #e39f48;
+  border: 1px solid #e39f48;
+}
+
+.bs-note-resolved {
+  background-color: #24b47e;
+  border: 1px solid #24b47e;
+}
+
+.bs-note-updated {
+  background-color: #b76ac4;
+}
+
+.bs-ex-up, .bs-ex-down {
+  height: 16px;
+}
+
+.bs-note-offline-o {
+  background-color: rgb(0,0,0);
+}
+
+.custom-tab, #tab-slider {
+  width: 20% !important
+}
+
 @media (max-width: 768px) {
-  .bs-Fieldset.bs-container, .bs-content-1 {
+  .bs-thread-container {
+    margin-top: 20px
+  }
+  .bs-ex-up, .bs-ex-down {
+    height: 60px;
+  }
+  .bs-incident-notes-content, .bs-mob-block {
+    display: block;
+  }
+  .bs-Fieldset.bs-container, .bs-content-1, .bs-thread-content {
     width: 100%;
   }
   .Fieldset-extra {
@@ -35106,6 +35214,9 @@ span.CodeMirror-selectedtext {
     float: none!important;
     padding-right: 37px!important;
   }
+  .bs-thread-display {
+    display: block;
+  }
 }
 .email-smt-row{
   justify-content: center;
@@ -35118,4 +35229,20 @@ span.CodeMirror-selectedtext {
 .radioButtonClass{
   display: flex;
   flex-direction: row;
+}
+
+@media (max-width: 930px) {
+  .bs-incident-notes-content {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  .bs-note-7 {
+    margin-top: -7px
+  }
+  
+.bs-action-side {
+  width: 35%;
+}
 }

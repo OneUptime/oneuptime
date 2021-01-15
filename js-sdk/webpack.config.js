@@ -6,8 +6,8 @@ const serverBuild = {
     target: 'node',
     output: {
         path: path.resolve('dist'),
-        filename: 'logger.js',
-        library: 'FyipeLogger',
+        filename: 'fyipe.js',
+        library: 'Fyipe',
         libraryExport: 'default',
         libraryTarget: 'umd',
         globalObject: 'this',
@@ -33,6 +33,6 @@ const serverBuild = {
 const webBuild = {
     ...serverBuild,
     target: 'web',
-    output: { ...serverBuild.output, filename: 'logger.min.js' },
+    output: { ...serverBuild.output, filename: 'fyipe.min.js' },
 };
 module.exports = [serverBuild, webBuild];
