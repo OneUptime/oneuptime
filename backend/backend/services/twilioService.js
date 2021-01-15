@@ -605,7 +605,7 @@ const _this = {
         projectId,
         validationResult
     ) {
-        let options;
+        let smsBody;
         try {
             const customTwilioSettings = await _this.findByOne({
                 projectId,
@@ -621,6 +621,7 @@ const _this = {
                       .substr(2, 6);
             if (customTwilioSettings) {
                 const template = `Your verification code: ${alertPhoneVerificationCode}`;
+                smsBody = template;
                 const options = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
@@ -661,7 +662,8 @@ const _this = {
                         throw error;
                     }
                     const template = `Your verification code: ${alertPhoneVerificationCode}`;
-                    options = {
+                    smsBody = template;
+                    const options = {
                         body: template,
                         from: creds.phone,
                         to,
@@ -691,7 +693,7 @@ const _this = {
                         userId,
                         to,
                         projectId,
-                        options.body,
+                        smsBody,
                         'Error',
                         error.message
                     );
@@ -705,7 +707,7 @@ const _this = {
                 userId,
                 to,
                 projectId,
-                options.body,
+                smsBody,
                 'Error',
                 error.message
             );
