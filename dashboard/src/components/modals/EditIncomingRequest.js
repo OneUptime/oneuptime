@@ -85,13 +85,6 @@ class EditIncomingRequest extends Component {
         if (values.nextAction && values.nextAction === 'createIncident') {
             postObj.isDefault = values.isDefault;
             postObj.createIncident = true;
-            // postObj.filterCriteria = values.filterCriteria;
-            // postObj.filterCondition = values.filterCondition;
-            // if (isNaN(values.filterText)) {
-            //     postObj.filterText = values.filterText;
-            // } else {
-            //     postObj.filterText = parseFloat(values.filterText);
-            // }
             postObj.incidentTitle = values.incidentTitle;
             postObj.incidentType = values.incidentType;
             if (values.dynamicIncidentType) {
@@ -153,14 +146,6 @@ class EditIncomingRequest extends Component {
             (values.nextAction === 'updateIncidentNote' ||
                 values.nextAction === 'updateInternalNote')
         ) {
-            // postObj.filterCriteria = values.filterCriteria;
-            // postObj.filterCondition = values.filterCondition;
-            // if (isNaN(values.filterText)) {
-            //     postObj.filterText = values.filterText;
-            // } else {
-            //     postObj.filterText = parseFloat(values.filterText);
-            // }
-
             postObj.noteContent = values.noteContent;
             postObj.incidentState = values.incidentState;
             if (values.incidentState === 'others') {
@@ -174,24 +159,6 @@ class EditIncomingRequest extends Component {
 
         if (values.nextAction && values.nextAction === 'resolveIncident') {
             postObj.resolveIncident = true;
-        }
-
-        if (
-            values.nextAction &&
-            (values.nextAction === 'acknowledgeIncident' ||
-                values.nextAction === 'resolveIncident')
-        ) {
-            // postObj.filterCriteria = values.filterCriteria;
-            // postObj.filterCondition = values.filterCondition;
-            // if (isNaN(values.filterText)) {
-            //     postObj.filterText = values.filterText;
-            // } else {
-            //     if (typeof values.filterText === 'string') {
-            //         postObj.filterText = values.filterText;
-            //     } else {
-            //         postObj.filterText = Number(values.filterText);
-            //     }
-            // }
         }
 
         editIncomingRequest(projectId, requestId, postObj).then(() => {
@@ -460,8 +427,9 @@ class EditIncomingRequest extends Component {
                                         width: '100%',
                                     }}
                                 >
-                                    {formValues.nextAction ===
-                                    'createIncident' ? (
+                                    {formValues &&
+                                    formValues.nextAction ===
+                                        'createIncident' ? (
                                         <Field
                                             className="db-select-nw Table-cell--width--maximized"
                                             component={RenderSelect}
@@ -504,47 +472,79 @@ class EditIncomingRequest extends Component {
                                             ]}
                                         />
                                     )}
-                                    <Field
-                                        className="db-select-nw Table-cell--width--maximized"
-                                        component={RenderSelect}
-                                        name={`${field}.filterCondition`}
-                                        id={`${field}.filterCondition`}
-                                        placeholder="Condition"
-                                        style={{
-                                            height: '28px',
-                                            width: '100%',
-                                            marginLeft: 5,
-                                        }}
-                                        options={[
-                                            {
-                                                value: 'equalTo',
-                                                label: 'Equal To',
-                                            },
-                                            {
-                                                value: 'notEqualTo',
-                                                label: 'Not Equal To',
-                                            },
-                                            {
-                                                value: 'greaterThan',
-                                                label: 'Greater Than',
-                                            },
-                                            {
-                                                value: 'lessThan',
-                                                label: 'Less Than',
-                                            },
-                                            {
-                                                value: 'lessThanOrEqualTo',
-                                                label: 'Less Than Or Equal To',
-                                            },
-                                            {
-                                                value: 'greaterThanOrEqualTo',
-                                                label:
-                                                    'Greater Than Or Equal To',
-                                            },
-                                        ]}
-                                    />
-                                    {formValues.nextAction ===
-                                    'createIncident' ? (
+
+                                    {formValues &&
+                                    formValues.nextAction ===
+                                        'createIncident' ? (
+                                        <Field
+                                            className="db-select-nw Table-cell--width--maximized"
+                                            component={RenderSelect}
+                                            name={`${field}.filterCondition`}
+                                            id={`${field}.filterCondition`}
+                                            placeholder="Condition"
+                                            style={{
+                                                height: '28px',
+                                                width: '100%',
+                                                marginLeft: 5,
+                                            }}
+                                            options={[
+                                                {
+                                                    value: 'equalTo',
+                                                    label: 'Equal To',
+                                                },
+                                                {
+                                                    value: 'notEqualTo',
+                                                    label: 'Not Equal To',
+                                                },
+                                                {
+                                                    value: 'greaterThan',
+                                                    label: 'Greater Than',
+                                                },
+                                                {
+                                                    value: 'lessThan',
+                                                    label: 'Less Than',
+                                                },
+                                                {
+                                                    value: 'lessThanOrEqualTo',
+                                                    label:
+                                                        'Less Than Or Equal To',
+                                                },
+                                                {
+                                                    value:
+                                                        'greaterThanOrEqualTo',
+                                                    label:
+                                                        'Greater Than Or Equal To',
+                                                },
+                                            ]}
+                                        />
+                                    ) : (
+                                        <Field
+                                            className="db-select-nw Table-cell--width--maximized"
+                                            component={RenderSelect}
+                                            name={`${field}.filterCondition`}
+                                            id={`${field}.filterCondition`}
+                                            placeholder="Condition"
+                                            style={{
+                                                height: '28px',
+                                                width: '100%',
+                                                marginLeft: 5,
+                                            }}
+                                            options={[
+                                                {
+                                                    value: 'equalTo',
+                                                    label: 'Equal To',
+                                                },
+                                                {
+                                                    value: 'notEqualTo',
+                                                    label: 'Not Equal To',
+                                                },
+                                            ]}
+                                        />
+                                    )}
+
+                                    {formValues &&
+                                    formValues.nextAction ===
+                                        'createIncident' ? (
                                         <Field
                                             component={RenderField}
                                             name={`${field}.filterText`}
@@ -2739,11 +2739,6 @@ const mapStateToProps = state => {
             initialValues.nextAction = 'resolveIncident';
         }
         initialValues._id = incomingRequestToBeUpdated._id;
-        // initialValues.filterCriteria =
-        //     incomingRequestToBeUpdated.filterCriteria;
-        // initialValues.filterCondition =
-        //     incomingRequestToBeUpdated.filterCondition;
-        // initialValues.filterText = incomingRequestToBeUpdated.filterText;
 
         initialValues.filters = incomingRequestToBeUpdated.filters;
         initialValues.filterMatch = incomingRequestToBeUpdated.filterMatch;
