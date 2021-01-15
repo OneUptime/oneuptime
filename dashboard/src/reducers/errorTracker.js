@@ -682,17 +682,11 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 temporaryIssue.length > 0 &&
                 temporaryIssue[0].latestId !== action.payload.errorEvent._id
             ) {
-                temporaryIssue = temporaryIssue[0];
-                temporaryIssue.latestId = action.payload.errorEvent._id;
-                temporaryIssue.latestOccurennce =
-                    action.payload.errorEvent.createdAt;
-                temporaryIssue.totalNumberOfEvents =
-                    temporaryIssue.totalNumberOfEvents + 1;
                 temporaryIssues = state.errorTrackerIssues[
                     action.payload.errorEvent.errorTrackerId
                 ].errorTrackerIssues.map(issue => {
                     if (issue._id === action.payload.errorEvent.issueId) {
-                        issue = temporaryIssue;
+                        issue = action.payload.issue;
                     }
                     return issue;
                 });
