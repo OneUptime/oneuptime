@@ -1050,6 +1050,53 @@ export const logLibraries = {
             },
         ];
     },
+    getQuickStarts() {
+        return [
+            {
+                id: 'js',
+                language: 'JavaScript',
+                errorTracking: `
+#### NPM Install                                
+    $ npm install fyipe
+#### Usage
+    // In a FrontEnd Environment
+    import { ErrorTracker } from 'fyipe';
+                
+    // In a Backend Environment
+    const { ErrorTracker } = require('fyipe');
+                
+    // in a Backend Environment with ES6
+    import Fyipe from 'fyipe';
+    const { ErrorTracker } = Fyipe;
+                
+    // set up tracking configurations
+    const options = {
+        maxTimeline: 10,
+    };
+                
+    // constructor
+    const tracker = new ErrorTracker(
+        'API_URL', // https://fyipe.com/api
+        'ERROR_TRACKER_ID',
+        'ERROR_TRACKER_KEY',
+        options // Optional Field
+    );
+                
+    // capturing error exception 
+    NonExistingMethodCall(); // this is automatically captured and sent to your fyipe dashboard
+                
+    // capturing error exception manually
+    try {
+        // your code logic
+        NonExistingMethodCall();
+    } catch (error) {
+        tracker.captureException(error);
+    }
+`,
+                logs: 'No Docs available at the moment',
+            },
+        ];
+    },
 };
 
 export const incomingRequestVariables = [
