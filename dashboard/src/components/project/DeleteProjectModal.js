@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
+import ClickOutside from 'react-click-outside';
 import DeleteCaution from './DeleteCaution';
 import { IS_SAAS_SERVICE } from '../../config';
 import DeleteMessaging from './DeleteMessaging';
@@ -58,33 +59,35 @@ export class DeleteProjectModal extends Component {
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
-                    {deletedModal ? (
-                        <div className="bs-BIM">
-                            {/* <DeleteRequestModal
+                    <ClickOutside onClickOutside={this.props.hideDeleteModal}>
+                        {deletedModal ? (
+                            <div className="bs-BIM">
+                                {/* <DeleteRequestModal
                                 closeNotice={this.closeNotice}
                                 requesting={this.props.isRequesting}
                             /> */}
-                            <DeleteCaution
-                                hide={this.props.hideDeleteModal}
-                                deleteProject={this.deleteProject}
-                                requesting={this.props.isRequesting}
-                                deleteSuccess={deletedProjectSuccess}
-                                hideOnDelete={
-                                    this.props.hideDeleteModalSaasMode
-                                }
-                            />
-                        </div>
-                    ) : (
-                        <div className="bs-BIM">
-                            <DeleteMessaging
-                                hide={this.props.hideDeleteModal}
-                                deleteProject={this.deleteProject}
-                                requesting={this.props.isRequesting}
-                                deleted={deleted}
-                                // showDeleteModal="show"
-                            />
-                        </div>
-                    )}
+                                <DeleteCaution
+                                    hide={this.props.hideDeleteModal}
+                                    deleteProject={this.deleteProject}
+                                    requesting={this.props.isRequesting}
+                                    deleteSuccess={deletedProjectSuccess}
+                                    hideOnDelete={
+                                        this.props.hideDeleteModalSaasMode
+                                    }
+                                />
+                            </div>
+                        ) : (
+                            <div className="bs-BIM">
+                                <DeleteMessaging
+                                    hide={this.props.hideDeleteModal}
+                                    deleteProject={this.deleteProject}
+                                    requesting={this.props.isRequesting}
+                                    deleted={deleted}
+                                    // showDeleteModal="show"
+                                />
+                            </div>
+                        )}
+                    </ClickOutside>
                 </div>
             </div>
         ) : null;

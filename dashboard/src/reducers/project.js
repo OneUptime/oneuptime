@@ -443,6 +443,7 @@ export default function project(state = initialState, action) {
         case types.HIDE_DELETE_MODAL_SAAS_MODE:
             return Object.assign({}, state, {
                 showDeleteModal: false,
+                deletedModal: false,
                 deleteProject: {
                     ...state.deleteProject,
                     deleted: false,

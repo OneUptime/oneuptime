@@ -11293,7 +11293,7 @@ table {
     display: flex;
     align-items: center;
 }
-.Navigator-Btn-Group > *:hover {
+.Navigator-Btn-Group > *:active {
     border: solid 2px #D8D1DE;
 }
 .Navigator-Oldest {

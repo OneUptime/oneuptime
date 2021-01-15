@@ -100,6 +100,11 @@
     padding-top: 5px;
     padding-bottom: 5px;
 }
+.delete_btn__modal {
+    display: flex;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
 
 .delete-btn__keycode,
 .create-btn__keycode {
@@ -124,7 +129,6 @@
 .create-btn__keycode {
     background-color: #333;
 }
-
 
 .cancel-btn__keycode,
 .new-btn__keycode {
@@ -160,13 +164,19 @@
 }
 
 @keyframes fadeIn {
-    from { visibility: hidden; opacity: 0; }
-    to { visibility: visible; opacity: 1; }
+    from {
+        visibility: hidden;
+        opacity: 0;
+    }
+    to {
+        visibility: visible;
+        opacity: 1;
+    }
 }
 
 #frmCreateProject input[name='planId'],
 #pricingPlanModal input[name='planId']:checked,
-#frmCreateProject input[name='planId']:checked  {
+#frmCreateProject input[name='planId']:checked {
     /* implement visual disappearance of the radio button
     ** but the button still exist in the dom
     ** this ensures that reduxform can still implement the validate operation on the radio input 
@@ -185,7 +195,7 @@
     cursor: pointer;
 }
 
-.box__cyan5{
+.box__cyan5 {
     background: #45b2e8;
     color: white;
     cursor: pointer;
@@ -198,30 +208,30 @@
 }
 
 .ongoing__scheduleitem {
-  margin-top: 15px;
-  display: flex;
-  flex-direction: column;
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
 }
 
 .ongoing__scheduleitem > span {
-  display: inline-block;
-  font-size: 16px;
-  font-weight: lighter;
+    display: inline-block;
+    font-size: 16px;
+    font-weight: lighter;
 }
 
 .ongoing__scheduleitem > span:first-of-type {
-  text-transform: capitalize;
-  font-weight: 600;
-  font-size: 16px;
+    text-transform: capitalize;
+    font-weight: 600;
+    font-size: 16px;
 }
 
 .ongoing__affectedmonitor {
-  margin-top: 15px;
-  font-size: 14px;
+    margin-top: 15px;
+    font-size: 14px;
 }
 
 .ongoing__affectedmonitor--title {
-  font-weight: 900;
+    font-weight: 900;
 }
 
 .ongoing__affectedmonitor--content {

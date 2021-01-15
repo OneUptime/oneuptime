@@ -123,6 +123,14 @@ class ErrorEventHeader extends Component {
                                                 >
                                                     <span>Resolve</span>
                                                 </ShouldRender>
+                                                <ShouldRender
+                                                    if={
+                                                        errorTrackerIssue &&
+                                                        errorTrackerIssue.resolved
+                                                    }
+                                                >
+                                                    <span>Unresolve</span>
+                                                </ShouldRender>
                                             </button>
                                         }
                                     />
@@ -154,14 +162,6 @@ class ErrorEventHeader extends Component {
                                             </button>
                                         }
                                     />
-
-                                    {/* <button
-                                        className="bs-Button"
-                                        type="button"
-                                        disabled={true}
-                                    >
-                                        <span>Merge</span>
-                                    </button> */}
                                 </div>
                                 <ShouldRender if={errorTrackerIssue.ignored}>
                                     <AlertPanel

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
 import {
@@ -54,6 +55,7 @@ class RemoveSubProject extends Component {
             closeModal,
             data,
             resetDeleteSubProject,
+            closeThisDialog,
         } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -64,65 +66,73 @@ class RemoveSubProject extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Confirm Removal</span>
+                            <ClickOutside onClickOutside={closeThisDialog}>
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Confirm Removal</span>
+                                        </span>
+                                    </div>
+                                    <div className="bs-Modal-messages">
+                                        <ShouldRender
+                                            if={subProjectDelete.error}
+                                        >
+                                            <p className="bs-Modal-message">
+                                                {subProjectDelete.error}
+                                            </p>
+                                        </ShouldRender>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        Are you sure you want to remove this
+                                        sub-project?
                                     </span>
                                 </div>
-                                <div className="bs-Modal-messages">
-                                    <ShouldRender if={subProjectDelete.error}>
-                                        <p className="bs-Modal-message">
-                                            {subProjectDelete.error}
-                                        </p>
-                                    </ShouldRender>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
+                                            type="button"
+                                            onClick={() => {
+                                                resetDeleteSubProject();
+                                                return closeModal({
+                                                    id: data.subProjectModalId,
+                                                });
+                                            }}
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            id="removeSubProject"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
+                                            type="button"
+                                            onClick={() =>
+                                                this.deleteSubProject()
+                                            }
+                                            disabled={
+                                                subProjectDelete.requesting
+                                            }
+                                            autoFocus={true}
+                                        >
+                                            {!subProjectDelete.requesting && (
+                                                <>
+                                                    <span>Remove</span>
+                                                    <span className="delete-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
+                                            )}
+                                            {subProjectDelete.requesting && (
+                                                <FormLoader />
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Are you sure you want to remove this
-                                    sub-project?
-                                </span>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
-                                        type="button"
-                                        onClick={() => {
-                                            resetDeleteSubProject();
-                                            return closeModal({
-                                                id: data.subProjectModalId,
-                                            });
-                                        }}
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        id="removeSubProject"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
-                                        type="button"
-                                        onClick={() => this.deleteSubProject()}
-                                        disabled={subProjectDelete.requesting}
-                                        autoFocus={true}
-                                    >
-                                        {!subProjectDelete.requesting && (
-                                            <>
-                                                <span>Remove</span>
-                                                <span className="delete-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </>
-                                        )}
-                                        {subProjectDelete.requesting && (
-                                            <FormLoader />
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

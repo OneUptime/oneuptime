@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
+import ClickOutside from 'react-click-outside';
 
 class DisableMonitor extends Component {
     componentDidMount() {
@@ -24,6 +25,7 @@ class DisableMonitor extends Component {
     };
 
     render() {
+        const { closeThisDialog } = this.props;
         let disabling = false;
         if (
             this.props.monitorState &&
@@ -49,51 +51,55 @@ class DisableMonitor extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Confirm {monitorOption}</span>
+                            <ClickOutside onClickOutside={closeThisDialog}>
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Confirm {monitorOption}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        Are you sure you want to {monitorOption}{' '}
+                                        this monitor ?
                                     </span>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Are you sure you want to {monitorOption}{' '}
-                                    this monitor ?
-                                </span>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
-                                        type="button"
-                                        onClick={this.props.closeThisDialog}
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        id="deleteMonitor"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
-                                        type="button"
-                                        onClick={this.props.confirmThisDialog}
-                                        disabled={disabling}
-                                        autoFocus={true}
-                                    >
-                                        {!disabling && (
-                                            <>
-                                                <span>{monitorOption}</span>
-                                                <span className="delete-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </>
-                                        )}
-                                        {disabling && <FormLoader />}
-                                    </button>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
+                                            type="button"
+                                            onClick={this.props.closeThisDialog}
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            id="deleteMonitor"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
+                                            type="button"
+                                            onClick={
+                                                this.props.confirmThisDialog
+                                            }
+                                            disabled={disabling}
+                                            autoFocus={true}
+                                        >
+                                            {!disabling && (
+                                                <>
+                                                    <span>{monitorOption}</span>
+                                                    <span className="delete-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
+                                            )}
+                                            {disabling && <FormLoader />}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

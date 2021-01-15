@@ -140,7 +140,8 @@ const _this = {
         projectName,
         projectId,
         componentName,
-        statusPageUrl
+        statusPageUrl,
+        customFields
     ) {
         try {
             let { template } = await _this.getTemplate(
@@ -154,6 +155,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                ...customFields,
             };
             template = template(data);
             const customTwilioSettings = await _this.findByOne({
@@ -227,7 +229,8 @@ const _this = {
         projectName,
         projectId,
         componentName,
-        statusUrl
+        statusUrl,
+        customFields
     ) {
         try {
             let { template } = await _this.getTemplate(
@@ -241,6 +244,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl: statusUrl,
+                ...customFields,
             };
             template = template(data);
             const customTwilioSettings = await _this.findByOne({
@@ -314,7 +318,8 @@ const _this = {
         projectName,
         projectId,
         componentName,
-        statusPageUrl
+        statusPageUrl,
+        customFields
     ) {
         try {
             const _this = this;
@@ -329,6 +334,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                ...customFields,
             };
             template = template(data);
             const customTwilioSettings = await _this.findByOne({
@@ -399,7 +405,8 @@ const _this = {
         projectName,
         projectId,
         componentName,
-        statusPageUrl
+        statusPageUrl,
+        customFields
     ) {
         try {
             const _this = this;
@@ -414,6 +421,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                ...customFields,
             };
             template = template(data);
             const customTwilioSettings = await _this.findByOne({
