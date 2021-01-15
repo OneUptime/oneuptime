@@ -71,6 +71,18 @@ module.exports = {
         }
     },
 
+    search: async function({ filter, skip, limit }) {
+        const _this = this;
+        const query = {
+            sendTo: { $regex: new RegExp(filter), $options: 'i' },
+        };
+
+        const searchedSmsLogs = await _this.findBy(query, skip, limit);
+        const totalSearchCount = await _this.countBy({ query });
+
+        return { searchedSmsLogs, totalSearchCount };
+    },
+
     validateResend: async function(userId) {
         try {
             const _this = this;
@@ -129,7 +141,7 @@ module.exports = {
             await SmsCountModel.deleteMany(query);
             return 'SmsCount(s) removed successfully';
         } catch (error) {
-            ErrorService.log('smsCountService.hardDeleteBy', error);
+            ErrorService.log('smsCountService.hard`DeleteBy', error);
             throw error;
         }
     },

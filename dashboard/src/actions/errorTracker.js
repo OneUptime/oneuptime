@@ -747,3 +747,9 @@ export function updateErrorEventMemberSuccess(errorTrackerIssueMembers) {
         payload: errorTrackerIssueMembers,
     };
 }
+export function getErrorEventSuccess(data) {
+    return {
+        type: types.NEW_ERROR_EVENT_SUCCESS,
+        payload: data,
+    };
+}

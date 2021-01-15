@@ -588,6 +588,32 @@ export class IncidentStatus extends Component {
                                                                         projectId +
                                                                         '/' +
                                                                         componentId +
+                                                                        '/monitoring'
+                                                                    }
+                                                                    id="backToComponentView"
+                                                                >
+                                                                    {
+                                                                        this
+                                                                            .props
+                                                                            .incident
+                                                                            .monitorId
+                                                                            .componentId
+                                                                            .name
+                                                                    }
+                                                                </Link>
+                                                            </span>
+                                                            {' / '}
+                                                            <span className="value">
+                                                                <Link
+                                                                    style={{
+                                                                        textDecoration:
+                                                                            'underline',
+                                                                    }}
+                                                                    to={
+                                                                        '/dashboard/project/' +
+                                                                        projectId +
+                                                                        '/' +
+                                                                        componentId +
                                                                         '/monitoring/' +
                                                                         this
                                                                             .props

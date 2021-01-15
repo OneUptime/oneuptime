@@ -555,7 +555,7 @@ class EditIncomingRequest extends Component {
                                                 ]}
                                             />
                                         )
-                                    ) : (formValues.filters[index]
+                                    ) : (formValues && formValues.filters[index]
                                           ? formValues.filters[index]
                                                 .filterCriteria === 'incidentId'
                                               ? 'number'
@@ -644,6 +644,7 @@ class EditIncomingRequest extends Component {
                                             component={RenderField}
                                             name={`${field}.filterText`}
                                             type={
+                                                formValues &&
                                                 formValues.filters[index]
                                                     ? (
                                                           monitorCustomFields.find(
@@ -677,6 +678,7 @@ class EditIncomingRequest extends Component {
                                             component={RenderField}
                                             name={`${field}.filterText`}
                                             type={
+                                                formValues &&
                                                 formValues.filters[index]
                                                     ? formValues.filters[index]
                                                           .filterCriteria ===

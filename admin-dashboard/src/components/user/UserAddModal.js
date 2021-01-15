@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Field, reduxForm } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderField } from '../basic/RenderField';
@@ -62,230 +63,256 @@ class UserAddModal extends Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--medium">
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Add New User</span>
-                                </span>
+                        <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>Add New User</span>
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                        <form
-                            id="frmUser"
-                            onSubmit={handleSubmit(this.submitForm)}
-                        >
-                            <div className="bs-Modal-content bs-u-paddingless">
-                                <div className="bs-Modal-block bs-u-paddingless">
-                                    <div className="bs-Modal-content">
-                                        <span className="bs-Fieldset">
-                                            <div className="bs-Fieldset-rows">
-                                                <div className="bs-Fieldset-row">
-                                                    <label
-                                                        htmlFor="email"
-                                                        className="bs-Fieldset-label"
-                                                    >
-                                                        <span>Email</span>
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            type="email"
-                                                            name="email"
-                                                            id="email"
-                                                            placeholder="jeff@example.com"
-                                                            required="required"
-                                                            disabled={disabled}
-                                                            autoFocus={true}
-                                                        />
+                            <form
+                                id="frmUser"
+                                onSubmit={handleSubmit(this.submitForm)}
+                            >
+                                <div className="bs-Modal-content bs-u-paddingless">
+                                    <div className="bs-Modal-block bs-u-paddingless">
+                                        <div className="bs-Modal-content">
+                                            <span className="bs-Fieldset">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div className="bs-Fieldset-row">
+                                                        <label
+                                                            htmlFor="email"
+                                                            className="bs-Fieldset-label"
+                                                        >
+                                                            <span>Email</span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="email"
+                                                                name="email"
+                                                                id="email"
+                                                                placeholder="jeff@example.com"
+                                                                required="required"
+                                                                disabled={
+                                                                    disabled
+                                                                }
+                                                                autoFocus={true}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label
+                                                            htmlFor="name"
+                                                            className="bs-Fieldset-label"
+                                                        >
+                                                            <span>
+                                                                Full Name
+                                                            </span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name="name"
+                                                                id="name"
+                                                                placeholder="Jeff Smith"
+                                                                required="required"
+                                                                disabled={
+                                                                    disabled
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label
+                                                            htmlFor="companyName"
+                                                            className="bs-Fieldset-label"
+                                                        >
+                                                            <span>
+                                                                Company Name
+                                                            </span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name="companyName"
+                                                                id="companyName"
+                                                                placeholder="Company Name"
+                                                                disabled={
+                                                                    disabled
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label
+                                                            htmlFor="companyPhoneNumber"
+                                                            className="bs-Fieldset-label"
+                                                        >
+                                                            <span>
+                                                                Company Phone
+                                                                Number
+                                                            </span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="tel"
+                                                                name="companyPhoneNumber"
+                                                                id="companyPhoneNumber"
+                                                                placeholder="+1-123-456-7890"
+                                                                disabled={
+                                                                    disabled
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label
+                                                            htmlFor="password"
+                                                            className="bs-Fieldset-label"
+                                                        >
+                                                            <span>
+                                                                Password
+                                                            </span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="password"
+                                                                name="password"
+                                                                id="password"
+                                                                placeholder="Password"
+                                                                required="required"
+                                                                disabled={
+                                                                    disabled
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label
+                                                            htmlFor="confirmPassword"
+                                                            className="bs-Fieldset-label"
+                                                        >
+                                                            <span>
+                                                                Confirm Password
+                                                            </span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="password"
+                                                                name="confirmPassword"
+                                                                id="confirmPassword"
+                                                                placeholder="Confirm Password"
+                                                                required="required"
+                                                                disabled={
+                                                                    disabled
+                                                                }
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="bs-Fieldset-row">
-                                                    <label
-                                                        htmlFor="name"
-                                                        className="bs-Fieldset-label"
-                                                    >
-                                                        <span>Full Name</span>
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            type="text"
-                                                            name="name"
-                                                            id="name"
-                                                            placeholder="Jeff Smith"
-                                                            required="required"
-                                                            disabled={disabled}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="bs-Fieldset-row">
-                                                    <label
-                                                        htmlFor="companyName"
-                                                        className="bs-Fieldset-label"
-                                                    >
-                                                        <span>
-                                                            Company Name
-                                                        </span>
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            type="text"
-                                                            name="companyName"
-                                                            id="companyName"
-                                                            placeholder="Company Name"
-                                                            disabled={disabled}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="bs-Fieldset-row">
-                                                    <label
-                                                        htmlFor="companyPhoneNumber"
-                                                        className="bs-Fieldset-label"
-                                                    >
-                                                        <span>
-                                                            Company Phone Number
-                                                        </span>
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            type="tel"
-                                                            name="companyPhoneNumber"
-                                                            id="companyPhoneNumber"
-                                                            placeholder="+1-123-456-7890"
-                                                            disabled={disabled}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="bs-Fieldset-row">
-                                                    <label
-                                                        htmlFor="password"
-                                                        className="bs-Fieldset-label"
-                                                    >
-                                                        <span>Password</span>
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            type="password"
-                                                            name="password"
-                                                            id="password"
-                                                            placeholder="Password"
-                                                            required="required"
-                                                            disabled={disabled}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="bs-Fieldset-row">
-                                                    <label
-                                                        htmlFor="confirmPassword"
-                                                        className="bs-Fieldset-label"
-                                                    >
-                                                        <span>
-                                                            Confirm Password
-                                                        </span>
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            type="password"
-                                                            name="confirmPassword"
-                                                            id="confirmPassword"
-                                                            placeholder="Confirm Password"
-                                                            required="required"
-                                                            disabled={disabled}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender
-                                        if={addUserState && addUserState.error}
-                                    >
-                                        <div className="bs-Tail-copy">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {addUserState.error}
-                                                    </span>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender
+                                            if={
+                                                addUserState &&
+                                                addUserState.error
+                                            }
+                                        >
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {addUserState.error}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton btn__modal"
-                                        type="button"
-                                        onClick={() => {
-                                            resetAddUser();
-                                            closeThisDialog();
-                                        }}
-                                        disabled={disabled}
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        id="add_user_btn"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                        disabled={disabled}
-                                        type="submit"
-                                    >
-                                        {addUserState &&
-                                            !addUserState.requesting && (
-                                                <>
-                                                    <span>Create</span>
-                                                    <span className="create-btn__keycode">
-                                                        <span className="keycode__icon keycode__icon--enter" />
-                                                    </span>
-                                                </>
-                                            )}
-                                        {addUserState &&
-                                            addUserState.requesting && (
-                                                <FormLoader />
-                                            )}
-                                    </button>
+                                        </ShouldRender>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
+                                            type="button"
+                                            onClick={() => {
+                                                resetAddUser();
+                                                closeThisDialog();
+                                            }}
+                                            disabled={disabled}
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            id="add_user_btn"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            disabled={disabled}
+                                            type="submit"
+                                        >
+                                            {addUserState &&
+                                                !addUserState.requesting && (
+                                                    <>
+                                                        <span>Create</span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
+                                                )}
+                                            {addUserState &&
+                                                addUserState.requesting && (
+                                                    <FormLoader />
+                                                )}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

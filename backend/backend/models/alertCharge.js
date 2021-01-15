@@ -15,7 +15,7 @@ const alertChargeSchema = new Schema({
     alertId: { type: String, ref: 'Alert' },
     subscriberAlertId: { type: String, ref: 'SubscriberAlert' },
     monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor' },
-    incidentId: { type: String, ref: 'Incident' },
+    incidentId: { type: Schema.Types.ObjectId, ref: 'Incident' },
     sentTo: { type: String },
 });
 

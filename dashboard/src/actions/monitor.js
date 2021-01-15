@@ -190,10 +190,7 @@ export function resetCreateMonitor() {
 //Edit new monitor
 //props -> {name: '', type, data -> { data.url}}
 export function editMonitor(projectId, values) {
-    values.projectId = values.projectId
-        ? values.projectId._id || values.projectId
-        : projectId;
-
+    values.projectId = values.projectId._id || values.projectId || projectId;
     return function(dispatch) {
         const promise = putApi(`monitor/${projectId}/${values._id}`, values);
         if (
@@ -203,7 +200,6 @@ export function editMonitor(projectId, values) {
         ) {
             dispatch(editMonitorRequest());
         }
-
         promise.then(
             function(monitor) {
                 dispatch(editMonitorSuccess(monitor.data));
@@ -229,6 +225,9 @@ export function editMonitor(projectId, values) {
 }
 
 export function editMonitorSuccess(newMonitor) {
+    if (newMonitor.lighthouseScanStatus === 'scanning') {
+        fetchLighthouseLogs(newMonitor.projectId._id, newMonitor._id, 0, 5);
+    }
     return {
         type: types.EDIT_MONITOR_SUCCESS,
         payload: newMonitor,
@@ -783,7 +782,8 @@ export function getMonitorLogs(
     startDate,
     endDate,
     probeValue,
-    incidentId
+    incidentId,
+    type
 ) {
     return function(dispatch) {
         const promise = postApi(
@@ -795,6 +795,7 @@ export function getMonitorLogs(
                 endDate,
                 probeValue,
                 incidentId: incidentId ? incidentId : null,
+                type,
             }
         );
         dispatch(getMonitorLogsRequest({ monitorId }));

@@ -1,9 +1,8 @@
 import axios from 'axios';
-class FyipeLogger {
+class Logger {
     #applicationLogId;
     #applicationLogKey;
     #apiUrl;
-    #tracker;
     constructor(apiUrl, applicationLogId, applicationLogKey) {
         this._setApplicationLogId(applicationLogId);
         this._setApiUrl(apiUrl);
@@ -91,4 +90,4 @@ class FyipeLogger {
         });
     }
 }
-export default FyipeLogger;
+export default Logger;

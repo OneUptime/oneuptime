@@ -3,7 +3,7 @@
     "version": "3.0.0",
     "private": true,
     "dependencies": {
-        "axios": "^0.19.0",
+        "axios": "^0.21.1",
         "card-validator": "^6.0.0",
         "chai": "^4.2.0",
         "chai-http": "^4.3.0",
@@ -44,7 +44,7 @@
     "scripts": {
         "start": "npm run build && node index.js",
         "build": "react-scripts build",
-        "dev": "export PORT=3006 && react-scripts start",
+        "dev": "set PORT=3006 && react-scripts start",
         "test": "mocha --exit ./src/test/statusPage.test.js",
         "eject": "react-scripts eject",
         "snapshots": "cross-env CI=true react-scripts test --env=jsdom --coverage --coverage",

@@ -457,7 +457,7 @@ class CreateIncomingRequest extends Component {
                                                 ]}
                                             />
                                         )
-                                    ) : (formValues.filters[index]
+                                    ) : (formValues && formValues.filters[index]
                                           ? formValues.filters[index]
                                                 .filterCriteria === 'incidentId'
                                               ? 'number'
@@ -546,6 +546,7 @@ class CreateIncomingRequest extends Component {
                                             component={RenderField}
                                             name={`${field}.filterText`}
                                             type={
+                                                formValues &&
                                                 formValues.filters[index]
                                                     ? (
                                                           monitorCustomFields.find(
@@ -579,6 +580,7 @@ class CreateIncomingRequest extends Component {
                                             component={RenderField}
                                             name={`${field}.filterText`}
                                             type={
+                                                formValues &&
                                                 formValues.filters[index]
                                                     ? formValues.filters[index]
                                                           .filterCriteria ===

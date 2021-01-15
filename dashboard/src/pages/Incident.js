@@ -24,7 +24,6 @@ import PropTypes from 'prop-types';
 import IncidentDeleteBox from '../components/incident/IncidentDeleteBox';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
-import IncidentTimelineBox from '../components/incident/IncidentTimelineBox';
 import { getMonitorLogs } from '../actions/monitor';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -178,7 +177,7 @@ class Incident extends React.Component {
         this.setState({
             tabIndex: index,
         });
-        if (index === 2) {
+        if (index === 2 || index === 0) {
             this.fetchAllIncidentData();
         }
     };
@@ -226,7 +225,8 @@ class Incident extends React.Component {
             null,
             null,
             null,
-            this.props.match.params.incidentId
+            this.props.match.params.incidentId,
+            this.props.type
         );
         this.props.fetchIncidentMessages(
             this.props.match.params.projectId,
@@ -351,9 +351,6 @@ class Incident extends React.Component {
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-6'}>
                                     Alert Logs
-                                </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
-                                    Incident Timeline
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-6'}>
                                     Status Page Notes
@@ -499,17 +496,6 @@ class Incident extends React.Component {
                         </TabPanel>
                         <TabPanel>
                             <Fade>
-                                <div className="Box-root Margin-bottom--12">
-                                    <IncidentTimelineBox
-                                        next={this.nextTimeline}
-                                        previous={this.previousTimeline}
-                                        incident={this.props.incidentTimeline}
-                                    />
-                                </div>
-                            </Fade>
-                        </TabPanel>
-                        <TabPanel>
-                            <Fade>
                                 <IncidentStatusPages />
                                 <IncidentInvestigation
                                     incident={this.props.incident}
@@ -647,6 +633,7 @@ const mapStateToProps = (state, props) => {
         defaultSchedule,
         scheduleWarning,
         monitor,
+        type: monitor && monitor.type ? monitor.type : null,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
         incidentTimeline: state.incident.incident,
@@ -725,6 +712,7 @@ Incident.propTypes = {
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
     defaultSchedule: PropTypes.bool,
+    type: PropTypes.string,
 };
 
 Incident.displayName = 'Incident';

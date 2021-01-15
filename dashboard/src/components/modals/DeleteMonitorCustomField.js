@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
 import { deleteCustomField } from '../../actions/monitorCustomField';
@@ -17,15 +18,20 @@ class DeleteMonitorCustomField extends Component {
     }
 
     handleKeyBoard = e => {
-        const { modalId, closeModal } = this.props;
         switch (e.key) {
             case 'Escape':
-                return closeModal({ id: modalId });
+                return this.handleCloseModal();
             case 'Enter':
                 return this.handleDelete();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.modalId,
+        });
     };
 
     handleDelete = () => {
@@ -55,83 +61,91 @@ class DeleteMonitorCustomField extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Confirm Deletion</span>
+                            <ClickOutside
+                                onClickOutside={this.handleCloseModal}
+                            >
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Confirm Deletion</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        Are you sure you want to delete this
+                                        custom field ?
                                     </span>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Are you sure you want to delete this custom
-                                    field ?
-                                </span>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div
-                                    className="bs-Modal-footer-actions"
-                                    style={{ width: 280 }}
-                                >
-                                    <ShouldRender
-                                        if={!isRequesting && deleteError}
+                                <div className="bs-Modal-footer">
+                                    <div
+                                        className="bs-Modal-footer-actions"
+                                        style={{ width: 280 }}
                                     >
-                                        <div
-                                            id="deleteError"
-                                            className="bs-Tail-copy"
+                                        <ShouldRender
+                                            if={!isRequesting && deleteError}
                                         >
                                             <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
+                                                id="deleteError"
+                                                className="bs-Tail-copy"
                                             >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {deleteError}
-                                                    </span>
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {deleteError}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
+                                        </ShouldRender>
+                                    </div>
+                                    <div className="bs-Modal-footer-actions">
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
+                                            type="button"
+                                            onClick={() =>
+                                                closeModal({ id: modalId })
+                                            }
+                                            id="cancelDeleteCustomFieldBtn"
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            id="deleteCustomFieldModalBtn"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
+                                            type="button"
+                                            onClick={this.handleDelete}
+                                            disabled={isRequesting}
+                                            autoFocus={true}
+                                        >
+                                            {!isRequesting && (
+                                                <>
+                                                    <span>Delete</span>
+                                                    <span className="delete-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
+                                            )}
+                                            {isRequesting && <FormLoader />}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="bs-Modal-footer-actions">
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
-                                        type="button"
-                                        onClick={() =>
-                                            closeModal({ id: modalId })
-                                        }
-                                        id="cancelDeleteCustomFieldBtn"
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        id="deleteCustomFieldModalBtn"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
-                                        type="button"
-                                        onClick={this.handleDelete}
-                                        disabled={isRequesting}
-                                        autoFocus={true}
-                                    >
-                                        {!isRequesting && (
-                                            <>
-                                                <span>Delete</span>
-                                                <span className="delete-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </>
-                                        )}
-                                        {isRequesting && <FormLoader />}
-                                    </button>
-                                </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

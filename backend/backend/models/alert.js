@@ -12,6 +12,11 @@ const alertSchema = new Schema({
     userId: { type: String, ref: 'User' },
     alertVia: String,
     alertStatus: String,
+    eventType: {
+        type: String,
+        enum: ['identified', 'acknowledged', 'resolved'],
+        required: true,
+    },
     monitorId: { type: String, ref: 'Monitor' },
     createdAt: { type: Date, default: Date.now },
     incidentId: { type: String, ref: 'Incident' },

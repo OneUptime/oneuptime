@@ -189,16 +189,32 @@ export class AlertChargesList extends Component {
                                                             history.push(
                                                                 '/dashboard/project/' +
                                                                     projectId +
+                                                                    '/' +
+                                                                    alertCharge
+                                                                        .monitorId
+                                                                        .componentId +
                                                                     '/incidents/' +
-                                                                    alertCharge.incidentId
+                                                                    alertCharge
+                                                                        .incidentId
+                                                                        ._id
                                                             );
                                                         }}
                                                         className="Box-root Margin-right--16"
                                                     >
-                                                        <span>
-                                                            {
-                                                                alertCharge.incidentId
-                                                            }
+                                                        <span
+                                                            style={{
+                                                                textDecoration:
+                                                                    'underline',
+                                                            }}
+                                                        >
+                                                            <b>
+                                                                {'#'}
+                                                                {
+                                                                    alertCharge
+                                                                        .incidentId
+                                                                        .idNumber
+                                                                }
+                                                            </b>
                                                         </span>
                                                     </div>
                                                 </span>

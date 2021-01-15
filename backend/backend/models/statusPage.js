@@ -63,6 +63,8 @@ const statusSchema = new Schema({
     footerHTML: String,
     customCSS: String,
     customJS: String,
+    statusBubbleId: String,
+    embeddedCss: String,
     createdAt: {
         type: Date,
         default: Date.now,
