@@ -183,6 +183,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -244,6 +245,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -300,6 +302,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -354,6 +357,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -410,6 +414,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -467,6 +472,7 @@ const _this = {
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
+                        error: 'Email not enabled.',
                     });
                     return;
                 }
@@ -544,6 +550,7 @@ const _this = {
                             template: mailOptions.template,
                             status: 'Email not enabled.',
                             content: EmailBody,
+                            error: 'Email not enabled.',
                         });
                         return;
                     }
@@ -608,6 +615,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -666,6 +674,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -731,6 +740,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -794,6 +804,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -856,6 +867,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -919,6 +931,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -978,6 +991,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1041,6 +1055,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1102,6 +1117,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1166,6 +1182,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1283,6 +1300,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1397,6 +1415,7 @@ const _this = {
                         replyTo: mailOptions.replyTo,
                     }),
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1491,6 +1510,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1579,6 +1599,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1693,6 +1714,7 @@ const _this = {
                         replyTo: mailOptions.replyTo,
                     }),
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1905,6 +1927,7 @@ const _this = {
                         replyTo: mailOptions.replyTo,
                     }),
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1962,6 +1985,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -1979,14 +2003,41 @@ const _this = {
             let err;
             if (error.code === 'EAUTH') {
                 err = new Error('Username and Password not accepted.');
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Error',
+                    content: EmailBody,
+                    err: err.message,
+                });
                 err.code = 400;
             } else if (error.code === 'ECONNECTION') {
                 err = new Error(
                     'Please check your host and port settings again.'
                 );
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Error',
+                    content: EmailBody,
+                    err: err.message,
+                });
                 err.code = 400;
             } else {
                 err = new Error('Please check your settings again.');
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Error',
+                    content: EmailBody,
+                    err: err.message,
+                });
                 err.code = 400;
             }
             ErrorService.log('mailService.testSmtpConfig', error);
@@ -2032,6 +2083,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -2089,6 +2141,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -2144,6 +2197,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -2206,6 +2260,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -2268,6 +2323,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -2355,6 +2411,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -2378,7 +2435,7 @@ const _this = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: error.message,
+                status: 'Error',
                 content: EmailBody,
                 error: error.message,
             });
@@ -2431,6 +2488,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -2454,7 +2512,7 @@ const _this = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: error.message,
+                status: 'Error',
                 content: EmailBody,
                 error: error.message,
             });
@@ -2500,6 +2558,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -2526,7 +2585,7 @@ const _this = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: error.message,
+                status: 'Error',
                 content: EmailBody,
                 error: error.message,
             });
@@ -2570,6 +2629,7 @@ const _this = {
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
+                    error: 'Email not enabled.',
                 });
                 return;
             }
@@ -2596,7 +2656,7 @@ const _this = {
                 to: mailOptions.to,
                 subject: mailOptions.subject,
                 template: mailOptions.template,
-                status: error.message,
+                status: 'Error',
                 content: EmailBody,
                 error: error.message,
             });
