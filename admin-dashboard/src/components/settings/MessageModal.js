@@ -1,6 +1,7 @@
 import React from 'react';
 import { PropTypes } from 'prop-types';
 import { connect } from 'react-redux';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 
 const MessageModal = props => {
@@ -21,48 +22,50 @@ const MessageModal = props => {
                         className="bs-Modal bs-Modal--medium"
                         style={{ minWidth: '400px' }}
                     >
-                        <div className="bs-Modal-header">
-                            <div className="bs-Modal-header-copy">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>
-                                        {testError
-                                            ? 'Test Failed'
-                                            : 'Test Email Sent'}
+                        <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div className="bs-Modal-header-copy">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            {testError
+                                                ? 'Test Failed'
+                                                : 'Test Email Sent'}
+                                        </span>
                                     </span>
-                                </span>
+                                </div>
                             </div>
-                        </div>
-                        <div className="Flex-flex bs-Modal-content">
-                            <ShouldRender if={testError}>
-                                <span
-                                    className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                    style={{ flex: 1 }}
-                                >
-                                    {testError}
-                                </span>
-                            </ShouldRender>
-                            <ShouldRender if={!testError}>
-                                <span
-                                    className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                    style={{ flex: 1 }}
-                                >
-                                    We&#39;ve successfully sent a test email to{' '}
-                                    {email}. If you do not see it, please check
-                                    spam.
-                                </span>
-                            </ShouldRender>
-                        </div>
-                        <div className="bs-Modal-footer">
-                            <div className="bs-Modal-footer-actions">
-                                <button
-                                    id="confirmDelete"
-                                    className="bs-Button"
-                                    onClick={closeThisDialog}
-                                >
-                                    <span>Ok</span>
-                                </button>
+                            <div className="Flex-flex bs-Modal-content">
+                                <ShouldRender if={testError}>
+                                    <span
+                                        className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                        style={{ flex: 1 }}
+                                    >
+                                        {testError}
+                                    </span>
+                                </ShouldRender>
+                                <ShouldRender if={!testError}>
+                                    <span
+                                        className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                        style={{ flex: 1 }}
+                                    >
+                                        We&#39;ve successfully sent a test email
+                                        to {email}. If you do not see it, please
+                                        check spam.
+                                    </span>
+                                </ShouldRender>
                             </div>
-                        </div>
+                            <div className="bs-Modal-footer">
+                                <div className="bs-Modal-footer-actions">
+                                    <button
+                                        id="confirmDelete"
+                                        className="bs-Button"
+                                        onClick={closeThisDialog}
+                                    >
+                                        <span>Ok</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { reduxForm, Field } from 'redux-form';
 import { bindActionCreators } from 'redux';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { Spinner } from '../basic/Loader';
@@ -51,9 +52,7 @@ export class EditResourceCategoryForm extends React.Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({
-                    id: this.props.EditResourceCategoryModalId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return document
                     .getElementById('addResourceCategoryButton')
@@ -61,6 +60,12 @@ export class EditResourceCategoryForm extends React.Component {
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.EditResourceCategoryModalId,
+        });
     };
 
     render() {
@@ -76,98 +81,106 @@ export class EditResourceCategoryForm extends React.Component {
                     >
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--medium">
-                                <div className="bs-Modal-header">
-                                    <div className="bs-Modal-header-copy">
-                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>Edit Resource Category</span>
-                                        </span>
-                                    </div>
-                                    <div className="bs-Modal-messages">
-                                        <ShouldRender
-                                            if={
-                                                this.props.resourceCategory
-                                                    .error
-                                            }
-                                        >
-                                            <p className="bs-Modal-message">
-                                                {
+                                <ClickOutside
+                                    onClickOutside={this.handleCloseModal}
+                                >
+                                    <div className="bs-Modal-header">
+                                        <div className="bs-Modal-header-copy">
+                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                <span>
+                                                    Edit Resource Category
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div className="bs-Modal-messages">
+                                            <ShouldRender
+                                                if={
                                                     this.props.resourceCategory
                                                         .error
                                                 }
-                                            </p>
-                                        </ShouldRender>
+                                            >
+                                                <p className="bs-Modal-message">
+                                                    {
+                                                        this.props
+                                                            .resourceCategory
+                                                            .error
+                                                    }
+                                                </p>
+                                            </ShouldRender>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="bs-Modal-body">
-                                    <Field
-                                        required={true}
-                                        component="input"
-                                        name="name"
-                                        placeholder="Resource Category Name"
-                                        id="resourceCategoryName"
-                                        className="bs-TextInput"
-                                        style={{
-                                            width: '90%',
-                                            margin: '10px 0 10px 5%',
-                                        }}
-                                        disabled={
-                                            this.props.resourceCategory
-                                                .requesting
-                                        }
-                                        autoFocus={true}
-                                    />
-                                </div>
-                                <div className="bs-Modal-footer">
-                                    <div className="bs-Modal-footer-actions">
-                                        <button
-                                            className={`bs-Button bs-DeprecatedButton btn__modal ${this
-                                                .props.resourceCategory
-                                                .requesting &&
-                                                'bs-is-disabled'}`}
-                                            type="button"
-                                            onClick={() => {
-                                                this.props.closeModal({
-                                                    id: this.props
-                                                        .EditResourceCategoryModalId,
-                                                });
+                                    <div className="bs-Modal-body">
+                                        <Field
+                                            required={true}
+                                            component="input"
+                                            name="name"
+                                            placeholder="Resource Category Name"
+                                            id="resourceCategoryName"
+                                            className="bs-TextInput"
+                                            style={{
+                                                width: '90%',
+                                                margin: '10px 0 10px 5%',
                                             }}
                                             disabled={
                                                 this.props.resourceCategory
                                                     .requesting
                                             }
-                                        >
-                                            <span>Cancel</span>
-                                            <span className="cancel-btn__keycode">
-                                                Esc
-                                            </span>
-                                        </button>
-                                        <button
-                                            id="addResourceCategoryButton"
-                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
-                                                .props.resourceCategory
-                                                .requesting &&
-                                                'bs-is-disabled'}`}
-                                            type="save"
-                                            disabled={
-                                                this.props.resourceCategory
-                                                    .requesting
-                                            }
-                                        >
-                                            <ShouldRender
-                                                if={
+                                            autoFocus={true}
+                                        />
+                                    </div>
+                                    <div className="bs-Modal-footer">
+                                        <div className="bs-Modal-footer-actions">
+                                            <button
+                                                className={`bs-Button bs-DeprecatedButton btn__modal ${this
+                                                    .props.resourceCategory
+                                                    .requesting &&
+                                                    'bs-is-disabled'}`}
+                                                type="button"
+                                                onClick={() => {
+                                                    this.props.closeModal({
+                                                        id: this.props
+                                                            .EditResourceCategoryModalId,
+                                                    });
+                                                }}
+                                                disabled={
                                                     this.props.resourceCategory
                                                         .requesting
                                                 }
                                             >
-                                                <Spinner />
-                                            </ShouldRender>
-                                            <span>Update</span>
-                                            <span className="create-btn__keycode">
-                                                <span className="keycode__icon keycode__icon--enter" />
-                                            </span>
-                                        </button>
+                                                <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
+                                            </button>
+                                            <button
+                                                id="addResourceCategoryButton"
+                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
+                                                    .props.resourceCategory
+                                                    .requesting &&
+                                                    'bs-is-disabled'}`}
+                                                type="save"
+                                                disabled={
+                                                    this.props.resourceCategory
+                                                        .requesting
+                                                }
+                                            >
+                                                <ShouldRender
+                                                    if={
+                                                        this.props
+                                                            .resourceCategory
+                                                            .requesting
+                                                    }
+                                                >
+                                                    <Spinner />
+                                                </ShouldRender>
+                                                <span>Update</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                </ClickOutside>
                             </div>
                         </div>
                     </div>

@@ -22,9 +22,7 @@ async function run() {
         );
     }
 
-    return `Script ran for ${monitors.length} status pages`;
+    return `Script ran for ${monitors.length} monitors`;
 }
-
-module.exports = run;
 
 module.exports = run;

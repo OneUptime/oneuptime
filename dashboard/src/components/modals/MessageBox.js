@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes, { string } from 'prop-types';
+import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 
 class MessageBox extends Component {
@@ -14,16 +15,19 @@ class MessageBox extends Component {
     }
 
     handleKeyBoard = e => {
-        const { messageBoxId, closeModal } = this.props;
         switch (e.key) {
             case 'Escape':
             case 'Enter':
-                return closeModal({
-                    id: messageBoxId,
-                });
+                return this.handleCloseModal();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.messageBoxId,
+        });
     };
 
     render() {
@@ -44,41 +48,45 @@ class MessageBox extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>{title}</span>
+                            <ClickOutside
+                                onClickOutside={this.handleCloseModal}
+                            >
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>{title}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <span
+                                        id="message-modal-message"
+                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                    >
+                                        {message}
                                     </span>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <span
-                                    id="message-modal-message"
-                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                >
-                                    {message}
-                                </span>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--white btn__modal"
-                                        type="button"
-                                        id="modal-ok"
-                                        onClick={() =>
-                                            this.props.closeModal({
-                                                id: messageBoxId,
-                                            })
-                                        }
-                                        autoFocus={true}
-                                    >
-                                        <span>OK</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--white btn__modal"
+                                            type="button"
+                                            id="modal-ok"
+                                            onClick={() =>
+                                                this.props.closeModal({
+                                                    id: messageBoxId,
+                                                })
+                                            }
+                                            autoFocus={true}
+                                        >
+                                            <span>OK</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

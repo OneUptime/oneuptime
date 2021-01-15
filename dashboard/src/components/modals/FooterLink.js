@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
@@ -37,17 +38,20 @@ class CreateFooterLink extends Component {
     };
 
     handleKeyBoard = e => {
-        const { createFooterLinkModalId, closeModal } = this.props;
         switch (e.key) {
             case 'Escape':
-                return closeModal({
-                    id: createFooterLinkModalId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return document.getElementById('createFooter').click();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.createFooterLinkModalId,
+        });
     };
 
     render() {
@@ -61,140 +65,152 @@ class CreateFooterLink extends Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--medium">
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>
-                                        {data && data.footerName
-                                            ? 'Update '
-                                            : 'Create New '}{' '}
-                                        Footer Link
+                        <ClickOutside onClickOutside={this.handleCloseModal}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            {data && data.footerName
+                                                ? 'Update '
+                                                : 'Create New '}{' '}
+                                            Footer Link
+                                        </span>
                                     </span>
-                                </span>
+                                </div>
                             </div>
-                        </div>
-                        <form
-                            onSubmit={handleSubmit(this.submitForm.bind(this))}
-                        >
-                            <div className="bs-Modal-content bs-u-paddingless">
-                                <div className="bs-Modal-block bs-u-paddingless">
-                                    <div className="bs-Modal-content">
-                                        <div className="bs-Fieldset-row">
-                                            <label className="bs-Fieldset-label">
-                                                Link Name
-                                            </label>
-                                            <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    name="name"
-                                                    id="footerName"
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    type="text"
-                                                    component={RenderField}
-                                                    placeholder="Home"
-                                                    autoFocus={true}
-                                                />
+                            <form
+                                onSubmit={handleSubmit(
+                                    this.submitForm.bind(this)
+                                )}
+                            >
+                                <div className="bs-Modal-content bs-u-paddingless">
+                                    <div className="bs-Modal-block bs-u-paddingless">
+                                        <div className="bs-Modal-content">
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Link Name
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field
+                                                        name="name"
+                                                        id="footerName"
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        component={RenderField}
+                                                        placeholder="Home"
+                                                        autoFocus={true}
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="bs-Fieldset-row">
-                                            <label className="bs-Fieldset-label">
-                                                Link URL
-                                            </label>
-                                            <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    name="url"
-                                                    id="url"
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    type="text"
-                                                    component={RenderField}
-                                                    placeholder="https://mycompany.com"
-                                                />
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Link URL
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field
+                                                        name="url"
+                                                        id="url"
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        component={RenderField}
+                                                        placeholder="https://mycompany.com"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender
-                                        if={
-                                            this.props.statusPage &&
-                                            this.props.statusPage.links.error
-                                        }
-                                    >
-                                        <div className="bs-Tail-copy">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {
-                                                            this.props
-                                                                .statusPage
-                                                                .links.error
-                                                        }
-                                                    </span>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender
+                                            if={
+                                                this.props.statusPage &&
+                                                this.props.statusPage.links
+                                                    .error
+                                            }
+                                        >
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {
+                                                                this.props
+                                                                    .statusPage
+                                                                    .links.error
+                                                            }
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton btn__modal"
-                                        onClick={e => {
-                                            e.preventDefault();
-                                            this.props.closeModal({
-                                                id: this.props
-                                                    .createFooterLinkModalId,
-                                            });
-                                        }}
-                                        type="button"
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        id="createFooter"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                        disabled={
-                                            this.props.statusPage.links
-                                                .requesting
-                                        }
-                                        type="submit"
-                                    >
-                                        {this.props.statusPage.links &&
-                                            !this.props.statusPage.links
-                                                .requesting && (
-                                                <>
-                                                    <span>
-                                                        {data && data.footerName
-                                                            ? 'Update'
-                                                            : 'Add'}
-                                                    </span>
-                                                    <span className="create-btn__keycode">
-                                                        <span className="keycode__icon keycode__icon--enter" />
-                                                    </span>
-                                                </>
-                                            )}
-                                        {this.props.statusPage.links &&
-                                            this.props.statusPage.links
-                                                .requesting && <FormLoader />}
-                                    </button>
+                                        </ShouldRender>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
+                                            onClick={e => {
+                                                e.preventDefault();
+                                                this.props.closeModal({
+                                                    id: this.props
+                                                        .createFooterLinkModalId,
+                                                });
+                                            }}
+                                            type="button"
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            id="createFooter"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            disabled={
+                                                this.props.statusPage.links
+                                                    .requesting
+                                            }
+                                            type="submit"
+                                        >
+                                            {this.props.statusPage.links &&
+                                                !this.props.statusPage.links
+                                                    .requesting && (
+                                                    <>
+                                                        <span>
+                                                            {data &&
+                                                            data.footerName
+                                                                ? 'Update'
+                                                                : 'Add'}
+                                                        </span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
+                                                )}
+                                            {this.props.statusPage.links &&
+                                                this.props.statusPage.links
+                                                    .requesting && (
+                                                    <FormLoader />
+                                                )}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

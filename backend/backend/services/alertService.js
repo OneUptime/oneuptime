@@ -1123,12 +1123,24 @@ module.exports = {
                 // numSegments is the number of segments the sms will be divided into
                 // numSegments is provided by twilio
                 const segments = Number(sendResult.numSegments);
+                console.log(
+                    '****** segments from twilio 2 *********',
+                    segments
+                );
+                console.log(
+                    '******** send result from twilio 2 **********',
+                    sendResult
+                );
                 const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                     user._id,
                     project,
                     AlertType.SMS,
                     user.alertPhoneNumber,
                     segments
+                );
+                console.log(
+                    '******* balance status 2 *********',
+                    balanceStatus
                 );
 
                 if (!balanceStatus.error) {
@@ -2031,6 +2043,21 @@ module.exports = {
                 }
             }
 
+            const monitorCustomFields = {},
+                incidentCustomFields = {};
+            monitor.customFields.forEach(
+                field =>
+                    (monitorCustomFields[field.fieldName] = field.fieldValue)
+            );
+            incident.customFields.forEach(
+                field =>
+                    (incidentCustomFields[field.fieldName] = field.fieldValue)
+            );
+            const customFields = {
+                monitor: { customFields: monitorCustomFields },
+                incident: { customFields: incidentCustomFields },
+            };
+
             let webhookNotificationSent = true;
 
             if (subscriber.alertVia === AlertType.Webhook) {
@@ -2193,7 +2220,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
 
                                 alertStatus = 'Sent';
@@ -2210,7 +2238,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
 
                                 alertStatus = 'Sent';
@@ -2235,7 +2264,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2251,7 +2281,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -2273,7 +2304,8 @@ module.exports = {
                             component.name,
                             note,
                             statusUrl,
-                            statusNoteStatus
+                            statusNoteStatus,
+                            customFields
                         );
                         alertStatus = 'Sent';
                     } else {
@@ -2291,7 +2323,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2307,7 +2340,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -2488,7 +2522,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             } else {
@@ -2501,7 +2536,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             }
@@ -2522,7 +2558,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             } else {
@@ -2535,7 +2572,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             }
@@ -2554,7 +2592,8 @@ module.exports = {
                             project.name,
                             incident.projectId,
                             component.name,
-                            statusUrl
+                            statusUrl,
+                            customFields
                         );
                         alertStatus = 'Success';
                     } else {
@@ -2569,7 +2608,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             } else {
@@ -2582,7 +2622,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             }
@@ -2620,12 +2661,24 @@ module.exports = {
                             // numSegments is the number of segments an sms can be divided into
                             // numSegments is provided by twilio
                             const segments = Number(sendResult.numSegments);
+                            console.log(
+                                '****** segments from twilio 1 *********',
+                                segments
+                            );
+                            console.log(
+                                '******** send result from twilio 1 **********',
+                                sendResult
+                            );
                             const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                                 owner.userId,
                                 project,
                                 AlertType.SMS,
                                 contactPhone,
                                 segments
+                            );
+                            console.log(
+                                '********* balance status 1 ***********',
+                                balanceStatus
                             );
 
                             if (!balanceStatus.error) {

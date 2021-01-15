@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Field, reduxForm, formValueSelector } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 import {
     createSubscriberRequest,
     createSubscriberError,
@@ -122,88 +123,28 @@ class CreateSubscriber extends Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--medium">
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Add New Subscriber</span>
-                                </span>
+                        <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>Add New Subscriber</span>
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                        <form onSubmit={handleSubmit(this.submitForm)}>
-                            <div className="bs-Modal-content bs-u-paddingless">
-                                <div className="bs-Modal-block bs-u-paddingless">
-                                    <div className="bs-Modal-content">
-                                        <span className="bs-Fieldset">
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
-                                                    Alert Via
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <Field
-                                                        className="db-select-nw"
-                                                        component={RenderSelect}
-                                                        name="alertVia"
-                                                        id="alertViaId"
-                                                        required="required"
-                                                        options={[
-                                                            {
-                                                                value: '',
-                                                                label:
-                                                                    'Select an alert method',
-                                                            },
-                                                            {
-                                                                value: 'sms',
-                                                                label: 'SMS',
-                                                            },
-                                                            {
-                                                                value: 'email',
-                                                                label: 'Email',
-                                                            },
-                                                            {
-                                                                value:
-                                                                    'webhook',
-                                                                label:
-                                                                    'Webhook',
-                                                            },
-                                                        ]}
-                                                        autoFocus={true}
-                                                    />
-                                                </div>
-                                            </div>
-                                            {this.props.type === 'webhook' && (
+                            <form onSubmit={handleSubmit(this.submitForm)}>
+                                <div className="bs-Modal-content bs-u-paddingless">
+                                    <div className="bs-Modal-block bs-u-paddingless">
+                                        <div className="bs-Modal-content">
+                                            <span className="bs-Fieldset">
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
-                                                        URL
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            type="url"
-                                                            name="endpoint"
-                                                            id="endpointId"
-                                                            placeholder="https://mywebsite.com"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <ShouldRender
-                                                if={
-                                                    this.props.type ===
-                                                    'webhook'
-                                                }
-                                            >
-                                                <div className="bs-Fieldset-row Margin-bottom--8">
-                                                    <label className="bs-Fieldset-label">
-                                                        Http Method
+                                                        Alert Via
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
@@ -211,40 +152,171 @@ class CreateSubscriber extends Component {
                                                             component={
                                                                 RenderSelect
                                                             }
-                                                            name="webhookMethod"
-                                                            id="webhookMethod"
+                                                            name="alertVia"
+                                                            id="alertViaId"
                                                             required="required"
                                                             options={[
                                                                 {
                                                                     value: '',
                                                                     label:
-                                                                        'Select http method',
+                                                                        'Select an alert method',
                                                                 },
                                                                 {
                                                                     value:
-                                                                        'get',
+                                                                        'sms',
                                                                     label:
-                                                                        'GET',
+                                                                        'SMS',
                                                                 },
                                                                 {
                                                                     value:
-                                                                        'post',
+                                                                        'email',
                                                                     label:
-                                                                        'POST',
+                                                                        'Email',
+                                                                },
+                                                                {
+                                                                    value:
+                                                                        'webhook',
+                                                                    label:
+                                                                        'Webhook',
                                                                 },
                                                             ]}
                                                             autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
-                                            </ShouldRender>
-                                            {(this.props.type === 'email' ||
-                                                this.props.type ===
-                                                    'webhook') && (
-                                                <>
+                                                {this.props.type ===
+                                                    'webhook' && (
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
-                                                            Email
+                                                            URL
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="url"
+                                                                name="endpoint"
+                                                                id="endpointId"
+                                                                placeholder="https://mywebsite.com"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <ShouldRender
+                                                    if={
+                                                        this.props.type ===
+                                                        'webhook'
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row Margin-bottom--8">
+                                                        <label className="bs-Fieldset-label">
+                                                            Http Method
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="webhookMethod"
+                                                                id="webhookMethod"
+                                                                required="required"
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select http method',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'get',
+                                                                        label:
+                                                                            'GET',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'post',
+                                                                        label:
+                                                                            'POST',
+                                                                    },
+                                                                ]}
+                                                                autoFocus={true}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                {(this.props.type === 'email' ||
+                                                    this.props.type ===
+                                                        'webhook') && (
+                                                    <>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">
+                                                                Email
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    type="text"
+                                                                    name="email"
+                                                                    id="emailId"
+                                                                    placeholder="user@mail.com"
+                                                                    required="required"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <ShouldRender
+                                                            if={
+                                                                this.props
+                                                                    .type ===
+                                                                'webhook'
+                                                            }
+                                                        >
+                                                            <div className="bs-Fieldset-row bs-Fieldset-fields--desc">
+                                                                <label className="bs-Fieldset-label" />
+                                                                <div className="bs-Fieldset-fields">
+                                                                    We notify
+                                                                    you on this
+                                                                    email when
+                                                                    this wehbook
+                                                                    stops
+                                                                    working
+                                                                </div>
+                                                            </div>
+                                                        </ShouldRender>
+                                                    </>
+                                                )}
+                                                {this.props.type === 'sms' && (
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Country Code
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="countryCode"
+                                                                id="countryCodeId"
+                                                                required="required"
+                                                                options={
+                                                                    countryCodes
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {this.props.type === 'sms' && (
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Contact Number
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
@@ -253,143 +325,92 @@ class CreateSubscriber extends Component {
                                                                     RenderField
                                                                 }
                                                                 type="text"
-                                                                name="email"
-                                                                id="emailId"
-                                                                placeholder="user@mail.com"
+                                                                name="contactPhone"
+                                                                id="contactPhoneId"
+                                                                placeholder="6505551234"
                                                                 required="required"
                                                             />
                                                         </div>
                                                     </div>
-
-                                                    <ShouldRender
-                                                        if={
-                                                            this.props.type ===
-                                                            'webhook'
-                                                        }
-                                                    >
-                                                        <div className="bs-Fieldset-row bs-Fieldset-fields--desc">
-                                                            <label className="bs-Fieldset-label" />
-                                                            <div className="bs-Fieldset-fields">
-                                                                We notify you on
-                                                                this email when
-                                                                this wehbook
-                                                                stops working
-                                                            </div>
-                                                        </div>
-                                                    </ShouldRender>
-                                                </>
-                                            )}
-                                            {this.props.type === 'sms' && (
-                                                <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">
-                                                        Country Code
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-select-nw"
-                                                            component={
-                                                                RenderSelect
-                                                            }
-                                                            name="countryCode"
-                                                            id="countryCodeId"
-                                                            required="required"
-                                                            options={
-                                                                countryCodes
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {this.props.type === 'sms' && (
-                                                <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">
-                                                        Contact Number
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            type="text"
-                                                            name="contactPhone"
-                                                            id="contactPhoneId"
-                                                            placeholder="6505551234"
-                                                            required="required"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </span>
+                                                )}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions Flex-flex--1">
-                                    <ShouldRender
-                                        if={
-                                            this.props.newSubscriber &&
-                                            this.props.newSubscriber.error
-                                        }
-                                    >
-                                        <div className="bs-Tail-copy Flex-flex--1">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {
-                                                            this.props
-                                                                .newSubscriber
-                                                                .error
-                                                        }
-                                                    </span>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions Flex-flex--1">
+                                        <ShouldRender
+                                            if={
+                                                this.props.newSubscriber &&
+                                                this.props.newSubscriber.error
+                                            }
+                                        >
+                                            <div className="bs-Tail-copy Flex-flex--1">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {
+                                                                this.props
+                                                                    .newSubscriber
+                                                                    .error
+                                                            }
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton btn__modal"
-                                        type="button"
-                                        onClick={closeThisDialog}
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                        disabled={
-                                            this.props.newSubscriber &&
-                                            this.props.newSubscriber.requesting
-                                        }
-                                        type="submit"
-                                        id="createSubscriber"
-                                    >
-                                        {this.props.newSubscriber &&
-                                            !this.props.newSubscriber
-                                                .requesting && (
-                                                <>
-                                                    <span>Create</span>
-                                                    <span className="create-btn__keycode">
-                                                        <span className="keycode__icon keycode__icon--enter" />
-                                                    </span>
-                                                </>
-                                            )}
-                                        {this.props.newSubscriber &&
-                                            this.props.newSubscriber
-                                                .requesting && <FormLoader />}
-                                    </button>
+                                        </ShouldRender>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
+                                            type="button"
+                                            onClick={closeThisDialog}
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            disabled={
+                                                this.props.newSubscriber &&
+                                                this.props.newSubscriber
+                                                    .requesting
+                                            }
+                                            type="submit"
+                                            id="createSubscriber"
+                                        >
+                                            {this.props.newSubscriber &&
+                                                !this.props.newSubscriber
+                                                    .requesting && (
+                                                    <>
+                                                        <span>Create</span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
+                                                )}
+                                            {this.props.newSubscriber &&
+                                                this.props.newSubscriber
+                                                    .requesting && (
+                                                    <FormLoader />
+                                                )}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

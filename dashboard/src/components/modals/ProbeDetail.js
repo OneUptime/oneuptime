@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { PropTypes } from 'prop-types';
 import moment from 'moment';
+import ClickOutside from 'react-click-outside';
 import ProbeStatus from '../probe/ProbeStatus';
 import ShouldRender from '../basic/ShouldRender';
 import { IS_SAAS_SERVICE } from '../../config';
@@ -15,16 +16,19 @@ class ProbeDetail extends Component {
     }
 
     handleKeyBoard = e => {
-        const { ProbeDetailModalId, closeModal } = this.props.data;
         switch (e.key) {
             case 'Escape':
             case 'Enter':
-                return closeModal({
-                    id: ProbeDetailModalId,
-                });
+                return this.handleCloseModal();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.data.closeModal({
+            id: this.props.data.ProbeDetailModalId,
+        });
     };
 
     render() {
@@ -46,102 +50,106 @@ class ProbeDetail extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Probe Details</span>
+                            <ClickOutside
+                                onClickOutside={this.handleCloseModal}
+                            >
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Probe Details</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <span
+                                        id="message-modal-message"
+                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                    >
+                                        <div className="Flex-flex Flex-direction--row">
+                                            <span className="Flex-flex--1">
+                                                Probe Name:{' '}
+                                            </span>
+                                            <span className="Flex-flex--3">
+                                                {probesData.probeName}
+                                            </span>
+                                        </div>
+                                        <div className="Flex-flex Flex-direction--row">
+                                            <span className="Flex-flex--1">
+                                                Last Active:{' '}
+                                            </span>
+                                            <span className="Flex-flex--3">
+                                                {probesData.lastAlive
+                                                    ? moment(
+                                                          probesData.lastAlive
+                                                      ).format(
+                                                          'dddd, MMMM Do YYYY, h:mm a'
+                                                      )
+                                                    : ''}
+                                            </span>
+                                        </div>
+                                        <div className="Flex-flex Flex-direction--row">
+                                            <span className="Flex-flex--1">
+                                                Status:
+                                            </span>
+                                            <span className="Flex-flex--3">
+                                                <ProbeStatus
+                                                    lastAlive={
+                                                        probesData &&
+                                                        probesData.lastAlive
+                                                    }
+                                                />
+                                            </span>
+                                        </div>
+                                        <ShouldRender
+                                            if={IS_SAAS_SERVICE && isOffline}
+                                        >
+                                            <div className="Padding-top--16">
+                                                <span>
+                                                    Probe is currently offline,
+                                                    please contact your
+                                                    administrator for more info.
+                                                </span>
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={!IS_SAAS_SERVICE && isOffline}
+                                        >
+                                            <div className="Padding-top--16">
+                                                <span>
+                                                    Probe is currently offline,
+                                                    please contact{' '}
+                                                    <span className="Text-fontWeight--medium underline">
+                                                        <a href="mailto: support@fyipe.com">
+                                                            support@fyipe.com
+                                                        </a>
+                                                    </span>{' '}
+                                                    for more info.
+                                                </span>
+                                            </div>
+                                        </ShouldRender>
                                     </span>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <span
-                                    id="message-modal-message"
-                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                >
-                                    <div className="Flex-flex Flex-direction--row">
-                                        <span className="Flex-flex--1">
-                                            Probe Name:{' '}
-                                        </span>
-                                        <span className="Flex-flex--3">
-                                            {probesData.probeName}
-                                        </span>
-                                    </div>
-                                    <div className="Flex-flex Flex-direction--row">
-                                        <span className="Flex-flex--1">
-                                            Last Active:{' '}
-                                        </span>
-                                        <span className="Flex-flex--3">
-                                            {probesData.lastAlive
-                                                ? moment(
-                                                      probesData.lastAlive
-                                                  ).format(
-                                                      'dddd, MMMM Do YYYY, h:mm a'
-                                                  )
-                                                : ''}
-                                        </span>
-                                    </div>
-                                    <div className="Flex-flex Flex-direction--row">
-                                        <span className="Flex-flex--1">
-                                            Status:
-                                        </span>
-                                        <span className="Flex-flex--3">
-                                            <ProbeStatus
-                                                lastAlive={
-                                                    probesData &&
-                                                    probesData.lastAlive
-                                                }
-                                            />
-                                        </span>
-                                    </div>
-                                    <ShouldRender
-                                        if={IS_SAAS_SERVICE && isOffline}
-                                    >
-                                        <div className="Padding-top--16">
-                                            <span>
-                                                Probe is currently offline,
-                                                please contact your
-                                                administrator for more info.
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--white btn__modal"
+                                            type="button"
+                                            id="modal-ok"
+                                            onClick={() =>
+                                                closeModal({
+                                                    id: ProbeDetailModalId,
+                                                })
+                                            }
+                                            autoFocus={true}
+                                        >
+                                            <span>OK</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
                                             </span>
-                                        </div>
-                                    </ShouldRender>
-                                    <ShouldRender
-                                        if={!IS_SAAS_SERVICE && isOffline}
-                                    >
-                                        <div className="Padding-top--16">
-                                            <span>
-                                                Probe is currently offline,
-                                                please contact{' '}
-                                                <span className="Text-fontWeight--medium underline">
-                                                    <a href="mailto: support@fyipe.com">
-                                                        support@fyipe.com
-                                                    </a>
-                                                </span>{' '}
-                                                for more info.
-                                            </span>
-                                        </div>
-                                    </ShouldRender>
-                                </span>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--white btn__modal"
-                                        type="button"
-                                        id="modal-ok"
-                                        onClick={() =>
-                                            closeModal({
-                                                id: ProbeDetailModalId,
-                                            })
-                                        }
-                                        autoFocus={true}
-                                    >
-                                        <span>OK</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>
