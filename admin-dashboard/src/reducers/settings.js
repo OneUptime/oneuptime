@@ -18,6 +18,7 @@ const INITIAL_STATE = {
     twilio: {},
     sso: {},
     error: null,
+    testSuccess: false,
 };
 
 export default function profileSettings(state = INITIAL_STATE, action) {
@@ -67,6 +68,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 errored: false,
                 testing: false,
                 error: null,
+                testSuccess: true,
             };
 
         case TEST_SMTP_FAILURE:
@@ -76,6 +78,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 errored: true,
                 testing: false,
                 error: action.payload,
+                testSuccess: false,
             };
 
         default:

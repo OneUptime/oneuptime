@@ -7,6 +7,8 @@ module.exports = [
             '{{incidentType}} : Type of incident. Online, offline or degraded.',
             '{{componentName}} : Name of the component the monitor belongs to',
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+            '{{incident.customFields.*}} : The value of any incident custom field',
+            '{{monitor.customFields.*}} : The value of any monitor custom field',
         ],
         smsType: 'Subscriber Incident Created',
         body:
@@ -20,6 +22,8 @@ module.exports = [
             '{{incidentType}} : Type of incident. Online, offline or degraded.',
             '{{componentName}} : Name of the component the monitor belongs to',
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+            '{{incident.customFields.*}} : The value of any incident custom field',
+            '{{monitor.customFields.*}} : The value of any monitor custom field',
         ],
         smsType: 'Subscriber Incident Acknowldeged',
         body:
@@ -33,6 +37,8 @@ module.exports = [
             '{{incidentType}} : Type of incident. Online, offline or degraded.',
             '{{componentName}} : Name of the component the monitor belongs to',
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+            '{{incident.customFields.*}} : The value of any incident custom field',
+            '{{monitor.customFields.*}} : The value of any monitor custom field',
         ],
         smsType: 'Subscriber Incident Resolved',
         body:
@@ -46,6 +52,8 @@ module.exports = [
             '{{incidentType}} : Type of incident. Online, offline or degraded.',
             '{{componentName}} : Name of the component the monitor belongs to',
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+            '{{incident.customFields.*}} : The value of any incident custom field',
+            '{{monitor.customFields.*}} : The value of any monitor custom field',
         ],
         smsType: 'Investigation note is created',
         body:

@@ -2612,18 +2612,24 @@ describe('Email Incident Alerts', function() {
         });
         expect(onCallAlerts).to.have.status(200);
         expect(onCallAlerts.body).to.an('object');
-        expect(onCallAlerts.body.count).to.equal(1);
+        expect(onCallAlerts.body.count).to.equal(2);
         expect(onCallAlerts.body.data).to.an('array');
-        expect(onCallAlerts.body.data.length).to.equal(1);
+        expect(onCallAlerts.body.data.length).to.equal(2);
 
-        const onCallAlert = onCallAlerts.body.data[0];
-        const { alertVia, alertStatus, error, errorMessage } = onCallAlert;
-        expect(alertVia).to.equal('email');
-        expect(alertStatus).to.equal(null);
-        expect(error).to.equal(true);
-        expect(errorMessage).equal(
-            'SMTP Settings not found on Admin Dashboard'
-        );
+        const eventTypesSentToTeamMembers = [];
+        for(let onCallAlert of onCallAlerts.body.data){
+            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+            eventTypesSentToTeamMembers.push(eventType);
+            expect(alertVia).to.equal('email');
+            expect(alertStatus).to.equal(null);
+            expect(error).to.equal(true);
+            expect(errorMessage).equal(
+                'SMTP Settings not found on Admin Dashboard'
+            );
+        }
+
+        expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
     });
 
     /**
@@ -2705,15 +2711,22 @@ describe('Email Incident Alerts', function() {
         });
         expect(onCallAlerts).to.have.status(200);
         expect(onCallAlerts.body).to.an('object');
-        expect(onCallAlerts.body.count).to.equal(1);
+        expect(onCallAlerts.body.count).to.equal(2);
         expect(onCallAlerts.body.data).to.an('array');
-        expect(onCallAlerts.body.data.length).to.equal(1);
-        const onCallAlert = onCallAlerts.body.data[0];
-        const { alertVia, alertStatus, error, errorMessage } = onCallAlert;
-        expect(alertVia).to.equal('email');
-        expect(alertStatus).to.equal(null);
-        expect(error).to.equal(true);
-        expect(errorMessage).equal('Alert Disabled on Admin Dashboard');
+        expect(onCallAlerts.body.data.length).to.equal(2);
+
+        const eventTypesSentToTeamMembers = [];
+        for(let onCallAlert of onCallAlerts.body.data){
+            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+            eventTypesSentToTeamMembers.push(eventType);
+            expect(alertVia).to.equal('email');
+            expect(alertStatus).to.equal(null);
+            expect(error).to.equal(true);
+            expect(errorMessage).equal('Alert Disabled on Admin Dashboard');    
+        }
+
+        expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
     });
 
@@ -2789,14 +2802,22 @@ describe('Email Incident Alerts', function() {
         });
         expect(onCallAlerts).to.have.status(200);
         expect(onCallAlerts.body).to.an('object');
-        expect(onCallAlerts.body.count).to.equal(1);
+        expect(onCallAlerts.body.count).to.equal(2);
         expect(onCallAlerts.body.data).to.an('array');
-        expect(onCallAlerts.body.data.length).to.equal(1);
-        const onCallAlert = onCallAlerts.body.data[0];
-        const { alertVia, alertStatus, error } = onCallAlert;
-        expect(alertVia).to.equal('email');
-        expect(alertStatus).to.equal('Success');
-        expect(error).to.equal(false);
+        expect(onCallAlerts.body.data.length).to.equal(2);
+
+        const eventTypesSentToTeamMembers = [];
+        for(let onCallAlert of onCallAlerts.body.data){
+            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+            eventTypesSentToTeamMembers.push(eventType);
+            expect(alertVia).to.equal('email');
+            expect(alertStatus).to.equal('Success');
+            expect(error).to.equal(false);
+            expect(errorMessage).to.be.undefined;
+        }
+
+        expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
     });
 
@@ -2979,14 +3000,22 @@ describe('Email Incident Alerts', function() {
         });
         expect(onCallAlerts).to.have.status(200);
         expect(onCallAlerts.body).to.an('object');
-        expect(onCallAlerts.body.count).to.equal(1);
+        expect(onCallAlerts.body.count).to.equal(2);
         expect(onCallAlerts.body.data).to.an('array');
-        expect(onCallAlerts.body.data.length).to.equal(1);
-        const onCallAlert = onCallAlerts.body.data[0];
-        const { alertVia, alertStatus, error } = onCallAlert;
-        expect(alertVia).to.equal('email');
-        expect(alertStatus).to.equal('Success');
-        expect(error).to.equal(false);
+        expect(onCallAlerts.body.data.length).to.equal(2);
+
+        const eventTypesSentToTeamMembers = [];
+        for(let onCallAlert of onCallAlerts.body.data){
+            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+            eventTypesSentToTeamMembers.push(eventType);
+            expect(alertVia).to.equal('email');
+            expect(alertStatus).to.equal('Success');
+            expect(error).to.equal(false);
+            expect(errorMessage).to.be.undefined;
+        }
+
+        expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
         await EmailSmtpService.hardDeleteBy({ projectId });
     });
@@ -3061,14 +3090,22 @@ describe('Email Incident Alerts', function() {
         });
         expect(onCallAlerts).to.have.status(200);
         expect(onCallAlerts.body).to.an('object');
-        expect(onCallAlerts.body.count).to.equal(1);
+        expect(onCallAlerts.body.count).to.equal(2);
         expect(onCallAlerts.body.data).to.an('array');
-        expect(onCallAlerts.body.data.length).to.equal(1);
-        const onCallAlert = onCallAlerts.body.data[0];
-        const { alertVia, alertStatus, error } = onCallAlert;
-        expect(alertVia).to.equal('email');
-        expect(alertStatus).to.equal('Success');
-        expect(error).to.equal(false);
+        expect(onCallAlerts.body.data.length).to.equal(2);
+
+        const eventTypesSentToTeamMembers = [];
+        for(let onCallAlert of onCallAlerts.body.data){
+            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+            eventTypesSentToTeamMembers.push(eventType);
+            expect(alertVia).to.equal('email');
+            expect(alertStatus).to.equal('Success');
+            expect(error).to.equal(false);
+            expect(errorMessage).to.be.undefined;
+        }
+
+        expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
         await EmailSmtpService.hardDeleteBy({ projectId });
     });
 });

@@ -30,7 +30,7 @@ class IncomingRequestButton extends React.Component {
                         <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                     </div>
                     <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                        <span>Add Incoming Request</span>
+                        <span>Add Incoming HTTP Request</span>
                     </span>
                 </div>
             </button>

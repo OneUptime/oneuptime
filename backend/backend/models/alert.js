@@ -14,11 +14,7 @@ const alertSchema = new Schema({
     alertStatus: String,
     eventType: {
         type: String,
-        enum: [
-            'identified',
-            'acknowledged',
-            'resolved'
-        ],
+        enum: ['identified', 'acknowledged', 'resolved'],
         required: true,
     },
     monitorId: { type: String, ref: 'Monitor' },
