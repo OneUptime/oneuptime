@@ -8,6 +8,7 @@ const express = require('express');
 const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
 const ProjectService = require('../services/projectService');
+const LighthouseLogService = require('../services/lighthouseLogService');
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const ContainerSecurityService = require('../services/containerSecurityService');
 const router = express.Router();
@@ -246,7 +247,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             }
             if (type === 'server-monitor') {
                 data = serverData;
-
                 const {
                     stat: validUp,
                     reasons: upFailedReasons,
@@ -325,14 +325,19 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
             data.monitorId = req.params.monitorId || monitor._id;
             data.probeId = req.probe && req.probe.id ? req.probe.id : null;
-
             if (data.lighthouseScanStatus) {
                 if (data.lighthouseScanStatus === 'scanning') {
                     await MonitorService.updateOneBy(
                         { _id: data.monitorId },
                         {
                             lighthouseScanStatus: data.lighthouseScanStatus,
-                        }
+                        },
+                        { fetchLightHouse: true }
+                    );
+                    await LighthouseLogService.updateAllLighthouseLogs(
+                        data.monitor.projectId,
+                        data.monitorId,
+                        { scanning: true }
                     );
                 } else {
                     await MonitorService.updateOneBy(
@@ -346,6 +351,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }
             } else {
                 if (data.lighthouseData) {
+                    data.scanning = false;
                     log = await ProbeService.saveLighthouseLog(data);
                 } else {
                     log = await ProbeService.saveMonitorLog(data);

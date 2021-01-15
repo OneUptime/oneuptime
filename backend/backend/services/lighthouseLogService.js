@@ -12,6 +12,7 @@ module.exports = {
             Log.bestPractices = data.bestPractices;
             Log.seo = data.seo;
             Log.pwa = data.pwa;
+            Log.scanning = data.scanning;
 
             const savedLog = await Log.save();
 
@@ -44,6 +45,26 @@ module.exports = {
             return lighthouseLog;
         } catch (error) {
             ErrorService.log('lighthouseLogService.updateOneBy', error);
+            throw error;
+        }
+    },
+    updateManyBy: async function(query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            const lighthouseLog = await LighthouseLogModel.updateMany(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
+
+            return lighthouseLog;
+        } catch (error) {
+            ErrorService.log('lighthouseLogService.updateManyBy', error);
             throw error;
         }
     },
@@ -180,6 +201,27 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('lighthouseLogService.sendLighthouseLog', error);
+            throw error;
+        }
+    },
+    async updateAllLighthouseLogs(projectId, monitorId, query) {
+        try {
+            await this.updateManyBy({ monitorId: monitorId }, query);
+            const logs = await this.findLastestScan({
+                monitorId,
+                url: null,
+                limit: 5,
+                skip: 0,
+            });
+            await RealTimeService.updateAllLighthouseLog(projectId, {
+                monitorId,
+                logs,
+            });
+        } catch (error) {
+            ErrorService.log(
+                'lighthouseLogService.updateAllLighthouseLog',
+                error
+            );
             throw error;
         }
     },
