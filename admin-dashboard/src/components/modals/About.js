@@ -33,9 +33,10 @@ class About extends Component {
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
+                     <ClickOutside onClickOutside={closeThisDialog}>
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <ClickOutside onClickOutside={closeThisDialog}>
+                           
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -215,6 +216,7 @@ class About extends Component {
                                                                 }
                                                             </strong>
                                                         ) : null}
+                                                        </a>
                                                     </span>
                                                 </td>
                                             </tr>
@@ -412,11 +414,13 @@ class About extends Component {
                                         </button>
                                     </div>
                                 </div>
-                            </ClickOutside>
+                            
                         </div>
+                        </ClickOutside>
                     </div>
+                    
                 </div>
-            </div>
+           
         );
     }
 }
