@@ -1154,6 +1154,11 @@ export default function incident(state = initialState, action) {
                         },
                     },
                 },
+                internalNotes: {
+                    ...state.internalNotes,
+                    edit: { requesting: false, success: true, error: null },
+                    create: { requesting: false, success: true, error: null }
+                },
             });
         case types.FETCH_INCIDENT_MESSAGES_FAILURE:
             failureIncidentMessage = {
