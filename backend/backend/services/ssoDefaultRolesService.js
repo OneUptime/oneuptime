@@ -13,7 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const ssos = await ssoDefaultRoles
+            const ssos = await ssoDefaultRolesModel
                 .find(query, {
                     _id: 1,
                     project: 1,
@@ -39,7 +39,7 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            const sso = await ssoDefaultRoles.findOneAndUpdate(
+            const sso = await ssoDefaultRolesModel.findOneAndUpdate(
                 query,
                 { $set: { deleted: true, deletedAt: Date.now() } },
                 { new: true }
@@ -52,7 +52,7 @@ module.exports = {
     },
 
     create: async function(data) {
-        const ssoDefaultRole = new ssoDefaultRoles();
+        const ssoDefaultRole = new ssoDefaultRolesModel();
 
         if (!data.domain) {
             const error = new Error('Domain must be defined.');
@@ -95,6 +95,17 @@ module.exports = {
             throw error;
         }
 
+        const {domain,project,role} = data;
+        const query = { domain, project, role };
+        const search = await this.findBy(query);
+
+        if ( search.length) {
+            const error = new Error('Record already exists.');
+            error.code = 400;
+            ErrorService.log('ssoDefaultRolesService.create', error);
+            throw error;
+        }
+
         ssoDefaultRole.domain = data.domain;
         ssoDefaultRole.project = data.project;
         ssoDefaultRole.role = data.role;
@@ -117,7 +128,7 @@ module.exports = {
             if (!query.deleted) {
                 query.deleted = false;
             }
-            const sso = await ssoDefaultRoles
+            const sso = await ssoDefaultRolesModel
                 .findOne(query)
                 .populate('domain', ['_id', 'domain'])
                 .populate('project', ['_id', 'name']);
@@ -138,7 +149,7 @@ module.exports = {
             }
             query.deleted = false;
 
-            await ssoDefaultRoles.updateMany(query, {
+            await ssoDefaultRolesModel.updateMany(query, {
                 $set: data,
             });
             const sso = await this.findBy(query);
@@ -156,13 +167,13 @@ module.exports = {
 
         if (!query.deleted) query.deleted = false;
 
-        const count = await ssoDefaultRoles.countDocuments(query);
+        const count = await ssoDefaultRolesModel.countDocuments(query);
         return count;
     },
 
     hardDeleteBy: async function(query) {
         try {
-            await ssoDefaultRoles.deleteMany(query);
+            await ssoDefaultRolesModel.deleteMany(query);
             return 'SSO(s) removed successfully!';
         } catch (error) {
             ErrorService.log('ssoDefaultRolesService.hardDeleteBy', error);
@@ -171,6 +182,6 @@ module.exports = {
     },
 };
 
-const ssoDefaultRoles = require('../models/ssoDefaultRoles');
+const ssoDefaultRolesModel = require('../models/ssoDefaultRoles');
 const mongoose = require('mongoose');
 const ErrorService = require('./errorService');
