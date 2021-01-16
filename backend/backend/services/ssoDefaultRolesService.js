@@ -95,12 +95,12 @@ module.exports = {
             throw error;
         }
 
-        const {domain,project,role} = data;
-        const query = { domain, project, role };
+        const { domain, project } = data;
+        const query = { domain, project };
         const search = await this.findBy(query);
 
         if ( search.length) {
-            const error = new Error('Record already exists.');
+            const error = new Error('Domain has a default role.');
             error.code = 400;
             ErrorService.log('ssoDefaultRolesService.create', error);
             throw error;
@@ -190,14 +190,14 @@ module.exports = {
                 throw error;
             }
     
-            const {domain,project,role} = data;
-            const searchQuery = { domain, project, role };
+            const { domain, project } = data;
+            const searchQuery = { domain, project };
             const search = await this.findBy(searchQuery);
     
             if ( search.length) {
-                const error = new Error('Record already exists.');
+                const error = new Error('Domain has a default role.');
                 error.code = 400;
-                ErrorService.log('ssoDefaultRolesService.create', error);
+                ErrorService.log('ssoDefaultRolesService.updateBy', error);
                 throw error;
             }
         
