@@ -140,7 +140,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
                     requesting: true,
                     success: false,
                     error: null,
-                    ssoDefaultRole:{},
+                    ssoDefaultRole: {},
                 },
             });
         case FETCH_SSO_DEFAULT_ROLE_SUCCESS:
@@ -158,7 +158,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
-                    ssoDefaultRole:{},
+                    ssoDefaultRole: {},
                 },
             });
         case UPDATE_SSO_DEFAULT_ROLE_REQUEST:

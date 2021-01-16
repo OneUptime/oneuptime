@@ -10,7 +10,7 @@ const BoxFooter = ({
     <div className="bs-Tail bs-Tail--separated bs-Tail--short">
         <div className="bs-Tail-copy">
             <span>
-                {recordsCount} record 
+                {recordsCount} record
                 {recordsCount !== 1 && 's'}
             </span>
         </div>
@@ -20,8 +20,7 @@ const BoxFooter = ({
                     <button
                         onClick={previousClicked}
                         className={
-                            'Button bs-ButtonLegacy'
-                            +
+                            'Button bs-ButtonLegacy' +
                             (canPrev ? '' : 'Is--disabled')
                         }
                         disabled={!canPrev}
@@ -39,8 +38,7 @@ const BoxFooter = ({
                     <button
                         onClick={nextClicked}
                         className={
-                            'Button bs-ButtonLegacy'
-                            +
+                            'Button bs-ButtonLegacy' +
                             (canNext ? '' : 'Is--disabled')
                         }
                         disabled={!canNext}

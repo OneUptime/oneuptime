@@ -99,7 +99,7 @@ module.exports = {
         const query = { domain, project };
         const search = await this.findBy(query);
 
-        if ( search.length) {
+        if (search.length) {
             const error = new Error('Domain has a default role.');
             error.code = 400;
             ErrorService.log('ssoDefaultRolesService.create', error);
@@ -161,7 +161,7 @@ module.exports = {
                 ErrorService.log('ssoDefaultRolesService.updateBy', error);
                 throw error;
             }
-    
+
             if (!data.project) {
                 const error = new Error('Project  must be defined.');
                 error.code = 400;
@@ -174,7 +174,7 @@ module.exports = {
                 ErrorService.log('ssoDefaultRolesService.updateBy', error);
                 throw error;
             }
-    
+
             if (!data.role) {
                 const error = new Error('Role must be defined.');
                 error.code = 400;
@@ -182,25 +182,27 @@ module.exports = {
                 throw error;
             }
             if (
-                !['Owner', 'Administrator', 'Member', 'Viewer'].includes(data.role)
+                !['Owner', 'Administrator', 'Member', 'Viewer'].includes(
+                    data.role
+                )
             ) {
                 const error = new Error('Invalid role.');
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateBy', error);
                 throw error;
             }
-    
+
             const { domain, project } = data;
             const searchQuery = { domain, project };
             const search = await this.findBy(searchQuery);
-    
-            if ( search.length) {
+
+            if (search.length) {
                 const error = new Error('Domain has a default role.');
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateBy', error);
                 throw error;
             }
-        
+
             await ssoDefaultRolesModel.updateMany(query, {
                 $set: data,
             });
