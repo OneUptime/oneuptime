@@ -30,7 +30,7 @@ export const fetchSsoDefaultRoles = (skip, limit) => async dispatch => {
         const response = await getApi(
             `ssoDefaultRoles/?skip=${skip}&limit=${limit}`
         );
-        dispatch(fetchSsoDefaultRolesSuccess(response.data));
+        return dispatch(fetchSsoDefaultRolesSuccess(response.data));
     } catch (error) {
         let errorMsg;
         if (error && error.response && error.response.data)
@@ -43,7 +43,7 @@ export const fetchSsoDefaultRoles = (skip, limit) => async dispatch => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(fetchSsoDefaultRolesError(errors(errorMsg)));
+        return dispatch(fetchSsoDefaultRolesError(errors(errorMsg)));
     }
 };
 

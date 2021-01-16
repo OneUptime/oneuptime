@@ -1,24 +1,30 @@
 import React from 'react';
 
-const BoxFooter = ({}) => (
+const BoxFooter = ({
+    recordsCount,
+    canPrev,
+    canNext,
+    previousClicked,
+    nextClicked,
+}) => (
     <div className="bs-Tail bs-Tail--separated bs-Tail--short">
         <div className="bs-Tail-copy">
             <span>
-                {/* {ssos.count} SSO
-        {ssos.count === 1 ? '' : 's'} */}
+                {recordsCount} record 
+                {recordsCount !== 1 && 's'}
             </span>
         </div>
         <div className="bs-Tail-actions">
             <div className="ButtonGroup Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                 <div className="Box-root Margin-right--8">
                     <button
-                        // onClick={this.previousClicked}
+                        onClick={previousClicked}
                         className={
                             'Button bs-ButtonLegacy'
-                            // +
-                            // (canPrev ? '' : 'Is--disabled')
+                            +
+                            (canPrev ? '' : 'Is--disabled')
                         }
-                        // disabled={!canPrev}
+                        disabled={!canPrev}
                         data-db-analytics-name="list_view.pagination.previous"
                         type="button"
                     >
@@ -31,13 +37,13 @@ const BoxFooter = ({}) => (
                 </div>
                 <div className="Box-root">
                     <button
-                        // onClick={this.nextClicked}
+                        onClick={nextClicked}
                         className={
                             'Button bs-ButtonLegacy'
-                            // +
-                            // (canNext ? '' : 'Is--disabled')
+                            +
+                            (canNext ? '' : 'Is--disabled')
                         }
-                        // disabled={!canNext}
+                        disabled={!canNext}
                         data-db-analytics-name="list_view.pagination.next"
                         type="button"
                     >
