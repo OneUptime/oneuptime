@@ -153,6 +153,7 @@ export const addSsoDefaultRole = ({ data }) => async dispatch => {
     try {
         await postApi(`ssoDefaultRoles/`, data);
         dispatch(addSsoDefaultRoleSuccess());
+        return true;
     } catch (error) {
         let errorMsg;
         if (error && error.response && error.response.data)
@@ -166,6 +167,7 @@ export const addSsoDefaultRole = ({ data }) => async dispatch => {
             errorMsg = 'Network Error';
         }
         dispatch(addSsoDefaultRoleError(errorMsg));
+        return false;
     }
 };
 

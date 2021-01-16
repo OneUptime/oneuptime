@@ -26,8 +26,8 @@ export const fetchProjectsError = error => {
 
 // Calls the API to fetch all projects.
 export const fetchProjects = (skip, limit) => async dispatch => {
-    skip = skip ? parseInt(skip) : 0;
-    limit = limit ? parseInt(limit) : 10;
+    skip = skip ?? 0;
+    limit = limit ?? 10;
 
     dispatch(fetchProjectsRequest());
 

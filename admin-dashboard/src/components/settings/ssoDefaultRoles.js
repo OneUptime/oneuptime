@@ -2,17 +2,21 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { fetchSsoDefaultRoles } from '../../actions/ssoDefaultRoles';
+import { fetchProjects } from '../../actions/project';
 import Button from './ssoDefaultRoles/Button';
 import BoxHeader from './ssoDefaultRoles/BoxHeader';
 import BoxFooter from './ssoDefaultRoles/BoxFooter';
 import Table from './ssoDefaultRoles/Table';
+import { openModal } from '../../actions/modal';
+import {CreateDefaultRoleModal} from './ssoDefaultRoles/DefaultRoleModal';
 
 class Box extends React.Component {
     componentDidMount() {
         this.props.fetchSsoDefaultRoles();
+        this.props.fetchProjects(0,0)
     }
     render() {
-        const { ssoDefaultRoles } = this.props;
+        const { ssoDefaultRoles, openModal } = this.props;
         return (
             <div
                 className="bs-ContentSection Card-root Card-shadow--medium"
@@ -26,6 +30,11 @@ class Box extends React.Component {
                             <Button
                                 text="Define new configurations"
                                 shortcut="M"
+                                onClick={()=>
+                                    openModal({  
+                                        content: CreateDefaultRoleModal,
+                                    })
+                                }
                             />,
                         ]}
                     />
@@ -46,6 +55,8 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             fetchSsoDefaultRoles,
+            fetchProjects,
+            openModal,
         },
         dispatch
     );
