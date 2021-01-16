@@ -1,12 +1,20 @@
 import React from 'react';
 import moment from 'moment';
-import { deleteSsoDefaultRole } from '../../../actions/ssoDefaultRoles';
+import { 
+    fetchSsoDefaultRole,
+    deleteSsoDefaultRole,
+} from '../../../actions/ssoDefaultRoles';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { openModal } from '../../../actions/modal';
 import RoleDeleteModal from './RoleDeleteModal';
+import {UpdateDefaultRoleModal} from './DefaultRoleModal';
 
-const TableRow = ({ data, deleteSsoDefaultRole, openModal }) => (
+const TableRow = ({ data,
+    fetchSsoDefaultRole,
+    deleteSsoDefaultRole,
+    openModal
+}) => (
     <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
@@ -69,22 +77,30 @@ const TableRow = ({ data, deleteSsoDefaultRole, openModal }) => (
             <div className="db-ListViewItem-link">
                 <button
                     className="bs-Button bs-Button--blue Box-background--blue edit-button"
-                    onClick={() => {}}
-                >
-                    Edit
-                </button>
-                <button
-                    className="bs-Button bs-Button--red Box-background--red delete-button"
                     onClick={() => {
+                        fetchSsoDefaultRole(data && data._id)
                         openModal({
                             onConfirm: async () => {
                                 return await deleteSsoDefaultRole(
                                     data && data._id
                                 );
                             },
-                            content: RoleDeleteModal,
-                        });
+                            content: UpdateDefaultRoleModal,
+                        })
                     }}
+                >
+                    Edit
+                </button>
+                <button
+                    className="bs-Button bs-Button--red Box-background--red delete-button"
+                    onClick={() => openModal({
+                        onConfirm: async () => {
+                            return await deleteSsoDefaultRole(
+                                data && data._id
+                            );
+                        },
+                        content: RoleDeleteModal,
+                    })}
                 >
                     Delete
                 </button>
@@ -108,6 +124,7 @@ export default connect(null, dispatch =>
     bindActionCreators(
         {
             openModal,
+            fetchSsoDefaultRole,
             deleteSsoDefaultRole,
         },
         dispatch

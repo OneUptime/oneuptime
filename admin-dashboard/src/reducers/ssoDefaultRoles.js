@@ -136,27 +136,29 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
             });
         case FETCH_SSO_DEFAULT_ROLE_REQUEST:
             return Object.assign({}, state, {
-                ssoDefaultRoles: {
+                ssoDefaultRole: {
                     requesting: true,
                     success: false,
                     error: null,
+                    ssoDefaultRole:{},
                 },
             });
         case FETCH_SSO_DEFAULT_ROLE_SUCCESS:
             return Object.assign({}, state, {
-                ssoDefaultRoles: {
+                ssoDefaultRole: {
                     requesting: false,
                     success: true,
                     error: null,
-                    ssoDefaultRoles: action.payload,
+                    ssoDefaultRole: action.payload,
                 },
             });
         case FETCH_SSO_DEFAULT_ROLE_FAILURE:
             return Object.assign({}, state, {
-                ssoDefaultRoles: {
+                ssoDefaultRole: {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                    ssoDefaultRole:{},
                 },
             });
         case UPDATE_SSO_DEFAULT_ROLE_REQUEST:

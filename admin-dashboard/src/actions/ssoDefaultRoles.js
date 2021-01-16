@@ -67,10 +67,10 @@ export const fetchSsoDefaultRoleError = payload => {
     };
 };
 
-export const fetchSsoDefaultRole = ssoId => async dispatch => {
+export const fetchSsoDefaultRole = ssoDefaultRoleId => async dispatch => {
     dispatch(fetchSsoDefaultRoleRequest());
     try {
-        const response = await getApi(`ssoDefaultRoles/${ssoId}`);
+        const response = await getApi(`ssoDefaultRoles/${ssoDefaultRoleId}`);
         dispatch(fetchSsoDefaultRoleSuccess(response.data));
     } catch (error) {
         let errorMsg;
@@ -195,6 +195,7 @@ export const updateSsoDefaultRole = ({ id, data }) => async dispatch => {
     try {
         await putApi(`ssoDefaultRoles/${id}`, data);
         dispatch(updateSsoDefaultRoleSuccess());
+        return true;
     } catch (error) {
         let errorMsg;
         if (error && error.response && error.response.data)
@@ -208,5 +209,6 @@ export const updateSsoDefaultRole = ({ id, data }) => async dispatch => {
             errorMsg = 'Network Error';
         }
         dispatch(updateSsoDefaultRoleError(errorMsg));
+        return false;
     }
 };

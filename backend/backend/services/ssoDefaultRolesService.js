@@ -149,6 +149,58 @@ module.exports = {
             }
             query.deleted = false;
 
+            if (!data.domain) {
+                const error = new Error('Domain must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+            if (!mongoose.Types.ObjectId.isValid(data.domain)) {
+                const error = new Error("Domain id isn't valid.");
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                throw error;
+            }
+    
+            if (!data.project) {
+                const error = new Error('Project  must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                throw error;
+            }
+            if (!mongoose.Types.ObjectId.isValid(data.domain)) {
+                const error = new Error("Domain id isn't valid.");
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                throw error;
+            }
+    
+            if (!data.role) {
+                const error = new Error('Role must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                throw error;
+            }
+            if (
+                !['Owner', 'Administrator', 'Member', 'Viewer'].includes(data.role)
+            ) {
+                const error = new Error('Invalid role.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                throw error;
+            }
+    
+            const {domain,project,role} = data;
+            const searchQuery = { domain, project, role };
+            const search = await this.findBy(searchQuery);
+    
+            if ( search.length) {
+                const error = new Error('Record already exists.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+        
             await ssoDefaultRolesModel.updateMany(query, {
                 $set: data,
             });

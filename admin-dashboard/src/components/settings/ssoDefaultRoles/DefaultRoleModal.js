@@ -3,7 +3,11 @@ import { RenderSelect } from '../../basic/RenderSelect';
 import { reduxForm,Field } from 'redux-form';
 import { connect } from 'react-redux';
 import { Validate } from '../../../config';
-import {addSsoDefaultRole,fetchSsoDefaultRoles} from '../../../actions/ssoDefaultRoles'
+import {
+  addSsoDefaultRole,
+  updateSsoDefaultRole,
+  fetchSsoDefaultRoles,
+} from '../../../actions/ssoDefaultRoles'
 
 /**
  * Domain
@@ -51,7 +55,6 @@ function validate(values) {
   return errors;
 }
 
-
 const Form = ({
     formTitle,
     onSubmit,
@@ -73,8 +76,8 @@ const Form = ({
     ]
   ]
   const submitForm = async(data)=>{
-    // console.log(data)
-    const success=await onSubmit({data});
+    const {_id:id}=data;
+    const success=await onSubmit({id,data});
     if(!success)
       return;
     fetchSsoDefaultRoles();
@@ -208,12 +211,48 @@ const ReduxConnectedForm= reduxForm({
 
 export const CreateDefaultRoleModal= connect(
   state=>({
+    formTitle:'Create New Default Role',
     ssos: state.sso.ssos.ssos,
     projects: state.project.projects.projects,
     errorMessage: state.ssoDefaultRoles.addSsoDefaultRole.error,
   }),
   dispatch=>({
     onSubmit: ({data})=>dispatch(addSsoDefaultRole({data})),
+    fetchSsoDefaultRoles: ()=>dispatch(fetchSsoDefaultRoles())
+  }),
+)(ReduxConnectedForm)
+
+export const UpdateDefaultRoleModal= connect(
+  state=>{
+    const initialValues={
+      ...state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole,
+      ...(
+        state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole.domain?
+        {
+          domain:state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole.domain._id
+        }:
+        {
+          domain: null
+        }
+      ),
+      ...(
+        state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole.project?
+        {
+          project:state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole.project._id
+        }:
+        {
+          project: null
+        }
+      )
+    }
+    return ({
+    initialValues,
+    ssos: state.sso.ssos.ssos,
+    projects: state.project.projects.projects,
+    errorMessage: state.ssoDefaultRoles.updateSsoDefaultRole.error,
+  })},
+  dispatch=>({
+    onSubmit: ({id,data})=>dispatch(updateSsoDefaultRole({id,data})),
     fetchSsoDefaultRoles: ()=>dispatch(fetchSsoDefaultRoles())
   }),
 )(ReduxConnectedForm)

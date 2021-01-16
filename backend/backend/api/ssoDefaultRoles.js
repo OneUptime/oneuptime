@@ -53,12 +53,18 @@ router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
 
 router.put('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     try {
+        const id = req.params.id;
         const data = req.body;
-        const sso = await SsoDefaultRolesService.updateBy(
-            { _id: req.params.id },
+        if(!id){
+            const error = new Error("Id must be present.");
+            error.code = 400;
+            throw error;
+        }
+        const ssoDefaultRole = await SsoDefaultRolesService.updateBy(
+            { _id: id },
             data
         );
-        return sendItemResponse(req, res, sso);
+        return sendItemResponse(req, res, ssoDefaultRole);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
