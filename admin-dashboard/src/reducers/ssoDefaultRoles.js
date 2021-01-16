@@ -82,7 +82,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
             });
         case DELETE_SSO_DEFAULT_ROLE_REQUEST:
             return Object.assign({}, state, {
-                deleteSsoDefaultRoles: {
+                deleteSsoDefaultRole: {
                     requesting: true,
                     success: false,
                     error: null,
@@ -90,7 +90,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
             });
         case DELETE_SSO_DEFAULT_ROLE_SUCCESS:
             return Object.assign({}, state, {
-                deleteSsoDefaultRoles: {
+                deleteSsoDefaultRole: {
                     requesting: false,
                     success: true,
                     error: null,
@@ -104,7 +104,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
             });
         case DELETE_SSO_DEFAULT_ROLE_FAILED:
             return Object.assign({}, state, {
-                deleteSsoDefaultRoles: {
+                deleteSsoDefaultRole: {
                     requesting: false,
                     success: false,
                     error: action.payload,
@@ -112,7 +112,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
             });
         case ADD_SSO_DEFAULT_ROLE_REQUEST:
             return Object.assign({}, state, {
-                addSsoDefaultRoles: {
+                addSsoDefaultRole: {
                     requesting: true,
                     success: false,
                     error: null,
@@ -120,7 +120,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
             });
         case ADD_SSO_DEFAULT_ROLE_SUCCESS:
             return Object.assign({}, state, {
-                addSsoDefaultRoles: {
+                addSsoDefaultRole: {
                     requesting: false,
                     success: true,
                     error: null,
@@ -128,7 +128,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
             });
         case ADD_SSO_DEFAULT_ROLE_FAILED:
             return Object.assign({}, state, {
-                addSsoDefaultRoles: {
+                addSsoDefaultRole: {
                     requesting: false,
                     success: false,
                     error: action.payload,
@@ -161,7 +161,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
             });
         case UPDATE_SSO_DEFAULT_ROLE_REQUEST:
             return Object.assign({}, state, {
-                updateSsoDefaultRoles: {
+                updateSsoDefaultRole: {
                     requesting: true,
                     success: false,
                     error: null,
@@ -169,7 +169,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
             });
         case UPDATE_SSO_DEFAULT_ROLE_SUCCESS:
             return Object.assign({}, state, {
-                updateSsoDefaultRoles: {
+                updateSsoDefaultRole: {
                     requesting: false,
                     success: true,
                     error: null,
@@ -177,7 +177,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
             });
         case UPDATE_SSO_DEFAULT_ROLE_FAILURE:
             return Object.assign({}, state, {
-                updateSsoDefaultRoles: {
+                updateSsoDefaultRole: {
                     requesting: false,
                     success: false,
                     error: action.payload,
