@@ -17,7 +17,8 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('userIds', 'name');
+                .populate('userId', 'name')
+                .populate('projectId', 'name');
             return SmsCount;
         } catch (error) {
             ErrorService.log('smsCountService.findBy', error);
@@ -34,7 +35,8 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             const SmsCount = await SmsCountModel.findOne(query)
                 .sort([['createdAt', -1]])
-                .populate('userIds', 'name');
+                .populate('userId', 'name')
+                .populate('projectId', 'name');
             return SmsCount;
         } catch (error) {
             ErrorService.log('smsCountService.findOneBy', error);
@@ -42,12 +44,15 @@ module.exports = {
         }
     },
 
-    create: async function(userId, sentTo, projectId) {
+    create: async function(userId, sentTo, projectId, content, status, error) {
         try {
             const smsCountModel = new SmsCountModel();
             smsCountModel.userId = userId || null;
             smsCountModel.sentTo = sentTo || null;
             smsCountModel.projectId = projectId || null;
+            smsCountModel.content = content || null;
+            smsCountModel.status = status || null;
+            smsCountModel.error = error || null;
             const smsCount = await smsCountModel.save();
             return smsCount;
         } catch (error) {
