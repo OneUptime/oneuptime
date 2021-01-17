@@ -823,11 +823,11 @@ module.exports = {
                 (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
         ) {
             let errorMessageText;
-            if(!hasGlobalTwilioSettings) {
+            if (!hasGlobalTwilioSettings) {
                 errorMessageText = 'Twilio Settings not found on Admin Dashboard'
-            } else if(!areAlertsEnabledGlobally) {
+            } else if (!areAlertsEnabledGlobally) {
                 errorMessageText = 'Alert Disabled on Admin Dashboard'
-            } else if(IS_SAAS_SERVICE && !project.alertEnable) {
+            } else if (IS_SAAS_SERVICE && !project.alertEnable) {
                 errorMessageText = 'Alert Disabled for this project'
             }
             return await _this.create({
@@ -2068,12 +2068,12 @@ module.exports = {
                         eventType = statusPageNoteAlertEventType
                     } else if (templateType ===
                         'Subscriber Incident Acknowldeged') {
-                            eventType = 'acknowledged'
-                        } else if (templateType === 'Subscriber Incident Resolved') {
-                            eventType = 'resolved'
-                        } else {
-                            eventType = 'identified'
-                        }
+                        eventType = 'acknowledged'
+                    } else if (templateType === 'Subscriber Incident Resolved') {
+                        eventType = 'resolved'
+                    } else {
+                        eventType = 'identified'
+                    }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
@@ -2111,12 +2111,12 @@ module.exports = {
                         eventType = statusPageNoteAlertEventType
                     } else if (templateType ===
                         'Subscriber Incident Acknowldeged') {
-                            eventType = 'acknowledged'
-                        } else if (templateType === 'Subscriber Incident Resolved') {
-                            eventType = 'resolved'
-                        } else {
-                            eventType = 'identified'
-                        }
+                        eventType = 'acknowledged'
+                    } else if (templateType === 'Subscriber Incident Resolved') {
+                        eventType = 'resolved'
+                    } else {
+                        eventType = 'identified'
+                    }
                     SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
@@ -2404,12 +2404,12 @@ module.exports = {
                         eventType = statusPageNoteAlertEventType
                     } else if (templateType ===
                         'Subscriber Incident Acknowldeged') {
-                            eventType = 'acknowledged'
-                        } else if (templateType === 'Subscriber Incident Resolved') {
-                            eventType = 'resolved'
-                        } else {
-                            eventType = 'identified'
-                        }
+                        eventType = 'acknowledged'
+                    } else if (templateType === 'Subscriber Incident Resolved') {
+                        eventType = 'resolved'
+                    } else {
+                        eventType = 'identified'
+                    }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
@@ -2451,12 +2451,12 @@ module.exports = {
                             eventType = statusPageNoteAlertEventType
                         } else if (templateType ===
                             'Subscriber Incident Acknowldeged') {
-                                eventType = 'acknowledged'
-                            } else if (templateType === 'Subscriber Incident Resolved') {
-                                eventType = 'resolved'
-                            } else {
-                                eventType = 'identified'
-                            }
+                            eventType = 'acknowledged'
+                        } else if (templateType === 'Subscriber Incident Resolved') {
+                            eventType = 'resolved'
+                        } else {
+                            eventType = 'identified'
+                        }
                         return await SubscriberAlertService.create({
                             projectId: incident.projectId,
                             incidentId: incident._id,
@@ -2508,17 +2508,17 @@ module.exports = {
                     smsType: templateType,
                 });
                 let eventType;
-                    if (isStatusPageNoteAlert) {
-                        eventType = statusPageNoteAlertEventType
-                    } else if (templateType ===
-                        'Subscriber Incident Acknowldeged') {
-                        eventType = 'acknowledged'
-                    } else if (templateType ===
-                        'Subscriber Incident Resolved') {
-                        eventType = 'resolved'
-                    } else {
-                        eventType = 'identified'
-                    }
+                if (isStatusPageNoteAlert) {
+                    eventType = statusPageNoteAlertEventType
+                } else if (templateType ===
+                    'Subscriber Incident Acknowldeged') {
+                    eventType = 'acknowledged'
+                } else if (templateType ===
+                    'Subscriber Incident Resolved') {
+                    eventType = 'resolved'
+                } else {
+                    eventType = 'identified'
+                }
                 const subscriberAlert = await SubscriberAlertService.create({
                     projectId: incident.projectId,
                     incidentId: incident._id,
