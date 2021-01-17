@@ -1,5 +1,10 @@
 import React from 'react';
 import { logLibraries } from '../../config';
+import PropTypes from 'prop-types';
+import Markdown from 'markdown-to-jsx';
+import { RenderSelect } from '../basic/RenderSelect';
+import { Field, reduxForm } from 'redux-form';
+import { connect } from 'react-redux';
 
 function renderLibraries() {
     const list = logLibraries.getLibraries().map(library => {
@@ -24,18 +29,93 @@ function renderLibraries() {
     });
     return list;
 }
-const LibraryList = () => (
+function renderLanguageQuickStart(library, type) {
+    const currentLibrary = logLibraries
+        .getQuickStarts()
+        .filter(quickStart => quickStart.id === library);
+    return currentLibrary[0]
+        ? currentLibrary[0][type]
+            ? currentLibrary[0][type]
+            : ''
+        : '';
+}
+const LibraryList = ({ title, type, library }) => (
     <div tabIndex="0" className="Box-root Margin-vertical--12">
         <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">
                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root">
                         <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28">
-                            <span>Log Container Libraries</span>
+                            <span> {title} Libraries</span>
                         </span>
                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"></span>
                     </div>
                     <div>{renderLibraries()}</div>
+                </div>
+            </div>
+            <div className="Box-root">
+                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                    <div className="Box-root">
+                        <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28">
+                            <span> Quick Start</span>
+                        </span>
+                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"></span>
+                    </div>
+                    <form id="form-quick-start">
+                        <div
+                            className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
+                            style={{ boxShadow: 'none' }}
+                        >
+                            <div>
+                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                    <fieldset className="bs-Fieldset">
+                                        <div className="bs-Fieldset-rows">
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Available Libraries
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field
+                                                        className="db-select-nw"
+                                                        component={RenderSelect}
+                                                        name="library"
+                                                        id="library"
+                                                        placeholder="Choose Library"
+                                                        options={[
+                                                            {
+                                                                value: '',
+                                                                label:
+                                                                    'Select library',
+                                                            },
+                                                            ...(logLibraries.getQuickStarts() &&
+                                                            logLibraries.getQuickStarts()
+                                                                .length > 0
+                                                                ? logLibraries
+                                                                      .getQuickStarts()
+                                                                      .map(
+                                                                          library => ({
+                                                                              value:
+                                                                                  library.id,
+                                                                              label:
+                                                                                  library.language,
+                                                                          })
+                                                                      )
+                                                                : []),
+                                                        ]}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <div className="Padding-vertical--12">
+                        <Markdown>
+                            {renderLanguageQuickStart(library, type)}
+                        </Markdown>
+                    </div>
                 </div>
             </div>
         </div>
@@ -43,5 +123,25 @@ const LibraryList = () => (
 );
 
 LibraryList.displayName = 'LibraryList';
-
-export default LibraryList;
+const LibraryListForm = new reduxForm({
+    form: 'QuickStart',
+    destroyOnUnmount: true,
+    enableReinitialize: true,
+})(LibraryList);
+LibraryList.propTypes = {
+    title: PropTypes.string,
+    library: PropTypes.string,
+    type: PropTypes.string,
+};
+const mapStateToProps = state => {
+    const initialValues = {
+        library: '',
+    };
+    return {
+        initialValues,
+        library: state.form.QuickStart
+            ? state.form.QuickStart.values.library
+            : '',
+    };
+};
+export default connect(mapStateToProps)(LibraryListForm);
