@@ -1,6 +1,6 @@
 module.exports = {
     create: async function(data) {
-        console.log(data);
+        console.log('to save', data);
         try {
             const Log = new MonitorLogModel();
 
@@ -10,6 +10,7 @@ module.exports = {
             Log.responseTime = data.responseTime;
             Log.responseStatus = data.responseStatus;
             Log.responseBody = data.resp.body;
+            Log.responseHeader = data.resp.headers;
             Log.cpuLoad = data.cpuLoad;
             Log.avgCpuLoad = data.avgCpuLoad;
             Log.cpuCores = data.cpuCores;

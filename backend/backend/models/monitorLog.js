@@ -8,7 +8,7 @@ const monitorLogSchema = new Schema({
     responseTime: Number, // time taken for ping.
     responseStatus: Number, // status code of ping.
     responseBody: String, //response body of ping
-    responseHeader: String, //response header(s) of ping
+    responseHeader: Object, //response header(s) of ping
     cpuLoad: Number, // cpu load.
     avgCpuLoad: Number, // average cpu load from server.
     cpuCores: Number, // number of cpu cores.
