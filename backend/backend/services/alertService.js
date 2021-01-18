@@ -2187,7 +2187,7 @@ module.exports = {
                         !hasCustomSmtpSettings) ||
                     investigationNoteNotificationEmailDisabled
                 ) {
-                    let errorMessageText;
+                    let errorMessageText, eventType;
                     if (!hasGlobalSmtpSettings &&
                         !hasCustomSmtpSettings) {
                         errorMessageText = 'SMTP Settings not found on Admin Dashboard'
@@ -2197,19 +2197,22 @@ module.exports = {
                     } else if (investigationNoteNotificationEmailDisabled) {
                         errorMessageText = 'Investigation Note Email Notification Disabled'
                     }
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType
+                    } else if (templateType ===
+                        'Subscriber Incident Acknowldeged') {
+                        eventType = 'acknowledged'
+                    } else if (templateType === 'Subscriber Incident Resolved') {
+                        eventType = 'resolved'
+                    } else {
+                        eventType = 'identified'
+                    }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Email,
-                        eventType: isStatusPageNoteAlert
-                            ? statusPageNoteAlertEventType
-                            : templateType ===
-                                'Subscriber Incident Acknowldeged'
-                                ? 'acknowledged'
-                                : templateType === 'Subscriber Incident Resolved'
-                                    ? 'resolved'
-                                    : 'identified',
+                        eventType: eventType,
                         alertStatus: null,
                         error: true,
                         errorMessage: errorMessageText
@@ -2219,19 +2222,23 @@ module.exports = {
                     projectId: incident.projectId,
                     emailType: templateType,
                 });
+                if (isStatusPageNoteAlert) {
+                    eventType = statusPageNoteAlertEventType
+                } else if (templateType ===
+                    'Subscriber Incident Acknowldeged') {
+                    eventType = 'acknowledged'
+                } else if (templateType === 'Subscriber Incident Resolved') {
+                    eventType = 'resolved'
+                } else {
+                    eventType = 'identified'
+                }
                 const subscriberAlert = await SubscriberAlertService.create({
                     projectId: incident.projectId,
                     incidentId: incident._id,
                     subscriberId: subscriber._id,
                     alertVia: AlertType.Email,
                     alertStatus: 'Pending',
-                    eventType: isStatusPageNoteAlert
-                        ? statusPageNoteAlertEventType
-                        : templateType === 'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                                ? 'resolved'
-                                : 'identified',
+                    eventType: eventType
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
