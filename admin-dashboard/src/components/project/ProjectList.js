@@ -185,6 +185,8 @@ export class ProjectList extends Component {
                                                     style={{
                                                         height: '1px',
                                                         minWidth: '270px',
+                                                        textDecoration:
+                                                            'underline',
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">

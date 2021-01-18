@@ -197,6 +197,9 @@ export class CallLogsList extends Component {
                                                 style={{
                                                     height: '1px',
                                                     cursor: 'pointer',
+                                                    textDecoration: callLog.projectId
+                                                        ? 'underline'
+                                                        : null,
                                                 }}
                                                 onClick={() => {
                                                     history.push(
@@ -208,7 +211,7 @@ export class CallLogsList extends Component {
                                             >
                                                 <div className="db-ListViewItem-link">
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root">
                                                                 <span>
                                                                     {callLog.projectId
