@@ -5,7 +5,6 @@ import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import TooltipMini from '../basic/TooltipMini';
-import AlertPanel from '../basic/AlertPanel';
 
 class ErrorEventHeader extends Component {
     navigate = currentId => {
@@ -163,28 +162,6 @@ class ErrorEventHeader extends Component {
                                         }
                                     />
                                 </div>
-                                <ShouldRender if={errorTrackerIssue.ignored}>
-                                    <AlertPanel
-                                        backgroundClass="Box-background--red4"
-                                        message={
-                                            <span>
-                                                This issue has been marked as
-                                                ignored.
-                                            </span>
-                                        }
-                                    />
-                                </ShouldRender>
-                                <ShouldRender if={errorTrackerIssue.resolved}>
-                                    <AlertPanel
-                                        backgroundClass="Box-background--green"
-                                        message={
-                                            <span>
-                                                This issue has been marked as
-                                                resolved.
-                                            </span>
-                                        }
-                                    />
-                                </ShouldRender>
                             </div>
                         </div>
                         <div className="Flex-flex Flex-justifyContent--spaceBetween Navigator-Wrapper">
