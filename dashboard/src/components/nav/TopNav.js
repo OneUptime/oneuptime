@@ -493,7 +493,7 @@ class TopContent extends Component {
                                 </button>
                             </div>
                         </div>
-                        <div className="Box-root">
+                        <div className="Box-root margin-20">
                             <div>
                                 <div className="Box-root Flex-flex">
                                     <div className="Box-root Flex-flex">
