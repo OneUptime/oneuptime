@@ -32,7 +32,7 @@ class CallLogsContentViewModal extends Component {
                     style={{ marginTop: 40 }}
                 >
                     <div className="bs-BIM">
-                        <div className="ds-Modal">
+                        <div className="bs-Modal">
                             <ClickOutside onClickOutside={closeThisDialog}>
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
