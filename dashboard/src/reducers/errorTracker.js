@@ -202,13 +202,9 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case FETCH_ISSUES_REQUEST:
             temporaryIssues = {
                 ...state.errorTrackerIssues,
-                [action.payload.errorTrackerId]: state.errorTrackerIssues[
-                    action.payload.errorTrackerId
-                ]
+                [action.payload]: state.errorTrackerIssues[action.payload]
                     ? {
-                          ...state.errorTrackerIssues[
-                              action.payload.errorTrackerId
-                          ],
+                          ...state.errorTrackerIssues[action.payload],
                           requesting: true,
                       }
                     : {
