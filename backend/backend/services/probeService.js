@@ -3072,7 +3072,14 @@ const checkAnd = async (
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {
             if (con[i] && con[i].filter && con[i].filter === 'contains') {
-                if (!(con[i] && con[i].field1 && body && body[con[i].field1])) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        body &&
+                        body.includes([con[i].field1])
+                    )
+                ) {
                     validity = false;
                     failedReasons.push(
                         `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
@@ -3088,7 +3095,12 @@ const checkAnd = async (
                 con[i].filter === 'doesNotContain'
             ) {
                 if (
-                    !(con[i] && con[i].field1 && body && !body[con[i].field1])
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        body &&
+                        !body.includes([con[i].field1])
+                    )
                 ) {
                     validity = false;
                     failedReasons.push(
