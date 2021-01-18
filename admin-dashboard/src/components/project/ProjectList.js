@@ -172,12 +172,6 @@ export class ProjectList extends Component {
                                             <tr
                                                 key={project._id}
                                                 className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-                                                onClick={() => {
-                                                    history.push(
-                                                        '/admin/projects/' +
-                                                            project._id
-                                                    );
-                                                }}
                                                 id={`project_${index}`}
                                             >
                                                 <td
@@ -187,6 +181,12 @@ export class ProjectList extends Component {
                                                         minWidth: '270px',
                                                         textDecoration:
                                                             'underline',
+                                                    }}
+                                                    onClick={() => {
+                                                        history.push(
+                                                            '/admin/projects/' +
+                                                                project._id
+                                                        );
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -203,7 +203,21 @@ export class ProjectList extends Component {
                                                 </td>
                                                 <td
                                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{ height: '1px' }}
+                                                    style={{
+                                                        height: '1px',
+                                                        textDecoration:
+                                                            'underline',
+                                                    }}
+                                                    onClick={() => {
+                                                        if (
+                                                            projectOwner.userId
+                                                        ) {
+                                                            history.push(
+                                                                '/admin/users/' +
+                                                                    projectOwner.userId
+                                                            );
+                                                        }
+                                                    }}
                                                 >
                                                     <div className="db-ListViewItem-link">
                                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
