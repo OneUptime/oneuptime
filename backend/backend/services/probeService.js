@@ -3072,44 +3072,84 @@ const checkAnd = async (
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {
             if (con[i] && con[i].filter && con[i].filter === 'contains') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        body &&
-                        body.includes([con[i].field1])
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                    );
+                if (body && typeof body === 'string') {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            body &&
+                            body.includes([con[i].field1])
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                        );
+                    }
                 } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                    );
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            body &&
+                            body[con[i].field1]
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
                 con[i].filter &&
                 con[i].filter === 'doesNotContain'
             ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        body &&
-                        !body.includes([con[i].field1])
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                    );
+                if (body && typeof body === 'string') {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            body &&
+                            !body.includes([con[i].field1])
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                        );
+                    }
                 } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                    );
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            body &&
+                            !body[con[i].field1]
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -4675,23 +4715,45 @@ const checkOr = async (
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {
             if (con[i] && con[i].filter && con[i].filter === 'contains') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    body &&
-                    body.includes([con[i].field1])
-                ) {
-                    validity = true;
-                    if (con[i].field1) {
-                        successReasons.push(
-                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                        );
+                if (body && typeof body === 'string') {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        body &&
+                        body.includes([con[i].field1])
+                    ) {
+                        validity = true;
+                        if (con[i].field1) {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                            );
+                        }
+                    } else {
+                        if (con[i].field1) {
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                            );
+                        }
                     }
                 } else {
-                    if (con[i].field1) {
-                        failedReasons.push(
-                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                        );
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        body &&
+                        body[con[i].field1]
+                    ) {
+                        validity = true;
+                        if (con[i].field1) {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                            );
+                        }
+                    } else {
+                        if (con[i].field1) {
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                            );
+                        }
                     }
                 }
             } else if (
@@ -4699,23 +4761,45 @@ const checkOr = async (
                 con[i].filter &&
                 con[i].filter === 'doesNotContain'
             ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    body &&
-                    !body.includes([con[i].field1])
-                ) {
-                    validity = true;
-                    if (con[i].field1) {
-                        successReasons.push(
-                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                        );
+                if (body && typeof body === 'string') {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        body &&
+                        !body.includes([con[i].field1])
+                    ) {
+                        validity = true;
+                        if (con[i].field1) {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                            );
+                        }
+                    } else {
+                        if (con[i].field1) {
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                            );
+                        }
                     }
                 } else {
-                    if (con[i].field1) {
-                        failedReasons.push(
-                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                        );
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        body &&
+                        !body[con[i].field1]
+                    ) {
+                        validity = true;
+                        if (con[i].field1) {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                            );
+                        }
+                    } else {
+                        if (con[i].field1) {
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                            );
+                        }
                     }
                 }
             } else if (
