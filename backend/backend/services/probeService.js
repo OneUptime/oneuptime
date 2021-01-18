@@ -4675,7 +4675,12 @@ const checkOr = async (
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {
             if (con[i] && con[i].filter && con[i].filter === 'contains') {
-                if (con[i] && con[i].field1 && body && body[con[i].field1]) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    body &&
+                    body.includes([con[i].field1])
+                ) {
                     validity = true;
                     if (con[i].field1) {
                         successReasons.push(
@@ -4694,7 +4699,12 @@ const checkOr = async (
                 con[i].filter &&
                 con[i].filter === 'doesNotContain'
             ) {
-                if (con[i] && con[i].field1 && body && !body[con[i].field1]) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    body &&
+                    !body.includes([con[i].field1])
+                ) {
                     validity = true;
                     if (con[i].field1) {
                         successReasons.push(
