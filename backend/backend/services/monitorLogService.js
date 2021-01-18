@@ -1,6 +1,5 @@
 module.exports = {
     create: async function(data) {
-        console.log('to save', data);
         try {
             const Log = new MonitorLogModel();
             let responseBody = '';
