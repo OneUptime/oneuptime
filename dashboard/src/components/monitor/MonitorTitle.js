@@ -42,6 +42,9 @@ export class MonitorTitle extends Component {
     };
 
     replaceDashWithSpace = string => {
+        if (string === 'incomingHttpRequest') {
+            return 'incoming Http Request';
+        }
         return string.replace('-', ' ');
     };
 

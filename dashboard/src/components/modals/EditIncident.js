@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { updateIncident } from '../../actions/incident';
@@ -47,7 +48,12 @@ class EditIncident extends Component {
     };
 
     render() {
-        const { handleSubmit, editIncident, incidentPriorities } = this.props;
+        const {
+            handleSubmit,
+            editIncident,
+            incidentPriorities,
+            closeThisDialog,
+        } = this.props;
         return (
             <div
                 className="ModalLayer-contents"
@@ -56,162 +62,178 @@ class EditIncident extends Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--medium">
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span id="incidentTitleLabel">
-                                        Edit Incident
+                        <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span id="incidentTitleLabel">
+                                            Edit Incident
+                                        </span>
                                     </span>
-                                </span>
+                                </div>
                             </div>
-                        </div>
-                        <form
-                            onSubmit={handleSubmit(this.submitForm.bind(this))}
-                        >
-                            <div className="bs-Modal-content bs-u-paddingless">
-                                <div className="bs-Modal-block bs-u-paddingless">
-                                    <div className="bs-Modal-content">
-                                        <ShouldRender
-                                            if={incidentPriorities.length > 0}
-                                        >
-                                            <div className="bs-Fieldset-row Margin-bottom--12">
+                            <form
+                                onSubmit={handleSubmit(
+                                    this.submitForm.bind(this)
+                                )}
+                            >
+                                <div className="bs-Modal-content bs-u-paddingless">
+                                    <div className="bs-Modal-block bs-u-paddingless">
+                                        <div className="bs-Modal-content">
+                                            <ShouldRender
+                                                if={
+                                                    incidentPriorities.length >
+                                                    0
+                                                }
+                                            >
+                                                <div className="bs-Fieldset-row Margin-bottom--12">
+                                                    <label className="bs-Fieldset-label">
+                                                        Priority
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            className="db-select-nw"
+                                                            component={
+                                                                RenderSelect
+                                                            }
+                                                            id="incidentPriority"
+                                                            name="incidentPriority"
+                                                            disabled={
+                                                                this.props
+                                                                    .editIncident
+                                                                    .requesting
+                                                            }
+                                                            options={[
+                                                                {
+                                                                    value: '',
+                                                                    label:
+                                                                        'Incident Priority',
+                                                                },
+                                                                ...incidentPriorities.map(
+                                                                    incidentPriority => ({
+                                                                        value:
+                                                                            incidentPriority._id,
+                                                                        label:
+                                                                            incidentPriority.name,
+                                                                    })
+                                                                ),
+                                                            ]}
+                                                            autoFocus={true}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
+                                            <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
-                                                    Priority
+                                                    Incident title
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
-                                                        className="db-select-nw"
-                                                        component={RenderSelect}
-                                                        id="incidentPriority"
-                                                        name="incidentPriority"
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        component={RenderField}
+                                                        name="title"
+                                                        id="title"
+                                                        placeholder="Incident title"
                                                         disabled={
                                                             this.props
                                                                 .editIncident
                                                                 .requesting
                                                         }
-                                                        options={[
-                                                            {
-                                                                value: '',
-                                                                label:
-                                                                    'Incident Priority',
-                                                            },
-                                                            ...incidentPriorities.map(
-                                                                incidentPriority => ({
-                                                                    value:
-                                                                        incidentPriority._id,
-                                                                    label:
-                                                                        incidentPriority.name,
-                                                                })
-                                                            ),
+                                                        validate={[
+                                                            ValidateField.required,
                                                         ]}
-                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
-                                        </ShouldRender>
-                                        <div className="bs-Fieldset-row">
-                                            <label className="bs-Fieldset-label">
-                                                Incident title
-                                            </label>
-                                            <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                    component={RenderField}
-                                                    name="title"
-                                                    id="title"
-                                                    placeholder="Incident title"
-                                                    disabled={
-                                                        this.props.editIncident
-                                                            .requesting
-                                                    }
-                                                    validate={[
-                                                        ValidateField.required,
-                                                    ]}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="bs-Fieldset-row">
-                                            <label className="bs-Fieldset-label script-label">
-                                                Description
-                                            </label>
-                                            <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    name="description"
-                                                    component={RenderCodeEditor}
-                                                    mode="markdown"
-                                                    height="150px"
-                                                    width="100%"
-                                                    placeholder="This can be markdown"
-                                                />
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label script-label">
+                                                    Description
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field
+                                                        name="description"
+                                                        component={
+                                                            RenderCodeEditor
+                                                        }
+                                                        mode="markdown"
+                                                        height="150px"
+                                                        width="100%"
+                                                        placeholder="This can be markdown"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender if={editIncident.error}>
-                                        <div className="bs-Tail-copy">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {editIncident.error}
-                                                    </span>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender if={editIncident.error}>
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {editIncident.error}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton btn__modal"
-                                        onClick={() =>
-                                            this.props.closeThisDialog()
-                                        }
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        id="saveIncident"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                        disabled={
-                                            editIncident &&
-                                            editIncident.requesting
-                                        }
-                                        type="submit"
-                                    >
-                                        {editIncident &&
-                                            !editIncident.requesting && (
-                                                <>
-                                                    <span>Save</span>
-                                                    <span className="create-btn__keycode">
-                                                        <span className="keycode__icon keycode__icon--enter" />
-                                                    </span>
-                                                </>
-                                            )}
-                                        {editIncident &&
-                                            editIncident.requesting && (
-                                                <FormLoader />
-                                            )}
-                                    </button>
+                                        </ShouldRender>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
+                                            onClick={() =>
+                                                this.props.closeThisDialog()
+                                            }
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            id="saveIncident"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            disabled={
+                                                editIncident &&
+                                                editIncident.requesting
+                                            }
+                                            type="submit"
+                                        >
+                                            {editIncident &&
+                                                !editIncident.requesting && (
+                                                    <>
+                                                        <span>Save</span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
+                                                )}
+                                            {editIncident &&
+                                                editIncident.requesting && (
+                                                    <FormLoader />
+                                                )}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

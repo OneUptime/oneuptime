@@ -50,12 +50,14 @@ git push
 git checkout master
 ```
 
+# =======================================================
 
-=======================================================
-=======================================================
 ## BE VERY CAREFUL - EMERGENCY DEPLOYMENT TO PRODUCTION
+
 ## BE VERY CAREFUL - EMERGENCY DEPLOYMENT TO PRODUCTION
+
 ## BE VERY CAREFUL - EMERGENCY DEPLOYMENT TO PRODUCTION
+
 =======================================================
 
 ```
@@ -68,8 +70,11 @@ git checkout master
 ```
 
 =======================================================
+
 ## BE VERY CAREFUL - EMERGENCY DEPLOYMENT TO PRODUCTION
+
 ## BE VERY CAREFUL - EMERGENCY DEPLOYMENT TO PRODUCTION
+
 ## BE VERY CAREFUL - EMERGENCY DEPLOYMENT TO PRODUCTION
-=======================================================
-=======================================================
+
+# =======================================================

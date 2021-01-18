@@ -67,16 +67,24 @@ class EditIncomingRequest extends Component {
 
         postObj.name = values.name;
 
+        postObj.filterMatch = values.filterMatch;
+        postObj.filters = values.filters
+            .filter(filter => !!filter)
+            .map(filter => {
+                if (!isNaN(filter.filterText)) {
+                    if (typeof filter.filterText === 'string') {
+                        filter.filterText = String(filter.filterText);
+                    } else {
+                        filter.filterText = parseFloat(filter.filterText);
+                    }
+                }
+
+                return filter;
+            });
+
         if (values.nextAction && values.nextAction === 'createIncident') {
             postObj.isDefault = values.isDefault;
             postObj.createIncident = true;
-            postObj.filterCriteria = values.filterCriteria;
-            postObj.filterCondition = values.filterCondition;
-            if (isNaN(values.filterText)) {
-                postObj.filterText = values.filterText;
-            } else {
-                postObj.filterText = parseFloat(values.filterText);
-            }
             postObj.incidentTitle = values.incidentTitle;
             postObj.incidentType = values.incidentType;
             if (values.dynamicIncidentType) {
@@ -138,14 +146,6 @@ class EditIncomingRequest extends Component {
             (values.nextAction === 'updateIncidentNote' ||
                 values.nextAction === 'updateInternalNote')
         ) {
-            postObj.filterCriteria = values.filterCriteria;
-            postObj.filterCondition = values.filterCondition;
-            if (isNaN(values.filterText)) {
-                postObj.filterText = values.filterText;
-            } else {
-                postObj.filterText = parseFloat(values.filterText);
-            }
-
             postObj.noteContent = values.noteContent;
             postObj.incidentState = values.incidentState;
             if (values.incidentState === 'others') {
@@ -159,24 +159,6 @@ class EditIncomingRequest extends Component {
 
         if (values.nextAction && values.nextAction === 'resolveIncident') {
             postObj.resolveIncident = true;
-        }
-
-        if (
-            values.nextAction &&
-            (values.nextAction === 'acknowledgeIncident' ||
-                values.nextAction === 'resolveIncident')
-        ) {
-            postObj.filterCriteria = values.filterCriteria;
-            postObj.filterCondition = values.filterCondition;
-            if (isNaN(values.filterText)) {
-                postObj.filterText = values.filterText;
-            } else {
-                if (typeof values.filterText === 'string') {
-                    postObj.filterText = values.filterText;
-                } else {
-                    postObj.filterText = Number(values.filterText);
-                }
-            }
         }
 
         editIncomingRequest(projectId, requestId, postObj).then(() => {
@@ -402,6 +384,447 @@ class EditIncomingRequest extends Component {
         );
     };
 
+    renderFilters = ({ fields }) => {
+        const { monitorError, filterShowing } = this.state;
+        const { formValues, monitorCustomFields, customFields } = this.props;
+
+        if (
+            !filterShowing &&
+            formValues &&
+            (!formValues.filters || formValues.filters.length === 0)
+        ) {
+            // show at least one filter initially
+            fields.push();
+            this.setState({ filterShowing: true });
+        }
+
+        return (
+            <>
+                <div
+                    style={{
+                        width: '100%',
+                        position: 'relative',
+                    }}
+                >
+                    <span
+                        id="addFilter"
+                        onClick={() => {
+                            fields.push();
+                        }}
+                    ></span>
+                    {fields.map((field, index) => {
+                        return (
+                            <div
+                                style={{
+                                    width: '100%',
+                                    marginBottom: 10,
+                                }}
+                                key={index}
+                            >
+                                <div
+                                    className="bs-Fieldset-field"
+                                    style={{
+                                        width: '100%',
+                                    }}
+                                >
+                                    {formValues &&
+                                    formValues.nextAction ===
+                                        'createIncident' ? (
+                                        <Field
+                                            className="db-select-nw Table-cell--width--maximized"
+                                            component={RenderSelect}
+                                            name={`${field}.filterCriteria`}
+                                            id={`${field}.filterCriteria`}
+                                            placeholder="Criteria"
+                                            style={{
+                                                height: '28px',
+                                                width: '100%',
+                                            }}
+                                            options={[
+                                                ...monitorCustomFields.map(
+                                                    field => ({
+                                                        value: field.fieldName,
+                                                        label: field.fieldName,
+                                                    })
+                                                ),
+                                            ]}
+                                        />
+                                    ) : (
+                                        <Field
+                                            className="db-select-nw Table-cell--width--maximized"
+                                            component={RenderSelect}
+                                            name={`${field}.filterCriteria`}
+                                            id={`${field}.filterCriteria`}
+                                            placeholder="Criteria"
+                                            style={{
+                                                height: '28px',
+                                                width: '100%',
+                                            }}
+                                            options={[
+                                                {
+                                                    value: 'incidentId',
+                                                    label: 'Incident ID',
+                                                },
+                                                ...customFields.map(field => ({
+                                                    value: field.fieldName,
+                                                    label: field.fieldName,
+                                                })),
+                                            ]}
+                                        />
+                                    )}
+
+                                    {formValues &&
+                                    formValues.nextAction ===
+                                        'createIncident' ? (
+                                        (formValues.filters[index]
+                                            ? (
+                                                  monitorCustomFields.find(
+                                                      field =>
+                                                          field.fieldName ===
+                                                          formValues.filters[
+                                                              index
+                                                          ].filterCriteria
+                                                  ) || {
+                                                      fieldType: 'text',
+                                                  }
+                                              ).fieldType
+                                            : 'text') === 'text' ? (
+                                            <Field
+                                                className="db-select-nw Table-cell--width--maximized"
+                                                component={RenderSelect}
+                                                name={`${field}.filterCondition`}
+                                                id={`${field}.filterCondition`}
+                                                placeholder="Condition"
+                                                style={{
+                                                    height: '28px',
+                                                    width: '100%',
+                                                    marginLeft: 5,
+                                                }}
+                                                options={[
+                                                    {
+                                                        value: 'equalTo',
+                                                        label: 'Equal To',
+                                                    },
+                                                    {
+                                                        value: 'notEqualTo',
+                                                        label: 'Not Equal To',
+                                                    },
+                                                ]}
+                                            />
+                                        ) : (
+                                            <Field
+                                                className="db-select-nw Table-cell--width--maximized"
+                                                component={RenderSelect}
+                                                name={`${field}.filterCondition`}
+                                                id={`${field}.filterCondition`}
+                                                placeholder="Condition"
+                                                style={{
+                                                    height: '28px',
+                                                    width: '100%',
+                                                    marginLeft: 5,
+                                                }}
+                                                options={[
+                                                    {
+                                                        value: 'equalTo',
+                                                        label: 'Equal To',
+                                                    },
+                                                    {
+                                                        value: 'notEqualTo',
+                                                        label: 'Not Equal To',
+                                                    },
+                                                    {
+                                                        value: 'greaterThan',
+                                                        label: 'Greater Than',
+                                                    },
+                                                    {
+                                                        value: 'lessThan',
+                                                        label: 'Less Than',
+                                                    },
+                                                    {
+                                                        value:
+                                                            'lessThanOrEqualTo',
+                                                        label:
+                                                            'Less Than Or Equal To',
+                                                    },
+                                                    {
+                                                        value:
+                                                            'greaterThanOrEqualTo',
+                                                        label:
+                                                            'Greater Than Or Equal To',
+                                                    },
+                                                ]}
+                                            />
+                                        )
+                                    ) : (formValues && formValues.filters[index]
+                                          ? formValues.filters[index]
+                                                .filterCriteria === 'incidentId'
+                                              ? 'number'
+                                              : (
+                                                    customFields.find(
+                                                        field =>
+                                                            field.fieldName ===
+                                                            formValues.filters[
+                                                                index
+                                                            ].filterCriteria
+                                                    ) || {
+                                                        fieldType: 'text',
+                                                    }
+                                                ).fieldType
+                                          : 'text') === 'text' ? (
+                                        <Field
+                                            className="db-select-nw Table-cell--width--maximized"
+                                            component={RenderSelect}
+                                            name={`${field}.filterCondition`}
+                                            id={`${field}.filterCondition`}
+                                            placeholder="Condition"
+                                            style={{
+                                                height: '28px',
+                                                width: '100%',
+                                                marginLeft: 5,
+                                            }}
+                                            options={[
+                                                {
+                                                    value: 'equalTo',
+                                                    label: 'Equal To',
+                                                },
+                                                {
+                                                    value: 'notEqualTo',
+                                                    label: 'Not Equal To',
+                                                },
+                                            ]}
+                                        />
+                                    ) : (
+                                        <Field
+                                            className="db-select-nw Table-cell--width--maximized"
+                                            component={RenderSelect}
+                                            name={`${field}.filterCondition`}
+                                            id={`${field}.filterCondition`}
+                                            placeholder="Condition"
+                                            style={{
+                                                height: '28px',
+                                                width: '100%',
+                                                marginLeft: 5,
+                                            }}
+                                            options={[
+                                                {
+                                                    value: 'equalTo',
+                                                    label: 'Equal To',
+                                                },
+                                                {
+                                                    value: 'notEqualTo',
+                                                    label: 'Not Equal To',
+                                                },
+                                                {
+                                                    value: 'greaterThan',
+                                                    label: 'Greater Than',
+                                                },
+                                                {
+                                                    value: 'lessThan',
+                                                    label: 'Less Than',
+                                                },
+                                                {
+                                                    value: 'lessThanOrEqualTo',
+                                                    label:
+                                                        'Less Than Or Equal To',
+                                                },
+                                                {
+                                                    value:
+                                                        'greaterThanOrEqualTo',
+                                                    label:
+                                                        'Greater Than Or Equal To',
+                                                },
+                                            ]}
+                                        />
+                                    )}
+
+                                    {formValues &&
+                                    formValues.nextAction ===
+                                        'createIncident' ? (
+                                        <Field
+                                            component={RenderField}
+                                            name={`${field}.filterText`}
+                                            type={
+                                                formValues &&
+                                                formValues.filters[index]
+                                                    ? (
+                                                          monitorCustomFields.find(
+                                                              field =>
+                                                                  field.fieldName ===
+                                                                  formValues
+                                                                      .filters[
+                                                                      index
+                                                                  ]
+                                                                      .filterCriteria
+                                                          ) || {
+                                                              fieldType: 'text',
+                                                          }
+                                                      ).fieldType
+                                                    : 'text'
+                                            }
+                                            placeholder="request.body.value"
+                                            id={`${field}.filterText`}
+                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                            style={{
+                                                width: '100%',
+                                                padding: '3px 5px',
+                                                marginLeft: 5,
+                                            }}
+                                            parentStyle={{
+                                                marginRight: 5,
+                                            }}
+                                        />
+                                    ) : (
+                                        <Field
+                                            component={RenderField}
+                                            name={`${field}.filterText`}
+                                            type={
+                                                formValues &&
+                                                formValues.filters[index]
+                                                    ? formValues.filters[index]
+                                                          .filterCriteria ===
+                                                      'incidentId'
+                                                        ? 'number'
+                                                        : (
+                                                              customFields.find(
+                                                                  field =>
+                                                                      field.fieldName ===
+                                                                      formValues
+                                                                          .filters[
+                                                                          index
+                                                                      ]
+                                                                          .filterCriteria
+                                                              ) || {
+                                                                  fieldType:
+                                                                      'text',
+                                                              }
+                                                          ).fieldType
+                                                    : 'text'
+                                            }
+                                            placeholder="request.body.value"
+                                            id={`${field}.filterText`}
+                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                            style={{
+                                                width: '100%',
+                                                padding: '3px 5px',
+                                                marginLeft: 5,
+                                            }}
+                                            parentStyle={{
+                                                marginRight: 5,
+                                            }}
+                                        />
+                                    )}
+                                    <Tooltip title="Incoming http Request Filter">
+                                        <p>
+                                            Filter exposes the{' '}
+                                            <code>request</code> object of an
+                                            incoming request. The value on the{' '}
+                                            <code>request</code> object can
+                                            either be a string or a number
+                                        </p>
+                                        <p>
+                                            Example properties include the
+                                            following:
+                                        </p>
+                                        <p>
+                                            <ul>
+                                                <li>
+                                                    <code>request.body</code>
+                                                </li>
+                                                <li>
+                                                    <code>request.query</code>
+                                                </li>
+                                                <li>
+                                                    <code>request.headers</code>
+                                                </li>
+                                            </ul>
+                                        </p>
+                                        <p>Usage examples include:</p>
+                                        <p>
+                                            <ul>
+                                                <li>
+                                                    <code>
+                                                        1 | request.body.value
+                                                    </code>
+                                                </li>
+                                                <li>
+                                                    <code>
+                                                        2 | request.query.value
+                                                    </code>
+                                                </li>
+                                                <li>
+                                                    <code>
+                                                        3 | request.header.value
+                                                    </code>
+                                                </li>
+                                            </ul>
+                                        </p>
+                                        <p>
+                                            You can pass the value of{' '}
+                                            <code>request</code> object directly
+                                            or you can specify the{' '}
+                                            <code>request</code> body as a
+                                            variable{' '}
+                                            <code>
+                                                {'{{request.body.value}}'}
+                                            </code>
+                                        </p>
+                                    </Tooltip>
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton"
+                                        type="button"
+                                        onClick={() => fields.remove(index)}
+                                        style={{
+                                            borderRadius: '50%',
+                                            padding: 0,
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            width: 25,
+                                            height: 25,
+                                        }}
+                                    >
+                                        <img
+                                            src="/dashboard/assets/img/minus.svg"
+                                            style={{
+                                                height: '13px',
+                                                width: '13px',
+                                            }}
+                                            alt=""
+                                        />
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {monitorError && (
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                            style={{
+                                marginTop: '5px',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <div
+                                className="Box-root Margin-right--8"
+                                style={{ marginTop: '2px' }}
+                            >
+                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                            </div>
+                            <div className="Box-root">
+                                <span
+                                    id="monitorError"
+                                    style={{ color: 'red' }}
+                                >
+                                    {monitorError}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </>
+        );
+    };
+
     handleKeyBoard = e => {
         const { closeModal, projectId, destroy } = this.props;
 
@@ -448,7 +871,6 @@ class EditIncomingRequest extends Component {
             incidentPriorities,
             destroy,
             customFields,
-            monitorCustomFields,
         } = this.props;
 
         return (
@@ -1075,215 +1497,101 @@ class EditIncomingRequest extends Component {
                                                             }}
                                                         >
                                                             <div
-                                                                className="bs-Fieldset-field"
                                                                 style={{
                                                                     width:
                                                                         '100%',
+                                                                    marginBottom: 20,
                                                                 }}
                                                             >
-                                                                <Field
-                                                                    className="db-select-nw Table-cell--width--maximized"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="filterCriteria"
-                                                                    id="filterCriteria"
-                                                                    placeholder="Criteria"
-                                                                    style={{
-                                                                        height:
-                                                                            '28px',
-                                                                        width:
-                                                                            '100%',
-                                                                    }}
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                'incidentId',
-                                                                            label:
-                                                                                'Incident ID',
-                                                                        },
-                                                                        ...customFields.map(
-                                                                            field => ({
-                                                                                value:
-                                                                                    field.fieldName,
-                                                                                label:
-                                                                                    field.fieldName,
-                                                                            })
-                                                                        ),
-                                                                    ]}
-                                                                />
-                                                                <Field
-                                                                    className="db-select-nw Table-cell--width--maximized"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="filterCondition"
-                                                                    id="filterCondition"
-                                                                    placeholder="Condition"
-                                                                    style={{
-                                                                        height:
-                                                                            '28px',
-                                                                        width:
-                                                                            '100%',
-                                                                        marginLeft: 5,
-                                                                    }}
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                'equalTo',
-                                                                            label:
-                                                                                'Equal To',
-                                                                        },
-                                                                        {
-                                                                            value:
-                                                                                'notEqualTo',
-                                                                            label:
-                                                                                'Not Equal To',
-                                                                        },
-                                                                    ]}
-                                                                />
-                                                                <Field
-                                                                    component={
-                                                                        RenderField
-                                                                    }
-                                                                    name="filterText"
-                                                                    type={
-                                                                        formValues.filterCriteria
-                                                                            ? (
-                                                                                  customFields.find(
-                                                                                      field =>
-                                                                                          field.fieldName ===
-                                                                                          formValues.filterCriteria
-                                                                                  ) || {
-                                                                                      fieldType:
-                                                                                          'text',
-                                                                                  }
-                                                                              )
-                                                                                  .fieldType
-                                                                            : 'text'
-                                                                    }
-                                                                    placeholder="request.body.value"
-                                                                    id="filterText"
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    style={{
-                                                                        width:
-                                                                            '100%',
-                                                                        padding:
-                                                                            '3px 5px',
-                                                                        marginLeft: 5,
-                                                                    }}
-                                                                    parentStyle={{
-                                                                        marginRight: 5,
-                                                                    }}
-                                                                />
-                                                                <Tooltip title="Incoming Request Filter">
-                                                                    <p>
-                                                                        Filter
-                                                                        exposes
-                                                                        the{' '}
-                                                                        <code>
-                                                                            request
-                                                                        </code>{' '}
-                                                                        object
-                                                                        of an
-                                                                        incoming
-                                                                        request.
-                                                                        The
-                                                                        value on
-                                                                        the{' '}
-                                                                        <code>
-                                                                            request
-                                                                        </code>{' '}
-                                                                        object
-                                                                        can
-                                                                        either
-                                                                        be a
-                                                                        string
-                                                                        or a
-                                                                        number
-                                                                    </p>
-                                                                    <p>
-                                                                        Example
-                                                                        properties
-                                                                        include
-                                                                        the
-                                                                        following:
-                                                                    </p>
-                                                                    <p>
-                                                                        <ul>
-                                                                            <li>
-                                                                                <code>
-                                                                                    request.body
-                                                                                </code>
-                                                                            </li>
-                                                                            <li>
-                                                                                <code>
-                                                                                    request.query
-                                                                                </code>
-                                                                            </li>
-                                                                            <li>
-                                                                                <code>
-                                                                                    request.headers
-                                                                                </code>
-                                                                            </li>
-                                                                        </ul>
-                                                                    </p>
-                                                                    <p>
-                                                                        Usage
-                                                                        examples
-                                                                        include:
-                                                                    </p>
-                                                                    <p>
-                                                                        <ul>
-                                                                            <li>
-                                                                                <code>
-                                                                                    1
-                                                                                    |
-                                                                                    request.body.value
-                                                                                </code>
-                                                                            </li>
-                                                                            <li>
-                                                                                <code>
-                                                                                    2
-                                                                                    |
-                                                                                    request.query.value
-                                                                                </code>
-                                                                            </li>
-                                                                            <li>
-                                                                                <code>
-                                                                                    3
-                                                                                    |
-                                                                                    request.header.value
-                                                                                </code>
-                                                                            </li>
-                                                                        </ul>
-                                                                    </p>
-                                                                    <p>
-                                                                        You can
-                                                                        pass the
-                                                                        value of{' '}
-                                                                        <code>
-                                                                            request
-                                                                        </code>{' '}
-                                                                        object
-                                                                        directly
-                                                                        or you
-                                                                        can
-                                                                        specify
-                                                                        the{' '}
-                                                                        <code>
-                                                                            request
-                                                                        </code>{' '}
-                                                                        body as
-                                                                        a
-                                                                        variable{' '}
-                                                                        <code>
-                                                                            {
-                                                                                '{{request.body.value}}'
+                                                                <div>Match</div>
+                                                                <div className="Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                                                    <div className="Flex-flex Flex-alignItems--center Flex-justifyContent--center">
+                                                                        <Field
+                                                                            className="db-select-nw Table-cell--width--maximized"
+                                                                            component={
+                                                                                RenderSelect
                                                                             }
-                                                                        </code>
-                                                                    </p>
-                                                                </Tooltip>
+                                                                            name="filterMatch"
+                                                                            id="filterMatch"
+                                                                            style={{
+                                                                                height:
+                                                                                    '28px',
+                                                                                maxWidth: 150,
+                                                                            }}
+                                                                            options={[
+                                                                                {
+                                                                                    value:
+                                                                                        'all',
+                                                                                    label:
+                                                                                        'All',
+                                                                                },
+                                                                                {
+                                                                                    value:
+                                                                                        'any',
+                                                                                    label:
+                                                                                        'Any',
+                                                                                },
+                                                                            ]}
+                                                                        />
+                                                                        <span
+                                                                            style={{
+                                                                                marginLeft: 10,
+                                                                            }}
+                                                                        >
+                                                                            of
+                                                                            the
+                                                                            following
+                                                                            rules:
+                                                                        </span>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={e => {
+                                                                            e.preventDefault();
+                                                                            document
+                                                                                .querySelector(
+                                                                                    '#addFilter'
+                                                                                )
+                                                                                .click();
+                                                                        }}
+                                                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                                                    >
+                                                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                            <span>
+                                                                                Add
+                                                                                filter
+                                                                            </span>
+                                                                        </span>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '100%',
+                                                                    maxWidth:
+                                                                        '100%',
+                                                                    width:
+                                                                        '100%',
+                                                                    padding: 0,
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                >
+                                                                    <FieldArray
+                                                                        name="filters"
+                                                                        component={
+                                                                            this
+                                                                                .renderFilters
+                                                                        }
+                                                                    />
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1327,221 +1635,103 @@ class EditIncomingRequest extends Component {
                                                                 }}
                                                             >
                                                                 <div
-                                                                    className="bs-Fieldset-field"
                                                                     style={{
                                                                         width:
                                                                             '100%',
+                                                                        marginBottom: 20,
                                                                     }}
                                                                 >
-                                                                    <Field
-                                                                        className="db-select-nw Table-cell--width--maximized"
-                                                                        component={
-                                                                            RenderSelect
-                                                                        }
-                                                                        name="filterCriteria"
-                                                                        id="filterCriteria"
-                                                                        placeholder="Criteria"
-                                                                        style={{
-                                                                            height:
-                                                                                '28px',
-                                                                            width:
-                                                                                '100%',
-                                                                        }}
-                                                                        options={[
-                                                                            {
-                                                                                value:
-                                                                                    'incidentId',
-                                                                                label:
-                                                                                    'Incident ID',
-                                                                            },
-                                                                            ...customFields.map(
-                                                                                field => ({
-                                                                                    value:
-                                                                                        field.fieldName,
-                                                                                    label:
-                                                                                        field.fieldName,
-                                                                                })
-                                                                            ),
-                                                                        ]}
-                                                                    />
-                                                                    <Field
-                                                                        className="db-select-nw Table-cell--width--maximized"
-                                                                        component={
-                                                                            RenderSelect
-                                                                        }
-                                                                        name="filterCondition"
-                                                                        id="filterCondition"
-                                                                        placeholder="Condition"
-                                                                        style={{
-                                                                            height:
-                                                                                '28px',
-                                                                            width:
-                                                                                '100%',
-                                                                            marginLeft: 5,
-                                                                        }}
-                                                                        options={[
-                                                                            {
-                                                                                value:
-                                                                                    'equalTo',
-                                                                                label:
-                                                                                    'Equal To',
-                                                                            },
-                                                                            {
-                                                                                value:
-                                                                                    'notEqualTo',
-                                                                                label:
-                                                                                    'Not Equal To',
-                                                                            },
-                                                                        ]}
-                                                                    />
-                                                                    <Field
-                                                                        component={
-                                                                            RenderField
-                                                                        }
-                                                                        name="filterText"
-                                                                        type={
-                                                                            formValues.filterCriteria
-                                                                                ? (
-                                                                                      customFields.find(
-                                                                                          field =>
-                                                                                              field.fieldName ===
-                                                                                              formValues.filterCriteria
-                                                                                      ) || {
-                                                                                          fieldType:
-                                                                                              'text',
-                                                                                      }
-                                                                                  )
-                                                                                      .fieldType
-                                                                                : 'text'
-                                                                        }
-                                                                        placeholder="request.body.value"
-                                                                        id="filterText"
-                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                        style={{
-                                                                            width:
-                                                                                '100%',
-                                                                            padding:
-                                                                                '3px 5px',
-                                                                            marginLeft: 5,
-                                                                        }}
-                                                                        parentStyle={{
-                                                                            marginRight: 5,
-                                                                        }}
-                                                                    />
-                                                                    <Tooltip title="Incoming Request Filter">
-                                                                        <p>
-                                                                            Filter
-                                                                            exposes
-                                                                            the{' '}
-                                                                            <code>
-                                                                                request
-                                                                            </code>{' '}
-                                                                            object
-                                                                            of
-                                                                            an
-                                                                            incoming
-                                                                            request.
-                                                                            The
-                                                                            value
-                                                                            on
-                                                                            the{' '}
-                                                                            <code>
-                                                                                request
-                                                                            </code>{' '}
-                                                                            object
-                                                                            can
-                                                                            either
-                                                                            be a
-                                                                            string
-                                                                            or a
-                                                                            number
-                                                                        </p>
-                                                                        <p>
-                                                                            Example
-                                                                            properties
-                                                                            include
-                                                                            the
-                                                                            following:
-                                                                        </p>
-                                                                        <p>
-                                                                            <ul>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        request.body
-                                                                                    </code>
-                                                                                </li>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        request.query
-                                                                                    </code>
-                                                                                </li>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        request.headers
-                                                                                    </code>
-                                                                                </li>
-                                                                            </ul>
-                                                                        </p>
-                                                                        <p>
-                                                                            Usage
-                                                                            examples
-                                                                            include:
-                                                                        </p>
-                                                                        <p>
-                                                                            <ul>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        1
-                                                                                        |
-                                                                                        request.body.value
-                                                                                    </code>
-                                                                                </li>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        2
-                                                                                        |
-                                                                                        request.query.value
-                                                                                    </code>
-                                                                                </li>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        3
-                                                                                        |
-                                                                                        request.header.value
-                                                                                    </code>
-                                                                                </li>
-                                                                            </ul>
-                                                                        </p>
-                                                                        <p>
-                                                                            You
-                                                                            can
-                                                                            pass
-                                                                            the
-                                                                            value
-                                                                            of{' '}
-                                                                            <code>
-                                                                                request
-                                                                            </code>{' '}
-                                                                            object
-                                                                            directly
-                                                                            or
-                                                                            you
-                                                                            can
-                                                                            specify
-                                                                            the{' '}
-                                                                            <code>
-                                                                                request
-                                                                            </code>{' '}
-                                                                            body
-                                                                            as a
-                                                                            variable{' '}
-                                                                            <code>
-                                                                                {
-                                                                                    '{{request.body.value}}'
+                                                                    <div>
+                                                                        Match
+                                                                    </div>
+                                                                    <div className="Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                                                        <div className="Flex-flex Flex-alignItems--center Flex-justifyContent--center">
+                                                                            <Field
+                                                                                className="db-select-nw Table-cell--width--maximized"
+                                                                                component={
+                                                                                    RenderSelect
                                                                                 }
-                                                                            </code>
-                                                                        </p>
-                                                                    </Tooltip>
+                                                                                name="filterMatch"
+                                                                                id="filterMatch"
+                                                                                style={{
+                                                                                    height:
+                                                                                        '28px',
+                                                                                    maxWidth: 150,
+                                                                                }}
+                                                                                options={[
+                                                                                    {
+                                                                                        value:
+                                                                                            'all',
+                                                                                        label:
+                                                                                            'All',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'any',
+                                                                                        label:
+                                                                                            'Any',
+                                                                                    },
+                                                                                ]}
+                                                                            />
+                                                                            <span
+                                                                                style={{
+                                                                                    marginLeft: 10,
+                                                                                }}
+                                                                            >
+                                                                                of
+                                                                                the
+                                                                                following
+                                                                                rules:
+                                                                            </span>
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={e => {
+                                                                                e.preventDefault();
+                                                                                document
+                                                                                    .querySelector(
+                                                                                        '#addFilter'
+                                                                                    )
+                                                                                    .click();
+                                                                            }}
+                                                                            className="Button bs-ButtonLegacy ActionIconParent"
+                                                                        >
+                                                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                <span>
+                                                                                    Add
+                                                                                    filter
+                                                                                </span>
+                                                                            </span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="bs-Fieldset-fields"
+                                                                    style={{
+                                                                        flexBasis:
+                                                                            '100%',
+                                                                        maxWidth:
+                                                                            '100%',
+                                                                        width:
+                                                                            '100%',
+                                                                        padding: 0,
+                                                                    }}
+                                                                >
+                                                                    <div
+                                                                        className="bs-Fieldset-field"
+                                                                        style={{
+                                                                            width:
+                                                                                '100%',
+                                                                        }}
+                                                                    >
+                                                                        <FieldArray
+                                                                            name="filters"
+                                                                            component={
+                                                                                this
+                                                                                    .renderFilters
+                                                                            }
+                                                                        />
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1790,242 +1980,103 @@ class EditIncomingRequest extends Component {
                                                                 }}
                                                             >
                                                                 <div
-                                                                    className="bs-Fieldset-field"
                                                                     style={{
                                                                         width:
                                                                             '100%',
+                                                                        marginBottom: 20,
                                                                     }}
                                                                 >
-                                                                    <Field
-                                                                        className="db-select-nw Table-cell--width--maximized"
-                                                                        component={
-                                                                            RenderSelect
-                                                                        }
-                                                                        name="filterCriteria"
-                                                                        id="filterCriteria"
-                                                                        placeholder="Criteria"
-                                                                        style={{
-                                                                            height:
-                                                                                '28px',
-                                                                            width:
-                                                                                '100%',
-                                                                        }}
-                                                                        options={[
-                                                                            ...monitorCustomFields.map(
-                                                                                field => ({
-                                                                                    value:
-                                                                                        field.fieldName,
-                                                                                    label:
-                                                                                        field.fieldName,
-                                                                                })
-                                                                            ),
-                                                                        ]}
-                                                                    />
-                                                                    <Field
-                                                                        className="db-select-nw Table-cell--width--maximized"
-                                                                        component={
-                                                                            RenderSelect
-                                                                        }
-                                                                        name="filterCondition"
-                                                                        id="filterCondition"
-                                                                        placeholder="Condition"
-                                                                        style={{
-                                                                            height:
-                                                                                '28px',
-                                                                            width:
-                                                                                '100%',
-                                                                            marginLeft: 5,
-                                                                        }}
-                                                                        options={[
-                                                                            {
-                                                                                value:
-                                                                                    'equalTo',
-                                                                                label:
-                                                                                    'Equal To',
-                                                                            },
-                                                                            {
-                                                                                value:
-                                                                                    'notEqualTo',
-                                                                                label:
-                                                                                    'Not Equal To',
-                                                                            },
-                                                                            {
-                                                                                value:
-                                                                                    'greaterThan',
-                                                                                label:
-                                                                                    'Greater Than',
-                                                                            },
-                                                                            {
-                                                                                value:
-                                                                                    'lessThan',
-                                                                                label:
-                                                                                    'Less Than',
-                                                                            },
-                                                                            {
-                                                                                value:
-                                                                                    'lessThanOrEqualTo',
-                                                                                label:
-                                                                                    'Less Than Or Equal To',
-                                                                            },
-                                                                            {
-                                                                                value:
-                                                                                    'greaterThanOrEqualTo',
-                                                                                label:
-                                                                                    'Greater Than Or Equal To',
-                                                                            },
-                                                                        ]}
-                                                                    />
-                                                                    <Field
-                                                                        component={
-                                                                            RenderField
-                                                                        }
-                                                                        name="filterText"
-                                                                        type={
-                                                                            formValues.filterCriteria
-                                                                                ? (
-                                                                                      monitorCustomFields.find(
-                                                                                          field =>
-                                                                                              field.fieldName ===
-                                                                                              formValues.filterCriteria
-                                                                                      ) || {
-                                                                                          fieldType:
-                                                                                              'text',
-                                                                                      }
-                                                                                  )
-                                                                                      .fieldType
-                                                                                : 'text'
-                                                                        }
-                                                                        placeholder="request.body.value"
-                                                                        id="filterText"
-                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                        style={{
-                                                                            width:
-                                                                                '100%',
-                                                                            padding:
-                                                                                '3px 5px',
-                                                                            marginLeft: 5,
-                                                                        }}
-                                                                        parentStyle={{
-                                                                            marginRight: 5,
-                                                                        }}
-                                                                        autoFocus={
-                                                                            true
-                                                                        }
-                                                                    />
-                                                                    <Tooltip title="Incoming http Request Filter">
-                                                                        <p>
-                                                                            Filter
-                                                                            exposes
-                                                                            the{' '}
-                                                                            <code>
-                                                                                request
-                                                                            </code>{' '}
-                                                                            object
-                                                                            of
-                                                                            an
-                                                                            incoming
-                                                                            request.
-                                                                            The
-                                                                            value
-                                                                            on
-                                                                            the{' '}
-                                                                            <code>
-                                                                                request
-                                                                            </code>{' '}
-                                                                            object
-                                                                            can
-                                                                            either
-                                                                            be a
-                                                                            string
-                                                                            or a
-                                                                            number
-                                                                        </p>
-                                                                        <p>
-                                                                            Example
-                                                                            properties
-                                                                            include
-                                                                            the
-                                                                            following:
-                                                                        </p>
-                                                                        <p>
-                                                                            <ul>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        request.body
-                                                                                    </code>
-                                                                                </li>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        request.query
-                                                                                    </code>
-                                                                                </li>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        request.headers
-                                                                                    </code>
-                                                                                </li>
-                                                                            </ul>
-                                                                        </p>
-                                                                        <p>
-                                                                            Usage
-                                                                            examples
-                                                                            include:
-                                                                        </p>
-                                                                        <p>
-                                                                            <ul>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        1
-                                                                                        |
-                                                                                        request.body.value
-                                                                                    </code>
-                                                                                </li>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        2
-                                                                                        |
-                                                                                        request.query.value
-                                                                                    </code>
-                                                                                </li>
-                                                                                <li>
-                                                                                    <code>
-                                                                                        3
-                                                                                        |
-                                                                                        request.header.value
-                                                                                    </code>
-                                                                                </li>
-                                                                            </ul>
-                                                                        </p>
-                                                                        <p>
-                                                                            You
-                                                                            can
-                                                                            pass
-                                                                            the
-                                                                            value
-                                                                            of{' '}
-                                                                            <code>
-                                                                                request
-                                                                            </code>{' '}
-                                                                            object
-                                                                            directly
-                                                                            or
-                                                                            you
-                                                                            can
-                                                                            specify
-                                                                            the{' '}
-                                                                            <code>
-                                                                                request
-                                                                            </code>{' '}
-                                                                            body
-                                                                            as a
-                                                                            variable{' '}
-                                                                            <code>
-                                                                                {
-                                                                                    '{{request.body.value}}'
+                                                                    <div>
+                                                                        Match
+                                                                    </div>
+                                                                    <div className="Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                                                        <div className="Flex-flex Flex-alignItems--center Flex-justifyContent--center">
+                                                                            <Field
+                                                                                className="db-select-nw Table-cell--width--maximized"
+                                                                                component={
+                                                                                    RenderSelect
                                                                                 }
-                                                                            </code>
-                                                                        </p>
-                                                                    </Tooltip>
+                                                                                name="filterMatch"
+                                                                                id="filterMatch"
+                                                                                style={{
+                                                                                    height:
+                                                                                        '28px',
+                                                                                    maxWidth: 150,
+                                                                                }}
+                                                                                options={[
+                                                                                    {
+                                                                                        value:
+                                                                                            'all',
+                                                                                        label:
+                                                                                            'All',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'any',
+                                                                                        label:
+                                                                                            'Any',
+                                                                                    },
+                                                                                ]}
+                                                                            />
+                                                                            <span
+                                                                                style={{
+                                                                                    marginLeft: 10,
+                                                                                }}
+                                                                            >
+                                                                                of
+                                                                                the
+                                                                                following
+                                                                                rules:
+                                                                            </span>
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={e => {
+                                                                                e.preventDefault();
+                                                                                document
+                                                                                    .querySelector(
+                                                                                        '#addFilter'
+                                                                                    )
+                                                                                    .click();
+                                                                            }}
+                                                                            className="Button bs-ButtonLegacy ActionIconParent"
+                                                                        >
+                                                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                <span>
+                                                                                    Add
+                                                                                    filter
+                                                                                </span>
+                                                                            </span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    className="bs-Fieldset-fields"
+                                                                    style={{
+                                                                        flexBasis:
+                                                                            '100%',
+                                                                        maxWidth:
+                                                                            '100%',
+                                                                        width:
+                                                                            '100%',
+                                                                        padding: 0,
+                                                                    }}
+                                                                >
+                                                                    <div
+                                                                        className="bs-Fieldset-field"
+                                                                        style={{
+                                                                            width:
+                                                                                '100%',
+                                                                        }}
+                                                                    >
+                                                                        <FieldArray
+                                                                            name="filters"
+                                                                            component={
+                                                                                this
+                                                                                    .renderFilters
+                                                                            }
+                                                                        />
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2790,11 +2841,10 @@ const mapStateToProps = state => {
             initialValues.nextAction = 'resolveIncident';
         }
         initialValues._id = incomingRequestToBeUpdated._id;
-        initialValues.filterCriteria =
-            incomingRequestToBeUpdated.filterCriteria;
-        initialValues.filterCondition =
-            incomingRequestToBeUpdated.filterCondition;
-        initialValues.filterText = incomingRequestToBeUpdated.filterText;
+
+        initialValues.filters = incomingRequestToBeUpdated.filters;
+        initialValues.filterMatch = incomingRequestToBeUpdated.filterMatch;
+
         if (incomingRequestToBeUpdated.createIncident) {
             const priorityIds = incidentPriorities.map(priority =>
                 String(priority._id)

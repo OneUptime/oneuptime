@@ -623,7 +623,8 @@ module.exports = {
         const body = resp && resp.body ? resp.body : null;
         const sslCertificate =
             resp && resp.sslCertificate ? resp.sslCertificate : null;
-        const reasons = [];
+        const failedReasons = [];
+        const successReasons = [];
 
         if (con && con.and && con.and.length) {
             stat = await checkAnd(
@@ -633,7 +634,8 @@ module.exports = {
                 body,
                 sslCertificate,
                 response,
-                reasons,
+                failedReasons,
+                successReasons,
                 monitorType
             );
         } else if (con && con.or && con.or.length) {
@@ -644,11 +646,12 @@ module.exports = {
                 body,
                 sslCertificate,
                 response,
-                reasons,
+                failedReasons,
+                successReasons,
                 monitorType
             );
         }
-        return { stat, reasons };
+        return { stat, failedReasons, successReasons };
     },
 
     scanApplicationSecurity: async security => {
@@ -1063,15 +1066,17 @@ module.exports = {
             const payload = moment().diff(moment(lastPingTime), 'minutes');
             const {
                 stat: validUp,
-                reasons: upFailedReasons,
+                failedReasons: upFailedReasons,
+                successReasons: upSuccessReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? _this.conditions(monitor.type, monitor.criteria.up, payload, {
                       body,
                   })
-                : { stat: false, reasons: [] });
+                : { stat: false, failedReasons: [], successReasons: [] });
             const {
                 stat: validDegraded,
-                reasons: degradedFailedReasons,
+                failedReasons: degradedFailedReasons,
+                successReasons: degradedSuccessReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? _this.conditions(
                       monitor.type,
@@ -1079,10 +1084,10 @@ module.exports = {
                       payload,
                       { body }
                   )
-                : { stat: false, reasons: [] });
+                : { stat: false, failedReasons: [], successReasons: [] });
             const {
                 stat: validDown,
-                reasons: downFailedReasons,
+                failedReasons: downFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? _this.conditions(
                       monitor.type,
@@ -1090,25 +1095,32 @@ module.exports = {
                       payload,
                       { body }
                   )
-                : { stat: false, reasons: [] });
+                : { stat: false, failedReasons: [], successReasons: [] });
 
             if (validDown) {
                 status = 'offline';
-                reason = downFailedReasons;
+                reason = [
+                    ...downFailedReasons,
+                    ...degradedSuccessReasons,
+                    ...upSuccessReasons,
+                ];
             } else if (validDegraded) {
                 status = 'degraded';
-                reason = degradedFailedReasons;
+                reason = [...degradedFailedReasons, ...upSuccessReasons];
             } else if (validUp) {
                 status = 'online';
                 reason = upFailedReasons;
             } else {
-                status = 'online';
+                status = 'offline';
                 reason = [
                     ...degradedFailedReasons,
                     ...downFailedReasons,
                     ...upFailedReasons,
                 ];
             }
+            reason = reason.filter(
+                (item, pos, self) => self.indexOf(item) === pos
+            );
             const logData = body;
             logData.responseTime = 0;
             logData.responseStatus = null;
@@ -1135,7 +1147,7 @@ module.exports = {
         }
     },
 
-    probeHttpRequest: async function(monitor) {
+    probeHttpRequest: async function(monitor, probeId) {
         try {
             const _this = this;
             let status, reason;
@@ -1175,14 +1187,14 @@ module.exports = {
                 status = 'online';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             } else {
-                status = 'online';
+                status = 'offline';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             }
             const logData = {};
             logData.responseTime = 0;
             logData.responseStatus = null;
             logData.status = status;
-            logData.probeId = null;
+            logData.probeId = probeId;
             logData.monitorId = monitor && monitor.id ? monitor.id : null;
             logData.sslCertificate = null;
             logData.lighthouseScanStatus = null;
@@ -1500,7 +1512,8 @@ const checkAnd = async (
     body,
     ssl,
     response,
-    reasons,
+    failedReasons,
+    successReasons,
     type
 ) => {
     let validity = true;
@@ -1534,8 +1547,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
                 }
@@ -1553,8 +1569,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
                 }
@@ -1574,8 +1593,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
                 }
@@ -1589,8 +1611,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
                 }
@@ -1608,8 +1633,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
                 }
@@ -1627,8 +1655,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
                 }
@@ -1646,8 +1677,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.responseTime} ${payload} ms`
                     );
                 }
@@ -1667,8 +1701,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
@@ -1686,8 +1723,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
@@ -1707,8 +1747,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
@@ -1722,8 +1765,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
@@ -1741,8 +1787,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
@@ -1760,8 +1809,11 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
@@ -1779,27 +1831,56 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.incomingTime} ${tempReason}`
                     );
                 }
             }
         } else if (con[i] && con[i].responseType === 'doesRespond') {
             if (con[i] && con[i].filter && con[i].filter === 'isUp') {
-                if (!(con[i] && con[i].filter && payload)) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].filter &&
+                        !(
+                            (statusCode === 408 || statusCode === '408') &&
+                            body &&
+                            body.code &&
+                            body.code === 'ENOTFOUND'
+                        )
+                    )
+                ) {
                     validity = false;
-                } else {
-                    reasons.push(
+                    successReasons.push(
                         `${criteriaStrings[type] || 'Monitor was'} Offline`
+                    );
+                } else {
+                    failedReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Online`
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
-                if (!(con[i] && con[i].filter && !payload)) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].filter &&
+                        (statusCode === 408 || statusCode === '408') &&
+                        body &&
+                        body.code &&
+                        body.code === 'ENOTFOUND'
+                    )
+                ) {
                     validity = false;
-                } else {
-                    reasons.push(
+                    successReasons.push(
                         `${criteriaStrings[type] || 'Monitor was'} Online`
+                    );
+                } else {
+                    failedReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Offline`
                     );
                 }
             }
@@ -1812,9 +1893,12 @@ const checkAnd = async (
             if (con[i] && con[i].filter && con[i].filter === 'isValid') {
                 if (!(ssl && !ssl.selfSigned)) {
                     validity = false;
-                } else {
-                    reasons.push(
+                    successReasons.push(
                         `${criteriaStrings.sslCertificate} was not valid`
+                    );
+                } else {
+                    failedReasons.push(
+                        `${criteriaStrings.sslCertificate} was valid`
                     );
                 }
             } else if (
@@ -1824,9 +1908,12 @@ const checkAnd = async (
             ) {
                 if (ssl) {
                     validity = false;
-                } else {
-                    reasons.push(
+                    successReasons.push(
                         `${criteriaStrings.sslCertificate} was present`
+                    );
+                } else {
+                    failedReasons.push(
+                        `${criteriaStrings.sslCertificate} was not present`
                     );
                 }
             } else if (
@@ -1836,9 +1923,12 @@ const checkAnd = async (
             ) {
                 if (!(ssl && ssl.selfSigned)) {
                     validity = false;
-                } else {
-                    reasons.push(
+                    successReasons.push(
                         `${criteriaStrings.sslCertificate} was not Self-Signed`
+                    );
+                } else {
+                    failedReasons.push(
+                        `${criteriaStrings.sslCertificate} was Self-Signed`
                     );
                 }
             } else if (
@@ -1848,8 +1938,11 @@ const checkAnd = async (
             ) {
                 if (!(ssl && !ssl.selfSigned && expiresIn < 30)) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
                     );
                 }
@@ -1860,8 +1953,11 @@ const checkAnd = async (
             ) {
                 if (!(ssl && !ssl.selfSigned && expiresIn < 10)) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                    );
                 } else {
-                    reasons.push(
+                    failedReasons.push(
                         `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
                     );
                 }
@@ -1877,8 +1973,21 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 } else {
-                    reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1894,8 +2003,21 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 } else {
-                    reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1913,8 +2035,21 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 } else {
-                    reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1926,8 +2061,21 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 } else {
-                    reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1943,8 +2091,21 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 } else {
-                    reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1960,8 +2121,21 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 } else {
-                    reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1977,8 +2151,21 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 } else {
-                    reasons.push(`${criteriaStrings.statusCode} ${statusCode}`);
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'cpuLoad') {
@@ -1993,9 +2180,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 } else {
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -2018,9 +2213,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 } else {
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -2045,9 +2248,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 } else {
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -2066,9 +2277,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 } else {
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -2091,9 +2310,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 } else {
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -2116,9 +2343,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 } else {
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -2141,9 +2376,17 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
                 } else {
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -2168,9 +2411,16 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -2192,9 +2442,16 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -2218,9 +2475,16 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -2238,9 +2502,16 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -2262,9 +2533,16 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -2286,9 +2564,16 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -2310,9 +2595,16 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -2335,13 +2627,24 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -2362,13 +2665,24 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -2391,13 +2705,24 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -2414,13 +2739,24 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -2441,13 +2777,24 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -2468,13 +2815,24 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -2495,13 +2853,24 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
                 } else {
                     if (
                         payload &&
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -2521,9 +2890,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 } else {
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -2543,9 +2917,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 } else {
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -2567,9 +2946,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 } else {
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -2585,9 +2969,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 } else {
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -2607,9 +2996,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 } else {
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -2629,9 +3023,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 } else {
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -2651,9 +3050,14 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
                 } else {
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -2663,9 +3067,12 @@ const checkAnd = async (
             if (con[i] && con[i].filter && con[i].filter === 'contains') {
                 if (!(con[i] && con[i].field1 && body && body[con[i].field1])) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                    );
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` did not contain ${con[i].field1}`
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
                     );
                 }
             } else if (
@@ -2677,9 +3084,12 @@ const checkAnd = async (
                     !(con[i] && con[i].field1 && body && !body[con[i].field1])
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                    );
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` contains ${con[i].field1}`
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
                     );
                 }
             } else if (
@@ -2696,17 +3106,23 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} did not have Javascript expression \`${con[i].field1}\``
+                    );
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` did not have Javascript expression \`${con[i].field1}\``
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} did have Javascript expression \`${con[i].field1}\``
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
                 if (!(con[i] && con[i].filter && body && _.isEmpty(body))) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} was not empty`
+                    );
                 } else {
-                    reasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` was not empty`
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} was empty`
                     );
                 }
             } else if (
@@ -2716,8 +3132,13 @@ const checkAnd = async (
             ) {
                 if (!(con[i] && con[i].filter && body && !_.isEmpty(body))) {
                     validity = false;
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} was empty`
+                    );
                 } else {
-                    reasons.push(`${criteriaStrings.responseBody} was empty`);
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} was not empty`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2750,19 +3171,24 @@ const checkAnd = async (
                         )
                     ) {
                         validity = false;
-                    } else {
-                        reasons.push(
+                        successReasons.push(
                             `${criteriaStrings.response} \`${JSON.stringify(
                                 responseDisplay
-                            )}\` did not evaluate \`${con[i].field1}\``
+                            )}\` did evaluate \`${con[i].field1}\``
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.response} \`${JSON.stringify(
+                                responseDisplay
+                            )}\` did evaluate \`${con[i].field1}\``
                         );
                     }
                 } catch (e) {
                     validity = false;
-                    reasons.push(
+                    successReasons.push(
                         `${criteriaStrings.response} \`${JSON.stringify(
                             responseDisplay
-                        )}\` did not evaluate \`${con[i].field1}\``
+                        )}\` caused an error`
                     );
                 }
             }
@@ -2780,7 +3206,8 @@ const checkAnd = async (
                 body,
                 ssl,
                 response,
-                reasons
+                failedReasons,
+                successReasons
             );
             if (!temp) {
                 validity = temp;
@@ -2798,7 +3225,8 @@ const checkAnd = async (
                 body,
                 ssl,
                 response,
-                reasons
+                failedReasons,
+                successReasons
             );
             if (!temp1) {
                 validity = temp1;
@@ -2815,7 +3243,8 @@ const checkOr = async (
     body,
     ssl,
     response,
-    reasons,
+    failedReasons,
+    successReasons,
     type
 ) => {
     let validity = false;
@@ -2843,11 +3272,13 @@ const checkOr = async (
                     payload > con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.responseTime} ${payload} ms`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2861,11 +3292,13 @@ const checkOr = async (
                     payload < con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.responseTime} ${payload} ms`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2881,11 +3314,13 @@ const checkOr = async (
                     payload < con[i].field2
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.responseTime} ${payload} ms`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2895,11 +3330,13 @@ const checkOr = async (
                     payload == con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.responseTime} ${payload} ms`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2913,11 +3350,13 @@ const checkOr = async (
                     payload != con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.responseTime} ${payload} ms`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2931,11 +3370,13 @@ const checkOr = async (
                     payload >= con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.responseTime} ${payload} ms`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2949,11 +3390,13 @@ const checkOr = async (
                     payload <= con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.responseTime} ${payload} ms`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseTime} ${payload} ms`
+                    );
                 }
             }
         } else if (con[i] && con[i].responseType === 'incomingTime') {
@@ -2965,11 +3408,13 @@ const checkOr = async (
                     payload > con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.incomingTime} ${tempReason}`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2983,11 +3428,13 @@ const checkOr = async (
                     payload < con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.incomingTime} ${tempReason}`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -3003,11 +3450,13 @@ const checkOr = async (
                     payload < con[i].field2
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.incomingTime} ${tempReason}`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -3017,11 +3466,13 @@ const checkOr = async (
                     payload == con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.incomingTime} ${tempReason}`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -3035,11 +3486,13 @@ const checkOr = async (
                     payload != con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.incomingTime} ${tempReason}`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -3053,11 +3506,13 @@ const checkOr = async (
                     payload >= con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.incomingTime} ${tempReason}`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -3071,25 +3526,51 @@ const checkOr = async (
                     payload <= con[i].field1
                 ) {
                     validity = true;
-                    if (payload) {
-                        reasons.push(
-                            `${criteriaStrings.incomingTime} ${tempReason}`
-                        );
-                    }
+                    failedReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.incomingTime} ${tempReason}`
+                    );
                 }
             }
         } else if (con[i] && con[i].responseType === 'doesRespond') {
             if (con[i] && con[i].filter && con[i].filter === 'isUp') {
-                if (con[i] && con[i].filter && payload) {
+                if (
+                    con[i] &&
+                    con[i].filter &&
+                    !(
+                        (statusCode === 408 || statusCode === '408') &&
+                        body &&
+                        body.code &&
+                        body.code === 'ENOTFOUND'
+                    )
+                ) {
                     validity = true;
-                    reasons.push(
+                    failedReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Online`
+                    );
+                } else {
+                    successReasons.push(
                         `${criteriaStrings[type] || 'Monitor was'} Offline`
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
-                if (con[i] && con[i].filter && !payload) {
+                if (
+                    con[i] &&
+                    con[i].filter &&
+                    (statusCode === 408 || statusCode === '408') &&
+                    body &&
+                    body.code &&
+                    body.code === 'ENOTFOUND'
+                ) {
                     validity = true;
-                    reasons.push(
+                    failedReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Offline`
+                    );
+                } else {
+                    successReasons.push(
                         `${criteriaStrings[type] || 'Monitor was'} Online`
                     );
                 }
@@ -3103,7 +3584,11 @@ const checkOr = async (
             if (con[i] && con[i].filter && con[i].filter === 'isValid') {
                 if (ssl && !ssl.selfSigned) {
                     validity = true;
-                    reasons.push(
+                    failedReasons.push(
+                        `${criteriaStrings.sslCertificate} was valid`
+                    );
+                } else {
+                    successReasons.push(
                         `${criteriaStrings.sslCertificate} was not valid`
                     );
                 }
@@ -3114,7 +3599,11 @@ const checkOr = async (
             ) {
                 if (!ssl) {
                     validity = true;
-                    reasons.push(
+                    failedReasons.push(
+                        `${criteriaStrings.sslCertificate} was not present`
+                    );
+                } else {
+                    successReasons.push(
                         `${criteriaStrings.sslCertificate} was present`
                     );
                 }
@@ -3125,7 +3614,11 @@ const checkOr = async (
             ) {
                 if (ssl && ssl.selfSigned) {
                     validity = true;
-                    reasons.push(
+                    failedReasons.push(
+                        `${criteriaStrings.sslCertificate} was Self-Signed`
+                    );
+                } else {
+                    successReasons.push(
                         `${criteriaStrings.sslCertificate} was not Self-Signed`
                     );
                 }
@@ -3137,7 +3630,13 @@ const checkOr = async (
                 if (ssl && !ssl.selfSigned && expiresIn < 30) {
                     validity = true;
                     if (expiresIn) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                        );
+                    }
+                } else {
+                    if (expiresIn) {
+                        successReasons.push(
                             `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
                         );
                     }
@@ -3150,7 +3649,13 @@ const checkOr = async (
                 if (ssl && !ssl.selfSigned && expiresIn < 10) {
                     validity = true;
                     if (expiresIn) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                        );
+                    }
+                } else {
+                    if (expiresIn) {
+                        successReasons.push(
                             `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
                         );
                     }
@@ -3165,8 +3670,18 @@ const checkOr = async (
                     statusCode > con[i].field1
                 ) {
                     validity = true;
-                    if (statusCode) {
-                        reasons.push(
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
+                } else {
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
                         );
                     }
@@ -3183,8 +3698,18 @@ const checkOr = async (
                     statusCode < con[i].field1
                 ) {
                     validity = true;
-                    if (statusCode) {
-                        reasons.push(
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
+                } else {
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
                         );
                     }
@@ -3203,8 +3728,18 @@ const checkOr = async (
                     statusCode < con[i].field2
                 ) {
                     validity = true;
-                    if (statusCode) {
-                        reasons.push(
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
+                } else {
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
                         );
                     }
@@ -3217,8 +3752,18 @@ const checkOr = async (
                     statusCode == con[i].field1
                 ) {
                     validity = true;
-                    if (statusCode) {
-                        reasons.push(
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
+                } else {
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
                         );
                     }
@@ -3235,8 +3780,18 @@ const checkOr = async (
                     statusCode != con[i].field1
                 ) {
                     validity = true;
-                    if (statusCode) {
-                        reasons.push(
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
+                } else {
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
                         );
                     }
@@ -3253,8 +3808,18 @@ const checkOr = async (
                     statusCode >= con[i].field1
                 ) {
                     validity = true;
-                    if (statusCode) {
-                        reasons.push(
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
+                } else {
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
                         );
                     }
@@ -3271,8 +3836,18 @@ const checkOr = async (
                     statusCode <= con[i].field1
                 ) {
                     validity = true;
-                    if (statusCode) {
-                        reasons.push(
+                    if (statusCode === 408 || statusCode === '408') {
+                        failedReasons.push('Request Timed out');
+                    } else {
+                        failedReasons.push(
+                            `${criteriaStrings.statusCode} ${statusCode}`
+                        );
+                    }
+                } else {
+                    if (statusCode === 408 || statusCode === '408') {
+                        successReasons.push('Request Timed out');
+                    } else {
+                        successReasons.push(
                             `${criteriaStrings.statusCode} ${statusCode}`
                         );
                     }
@@ -3289,7 +3864,16 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
+                } else {
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -3311,7 +3895,16 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
+                } else {
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -3335,7 +3928,16 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
+                } else {
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -3353,7 +3955,16 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
+                } else {
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -3375,7 +3986,16 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
+                } else {
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -3397,7 +4017,16 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
+                } else {
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -3419,7 +4048,16 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.cpuLoad !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                payload.cpuLoad,
+                                2
+                            )} %`
+                        );
+                    }
+                } else {
+                    if (payload && payload.cpuLoad !== null) {
+                        successReasons.push(
                             `${criteriaStrings.cpuLoad} ${formatDecimal(
                                 payload.cpuLoad,
                                 2
@@ -3442,7 +4080,15 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -3462,7 +4108,15 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -3484,7 +4138,15 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -3500,7 +4162,15 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -3520,7 +4190,15 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -3540,7 +4218,15 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -3560,7 +4246,15 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.memoryUsed !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.memoryUsed} ${formatBytes(
+                                memoryUsedBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (payload && payload.memoryUsed !== null) {
+                        successReasons.push(
                             `${criteriaStrings.memoryUsed} ${formatBytes(
                                 memoryUsedBytes
                             )}`
@@ -3581,7 +4275,19 @@ const checkOr = async (
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -3600,7 +4306,19 @@ const checkOr = async (
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -3625,7 +4343,19 @@ const checkOr = async (
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -3640,7 +4370,19 @@ const checkOr = async (
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -3659,7 +4401,19 @@ const checkOr = async (
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -3678,7 +4432,19 @@ const checkOr = async (
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -3697,7 +4463,19 @@ const checkOr = async (
                         payload.totalStorage !== null &&
                         payload.storageUsed !== null
                     ) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.freeStorage} ${formatBytes(
+                                freeBytes
+                            )}`
+                        );
+                    }
+                } else {
+                    if (
+                        payload &&
+                        payload.totalStorage !== null &&
+                        payload.storageUsed !== null
+                    ) {
+                        successReasons.push(
                             `${criteriaStrings.freeStorage} ${formatBytes(
                                 freeBytes
                             )}`
@@ -3716,7 +4494,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
+                } else {
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -3735,7 +4519,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
+                } else {
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -3756,7 +4546,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
+                } else {
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -3771,7 +4567,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
+                } else {
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -3790,7 +4592,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
+                } else {
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -3809,7 +4617,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
+                } else {
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -3828,7 +4642,13 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (payload && payload.mainTemp !== null) {
-                        reasons.push(
+                        failedReasons.push(
+                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        );
+                    }
+                } else {
+                    if (payload && payload.mainTemp !== null) {
+                        successReasons.push(
                             `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                         );
                     }
@@ -3839,8 +4659,14 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && body && body[con[i].field1]) {
                     validity = true;
                     if (con[i].field1) {
-                        reasons.push(
-                            `${criteriaStrings.responseBody} \`${body}\` did not contain ${con[i].field1}`
+                        failedReasons.push(
+                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                        );
+                    }
+                } else {
+                    if (con[i].field1) {
+                        successReasons.push(
+                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
                         );
                     }
                 }
@@ -3852,8 +4678,14 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && body && !body[con[i].field1]) {
                     validity = true;
                     if (con[i].field1) {
-                        reasons.push(
-                            `${criteriaStrings.responseBody} \`${body}\` contains ${con[i].field1}`
+                        failedReasons.push(
+                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                        );
+                    }
+                } else {
+                    if (con[i].field1) {
+                        successReasons.push(
+                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
                         );
                     }
                 }
@@ -3870,16 +4702,26 @@ const checkOr = async (
                 ) {
                     validity = true;
                     if (con[i].field1) {
-                        reasons.push(
-                            `${criteriaStrings.responseBody} \`${body}\` did not have Javascript expression \`${con[i].field1}\``
+                        failedReasons.push(
+                            `${criteriaStrings.responseBody} contains Javascript expression ${con[i].field1}`
+                        );
+                    }
+                } else {
+                    if (con[i].field1) {
+                        successReasons.push(
+                            `${criteriaStrings.responseBody} does not contain Javascript expression ${con[i].field1}`
                         );
                     }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
                 if (con[i] && con[i].filter && body && _.isEmpty(body)) {
                     validity = true;
-                    reasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` was not empty`
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} was empty`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} was not empty`
                     );
                 }
             } else if (
@@ -3889,7 +4731,13 @@ const checkOr = async (
             ) {
                 if (con[i] && con[i].filter && body && !_.isEmpty(body)) {
                     validity = true;
-                    reasons.push(`${criteriaStrings.responseBody} was empty`);
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} was not empty`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} was empty`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -3921,7 +4769,15 @@ const checkOr = async (
                     ) {
                         validity = true;
                         if (con[i].field1) {
-                            reasons.push(
+                            failedReasons.push(
+                                `${criteriaStrings.response} \`${JSON.stringify(
+                                    responseDisplay
+                                )}\` evaluate \`${con[i].field1}\``
+                            );
+                        }
+                    } else {
+                        if (con[i].field1) {
+                            successReasons.push(
                                 `${criteriaStrings.response} \`${JSON.stringify(
                                     responseDisplay
                                 )}\` did not evaluate \`${con[i].field1}\``
@@ -3929,14 +4785,11 @@ const checkOr = async (
                         }
                     }
                 } catch (e) {
-                    // validity = false;
-                    if (con[i].field1) {
-                        reasons.push(
-                            `${criteriaStrings.response} \`${JSON.stringify(
-                                responseDisplay
-                            )}\` did not evaluate \`${con[i].field1}\``
-                        );
-                    }
+                    successReasons.push(
+                        `${criteriaStrings.response} \`${JSON.stringify(
+                            responseDisplay
+                        )}\` did not evaluate \`${con[i].field1}\``
+                    );
                 }
             }
         }
@@ -3953,7 +4806,8 @@ const checkOr = async (
                 body,
                 ssl,
                 response,
-                reasons
+                failedReasons,
+                successReasons
             );
             if (temp) {
                 validity = temp;
@@ -3971,7 +4825,8 @@ const checkOr = async (
                 body,
                 ssl,
                 response,
-                reasons
+                failedReasons,
+                successReasons
             );
             if (temp1) {
                 validity = temp1;

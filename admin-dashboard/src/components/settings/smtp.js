@@ -140,9 +140,17 @@ export class Component extends React.Component {
         await this.props.fetchSettings(settingsType);
     }
 
+    componentDidUpdate() {
+        const { settings } = this.props;
+        if (settings && settings.testSuccess) {
+            if (window.location.href.indexOf('localhost') <= -1) {
+                this.context.mixpanel.track('Sent SMTP settings');
+            }
+        }
+    }
+
     handleTestSmtp = e => {
         e.preventDefault();
-        const thisObj = this;
         const { testSmtp, smtpForm } = this.props;
         const { testModalId } = this.state;
 
@@ -177,16 +185,18 @@ export class Component extends React.Component {
                         // res will only be a string if errored
                         return this.props.openModal({
                             id: this.state.messageModalId,
-                            content: MessageModal,
+                            content: props => {
+                                return (
+                                    <MessageModal {...props} email={email} />
+                                );
+                            },
                         });
-                    }
-
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Sent SMTP settings');
                     }
                     return this.props.openModal({
                         id: this.state.messageModalId,
-                        content: MessageModal,
+                        content: props => {
+                            return <MessageModal {...props} email={email} />;
+                        },
                     });
                 });
             },

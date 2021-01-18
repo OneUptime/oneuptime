@@ -99,7 +99,7 @@ export class DashboardApp extends Component {
 
     closeModal = () =>
         this.props.closeModal({
-            id: Object.values(this.props.currentModal)[0],
+            id: this.props.currentModal ? this.props.currentModal.id : '',
         });
 
     render() {
@@ -193,7 +193,7 @@ export class DashboardApp extends Component {
                                         match={this.props.match}
                                     />
 
-                                    <div className="db-World-mainPane Box-root Margin-top--60 Padding-right--20">
+                                    <div className="db-World-mainPane Box-root Margin-top--60">
                                         <div className="db-World-contentPane Box-root Padding-bottom--48">
                                             <BreadCrumbs
                                                 styles="breadCrumbContainer Card-shadow--medium db-mb"

@@ -473,12 +473,14 @@ router.post(
                 endDate,
                 probeValue,
                 incidentId,
+                type,
             } = req.body;
             const monitorId = req.params.monitorId;
             const query = {};
             if (monitorId && !incidentId) query.monitorId = monitorId;
             if (incidentId) query.incidentIds = incidentId;
             if (probeValue) query.probeId = probeValue;
+            if (type === 'incomingHttpRequest') query.probeId = null;
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
@@ -540,41 +542,47 @@ router.post(
 
             const {
                 stat: validUp,
-                reasons: upFailedReasons,
+                failedReasons: upFailedReasons,
+                successReasons: upSuccessReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? ProbeService.conditions(
                       monitor.type,
                       monitor.criteria.up,
                       data
                   )
-                : { stat: false, reasons: [] });
+                : { stat: false, failedReasons: [], successReasons: [] });
             const {
                 stat: validDegraded,
-                reasons: degradedFailedReasons,
+                failedReasons: degradedFailedReasons,
+                successReasons: degradedSuccessReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? ProbeService.conditions(
                       monitor.type,
                       monitor.criteria.degraded,
                       data
                   )
-                : { stat: false, reasons: [] });
+                : { stat: false, failedReasons: [], successReasons: [] });
             const {
                 stat: validDown,
-                reasons: downFailedReasons,
+                failedReasons: downFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? ProbeService.conditions(
                       monitor.type,
                       monitor.criteria.down,
                       data
                   )
-                : { stat: false, reasons: [] });
+                : { stat: false, failedReasons: [], successReasons: [] });
 
             if (validDown) {
                 data.status = 'offline';
-                data.reason = downFailedReasons;
+                data.reason = [
+                    ...downFailedReasons,
+                    ...degradedSuccessReasons,
+                    ...upSuccessReasons,
+                ];
             } else if (validDegraded) {
                 data.status = 'degraded';
-                data.reason = degradedFailedReasons;
+                data.reason = [...degradedFailedReasons, ...upSuccessReasons];
             } else if (validUp) {
                 data.status = 'online';
                 data.reason = upFailedReasons;
@@ -586,7 +594,9 @@ router.post(
                     ...upFailedReasons,
                 ];
             }
-
+            data.reason = data.reason.filter(
+                (item, pos, self) => self.indexOf(item) === pos
+            );
             const log = await ProbeService.saveMonitorLog(data);
 
             return sendItemResponse(req, res, log);

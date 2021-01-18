@@ -6,6 +6,7 @@ import TeamMemberSelector from '../basic/TeamMemberSelector';
 import TimeSelector from '../basic/TimeSelector';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
+import moment from 'moment-timezone';
 
 const RenderMember = ({
     memberValue,
@@ -32,6 +33,15 @@ const RenderMember = ({
 
     const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
     const showTimes = memberHasCallTimes ? !forcedTimeHide : timeVisible;
+
+    const getCurrentTimezone = () => {
+        const tz = moment.tz.guess();
+        const result = `${tz} GMT${moment()
+            .tz(tz)
+            .format('Z')}`;
+        return result;
+    };
+
     return (
         <li key={nameIndex}>
             <div className="bs-Fieldset-row">
@@ -121,6 +131,9 @@ const RenderMember = ({
                                 </div>
                             </Tooltip>
                         </span>
+                        <label className="bs-oncall-label">
+                            {getCurrentTimezone()}
+                        </label>
                     </div>
                 </div>
             )}
@@ -164,6 +177,9 @@ const RenderMember = ({
                                 </div>
                             </Tooltip>
                         </span>
+                        <label className="bs-oncall-label">
+                            {getCurrentTimezone()}
+                        </label>
                     </div>
                 </div>
             )}

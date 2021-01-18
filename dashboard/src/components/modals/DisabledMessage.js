@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import ClickOutside from 'react-click-outside';
 
 class DisabledMessage extends Component {
     componentDidMount() {
@@ -21,6 +22,7 @@ class DisabledMessage extends Component {
     };
 
     render() {
+        const { closeThisDialog } = this.props;
         return (
             <div
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
@@ -33,39 +35,42 @@ class DisabledMessage extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Monitor Disabled</span>
+                            <ClickOutside onClickOutside={closeThisDialog}>
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Monitor Disabled</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        This monitor is disabled. You can not
+                                        create an incident on a disabled
+                                        monitor. please enable the monitor to
+                                        create incidents.
                                     </span>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    This monitor is disabled. You can not create
-                                    an incident on a disabled monitor. please
-                                    enable the monitor to create incidents.
-                                </span>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
-                                        style={{
-                                            minWidth: 50,
-                                            textAlign: 'center',
-                                        }}
-                                        type="button"
-                                        onClick={this.props.closeThisDialog}
-                                        autoFocus={true}
-                                    >
-                                        <span>Ok</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
+                                            style={{
+                                                minWidth: 50,
+                                                textAlign: 'center',
+                                            }}
+                                            type="button"
+                                            onClick={this.props.closeThisDialog}
+                                            autoFocus={true}
+                                        >
+                                            <span>Ok</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

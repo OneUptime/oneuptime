@@ -17,6 +17,7 @@ import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 import AlertBilling from '../modals/AlertBilling';
 import Tooltip from '../basic/Tooltip';
+import { FormLoader } from '../basic/Loader';
 
 export class AlertAdvanceOption extends Component {
     state = {
@@ -52,6 +53,14 @@ export class AlertAdvanceOption extends Component {
                     message: `Your card will be charged by $${Number(
                         formValues.rechargeToBalance
                     )}`,
+                });
+            } else {
+                alertOptionsUpdate(projectId, value).then(() => {
+                    const { paymentIntent } = this.props;
+                    if (paymentIntent) {
+                        //init payment
+                        this.handlePaymentIntent(paymentIntent);
+                    }
                 });
             }
         } else {
@@ -870,7 +879,18 @@ export class AlertAdvanceOption extends Component {
                                                 }
                                                 type="submit"
                                             >
-                                                <span>Save</span>
+                                                <ShouldRender
+                                                    if={
+                                                        !this.props.isRequesting
+                                                    }
+                                                >
+                                                    <span>Save</span>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={this.props.isRequesting}
+                                                >
+                                                    <FormLoader />
+                                                </ShouldRender>
                                             </button>
                                         </div>
                                     </div>

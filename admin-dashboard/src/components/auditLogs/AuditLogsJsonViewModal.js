@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import ReactJson from 'react-json-view';
+import ClickOutside from 'react-click-outside';
 
 class AuditLogsJsonViewModal extends Component {
     componentDidMount() {
@@ -40,98 +41,111 @@ class AuditLogsJsonViewModal extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>API Request and Response</span>
-                                    </span>
+                            <ClickOutside onClickOutside={closeThisDialog}>
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>
+                                                API Request and Response
+                                            </span>
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <div className="jsonViwer Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <div className="db-AuditLogsJsonViewModal-JsonViewerWrapper">
-                                        <div className="db-AuditLogsJsonViewModal-JsonViewerContainer">
-                                            <div className="Text-fontWeight--medium">
-                                                Request
+                                <div className="bs-Modal-content">
+                                    <div className="jsonViwer Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <div className="db-AuditLogsJsonViewModal-JsonViewerWrapper">
+                                            <div className="db-AuditLogsJsonViewModal-JsonViewerContainer">
+                                                <div className="Text-fontWeight--medium">
+                                                    Request
+                                                </div>
+                                                <div className="db-AuditLogsJsonViewModal-JsonViewer">
+                                                    <ReactJson
+                                                        src={reqLog}
+                                                        name="Request"
+                                                        enableClipboard={false}
+                                                        displayObjectSize={
+                                                            false
+                                                        }
+                                                        displayDataTypes={false}
+                                                        indentWidth={2}
+                                                        collapsed={1}
+                                                        style={{
+                                                            fontSize: '12px',
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="db-AuditLogsJsonViewModal-JsonViewer">
-                                                <ReactJson
-                                                    src={reqLog}
-                                                    name="Request"
-                                                    enableClipboard={false}
-                                                    displayObjectSize={false}
-                                                    displayDataTypes={false}
-                                                    indentWidth={2}
-                                                    collapsed={1}
-                                                    style={{
-                                                        fontSize: '12px',
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="AuditLogsJsonViewModal-JsonViewerContainer">
-                                            <div className="Text-fontWeight--medium">
-                                                Response
-                                            </div>
-                                            <div className="db-AuditLogsJsonViewModal-JsonViewer">
-                                                <ReactJson
-                                                    src={resLog}
-                                                    name="Response"
-                                                    enableClipboard={false}
-                                                    displayObjectSize={false}
-                                                    displayDataTypes={false}
-                                                    indentWidth={2}
-                                                    collapsed={1}
-                                                    style={{
-                                                        fontSize: '12px',
-                                                    }}
-                                                />
+                                            <div className="AuditLogsJsonViewModal-JsonViewerContainer">
+                                                <div className="Text-fontWeight--medium">
+                                                    Response
+                                                </div>
+                                                <div className="db-AuditLogsJsonViewModal-JsonViewer">
+                                                    <ReactJson
+                                                        src={resLog}
+                                                        name="Response"
+                                                        enableClipboard={false}
+                                                        displayObjectSize={
+                                                            false
+                                                        }
+                                                        displayDataTypes={false}
+                                                        indentWidth={2}
+                                                        collapsed={1}
+                                                        style={{
+                                                            fontSize: '12px',
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender if={error}>
-                                        <div className="bs-Tail-copy">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div
-                                                        className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
-                                                        style={{
-                                                            marginTop: '2px',
-                                                        }}
-                                                    ></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {error}
-                                                    </span>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender if={error}>
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div
+                                                            className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
+                                                            style={{
+                                                                marginTop:
+                                                                    '2px',
+                                                            }}
+                                                        ></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {error}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className={`bs-Button btn__modal ${isRequesting &&
-                                            'bs-is-disabled'}`}
-                                        type="button"
-                                        onClick={closeThisDialog}
-                                        disabled={isRequesting}
-                                        autoFocus={true}
-                                    >
-                                        <span>Close</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
+                                        </ShouldRender>
+                                        <button
+                                            className={`bs-Button btn__modal ${isRequesting &&
+                                                'bs-is-disabled'}`}
+                                            type="button"
+                                            onClick={closeThisDialog}
+                                            disabled={isRequesting}
+                                            autoFocus={true}
+                                        >
+                                            <span>Close</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

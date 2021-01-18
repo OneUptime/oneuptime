@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+import ClickOutside from 'react-click-outside';
 import Clipboard from '../Clipboard';
 
 export class MonitorUrl extends React.Component {
@@ -33,41 +34,43 @@ export class MonitorUrl extends React.Component {
                     style={{ marginTop: 40 }}
                 >
                     <div className="bs-Modal bs-Modal--medium">
-                        <div className="bs-Modal-header">
-                            <div className="bs-Modal-header-copy">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Monitor Inbound URL</span>
-                                </span>
-                            </div>
-                        </div>
-                        <div className="bs-Modal-content">
-                            <p>Click to copy inbound URL?</p>
-                            <br />
-                            <Clipboard
-                                value={`https://fyipe.com/api/monitors/${
-                                    currentProject._id
-                                }/inbound/${data.data &&
-                                    data.data.deviceId &&
-                                    data.data.deviceId}`}
-                            >
-                                copy to clipboard
-                            </Clipboard>
-                        </div>
-                        <div className="bs-Modal-footer">
-                            <div className="bs-Modal-footer-actions">
-                                <button
-                                    className="bs-Button btn__modal"
-                                    type="button"
-                                    onClick={closeThisDialog}
-                                    autoFocus={true}
-                                >
-                                    <span>OK</span>
-                                    <span className="cancel-btn__keycode">
-                                        Esc
+                        <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div className="bs-Modal-header-copy">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>Monitor Inbound URL</span>
                                     </span>
-                                </button>
+                                </div>
                             </div>
-                        </div>
+                            <div className="bs-Modal-content">
+                                <p>Click to copy inbound URL?</p>
+                                <br />
+                                <Clipboard
+                                    value={`https://fyipe.com/api/monitors/${
+                                        currentProject._id
+                                    }/inbound/${data.data &&
+                                        data.data.deviceId &&
+                                        data.data.deviceId}`}
+                                >
+                                    copy to clipboard
+                                </Clipboard>
+                            </div>
+                            <div className="bs-Modal-footer">
+                                <div className="bs-Modal-footer-actions">
+                                    <button
+                                        className="bs-Button btn__modal"
+                                        type="button"
+                                        onClick={closeThisDialog}
+                                        autoFocus={true}
+                                    >
+                                        <span>OK</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

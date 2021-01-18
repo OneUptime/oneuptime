@@ -35,7 +35,8 @@ export class MonitorViewLogsBox extends Component {
             start,
             end,
             this.state.probeValue.value,
-            incidentId
+            incidentId,
+            this.props.monitorType
         );
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Previous Incident Requested', {
@@ -57,7 +58,8 @@ export class MonitorViewLogsBox extends Component {
             start,
             end,
             this.state.probeValue.value,
-            incidentId
+            incidentId,
+            this.props.monitorType
         );
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Next Incident Requested', {
@@ -87,7 +89,9 @@ export class MonitorViewLogsBox extends Component {
             10,
             startDate.clone().utc(),
             endDate.clone().utc(),
-            this.state.probeValue.value
+            this.state.probeValue.value,
+            null,
+            this.props.monitorType
         );
     };
 
@@ -100,7 +104,9 @@ export class MonitorViewLogsBox extends Component {
             10,
             startDate.clone().utc(),
             endDate.clone().utc(),
-            this.state.probeValue.value
+            this.state.probeValue.value,
+            null,
+            this.props.monitorType
         );
     };
 
@@ -114,7 +120,9 @@ export class MonitorViewLogsBox extends Component {
             10,
             this.state.startDate.clone().utc(),
             this.state.endDate.clone().utc(),
-            data.value
+            data.value,
+            null,
+            this.props.monitorType
         );
     };
 

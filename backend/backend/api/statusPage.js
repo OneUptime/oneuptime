@@ -29,6 +29,7 @@ const { ipWhitelist } = require('../middlewares/ipHandler');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const uuid = require('uuid');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -56,6 +57,31 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.put(
+    '/:projectId/:statusPageId/resetBubbleId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        const { projectId, statusPageId } = req.params;
+        const newStatusBubbleId = uuid.v4();
+        try {
+            // response should be an updated statusPage
+            const statusPage = await StatusPageService.updateOneBy(
+                { projectId, _id: statusPageId },
+                { statusBubbleId: newStatusBubbleId }
+            );
+            const updatedStatusPage = await StatusPageService.getStatusPage(
+                { _id: statusPage._id },
+                req.user.id
+            );
+            await RealTimeService.statusPageEdit(updatedStatusPage);
+            return sendItemResponse(req, res, updatedStatusPage);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 // Route Description: Creates a domain and domainVerificationToken
 // req.params -> {projectId, statusPageId}; req.body -> {domain}
@@ -382,6 +408,45 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             return sendErrorResponse(req, res, error);
         }
     });
+});
+
+router.get('/statusBubble', async function(req, res) {
+    const statusPageId = req.query.statusPageId;
+    const statusBubbleId = req.query.statusBubbleId;
+    try {
+        const probes = await ProbeService.findBy({}, 0, 0);
+        if (!statusPageId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'StatusPage Id is required',
+            });
+        }
+        if (!statusBubbleId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'StatusBubble Id is required',
+            });
+        }
+        const statusPages = await StatusPageService.findBy({
+            _id: statusPageId,
+            statusBubbleId,
+        });
+        if (!(statusPages && statusPages.length)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'There are no statuspages attached to this Id',
+            });
+        }
+        // Call the StatusPageService.
+
+        const statusPage = await StatusPageService.getStatusBubble(
+            statusPages,
+            probes
+        );
+        return sendItemResponse(req, res, statusPage);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
 });
 
 // Route Description: Gets status pages of a project.

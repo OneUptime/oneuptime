@@ -5,7 +5,7 @@
     "dependencies": {
         "@beam-australia/react-env": "^2.1.2",
         "acorn": "^7.1.1",
-        "axios": "^0.18.0",
+        "axios": "^0.21.1",
         "browserslist": "^4.6.1",
         "card-validator": "^6.2.0",
         "clipboard": "^2.0.1",
@@ -89,8 +89,5 @@
             "last 1 firefox version",
             "last 1 safari version"
         ]
-    },
-    "resolutions": {
-        "node-fetch": "2.6.1"
     }
 }
