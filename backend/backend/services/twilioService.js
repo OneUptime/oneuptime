@@ -12,6 +12,7 @@ const defaultSmsTemplates = require('../config/smsTemplate');
 const GlobalConfigService = require('./globalConfigService');
 const UserService = require('./userService');
 const SmsCountService = require('./smsCountService');
+const CallLogsService = require('./callLogsService');
 const AlertService = require('./alertService');
 const { IS_TESTING } = require('../config/server');
 
@@ -726,6 +727,7 @@ const _this = {
         redialCount,
         incidentType
     ) {
+        let callBody;
         try {
             const message =
                 '<Say voice="alice">This is an alert from Fyipe. Your monitor ' +
@@ -735,6 +737,7 @@ const _this = {
                 '. Please go to Fyipe Dashboard or Mobile app to acknowledge or resolve this incident.</Say>';
             const hangUp = '<Hangup />';
             const twiml = '<Response> ' + message + hangUp + '</Response>';
+            callBody = twiml;
             const options = {
                 twiml: twiml,
                 to: number,
@@ -751,6 +754,13 @@ const _this = {
                     customTwilioSettings.authToken
                 );
                 const call = await twilioClient.calls.create(options);
+                await CallLogsService.create(
+                    '+15005550006',
+                    number,
+                    projectId,
+                    callBody,
+                    'Success'
+                );
                 return call;
             } else {
                 const creds = await _this.getSettings();
@@ -761,6 +771,14 @@ const _this = {
                 if (!creds['call-enabled']) {
                     const error = new Error('Call Not Enabled');
                     error.code = 400;
+                    await CallLogsService.create(
+                        '+15005550006',
+                        number,
+                        projectId,
+                        callBody,
+                        'Error',
+                        error.message
+                    );
                     return error;
                 }
 
@@ -771,6 +789,13 @@ const _this = {
                     options.from = creds.phone;
                     if (twilioClient) {
                         const call = await twilioClient.calls.create(options);
+                        await CallLogsService.create(
+                            '+15005550006',
+                            number,
+                            projectId,
+                            callBody,
+                            'Success'
+                        );
                         return call;
                     }
                 } else {
@@ -778,11 +803,27 @@ const _this = {
                         'Alerts limit reached for the day.'
                     );
                     error.code = 400;
+                    await CallLogsService.create(
+                        '+15005550006',
+                        number,
+                        projectId,
+                        callBody,
+                        'Error',
+                        error.message
+                    );
                     return error;
                 }
             }
         } catch (error) {
             ErrorService.log('twillioService.sendIncidentCreatedCall', error);
+            await CallLogsService.create(
+                '+15005550006',
+                number,
+                projectId,
+                callBody,
+                'Error',
+                error.message
+            );
             throw error;
         }
     },
