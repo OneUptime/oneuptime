@@ -6,13 +6,12 @@ import uuid from 'uuid';
 
 import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
+import CallLogsContentViewModal from './CallLogsContentViewModal';
+import CallLogsErrorViewModal from './CallLogsErrorViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import SmsLogsContentViewModal from './SmsLogsContentViewModal';
-import SmsLogsErrorViewModal from './SmsLogsErrorViewModal';
-
 import { history } from '../../store';
 
-export class SmsLogsList extends Component {
+export class CallLogsList extends Component {
     constructor(props) {
         super(props);
         this.state = { deleteModalId: uuid.v4() };
@@ -38,35 +37,35 @@ export class SmsLogsList extends Component {
 
     render() {
         if (
-            this.props.smsLogs &&
-            this.props.smsLogs.skip &&
-            typeof this.props.smsLogs.skip === 'string'
+            this.props.callLogs &&
+            this.props.callLogs.skip &&
+            typeof this.props.callLogs.skip === 'string'
         ) {
-            this.props.smsLogs.skip = parseInt(this.props.smsLogs.skip, 10);
+            this.props.callLogs.skip = parseInt(this.props.callLogs.skip, 10);
         }
         if (
-            this.props.smsLogs &&
-            this.props.smsLogs.limit &&
-            typeof this.props.smsLogs.limit === 'string'
+            this.props.callLogs &&
+            this.props.callLogs.limit &&
+            typeof this.props.callLogs.limit === 'string'
         ) {
-            this.props.smsLogs.limit = parseInt(this.props.smsLogs.limit, 10);
+            this.props.callLogs.limit = parseInt(this.props.callLogs.limit, 10);
         }
-        if (!this.props.smsLogs.skip) this.props.smsLogs.skip = 0;
-        if (!this.props.smsLogs.limit) this.props.smsLogs.limit = 0;
+        if (!this.props.callLogs.skip) this.props.callLogs.skip = 0;
+        if (!this.props.callLogs.limit) this.props.callLogs.limit = 0;
 
         let canNext =
-            this.props.smsLogs &&
-            this.props.smsLogs.count &&
-            this.props.smsLogs.count >
-                this.props.smsLogs.skip + this.props.smsLogs.limit
+            this.props.callLogs &&
+            this.props.callLogs.count &&
+            this.props.callLogs.count >
+                this.props.callLogs.skip + this.props.callLogs.limit
                 ? true
                 : false;
         let canPrev =
-            this.props.smsLogs && this.props.smsLogs.skip <= 0 ? false : true;
+            this.props.callLogs && this.props.callLogs.skip <= 0 ? false : true;
 
         if (
-            this.props.smsLogs &&
-            (this.props.requesting || !this.props.smsLogs.smsLogs)
+            this.props.callLogs &&
+            (this.props.requesting || !this.props.callLogs.callLogs)
         ) {
             canNext = false;
             canPrev = false;
@@ -92,8 +91,18 @@ export class SmsLogsList extends Component {
                                     style={{ height: '1px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Project Name</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Project name</span>
+                                            <span>From</span>
                                         </span>
                                     </div>
                                 </td>
@@ -103,17 +112,7 @@ export class SmsLogsList extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Users</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Sent to</span>
+                                            <span>To</span>
                                         </span>
                                     </div>
                                 </td>
@@ -150,27 +149,25 @@ export class SmsLogsList extends Component {
                                         </td>
                                     </tr>
                                 </Fragment>
-                            ) : this.props.smsLogs &&
-                              this.props.smsLogs.smsLogs &&
-                              this.props.smsLogs.smsLogs.length > 0 ? (
-                                this.props.smsLogs.smsLogs.map(smsLog => {
+                            ) : this.props.callLogs &&
+                              this.props.callLogs.callLogs &&
+                              this.props.callLogs.callLogs.length > 0 ? (
+                                this.props.callLogs.callLogs.map(callLog => {
                                     return (
                                         <tr
-                                            key={smsLog._id}
+                                            key={callLog._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent"
                                         >
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                style={{
-                                                    height: '1px',
-                                                }}
+                                                style={{ height: '1px' }}
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root Margin-right--16">
                                                             <div
                                                                 className={`Badge Badge--color--${
-                                                                    smsLog.status ===
+                                                                    callLog.status ===
                                                                     'Success'
                                                                         ? 'green'
                                                                         : 'red'
@@ -178,15 +175,15 @@ export class SmsLogsList extends Component {
                                                             >
                                                                 <span
                                                                     className={`Badge-text Text-color--${
-                                                                        smsLog.status ===
+                                                                        callLog.status ===
                                                                         'Success'
                                                                             ? 'green'
                                                                             : 'red'
                                                                     } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                                                 >
                                                                     <span>
-                                                                        {smsLog.status
-                                                                            ? smsLog.status
+                                                                        {callLog.status
+                                                                            ? callLog.status
                                                                             : 'N/A'}
                                                                     </span>
                                                                 </span>
@@ -200,14 +197,15 @@ export class SmsLogsList extends Component {
                                                 style={{
                                                     height: '1px',
                                                     cursor: 'pointer',
-                                                    textDecoration: smsLog.projectId
+                                                    textDecoration: callLog.projectId
                                                         ? 'underline'
                                                         : null,
                                                 }}
                                                 onClick={() => {
                                                     history.push(
                                                         '/admin/projects/' +
-                                                            smsLog.projectId._id
+                                                            callLog.projectId
+                                                                ._id
                                                     );
                                                 }}
                                             >
@@ -216,8 +214,8 @@ export class SmsLogsList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root">
                                                                 <span>
-                                                                    {smsLog.projectId
-                                                                        ? smsLog
+                                                                    {callLog.projectId
+                                                                        ? callLog
                                                                               .projectId
                                                                               .name
                                                                         : 'N/A'}
@@ -228,51 +226,34 @@ export class SmsLogsList extends Component {
                                                 </div>
                                             </td>
                                             <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                style={{
-                                                    height: '1px',
-                                                    cursor: 'pointer',
-                                                    textDecoration: smsLog.userId
-                                                        ? 'underline'
-                                                        : null,
-                                                }}
-                                                onClick={() => {
-                                                    if (smsLog.userId) {
-                                                        history.push(
-                                                            '/admin/users/' +
-                                                                smsLog.userId
-                                                                    ._id
-                                                        );
-                                                    }
-                                                }}
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
                                             >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16">
-                                                            <span>
-                                                                {smsLog.userId
-                                                                    ? smsLog
-                                                                          .userId
-                                                                          .name
-                                                                    : 'N/A'}
-                                                            </span>
-                                                        </div>
-                                                    </span>
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <div className="Box-root">
+                                                                <span>
+                                                                    {callLog.from
+                                                                        ? callLog.from
+                                                                        : 'N/A'}
+                                                                </span>
+                                                            </div>
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
-                                                style={{
-                                                    height: '1px',
-                                                }}
+                                                style={{ height: '1px' }}
                                             >
                                                 <div className="db-ListViewItem-link">
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Flex-flex">
                                                                 <span>
-                                                                    {smsLog.sentTo
-                                                                        ? smsLog.sentTo
+                                                                    {callLog.to
+                                                                        ? callLog.to
                                                                         : 'N/A'}
                                                                 </span>
                                                             </div>
@@ -298,10 +279,10 @@ export class SmsLogsList extends Component {
                                                                                         return Promise.resolve();
                                                                                     },
                                                                                     content: props => (
-                                                                                        <SmsLogsContentViewModal
+                                                                                        <CallLogsContentViewModal
                                                                                             {...props}
                                                                                             content={
-                                                                                                smsLog.content
+                                                                                                callLog.content
                                                                                             }
                                                                                         />
                                                                                     ),
@@ -316,7 +297,7 @@ export class SmsLogsList extends Component {
                                                                             Content
                                                                         </span>
                                                                     </button>
-                                                                    {smsLog.error ? (
+                                                                    {callLog.error ? (
                                                                         <button
                                                                             onClick={() => {
                                                                                 this.props.openModal(
@@ -326,10 +307,10 @@ export class SmsLogsList extends Component {
                                                                                             return Promise.resolve();
                                                                                         },
                                                                                         content: props => (
-                                                                                            <SmsLogsErrorViewModal
+                                                                                            <CallLogsErrorViewModal
                                                                                                 {...props}
                                                                                                 content={
-                                                                                                    smsLog.error
+                                                                                                    callLog.error
                                                                                                 }
                                                                                             />
                                                                                         ),
@@ -364,15 +345,15 @@ export class SmsLogsList extends Component {
                     id="logsStatus"
                     style={{ textAlign: 'center', marginTop: '10px' }}
                 >
-                    {this.props.smsLogs &&
-                    (!this.props.smsLogs.smsLogs ||
-                        !this.props.smsLogs.smsLogs.length) &&
+                    {this.props.callLogs &&
+                    (!this.props.callLogs.callLogs ||
+                        !this.props.callLogs.callLogs.length) &&
                     !this.props.requesting &&
-                    !this.props.smsLogs.error
+                    !this.props.callLogs.error
                         ? "We don't have any logs yet"
                         : null}
-                    {this.props.smsLogs && this.props.smsLogs.error
-                        ? this.props.smsLogs.error
+                    {this.props.callLogs && this.props.callLogs.error
+                        ? this.props.callLogs.error
                         : null}
                 </div>
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
@@ -383,11 +364,11 @@ export class SmsLogsList extends Component {
                                     id="log-count"
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
-                                    {this.props.smsLogs &&
-                                    this.props.smsLogs.count
-                                        ? this.props.smsLogs.count +
-                                          (this.props.smsLogs &&
-                                          this.props.smsLogs.count > 1
+                                    {this.props.callLogs &&
+                                    this.props.callLogs.count
+                                        ? this.props.callLogs.count +
+                                          (this.props.callLogs &&
+                                          this.props.callLogs.count > 1
                                               ? ' Logs'
                                               : ' Log')
                                         : null}
@@ -402,8 +383,8 @@ export class SmsLogsList extends Component {
                                     id="btnPrev"
                                     onClick={() => {
                                         this.props.prevClicked(
-                                            this.props.smsLogs.skip,
-                                            this.props.smsLogs.limit
+                                            this.props.callLogs.skip,
+                                            this.props.callLogs.limit
                                         );
                                     }}
                                     className={
@@ -426,8 +407,8 @@ export class SmsLogsList extends Component {
                                     id="btnNext"
                                     onClick={() => {
                                         this.props.nextClicked(
-                                            this.props.smsLogs.skip,
-                                            this.props.smsLogs.limit
+                                            this.props.callLogs.skip,
+                                            this.props.callLogs.limit
                                         );
                                     }}
                                     className={
@@ -476,17 +457,17 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         users: state.user.users.users,
-        deleteRequest: state.smsLogs.smsLogs.deleteRequest,
+        deleteRequest: state.callLogs.callLogs.deleteRequest,
     };
 }
 
-SmsLogsList.displayName = 'ProjectList';
+CallLogsList.displayName = 'ProjectList';
 
-SmsLogsList.propTypes = {
+CallLogsList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
-    smsLogs: PropTypes.oneOfType([
+    callLogs: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
@@ -494,4 +475,4 @@ SmsLogsList.propTypes = {
     openModal: PropTypes.func.isRequired,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(SmsLogsList);
+export default connect(mapStateToProps, mapDispatchToProps)(CallLogsList);
