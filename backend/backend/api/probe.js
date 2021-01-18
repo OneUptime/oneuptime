@@ -113,10 +113,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             type,
             retryCount,
         } = req.body;
-
-        console.log(resp.headers);
-        // console.log('*********** request headers *****', req.headers);
-        // resp.headers = req.headers;
         let status,
             log,
             reason,

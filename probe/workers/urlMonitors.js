@@ -141,10 +141,7 @@ const pingfetch = async url => {
             }
         }
 
-        responseHeaders = response.headers.toString();
-        console.log(responseHeaders);
         resp = {
-            headers: responseHeaders,
             status: response.status,
             body: data,
             sslCertificate,
