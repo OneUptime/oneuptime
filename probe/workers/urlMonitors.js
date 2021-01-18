@@ -106,7 +106,7 @@ const pingfetch = async url => {
     let resp = null;
     let res = null;
     try {
-        let sslCertificate, response, data, headers;
+        let sslCertificate, response, data, responseHeaders;
         try {
             response = await fetch(url, {
                 timeout: 120000,
@@ -116,8 +116,6 @@ const pingfetch = async url => {
                         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36',
                 },
             });
-            const tes = await response;
-            console.log('****** output *****', tes);
             res = new Date().getTime() - now;
             data = await response.text();
             const urlObject = new URL(url);
@@ -143,9 +141,10 @@ const pingfetch = async url => {
             }
         }
 
-        headers = response.headers;
+        responseHeaders = response.headers.toString();
+        console.log(responseHeaders);
         resp = {
-            headers,
+            headers: responseHeaders,
             status: response.status,
             body: data,
             sslCertificate,
@@ -154,7 +153,7 @@ const pingfetch = async url => {
         res = new Date().getTime() - now;
         resp = { status: 408, body: error };
     }
-    console.log(resp);
+
     return { res, resp };
 };
 
