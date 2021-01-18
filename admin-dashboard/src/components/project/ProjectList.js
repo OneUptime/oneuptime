@@ -158,15 +158,23 @@ export class ProjectList extends Component {
                                             project.users.find(
                                                 user => user.role === 'Owner'
                                             ) || {};
-                                        const usersDetail =
-                                            project.users.length - 1 > 0
-                                                ? project.users.length - 1 > 1
-                                                    ? `${
-                                                          projectOwner.name
-                                                      } and ${project.users
-                                                          .length - 1} others`
-                                                    : `${projectOwner.name} and 1 other`
-                                                : 'Not Added Yet';
+                                        let usersDetail;
+                                        if (project.users.length > 0) {
+                                            if (project.users.length === 1) {
+                                                usersDetail = `${projectOwner.name}`;
+                                            } else if (
+                                                project.users.length === 2
+                                            ) {
+                                                usersDetail = `${projectOwner.name} and 1 other`;
+                                            } else {
+                                                usersDetail = `${
+                                                    projectOwner.name
+                                                } and ${project.users.length -
+                                                    1} others`;
+                                            }
+                                        } else {
+                                            usersDetail = 'Not Added Yet';
+                                        }
 
                                         return (
                                             <tr
