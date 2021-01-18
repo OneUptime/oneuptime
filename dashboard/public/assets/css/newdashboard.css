@@ -10165,13 +10165,14 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 }
 .db-World-topContent {
     height: 68px;
-    left: calc((50vw - 1390px / 2 + 278px) - 4px);
     right: 0;
     padding-left: 8px;
     padding-right: 8px;
     position: absolute;
     top: 0;
     z-index: 1;
+    padding-left: calc((50vw - 1390px / 2 + 278px));
+    padding-right: calc((50vw - 1390px / 2 ));
 }
 .db-World-topContent--left {
     left: 0;
