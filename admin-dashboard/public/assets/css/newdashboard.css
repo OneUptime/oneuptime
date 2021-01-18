@@ -10616,6 +10616,26 @@ table {
   overflow: auto;
 }
 
+/********************** CallLogsContentViewModal ***********************/
+.db-CallLogsContentViewModal-ContentViewerWrapper {
+  display: flex;
+}
+
+.db-CallLogsContentViewModal-ContentViewerWrapper > div {
+  flex: 1;
+  overflow: hidden;
+}
+
+.db-CallLogsContentViewModal-ContentViewerContainer:first-child {
+  margin: 0 10px;
+}
+
+.db-CallLogsContentViewModal-ContentViewer {
+  min-height: 300px;
+  max-height: 400px;
+  overflow: auto;
+}
+
 .price-list-3c {
   display: grid;
   grid-template-columns: auto auto auto;
