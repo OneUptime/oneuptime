@@ -724,7 +724,6 @@ const _this = {
         accessToken,
         incidentId,
         projectId,
-        redialCount,
         incidentType
     ) {
         let callBody;
