@@ -1187,7 +1187,7 @@ module.exports = {
                 status = 'online';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             } else {
-                status = 'online';
+                status = 'offline';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             }
             const logData = {};
@@ -3068,11 +3068,11 @@ const checkAnd = async (
                 if (!(con[i] && con[i].field1 && body && body[con[i].field1])) {
                     validity = false;
                     successReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` did not contain ${con[i].field1}`
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
                     );
                 } else {
                     failedReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` contains ${con[i].field1}`
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
                     );
                 }
             } else if (
@@ -3085,11 +3085,11 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     successReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` contains ${con[i].field1}`
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
                     );
                 } else {
                     failedReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` did not contain ${con[i].field1}`
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
                     );
                 }
             } else if (
@@ -3107,22 +3107,22 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     successReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` did not have Javascript expression \`${con[i].field1}\``
+                        `${criteriaStrings.responseBody} did not have Javascript expression \`${con[i].field1}\``
                     );
                 } else {
                     failedReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` did have Javascript expression \`${con[i].field1}\``
+                        `${criteriaStrings.responseBody} did have Javascript expression \`${con[i].field1}\``
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
                 if (!(con[i] && con[i].filter && body && _.isEmpty(body))) {
                     validity = false;
                     successReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` was not empty`
+                        `${criteriaStrings.responseBody} was not empty`
                     );
                 } else {
                     failedReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` was empty`
+                        `${criteriaStrings.responseBody} was empty`
                     );
                 }
             } else if (
@@ -3133,7 +3133,7 @@ const checkAnd = async (
                 if (!(con[i] && con[i].filter && body && !_.isEmpty(body))) {
                     validity = false;
                     successReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` was empty`
+                        `${criteriaStrings.responseBody} was empty`
                     );
                 } else {
                     failedReasons.push(
@@ -4660,13 +4660,13 @@ const checkOr = async (
                     validity = true;
                     if (con[i].field1) {
                         failedReasons.push(
-                            `${criteriaStrings.responseBody} \`${body}\` contains ${con[i].field1}`
+                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
                         );
                     }
                 } else {
                     if (con[i].field1) {
                         successReasons.push(
-                            `${criteriaStrings.responseBody} \`${body}\` did not contain ${con[i].field1}`
+                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
                         );
                     }
                 }
@@ -4679,13 +4679,13 @@ const checkOr = async (
                     validity = true;
                     if (con[i].field1) {
                         failedReasons.push(
-                            `${criteriaStrings.responseBody} \`${body}\` did not contain ${con[i].field1}`
+                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
                         );
                     }
                 } else {
                     if (con[i].field1) {
                         successReasons.push(
-                            `${criteriaStrings.responseBody} \`${body}\` contains ${con[i].field1}`
+                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
                         );
                     }
                 }
@@ -4703,13 +4703,13 @@ const checkOr = async (
                     validity = true;
                     if (con[i].field1) {
                         failedReasons.push(
-                            `${criteriaStrings.responseBody} \`${body}\` contains Javascript expression ${con[i].field1}`
+                            `${criteriaStrings.responseBody} contains Javascript expression ${con[i].field1}`
                         );
                     }
                 } else {
                     if (con[i].field1) {
                         successReasons.push(
-                            `${criteriaStrings.responseBody} \`${body}\` does not contain Javascript expression ${con[i].field1}`
+                            `${criteriaStrings.responseBody} does not contain Javascript expression ${con[i].field1}`
                         );
                     }
                 }
@@ -4717,7 +4717,7 @@ const checkOr = async (
                 if (con[i] && con[i].filter && body && _.isEmpty(body)) {
                     validity = true;
                     failedReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` was empty`
+                        `${criteriaStrings.responseBody} was empty`
                     );
                 } else {
                     successReasons.push(
@@ -4736,7 +4736,7 @@ const checkOr = async (
                     );
                 } else {
                     successReasons.push(
-                        `${criteriaStrings.responseBody} \`${body}\` was empty`
+                        `${criteriaStrings.responseBody} was empty`
                     );
                 }
             } else if (
