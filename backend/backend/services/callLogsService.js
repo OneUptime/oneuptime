@@ -30,7 +30,7 @@ module.exports = {
         }
     },
 
-    create: async function({ from, to, projectId, content, status, error }) {
+    create: async function(from, to, projectId, content, status, error) {
         try {
             let item = new CallLogsModel();
 

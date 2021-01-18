@@ -208,8 +208,10 @@ export class CallLogsList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root">
                                                                 <span>
-                                                                    {callLog.projectId
-                                                                        ? callLog.projectId
+                                                                {callLog.projectId
+                                                                        ? callLog
+                                                                              .projectId
+                                                                              .name
                                                                         : 'N/A'}
                                                                 </span>
                                                             </div>
