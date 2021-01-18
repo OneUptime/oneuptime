@@ -180,7 +180,7 @@ class _ProjectForm extends React.Component {
                                 later.
                             </span>
                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                <fieldset className="bs-Fieldset">
+                                <div className="projectNameClass">
                                     <div className="bs-Fieldset-rows">
                                         <div
                                             className="bs-Fieldset-row"
@@ -214,7 +214,7 @@ class _ProjectForm extends React.Component {
                                             </div>
                                         </div>
                                     </div>
-                                </fieldset>
+                                </div>
                                 <ShouldRender if={IS_SAAS_SERVICE}>
                                     <div
                                         className="bs-Modal-content"
