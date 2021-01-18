@@ -1087,11 +1087,19 @@ export default function monitor(state = INITIAL_STATE, action) {
                                 ? monitor.monitors.map(monitor => {
                                       if (
                                           monitor.data &&
-                                          monitor.data.url ===
-                                              action.payload.data.url
+                                          action.payload.data.logs.lighthouseLogs.some(
+                                              log =>
+                                                  log._id ===
+                                                  monitor.currentLighthouseLog
+                                                      ._id
+                                          )
                                       ) {
-                                          monitor.currentLighthouseLog =
-                                              action.payload.data;
+                                          monitor.currentLighthouseLog = action.payload.data.logs.lighthouseLogs.filter(
+                                              log =>
+                                                  log._id ===
+                                                  monitor.currentLighthouseLog
+                                                      ._id
+                                          )[0];
                                       }
                                       if (
                                           monitor._id ===

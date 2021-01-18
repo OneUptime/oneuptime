@@ -5,7 +5,7 @@
  */
 
 module.exports = {
-    doesPhoneNumberComplyWithHighRiskConfig: async function(
+    doesPhoneNumberComplyWithHighRiskConfig: async function (
         projectId,
         alertPhoneNumber
     ) {
@@ -24,7 +24,7 @@ module.exports = {
         }
         return false;
     },
-    findBy: async function({ query, skip, limit, sort }) {
+    findBy: async function ({ query, skip, limit, sort }) {
         try {
             if (!skip) skip = 0;
 
@@ -59,7 +59,7 @@ module.exports = {
         }
     },
 
-    create: async function({
+    create: async function ({
         projectId,
         monitorId,
         alertVia,
@@ -100,7 +100,7 @@ module.exports = {
         }
     },
 
-    countBy: async function(query) {
+    countBy: async function (query) {
         try {
             if (!query) {
                 query = {};
@@ -115,7 +115,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -138,7 +138,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -156,7 +156,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function (query, userId) {
         try {
             if (!query) {
                 query = {};
@@ -183,7 +183,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncident: async function(incident) {
+    sendCreatedIncident: async function (incident) {
         try {
             if (incident) {
                 const _this = this;
@@ -218,7 +218,7 @@ module.exports = {
         }
     },
 
-    sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
+    sendAlertsToTeamMembersInSchedule: async function ({ schedule, incident }) {
         const _this = this;
         const monitorId = incident.monitorId._id
             ? incident.monitorId._id
@@ -272,7 +272,7 @@ module.exports = {
             onCallScheduleStatus = callScheduleStatuses[0];
             currentEscalationStatus =
                 onCallScheduleStatus.escalations[
-                    onCallScheduleStatus.escalations.length - 1
+                onCallScheduleStatus.escalations.length - 1
                 ];
             escalationId = currentEscalationStatus.escalation._id;
         }
@@ -316,7 +316,7 @@ module.exports = {
         }
     },
 
-    escalate: async function({ schedule, incident }) {
+    escalate: async function ({ schedule, incident }) {
         const _this = this;
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
@@ -360,7 +360,7 @@ module.exports = {
         if (
             !nextEscalationPolicy ||
             nextEscalationPolicy._id.toString() !==
-                activeEscalation._id.toString()
+            activeEscalation._id.toString()
         ) {
             callScheduleStatus.alertedEveryone = true;
             await callScheduleStatus.save();
@@ -386,7 +386,7 @@ module.exports = {
         });
     },
 
-    sendAlertsToTeamMembersInEscalationPolicy: async function({
+    sendAlertsToTeamMembersInEscalationPolicy: async function ({
         escalation,
         incident,
         monitor,
@@ -406,7 +406,7 @@ module.exports = {
         const activeTeam = escalation.activeTeam;
         const currentEscalationStatus =
             onCallScheduleStatus.escalations[
-                onCallScheduleStatus.escalations.length - 1
+            onCallScheduleStatus.escalations.length - 1
             ];
 
         const shouldSendSMSReminder =
@@ -547,7 +547,7 @@ module.exports = {
         }
     },
 
-    sendEmailAlert: async function({
+    sendEmailAlert: async function ({
         incident,
         user,
         project,
@@ -585,8 +585,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                hasGlobalSmtpSettings.value &&
-                hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -596,6 +596,14 @@ module.exports = {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
+                let errorMessageText;
+                if (!hasGlobalSmtpSettings &&
+                    !hasCustomSmtpSettings) {
+                    errorMessageText = 'SMTP Settings not found on Admin Dashboard'
+                } else if (hasGlobalSmtpSettings &&
+                    !areEmailAlertsEnabledInGlobalSettings) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard'
+                }
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId,
@@ -608,13 +616,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage:
-                        !hasGlobalSmtpSettings && !hasCustomSmtpSettings
-                            ? 'SMTP Settings not found on Admin Dashboard'
-                            : hasGlobalSmtpSettings &&
-                              !areEmailAlertsEnabledInGlobalSettings
-                            ? 'Alert Disabled on Admin Dashboard'
-                            : 'Error.',
+                    errorMessage: errorMessageText
                 });
             }
             const incidentcreatedBy =
@@ -674,11 +676,13 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Cannot Send',
+                error: true,
+                errorMessage: e.message
             });
         }
     },
 
-    sendSlaEmailToTeamMembers: async function(
+    sendSlaEmailToTeamMembers: async function (
         { projectId, monitor, incidentCommunicationSla, incident, alertTime },
         breached = false
     ) {
@@ -695,8 +699,8 @@ module.exports = {
                 );
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
-                    hasGlobalSmtpSettings.value &&
-                    hasGlobalSmtpSettings.value['email-enabled']
+                        hasGlobalSmtpSettings.value &&
+                        hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -764,7 +768,7 @@ module.exports = {
         }
     },
 
-    sendCallAlert: async function({
+    sendCallAlert: async function ({
         incident,
         user,
         project,
@@ -804,8 +808,8 @@ module.exports = {
         });
         const areAlertsEnabledGlobally =
             hasGlobalTwilioSettings &&
-            hasGlobalTwilioSettings.value &&
-            hasGlobalTwilioSettings.value['call-enabled']
+                hasGlobalTwilioSettings.value &&
+                hasGlobalTwilioSettings.value['call-enabled']
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
@@ -818,6 +822,14 @@ module.exports = {
                 (!project.alertEnable || !areAlertsEnabledGlobally)) ||
                 (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
         ) {
+            let errorMessageText;
+            if (!hasGlobalTwilioSettings) {
+                errorMessageText = 'Twilio Settings not found on Admin Dashboard'
+            } else if (!areAlertsEnabledGlobally) {
+                errorMessageText = 'Alert Disabled on Admin Dashboard'
+            } else if (IS_SAAS_SERVICE && !project.alertEnable) {
+                errorMessageText = 'Alert Disabled for this project'
+            }
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -830,13 +842,7 @@ module.exports = {
                 alertStatus: null,
                 error: true,
                 eventType,
-                errorMessage: !hasGlobalTwilioSettings
-                    ? 'Twilio Settings not found on Admin Dashboard'
-                    : !areAlertsEnabledGlobally
-                    ? 'Alert Disabled on Admin Dashboard'
-                    : IS_SAAS_SERVICE && !project.alertEnable
-                    ? 'Alert Disabled for this project'
-                    : 'Error',
+                errorMessage: errorMessageText
             });
         }
 
@@ -847,6 +853,14 @@ module.exports = {
             );
             if (!doesPhoneNumberComplyWithHighRiskConfig) {
                 const countryType = getCountryType(user.alertPhoneNumber);
+                let errorMessageText;
+                if (countryType === 'us') {
+                    errorMessageText = 'Calls for numbers inside US not enabled for this project'
+                } else if (countryType === 'non-us') {
+                    errorMessageText = 'Calls for numbers outside US not enabled for this project'
+                } else {
+                    errorMessageText = 'Calls to High Risk country not enabled for this project'
+                }
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId,
@@ -859,12 +873,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage:
-                        countryType === 'us'
-                            ? 'Calls for numbers inside US not enabled for this project'
-                            : countryType === 'non-us'
-                            ? 'Calls for numbers outside US not enabled for this project'
-                            : 'Calls to High Risk country not enabled for this project',
+                    errorMessage: errorMessageText
                 });
             }
 
@@ -952,7 +961,7 @@ module.exports = {
         }
     },
 
-    sendSMSAlert: async function({
+    sendSMSAlert: async function ({
         incident,
         user,
         project,
@@ -989,8 +998,8 @@ module.exports = {
         });
         const areAlertsEnabledGlobally =
             hasGlobalTwilioSettings &&
-            hasGlobalTwilioSettings.value &&
-            hasGlobalTwilioSettings.value['sms-enabled']
+                hasGlobalTwilioSettings.value &&
+                hasGlobalTwilioSettings.value['sms-enabled']
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
@@ -1003,6 +1012,16 @@ module.exports = {
                 (!project.alertEnable || !areAlertsEnabledGlobally)) ||
                 (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
         ) {
+            let errorMessageText;
+            if (!hasGlobalTwilioSettings) {
+                errorMessageText = 'Twilio Settings not found on Admin Dashboard'
+            } else if (!areAlertsEnabledGlobally) {
+                errorMessageText = 'Alert Disabled on Admin Dashboard'
+            } else if (IS_SAAS_SERVICE && !project.alertEnable) {
+                errorMessageText = 'Alert Disabled for this project'
+            } else {
+                errorMessageText = 'Error'
+            }
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -1015,13 +1034,7 @@ module.exports = {
                 alertStatus: null,
                 error: true,
                 eventType,
-                errorMessage: !hasGlobalTwilioSettings
-                    ? 'Twilio Settings not found on Admin Dashboard'
-                    : !areAlertsEnabledGlobally
-                    ? 'Alert Disabled on Admin Dashboard'
-                    : IS_SAAS_SERVICE && !project.alertEnable
-                    ? 'Alert Disabled for this project'
-                    : 'Error',
+                errorMessage: errorMessageText
             });
         }
 
@@ -1032,6 +1045,14 @@ module.exports = {
             );
             if (!doesPhoneNumberComplyWithHighRiskConfig) {
                 const countryType = getCountryType(user.alertPhoneNumber);
+                let errorMessageText;
+                if (countryType === 'us') {
+                    errorMessageText = 'SMS for numbers inside US not enabled for this project'
+                } else if (countryType === 'non-us') {
+                    errorMessageText = 'SMS for numbers outside US not enabled for this project'
+                } else {
+                    errorMessageText = 'SMS to High Risk country not enabled for this project'
+                }
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId,
@@ -1044,12 +1065,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage:
-                        countryType === 'us'
-                            ? 'SMS for numbers inside US not enabled for this project'
-                            : countryType === 'non-us'
-                            ? 'SMS for numbers outside US not enabled for this project'
-                            : 'SMS to High Risk country not enabled for this project',
+                    errorMessage: errorMessageText
                 });
             }
 
@@ -1158,7 +1174,7 @@ module.exports = {
         }
     },
 
-    sendStausPageNoteNotificationToProjectWebhooks: async function(
+    sendStausPageNoteNotificationToProjectWebhooks: async function (
         projectId,
         incident,
         statusPageNoteData
@@ -1210,7 +1226,7 @@ module.exports = {
         }
     },
 
-    sendInvestigationNoteToSubscribers: async function(
+    sendInvestigationNoteToSubscribers: async function (
         incident,
         data,
         statusNoteStatus
@@ -1256,7 +1272,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncidentToSubscribers: async function(incident, component) {
+    sendCreatedIncidentToSubscribers: async function (incident, component) {
         try {
             const _this = this;
             if (incident) {
@@ -1305,7 +1321,7 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentMail: async function(incident) {
+    sendAcknowledgedIncidentMail: async function (incident) {
         try {
             const _this = this;
             if (incident) {
@@ -1458,7 +1474,7 @@ module.exports = {
         }
     },
 
-    sendAcknowledgeEmailAlert: async function({
+    sendAcknowledgeEmailAlert: async function ({
         incident,
         user,
         project,
@@ -1494,8 +1510,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                hasGlobalSmtpSettings.value &&
-                hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -1505,6 +1521,14 @@ module.exports = {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
+                let errorMessageText;
+                if (!hasGlobalSmtpSettings &&
+                    !hasCustomSmtpSettings) {
+                    errorMessageText = 'SMTP Settings not found on Admin Dashboard'
+                } else if (hasGlobalSmtpSettings &&
+                    !areEmailAlertsEnabledInGlobalSettings) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard'
+                }
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId: monitor._id,
@@ -1517,13 +1541,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage:
-                        !hasGlobalSmtpSettings && !hasCustomSmtpSettings
-                            ? 'SMTP Settings not found on Admin Dashboard'
-                            : hasGlobalSmtpSettings &&
-                              !areEmailAlertsEnabledInGlobalSettings
-                            ? 'Alert Disabled on Admin Dashboard'
-                            : 'Error.',
+                    errorMessage: errorMessageText
                 });
             }
             const incidentcreatedBy =
@@ -1602,11 +1620,13 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Cannot Send',
+                error: true,
+                errorMessage: e.message
             });
         }
     },
 
-    sendResolveIncidentMail: async function(incident) {
+    sendResolveIncidentMail: async function (incident) {
         try {
             const _this = this;
             if (incident) {
@@ -1756,7 +1776,7 @@ module.exports = {
         }
     },
 
-    sendResolveEmailAlert: async function({
+    sendResolveEmailAlert: async function ({
         incident,
         user,
         project,
@@ -1791,8 +1811,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                hasGlobalSmtpSettings.value &&
-                hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -1802,6 +1822,14 @@ module.exports = {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
+                let errorMessageText;
+                if (!hasGlobalSmtpSettings &&
+                    !hasCustomSmtpSettings) {
+                    errorMessageText = 'SMTP Settings not found on Admin Dashboard'
+                } else if (hasGlobalSmtpSettings &&
+                    !areEmailAlertsEnabledInGlobalSettings) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard'
+                }
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId: monitor._id,
@@ -1814,13 +1842,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage:
-                        !hasGlobalSmtpSettings && !hasCustomSmtpSettings
-                            ? 'SMTP Settings not found on Admin Dashboard'
-                            : hasGlobalSmtpSettings &&
-                              !areEmailAlertsEnabledInGlobalSettings
-                            ? 'Alert Disabled on Admin Dashboard'
-                            : 'Error.',
+                    errorMessage: errorMessageText
                 });
             }
             const incidentcreatedBy =
@@ -1898,11 +1920,13 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Cannot Send',
+                error: true,
+                errorMessage: e.message
             });
         }
     },
 
-    sendAcknowledgedIncidentToSubscribers: async function(incident) {
+    sendAcknowledgedIncidentToSubscribers: async function (incident) {
         try {
             const _this = this;
             if (incident) {
@@ -1948,7 +1972,7 @@ module.exports = {
         }
     },
 
-    sendResolvedIncidentToSubscribers: async function(incident) {
+    sendResolvedIncidentToSubscribers: async function (incident) {
         try {
             const _this = this;
             if (incident) {
@@ -1994,7 +2018,7 @@ module.exports = {
         }
     },
 
-    sendSubscriberAlert: async function(
+    sendSubscriberAlert: async function (
         subscriber,
         incident,
         templateType = 'Subscriber Incident Created',
@@ -2066,19 +2090,23 @@ module.exports = {
                     !project.enableInvestigationNoteNotificationWebhook;
 
                 if (investigationNoteNotificationWebhookDisabled) {
+                    let eventType;
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType
+                    } else if (templateType ===
+                        'Subscriber Incident Acknowldeged') {
+                        eventType = 'acknowledged'
+                    } else if (templateType === 'Subscriber Incident Resolved') {
+                        eventType = 'resolved'
+                    } else {
+                        eventType = 'identified'
+                    }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Webhook,
-                        eventType: isStatusPageNoteAlert
-                            ? statusPageNoteAlertEventType
-                            : templateType ===
-                              'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                        eventType: eventType,
                         alertStatus: null,
                         error: true,
                         errorMessage:
@@ -2106,20 +2134,23 @@ module.exports = {
                     alertStatus = null;
                     throw error;
                 } finally {
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType
+                    } else if (templateType ===
+                        'Subscriber Incident Acknowldeged') {
+                        eventType = 'acknowledged'
+                    } else if (templateType === 'Subscriber Incident Resolved') {
+                        eventType = 'resolved'
+                    } else {
+                        eventType = 'identified'
+                    }
                     SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Webhook,
                         alertStatus: alertStatus,
-                        eventType: isStatusPageNoteAlert
-                            ? statusPageNoteAlertEventType
-                            : templateType ===
-                              'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                        eventType: eventType
                     }).catch(error => {
                         ErrorService.log(
                             'AlertService.sendSubscriberAlert',
@@ -2139,8 +2170,8 @@ module.exports = {
                 );
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
-                    hasGlobalSmtpSettings.value &&
-                    hasGlobalSmtpSettings.value['email-enabled']
+                        hasGlobalSmtpSettings.value &&
+                        hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -2156,49 +2187,58 @@ module.exports = {
                         !hasCustomSmtpSettings) ||
                     investigationNoteNotificationEmailDisabled
                 ) {
+                    let errorMessageText, eventType;
+                    if (!hasGlobalSmtpSettings &&
+                        !hasCustomSmtpSettings) {
+                        errorMessageText = 'SMTP Settings not found on Admin Dashboard'
+                    } else if (hasGlobalSmtpSettings &&
+                        !areEmailAlertsEnabledInGlobalSettings) {
+                        errorMessageText = 'Alert Disabled on Admin Dashboard'
+                    } else if (investigationNoteNotificationEmailDisabled) {
+                        errorMessageText = 'Investigation Note Email Notification Disabled'
+                    }
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType
+                    } else if (templateType ===
+                        'Subscriber Incident Acknowldeged') {
+                        eventType = 'acknowledged'
+                    } else if (templateType === 'Subscriber Incident Resolved') {
+                        eventType = 'resolved'
+                    } else {
+                        eventType = 'identified'
+                    }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Email,
-                        eventType: isStatusPageNoteAlert
-                            ? statusPageNoteAlertEventType
-                            : templateType ===
-                              'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                        eventType: eventType,
                         alertStatus: null,
                         error: true,
-                        errorMessage:
-                            !hasGlobalSmtpSettings && !hasCustomSmtpSettings
-                                ? 'SMTP Settings not found on Admin Dashboard'
-                                : hasGlobalSmtpSettings &&
-                                  !areEmailAlertsEnabledInGlobalSettings
-                                ? 'Alert Disabled on Admin Dashboard'
-                                : investigationNoteNotificationEmailDisabled
-                                ? 'Investigation Note Email Notification Disabled'
-                                : 'Error',
+                        errorMessage: errorMessageText
                     });
                 }
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     projectId: incident.projectId,
                     emailType: templateType,
                 });
+                if (isStatusPageNoteAlert) {
+                    eventType = statusPageNoteAlertEventType
+                } else if (templateType ===
+                    'Subscriber Incident Acknowldeged') {
+                    eventType = 'acknowledged'
+                } else if (templateType === 'Subscriber Incident Resolved') {
+                    eventType = 'resolved'
+                } else {
+                    eventType = 'identified'
+                }
                 const subscriberAlert = await SubscriberAlertService.create({
                     projectId: incident.projectId,
                     incidentId: incident._id,
                     subscriberId: subscriber._id,
                     alertVia: AlertType.Email,
                     alertStatus: 'Pending',
-                    eventType: isStatusPageNoteAlert
-                        ? statusPageNoteAlertEventType
-                        : templateType === 'Subscriber Incident Acknowldeged'
-                        ? 'acknowledged'
-                        : templateType === 'Subscriber Incident Resolved'
-                        ? 'resolved'
-                        : 'identified',
+                    eventType: eventType
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
@@ -2369,8 +2409,8 @@ module.exports = {
                 );
                 const areAlertsEnabledGlobally =
                     hasGlobalTwilioSettings &&
-                    hasGlobalTwilioSettings.value &&
-                    hasGlobalTwilioSettings.value['sms-enabled']
+                        hasGlobalTwilioSettings.value &&
+                        hasGlobalTwilioSettings.value['sms-enabled']
                         ? true
                         : false;
 
@@ -2389,6 +2429,28 @@ module.exports = {
                             (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))) ||
                     investigationNoteNotificationSMSDisabled
                 ) {
+                    let errorMessageText, eventType;
+                    if (!hasGlobalTwilioSettings) {
+                        errorMessageText = 'Twilio Settings not found on Admin Dashboard'
+                    } else if (!areAlertsEnabledGlobally) {
+                        errorMessageText = 'Alert Disabled on Admin Dashboard'
+                    } else if (IS_SAAS_SERVICE && !project.alertEnable) {
+                        errorMessageText = 'Alert Disabled for this project'
+                    } else if (investigationNoteNotificationSMSDisabled) {
+                        errorMessageText = 'Investigation Note SMS Notification Disabled'
+                    } else {
+                        errorMessageText = 'Error'
+                    }
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType
+                    } else if (templateType ===
+                        'Subscriber Incident Acknowldeged') {
+                        eventType = 'acknowledged'
+                    } else if (templateType === 'Subscriber Incident Resolved') {
+                        eventType = 'resolved'
+                    } else {
+                        eventType = 'identified'
+                    }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
@@ -2396,23 +2458,8 @@ module.exports = {
                         alertVia: AlertType.SMS,
                         alertStatus: null,
                         error: true,
-                        errorMessage: !hasGlobalTwilioSettings
-                            ? 'Twilio Settings not found on Admin Dashboard'
-                            : !areAlertsEnabledGlobally
-                            ? 'Alert Disabled on Admin Dashboard'
-                            : IS_SAAS_SERVICE && !project.alertEnable
-                            ? 'Alert Disabled for this project'
-                            : investigationNoteNotificationSMSDisabled
-                            ? 'Investigation Note SMS Notification Disabled'
-                            : 'Error',
-                        eventType: isStatusPageNoteAlert
-                            ? statusPageNoteAlertEventType
-                            : templateType ===
-                              'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                        errorMessage: errorMessageText,
+                        eventType: eventType
                     });
                 }
                 const countryCode = await _this.mapCountryShortNameToCountryCode(
@@ -2433,6 +2480,24 @@ module.exports = {
                     );
                     if (!doesPhoneNumberComplyWithHighRiskConfig) {
                         const countryType = getCountryType(contactPhone);
+                        let errorMessageText, eventType;
+                        if (countryType === 'us') {
+                            errorMessageText = 'SMS for numbers inside US not enabled for this project'
+                        } else if (countryType === 'non-us') {
+                            errorMessageText = 'SMS for numbers outside US not enabled for this project'
+                        } else {
+                            errorMessageText = 'SMS to High Risk country not enabled for this project'
+                        }
+                        if (isStatusPageNoteAlert) {
+                            eventType = statusPageNoteAlertEventType
+                        } else if (templateType ===
+                            'Subscriber Incident Acknowldeged') {
+                            eventType = 'acknowledged'
+                        } else if (templateType === 'Subscriber Incident Resolved') {
+                            eventType = 'resolved'
+                        } else {
+                            eventType = 'identified'
+                        }
                         return await SubscriberAlertService.create({
                             projectId: incident.projectId,
                             incidentId: incident._id,
@@ -2440,21 +2505,8 @@ module.exports = {
                             alertVia: AlertType.SMS,
                             alertStatus: null,
                             error: true,
-                            errorMessage:
-                                countryType === 'us'
-                                    ? 'SMS for numbers inside US not enabled for this project'
-                                    : countryType === 'non-us'
-                                    ? 'SMS for numbers outside US not enabled for this project'
-                                    : 'SMS to High Risk country not enabled for this project',
-                            eventType: isStatusPageNoteAlert
-                                ? statusPageNoteAlertEventType
-                                : templateType ===
-                                  'Subscriber Incident Acknowldeged'
-                                ? 'acknowledged'
-                                : templateType ===
-                                  'Subscriber Incident Resolved'
-                                ? 'resolved'
-                                : 'identified',
+                            errorMessage: errorMessageText,
+                            eventType: eventType
                         });
                     }
 
@@ -2464,6 +2516,18 @@ module.exports = {
                         contactPhone,
                         AlertType.SMS
                     );
+                    let eventType;
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType
+                    } else if (templateType ===
+                        'Subscriber Incident Acknowldeged') {
+                        eventType = 'acknowledged'
+                    } else if (templateType ===
+                        'Subscriber Incident Resolved') {
+                        eventType = 'resolved'
+                    } else {
+                        eventType = 'identified'
+                    }
 
                     if (!status.success) {
                         return await SubscriberAlertService.create({
@@ -2474,15 +2538,7 @@ module.exports = {
                             alertStatus: null,
                             error: true,
                             errorMessage: status.message,
-                            eventType: isStatusPageNoteAlert
-                                ? statusPageNoteAlertEventType
-                                : templateType ===
-                                  'Subscriber Incident Acknowldeged'
-                                ? 'acknowledged'
-                                : templateType ===
-                                  'Subscriber Incident Resolved'
-                                ? 'resolved'
-                                : 'identified',
+                            eventType: eventType
                         });
                     }
                 }
@@ -2492,19 +2548,25 @@ module.exports = {
                     projectId: incident.projectId,
                     smsType: templateType,
                 });
+                let eventType;
+                if (isStatusPageNoteAlert) {
+                    eventType = statusPageNoteAlertEventType
+                } else if (templateType ===
+                    'Subscriber Incident Acknowldeged') {
+                    eventType = 'acknowledged'
+                } else if (templateType ===
+                    'Subscriber Incident Resolved') {
+                    eventType = 'resolved'
+                } else {
+                    eventType = 'identified'
+                }
                 const subscriberAlert = await SubscriberAlertService.create({
                     projectId: incident.projectId,
                     incidentId: incident._id,
                     subscriberId: subscriber._id,
                     alertVia: AlertType.SMS,
                     alertStatus: 'Pending',
-                    eventType: isStatusPageNoteAlert
-                        ? statusPageNoteAlertEventType
-                        : templateType === 'Subscriber Incident Acknowldeged'
-                        ? 'acknowledged'
-                        : templateType === 'Subscriber Incident Resolved'
-                        ? 'resolved'
-                        : 'identified',
+                    eventType: eventType
                 });
                 const alertId = subscriberAlert._id;
 
@@ -2752,7 +2814,7 @@ module.exports = {
         return false;
     },
 
-    getSubProjectAlerts: async function(subProjectIds) {
+    getSubProjectAlerts: async function (subProjectIds) {
         const _this = this;
         const subProjectAlerts = await Promise.all(
             subProjectIds.map(async id => {
@@ -2768,7 +2830,7 @@ module.exports = {
         return subProjectAlerts;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         try {
             await AlertModel.deleteMany(query);
             return 'Alert(s) removed successfully';
@@ -2778,7 +2840,7 @@ module.exports = {
         }
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
         let alert = await _this.findBy({ query });
@@ -2820,7 +2882,7 @@ module.exports = {
     },
 
     //Return true, if the limit is not reached yet.
-    checkPhoneAlertsLimit: async function(projectId) {
+    checkPhoneAlertsLimit: async function (projectId) {
         const _this = this;
         const hasCustomSettings = await TwilioService.hasCustomSettings(
             projectId
@@ -2859,7 +2921,7 @@ module.exports = {
         }
     },
 
-    sendUnpaidSubscriptionEmail: async function(project, user) {
+    sendUnpaidSubscriptionEmail: async function (project, user) {
         try {
             const { name: userName, email: userEmail } = user;
             const { stripePlanId, _id: projectId, name: projectName } = project;
@@ -2879,7 +2941,7 @@ module.exports = {
         }
     },
 
-    sendProjectDeleteEmailForUnpaidSubscription: async function(project, user) {
+    sendProjectDeleteEmailForUnpaidSubscription: async function (project, user) {
         try {
             const { name: userName, email: userEmail } = user;
             const { stripePlanId, name: projectName } = project;

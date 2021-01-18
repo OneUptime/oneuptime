@@ -151,7 +151,31 @@ export class MonitorLogsList extends Component {
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                    <span>Probe</span>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props
+                                                                .monitorType &&
+                                                            this.props
+                                                                .monitorType !==
+                                                                'incomingHttpRequest'
+                                                        }
+                                                    >
+                                                        <span>Probe</span>
+                                                    </ShouldRender>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props
+                                                                .monitorType &&
+                                                            this.props
+                                                                .monitorType ===
+                                                                'incomingHttpRequest'
+                                                        }
+                                                    >
+                                                        <span>
+                                                            Incoming Http
+                                                            Request
+                                                        </span>
+                                                    </ShouldRender>
                                                 </span>
                                             </div>
                                         </td>

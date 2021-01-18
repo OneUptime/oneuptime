@@ -37,6 +37,7 @@ module.exports = {
         body,
         template,
         content,
+        error,
     }) {
         try {
             let item = new EmailStatusModel();
@@ -48,6 +49,7 @@ module.exports = {
             item.body = body;
             item.template = template;
             item.content = content;
+            item.error = error;
             item = await item.save();
 
             return item;
