@@ -53,9 +53,18 @@ class ErrorEventHeader extends Component {
                                             id="application-content-header"
                                             className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            <span id={`application-log-title-`}>
+                                            <span id={`error-event-title-`}>
                                                 {errorTrackerIssue &&
-                                                    errorTrackerIssue.name}
+                                                errorTrackerIssue.description
+                                                    ? errorTrackerIssue
+                                                          .description.length >
+                                                      100
+                                                        ? `${errorTrackerIssue.description.substring(
+                                                              0,
+                                                              100
+                                                          )} ...`
+                                                        : errorTrackerIssue.description
+                                                    : ''}
                                             </span>
                                         </span>
                                         <div className="Flex-flex Flex-alignItems--center">
@@ -72,16 +81,7 @@ class ErrorEventHeader extends Component {
                                             ></div>{' '}
                                             <span className="Text-fontSize--12 Margin-left--4">
                                                 {errorTrackerIssue &&
-                                                errorTrackerIssue.description
-                                                    ? errorTrackerIssue
-                                                          .description.length >
-                                                      100
-                                                        ? `${errorTrackerIssue.description.substring(
-                                                              0,
-                                                              100
-                                                          )} ...`
-                                                        : errorTrackerIssue.description
-                                                    : ''}
+                                                    errorTrackerIssue.name}
                                             </span>
                                         </div>
                                     </div>
