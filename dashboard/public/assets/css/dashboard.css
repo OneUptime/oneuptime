@@ -35164,7 +35164,7 @@ span.CodeMirror-selectedtext {
   background-color: rgb(0,0,0);
 }
 
-.custom-tab, #tab-slider {
+.bs-custom-incident-tab, .bs-custom-incident-slider {
   width: 20% !important
 }
 

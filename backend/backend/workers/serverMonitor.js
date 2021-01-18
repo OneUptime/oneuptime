@@ -43,7 +43,7 @@ module.exports = {
 
 const job = async monitor => {
     try {
-        const { stat: validUp, failedReasons } = await (monitor &&
+        const { stat: validUp, successReasons } = await (monitor &&
         monitor.criteria &&
         monitor.criteria.up
             ? ProbeService.conditions(monitor.type, monitor.criteria.up)
@@ -57,7 +57,7 @@ const job = async monitor => {
             await ProbeService.saveMonitorLog({
                 monitorId: monitor._id,
                 status: 'offline',
-                reason: await failedReasons.filter(function(item, pos, self) {
+                reason: await successReasons.filter(function(item, pos, self) {
                     return self.indexOf(item) == pos;
                 }),
             });
