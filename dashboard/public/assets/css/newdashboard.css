@@ -11150,6 +11150,11 @@ table {
 .bs-Modal fieldset {
     padding: 10px 20px 0;
 }
+
+.projectNameClass{
+ padding-top:20px;
+}
+
 .Margin-bottom--20i {
     margin-bottom: 20px !important;
 }
