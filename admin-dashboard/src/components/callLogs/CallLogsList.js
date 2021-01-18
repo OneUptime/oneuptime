@@ -9,6 +9,7 @@ import { openModal, closeModal } from '../../actions/modal';
 import CallLogsContentViewModal from './CallLogsContentViewModal';
 import CallLogsErrorViewModal from './CallLogsErrorViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import { history } from '../../store';
 
 export class CallLogsList extends Component {
     constructor(props) {
@@ -125,14 +126,6 @@ export class CallLogsList extends Component {
                                         </span>
                                     </div>
                                 </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
-                                </td>
                             </tr>
                         </thead>
                         <tbody className="Table-body">
@@ -201,14 +194,24 @@ export class CallLogsList extends Component {
                                             </td>
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
+                                                style={{
+                                                    height: '1px',
+                                                    cursor: 'pointer',
+                                                }}
+                                                onClick={() => {
+                                                    history.push(
+                                                        '/admin/projects/' +
+                                                            callLog.projectId
+                                                                ._id
+                                                    );
+                                                }}
                                             >
                                                 <div className="db-ListViewItem-link">
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root">
                                                                 <span>
-                                                                {callLog.projectId
+                                                                    {callLog.projectId
                                                                         ? callLog
                                                                               .projectId
                                                                               .name
@@ -291,22 +294,7 @@ export class CallLogsList extends Component {
                                                                             Content
                                                                         </span>
                                                                     </button>
-                                                                </span>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            {callLog.error ? (
-                                                <td
-                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{ height: '1px' }}
-                                                >
-                                                    <div className="db-ListViewItem-link">
-                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <div className="Box-root">
-                                                                    <span>
+                                                                    {callLog.error ? (
                                                                         <button
                                                                             onClick={() => {
                                                                                 this.props.openModal(
@@ -334,13 +322,13 @@ export class CallLogsList extends Component {
                                                                                 Error
                                                                             </span>
                                                                         </button>
-                                                                    </span>
-                                                                </div>
-                                                            </span>
-                                                        </div>
+                                                                    ) : null}
+                                                                </span>
+                                                            </div>
+                                                        </span>
                                                     </div>
-                                                </td>
-                                            ) : null}
+                                                </div>
+                                            </td>
                                         </tr>
                                     );
                                 })
