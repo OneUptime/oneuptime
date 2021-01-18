@@ -270,11 +270,7 @@ function ErrorTrackerIssue({
                                 openEventMemberModal(errorTrackerIssue)
                             }
                         >
-                            <span>
-                                {errorTrackerIssue.members.length > 0
-                                    ? 'Assign More'
-                                    : 'Assign'}{' '}
-                            </span>
+                            <span>Assign Members</span>
                         </button>
                         <button
                             className="bs-Button bs-Button--icon bs-Button--check"
@@ -284,7 +280,11 @@ function ErrorTrackerIssue({
                                 resolveSingleIssue(errorTrackerIssue._id)
                             }
                         >
-                            <span>Resolve</span>
+                            <span>
+                                {errorTrackerIssue.resolved
+                                    ? 'Resolved'
+                                    : 'Resolve'}
+                            </span>
                         </button>
                     </div>
                 </div>
