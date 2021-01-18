@@ -93,7 +93,8 @@ class DashboardView extends Component {
             subProjects.map((subProject, i) => {
                 const subProjectComponent = this.props.component.componentList.components.find(
                     subProjectComponent =>
-                        subProjectComponent._id === subProject._id
+                        String(subProjectComponent._id) ===
+                        String(subProject._id)
                 );
                 allComponents = IsUserInSubProject(subProject)
                     ? allComponents
@@ -132,7 +133,8 @@ class DashboardView extends Component {
 
         // Add Project Components to Components List
         let projectComponent = this.props.component.componentList.components.find(
-            subProjectComponent => subProjectComponent._id === currentProjectId
+            subProjectComponent =>
+                String(subProjectComponent._id) === String(currentProjectId)
         );
         allComponents = IsUserInSubProject(currentProject)
             ? allComponents
