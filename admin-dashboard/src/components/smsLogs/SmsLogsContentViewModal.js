@@ -45,11 +45,17 @@ class SmsLogsContentViewModal extends Component {
                                     <div className="jsonViwer Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <div className="db-SmsLogsContentViewModal-ContentViewerWrapper">
                                             <div className="db-SmsLogsContentViewModal-ContentViewerContainer">
-                                                <div
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: content,
-                                                    }}
-                                                ></div>
+                                                {content ? (
+                                                    <div
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: content,
+                                                        }}
+                                                    ></div>
+                                                ) : (
+                                                    <span>
+                                                        The SMS Body is Empty.
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

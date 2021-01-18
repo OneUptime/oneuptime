@@ -195,7 +195,6 @@ module.exports = {
                 );
             }
             const monitor = await this.findOneBy(query);
-
             await RealTimeService.monitorEdit(monitor);
 
             return monitor;

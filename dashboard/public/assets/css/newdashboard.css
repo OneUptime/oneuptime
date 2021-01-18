@@ -10213,6 +10213,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     overflow-x: hidden;
     overflow-y: auto;
     padding-left: calc((50vw - 1390px / 2 + 278px));
+    padding-right: calc((50vw - 1390px / 2 ));
     position: absolute;
     right: 0;
     top: 0;
@@ -10301,6 +10302,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     }
     .db-World-mainPane {
         padding-left: 278px;
+        padding-right: 20px;
     }
 }
 @media only screen and (max-width: 1060px) {
@@ -10312,6 +10314,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     }
     .db-World-mainPane {
         padding-left: 244px;
+        padding-right: 20px;
     }
 }
 @media only print {
@@ -11293,7 +11296,7 @@ table {
     display: flex;
     align-items: center;
 }
-.Navigator-Btn-Group > *:hover {
+.Navigator-Btn-Group > *:active {
     border: solid 2px #D8D1DE;
 }
 .Navigator-Oldest {

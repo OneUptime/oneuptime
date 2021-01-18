@@ -11,6 +11,8 @@ module.exports = [
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+            '{{incident.customFields.*}} : The value of any incident custom field',
+            '{{monitor.customFields.*}} : The value of any monitor custom field',
         ],
         emailType: 'Subscriber Incident Created',
         subject:
@@ -553,6 +555,8 @@ span.st-Delink.st-Delink--footer a {
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+            '{{incident.customFields.*}} : The value of any incident custom field',
+            '{{monitor.customFields.*}} : The value of any monitor custom field',
         ],
         emailType: 'Subscriber Incident Acknowldeged',
         subject:
@@ -1095,6 +1099,8 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
             '{{incidentNoteStatus}} : Status of the incident note',
+            '{{incident.customFields.*}} : The value of any incident custom field',
+            '{{monitor.customFields.*}} : The value of any monitor custom field',
         ],
         emailType: 'Investigation note is created',
         subject: 'An update on an active incident for {{monitorName}}',
@@ -1653,6 +1659,8 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+            '{{incident.customFields.*}} : The value of any incident custom field',
+            '{{monitor.customFields.*}} : The value of any monitor custom field',
         ],
         emailType: 'Subscriber Incident Resolved',
         subject:
