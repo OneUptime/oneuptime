@@ -35,7 +35,9 @@ describe('Incoming HTTP Request API', function() {
         authorization,
         createIncidentUrl,
         acknowledgeIncidentUrl,
-        resolveIncidentUrl;
+        resolveIncidentUrl,
+        incidentNoteUrl,
+        internalNoteUrl;
 
     const incidentRequest = {
         name: 'pyInt',
@@ -76,6 +78,36 @@ describe('Incoming HTTP Request API', function() {
         filters: [
             {
                 filterCondition: 'greaterThanOrEqualTo',
+                filterCriteria: 'incidentId',
+                filterText: 1,
+            },
+        ],
+    };
+
+    const incidentNoteRequest = {
+        name: 'incidentNote',
+        updateIncidentNote: true,
+        filterMatch: 'all',
+        filters: [
+            {
+                filterCondition: 'greaterThanOrEqualTo',
+                filterCriteria: 'incidentId',
+                filterText: 1,
+            },
+        ],
+        incidentState: 'update',
+        noteContent: 'This is a sample incident note',
+    };
+
+    const internalNoteRequest = {
+        name: 'internalNote',
+        updateInternalNote: true,
+        incidentState: 'investigating',
+        noteContent: 'This is a sample internal note',
+        filterMatch: 'all',
+        filters: [
+            {
+                filterCondition: 'equalTo',
                 filterCriteria: 'incidentId',
                 filterText: 1,
             },
@@ -225,6 +257,40 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
+    it('should create an incoming http request (Update incident note)', function(done) {
+        request
+            .post(`/incoming-request/${projectId}/create-request-url`)
+            .send(incidentNoteRequest)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                incidentNoteUrl = res.body.url;
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal(incidentNoteRequest.name);
+                expect(res.body.filterMatch).to.be.equal(
+                    incidentNoteRequest.filterMatch
+                );
+                expect(res.body.filters).to.be.an('array');
+                done();
+            });
+    });
+
+    it('should create an incoming http request (Update internal note)', function(done) {
+        request
+            .post(`/incoming-request/${projectId}/create-request-url`)
+            .send(internalNoteRequest)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                internalNoteUrl = res.body.url;
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal(internalNoteRequest.name);
+                expect(res.body.filters).to.be.an('array');
+                expect(res.body.filterMatch).to.be.equal(
+                    internalNoteRequest.filterMatch
+                );
+                done();
+            });
+    });
+
     it('should update an incoming http request', function(done) {
         const update = {
             name: 'updateName',
@@ -296,6 +362,31 @@ describe('Incoming HTTP Request API', function() {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.resolved_incidents).to.be.an('array');
+            done();
+        });
+    });
+
+    it('should add incident note with an incoming http request url', function(done) {
+        // it should also work for a get request
+        axios({
+            method: 'get',
+            url: incidentNoteUrl,
+        }).then(function(res) {
+            expect(res).to.have.status(200);
+            expect(res.data.status).to.be.equal('success');
+            expect(res.data.notes_addedTo).to.be.an('array');
+            done();
+        });
+    });
+
+    it('should add internal note with an incoming http request url', function(done) {
+        axios({
+            method: 'get',
+            url: internalNoteUrl,
+        }).then(function(res) {
+            expect(res).to.have.status(200);
+            expect(res.data.status).to.be.equal('success');
+            expect(res.data.notes_addedTo).to.be.an('array');
             done();
         });
     });
