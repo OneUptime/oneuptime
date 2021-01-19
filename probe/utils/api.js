@@ -10,6 +10,7 @@ const _this = {
             probeName: config.probeName,
             probeKey: config.probeKey,
             clusterKey: config.clusterKey,
+            probeVersion: config.probeVersion,
         };
     },
     postApi: (url, data) => {
