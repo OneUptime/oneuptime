@@ -832,11 +832,8 @@ class EditIncomingRequest extends Component {
     };
 
     handleKeyBoard = e => {
-        const { destroy } = this.props;
-
         switch (e.key) {
             case 'Escape':
-                destroy();
                 return this.handleCloseModal();
             case 'Enter':
                 if (e.target.localName !== 'textarea') {
@@ -851,6 +848,7 @@ class EditIncomingRequest extends Component {
     };
 
     handleCloseModal = () => {
+        this.props.destroy();
         this.props.closeModal({
             id: this.props.projectId,
         });

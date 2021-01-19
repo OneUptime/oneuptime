@@ -736,12 +736,8 @@ class CreateIncomingRequest extends Component {
     };
 
     handleKeyBoard = e => {
-        const { closeModal, data, destroy } = this.props;
-        const { projectId } = data;
-
         switch (e.key) {
             case 'Escape':
-                destroy();
                 return this.handleCloseModal();
             case 'Enter':
                 if (e.target.localName !== 'textarea') {
@@ -756,8 +752,9 @@ class CreateIncomingRequest extends Component {
     };
 
     handleCloseModal = () => {
-        const { closeModal, data } = this.props;
+        const { closeModal, data, destroy } = this.props;
         const { projectId } = data;
+        destroy();
         closeModal({
             id: projectId,
         });
