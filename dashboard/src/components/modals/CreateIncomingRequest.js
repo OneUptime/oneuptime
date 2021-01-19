@@ -72,19 +72,24 @@ class CreateIncomingRequest extends Component {
         postObj.isDefault = values.isDefault;
 
         postObj.filterMatch = values.filterMatch;
-        postObj.filters = values.filters
-            .filter(filter => !!filter)
-            .map(filter => {
-                if (!isNaN(filter.filterText)) {
-                    if (typeof filter.filterText === 'string') {
-                        filter.filterText = String(filter.filterText);
-                    } else {
-                        filter.filterText = parseFloat(filter.filterText);
-                    }
-                }
+        postObj.filters =
+            values.filters && values.filters.length > 0
+                ? values.filters
+                      .filter(filter => !!filter)
+                      .map(filter => {
+                          if (!isNaN(filter.filterText)) {
+                              if (typeof filter.filterText === 'string') {
+                                  filter.filterText = String(filter.filterText);
+                              } else {
+                                  filter.filterText = parseFloat(
+                                      filter.filterText
+                                  );
+                              }
+                          }
 
-                return filter;
-            });
+                          return filter;
+                      })
+                : [];
 
         if (values.nextAction && values.nextAction === 'createIncident') {
             postObj.createIncident = true;

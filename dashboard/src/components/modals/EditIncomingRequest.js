@@ -69,21 +69,24 @@ class EditIncomingRequest extends Component {
         postObj.name = values.name;
 
         postObj.filterMatch = values.filterMatch;
-        postObj.filters = values.filters
-            ? values.filters
-                  .filter(filter => !!filter)
-                  .map(filter => {
-                      if (!isNaN(filter.filterText)) {
-                          if (typeof filter.filterText === 'string') {
-                              filter.filterText = String(filter.filterText);
-                          } else {
-                              filter.filterText = parseFloat(filter.filterText);
+        postObj.filters =
+            values.filters && values.filters.length > 0
+                ? values.filters
+                      .filter(filter => !!filter)
+                      .map(filter => {
+                          if (!isNaN(filter.filterText)) {
+                              if (typeof filter.filterText === 'string') {
+                                  filter.filterText = String(filter.filterText);
+                              } else {
+                                  filter.filterText = parseFloat(
+                                      filter.filterText
+                                  );
+                              }
                           }
-                      }
 
-                      return filter;
-                  })
-            : [];
+                          return filter;
+                      })
+                : [];
 
         if (values.nextAction && values.nextAction === 'createIncident') {
             postObj.isDefault = values.isDefault;
