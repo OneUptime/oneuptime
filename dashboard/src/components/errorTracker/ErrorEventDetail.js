@@ -44,7 +44,12 @@ class ErrorEventDetail extends Component {
         resolveErrorEvent(projectId, componentId, errorTrackerId, [issueId]);
     };
     render() {
-        const { errorEvent, navigationLink, errorTrackerIssue } = this.props;
+        const {
+            errorEvent,
+            navigationLink,
+            errorTrackerIssue,
+            errorTrackerStatus,
+        } = this.props;
         return (
             <div className="bs-BIM">
                 <ShouldRender if={errorTrackerIssue.ignored}>
@@ -80,6 +85,7 @@ class ErrorEventDetail extends Component {
                                         resolveErrorEvent={
                                             this.resolveErrorEvent
                                         }
+                                        errorTrackerStatus={errorTrackerStatus}
                                     />
                                     <ErrorEventMiniTag
                                         errorEvent={errorEvent}
@@ -139,12 +145,16 @@ const mapStateToProps = (state, ownProps) => {
         ? errorEvent.issueId
         : {};
 
+    const errorTrackerStatus =
+        state.errorTracker.errorTrackerStatus[ownProps.errorTrackerId];
+
     return {
         errorTracker: currentErrorTracker[0],
         currentProject: state.project.currentProject,
         errorTrackerIssue: errorTrackerIssueStatus,
         ignored: errorTrackerIssueStatus.ignored,
         resolved: errorTrackerIssueStatus.resolved,
+        errorTrackerStatus,
     };
 };
 ErrorEventDetail.propTypes = {
@@ -157,6 +167,7 @@ ErrorEventDetail.propTypes = {
     errorTrackerIssue: PropTypes.object,
     unresolveErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.func,
+    errorTrackerStatus: PropTypes.object,
 };
 ErrorEventDetail.displayName = 'ErrorEventDetail';
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventDetail);
