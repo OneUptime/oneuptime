@@ -93,9 +93,7 @@ class ErrorEventDetail extends Component {
                                     <ErrorEventStackTrace
                                         errorEvent={errorEvent}
                                     />
-                                    <ErrorEventTimeline
-                                        errorEvent={errorEvent}
-                                    />
+
                                     <ErrorEventInfoSection
                                         errorEvent={errorEvent}
                                     />
@@ -104,6 +102,7 @@ class ErrorEventDetail extends Component {
                         </div>
                     </div>
                 </div>
+                <ErrorEventTimeline errorEvent={errorEvent} />
             </div>
         );
     }
