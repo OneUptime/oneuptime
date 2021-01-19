@@ -1,5 +1,6 @@
 try {
     require('./monitorSla.test');
+    require('./incomingHttpRequest.test');
     require('./adminCredentials.test');
     require('./incidentCommunicationSla.test');
     require('./adminCredentials.test');

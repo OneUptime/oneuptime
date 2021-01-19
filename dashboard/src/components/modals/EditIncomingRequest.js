@@ -227,7 +227,7 @@ class EditIncomingRequest extends Component {
                                             ? this.props.monitors.map(
                                                   monitor => ({
                                                       value: monitor._id,
-                                                      label: `${monitor.componentId.name} / ${monitor.name}`,
+                                                      label: `${monitor.projectId.name} / ${monitor.componentId.name} / ${monitor.name}`,
                                                   })
                                               )
                                             : []),
@@ -2893,10 +2893,10 @@ const mapStateToProps = state => {
         initialValues.showAvailableVariables = false;
     }
 
-    const monitorData = state.monitor.monitorsList.monitors.find(
-        data => String(data._id) === String(projectId)
-    );
-    const monitors = monitorData ? monitorData.monitors : [];
+    let monitors = [];
+    state.monitor.monitorsList.monitors.forEach(monitor => {
+        monitors = [...monitors, ...monitor.monitors];
+    });
     if (!initialValues.isDefault) {
         initialValues.monitors =
             incomingRequestToBeUpdated.monitors &&
