@@ -527,6 +527,7 @@ router.post('/totp/verifyToken', async function(req, res) {
             },
             tempEmail: user.tempEmail || null,
             tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
+            role: user.role || null,
         };
         return sendItemResponse(req, res, userObj);
     } catch (error) {
@@ -607,6 +608,7 @@ router.post('/verify/backupCode', async function(req, res) {
             },
             tempEmail: user.tempEmail || null,
             tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
+            role: user.role || null,
         };
         return sendItemResponse(req, res, userObj);
     } catch (error) {
@@ -1066,6 +1068,7 @@ router.get('/profile', getUser, async function(req, res) {
             },
             tempEmail: user.tempEmail || null,
             tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
+            role: user.role || null,
         };
         return sendItemResponse(req, res, userObj);
     } catch (error) {
