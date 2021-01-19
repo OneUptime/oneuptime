@@ -158,26 +158,28 @@ export class ProjectList extends Component {
                                             project.users.find(
                                                 user => user.role === 'Owner'
                                             ) || {};
-                                        const usersDetail =
-                                            project.users.length - 1 > 0
-                                                ? project.users.length - 1 > 1
-                                                    ? `${
-                                                          projectOwner.name
-                                                      } and ${project.users
-                                                          .length - 1} others`
-                                                    : `${projectOwner.name} and 1 other`
-                                                : 'Not Added Yet';
+                                        let usersDetail;
+                                        if (project.users.length > 0) {
+                                            if (project.users.length === 1) {
+                                                usersDetail = `${projectOwner.name}`;
+                                            } else if (
+                                                project.users.length === 2
+                                            ) {
+                                                usersDetail = `${projectOwner.name} and 1 other`;
+                                            } else {
+                                                usersDetail = `${
+                                                    projectOwner.name
+                                                } and ${project.users.length -
+                                                    1} others`;
+                                            }
+                                        } else {
+                                            usersDetail = 'Not Added Yet';
+                                        }
 
                                         return (
                                             <tr
                                                 key={project._id}
                                                 className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-                                                onClick={() => {
-                                                    history.push(
-                                                        '/admin/projects/' +
-                                                            project._id
-                                                    );
-                                                }}
                                                 id={`project_${index}`}
                                             >
                                                 <td
@@ -185,6 +187,14 @@ export class ProjectList extends Component {
                                                     style={{
                                                         height: '1px',
                                                         minWidth: '270px',
+                                                        textDecoration:
+                                                            'underline',
+                                                    }}
+                                                    onClick={() => {
+                                                        history.push(
+                                                            '/admin/projects/' +
+                                                                project._id
+                                                        );
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -201,7 +211,21 @@ export class ProjectList extends Component {
                                                 </td>
                                                 <td
                                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{ height: '1px' }}
+                                                    style={{
+                                                        height: '1px',
+                                                        textDecoration:
+                                                            'underline',
+                                                    }}
+                                                    onClick={() => {
+                                                        if (
+                                                            projectOwner.userId
+                                                        ) {
+                                                            history.push(
+                                                                '/admin/users/' +
+                                                                    projectOwner.userId
+                                                            );
+                                                        }
+                                                    }}
                                                 >
                                                     <div className="db-ListViewItem-link">
                                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">

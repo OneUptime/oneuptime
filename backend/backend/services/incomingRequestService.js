@@ -1717,21 +1717,33 @@ module.exports = {
                     }
                 }
 
-                if (resolveResponse && resolveResponse.length > 0) {
+                if (
+                    resolveResponse &&
+                    resolveResponse.length > 0 &&
+                    incomingRequest.resolveIncident
+                ) {
                     return {
                         status: 'success',
                         resolved_incidents: resolveResponse.map(
                             res => res.idNumber
                         ),
                     };
-                } else if (resolveResponse && resolveResponse.length === 0) {
+                } else if (
+                    resolveResponse &&
+                    resolveResponse.length === 0 &&
+                    incomingRequest.resolveIncident
+                ) {
                     return {
                         status: 'success',
                         resolved_incidents: [],
                     };
                 }
 
-                if (acknowledgeResponse && acknowledgeResponse.length > 0) {
+                if (
+                    acknowledgeResponse &&
+                    acknowledgeResponse.length > 0 &&
+                    incomingRequest.acknowledgeIncident
+                ) {
                     return {
                         status: 'success',
                         acknowledged_incidents: acknowledgeResponse.map(
@@ -1740,7 +1752,8 @@ module.exports = {
                     };
                 } else if (
                     acknowledgeResponse &&
-                    acknowledgeResponse.length === 0
+                    acknowledgeResponse.length === 0 &&
+                    incomingRequest.acknowledgeIncident
                 ) {
                     return {
                         status: 'success',

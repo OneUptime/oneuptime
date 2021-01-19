@@ -127,8 +127,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             if (type === 'api' || type === 'url') {
                 const {
                     stat: validUp,
-                    failedReasons: upFailedReasons,
                     successReasons: upSuccessReasons,
+                    failedReasons: upFailedReasons,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.conditions(
                           monitor.type,
@@ -137,11 +137,11 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           resp,
                           rawResp
                       )
-                    : { stat: false, failedReasons: [], successReasons: [] });
+                    : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDegraded,
-                    failedReasons: degradedFailedReasons,
                     successReasons: degradedSuccessReasons,
+                    failedReasons: degradedFailedReasons,
                 } = await (monitor &&
                 monitor.criteria &&
                 monitor.criteria.degraded
@@ -152,9 +152,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           resp,
                           rawResp
                       )
-                    : { stat: false, failedReasons: [], successReasons: [] });
+                    : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDown,
+                    successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.conditions(
@@ -164,26 +165,26 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           resp,
                           rawResp
                       )
-                    : { stat: false, failedReasons: [], successReasons: [] });
+                    : { stat: false, successReasons: [], failedReasons: [] });
 
-                if (validDown) {
-                    status = 'offline';
-                    reason = [
-                        ...downFailedReasons,
-                        ...degradedSuccessReasons,
-                        ...upSuccessReasons,
-                    ];
+                if (validUp) {
+                    status = 'online';
+                    reason = upSuccessReasons;
                 } else if (validDegraded) {
                     status = 'degraded';
-                    reason = [...degradedFailedReasons, ...upSuccessReasons];
-                } else if (validUp) {
-                    status = 'online';
-                    reason = upFailedReasons;
+                    reason = [...degradedSuccessReasons, ...upFailedReasons];
+                } else if (validDown) {
+                    status = 'offline';
+                    reason = [
+                        ...downSuccessReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
                 } else {
                     status = 'offline';
                     reason = [
-                        ...degradedFailedReasons,
                         ...downFailedReasons,
+                        ...degradedFailedReasons,
                         ...upFailedReasons,
                     ];
                 }
@@ -193,7 +194,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             if (type === 'script') {
                 const {
                     stat: validUp,
-                    reasons: upFailedReasons,
+                    reasons: upSuccessReasons,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.scriptConditions(
                           res,
@@ -203,7 +204,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     : { stat: false, reasons: [] });
                 const {
                     stat: validDegraded,
-                    reasons: degradedFailedReasons,
+                    reasons: degradedSuccessReasons,
                 } = await (monitor &&
                 monitor.criteria &&
                 monitor.criteria.degraded
@@ -215,7 +216,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     : { stat: false, reasons: [] });
                 const {
                     stat: validDown,
-                    reasons: downFailedReasons,
+                    reasons: downSuccessReasons,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.scriptConditions(
                           res,
@@ -226,16 +227,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
                 if (validDown) {
                     status = 'failed';
-                    reason = upFailedReasons;
+                    reason = upSuccessReasons;
                 } else if (validDegraded) {
                     status = 'degraded';
-                    reason = upFailedReasons;
+                    reason = upSuccessReasons;
                 } else if (validUp) {
                     status = 'success';
-                    reason = [...degradedFailedReasons, ...downFailedReasons];
+                    reason = [...degradedSuccessReasons, ...downSuccessReasons];
                 } else {
                     status = 'failed';
-                    reason = upFailedReasons;
+                    reason = upSuccessReasons;
                 }
                 resp.status = null;
                 data.status = status;
@@ -252,19 +253,19 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 data = serverData;
                 const {
                     stat: validUp,
-                    failedReasons: upFailedReasons,
                     successReasons: upSuccessReasons,
+                    failedReasons: upFailedReasons,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.up,
                           data
                       )
-                    : { stat: false, failedReasons: [], successReasons: [] });
+                    : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDegraded,
-                    failedReasons: degradedFailedReasons,
                     successReasons: degradedSuccessReasons,
+                    failedReasons: degradedFailedReasons,
                 } = await (monitor &&
                 monitor.criteria &&
                 monitor.criteria.degraded
@@ -273,9 +274,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           monitor.criteria.degraded,
                           data
                       )
-                    : { stat: false, failedReasons: [], successReasons: [] });
+                    : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDown,
+                    successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.conditions(
@@ -283,29 +285,29 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           monitor.criteria.down,
                           data
                       )
-                    : { stat: false, failedReasons: [], successReasons: [] });
+                    : { stat: false, successReasons: [], failedReasons: [] });
 
-                if (validDown) {
-                    data.status = 'offline';
-                    data.reason = [
-                        ...downFailedReasons,
-                        ...degradedSuccessReasons,
-                        ...upSuccessReasons,
-                    ];
+                if (validUp) {
+                    data.status = 'online';
+                    data.reason = upSuccessReasons;
                 } else if (validDegraded) {
                     data.status = 'degraded';
                     data.reason = [
-                        ...degradedFailedReasons,
-                        ...upSuccessReasons,
+                        ...degradedSuccessReasons,
+                        ...upFailedReasons,
                     ];
-                } else if (validUp) {
-                    data.status = 'online';
-                    data.reason = upFailedReasons;
+                } else if (validDown) {
+                    data.status = 'offline';
+                    data.reason = [
+                        ...downSuccessReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
                 } else {
                     data.status = 'offline';
                     data.reason = [
-                        ...degradedFailedReasons,
                         ...downFailedReasons,
+                        ...degradedFailedReasons,
                         ...upFailedReasons,
                     ];
                 }
@@ -343,6 +345,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           (item, pos, self) => self.indexOf(item) === pos
                       )
                     : data.reason;
+            const index = data.reason.indexOf('Request Timed out');
+            if (index > -1) {
+                data.reason =
+                    data && data.reason && data.reason.length
+                        ? data.reason.filter(
+                              item => !item.includes('Response Time is')
+                          )
+                        : data.reason;
+            }
             if (data.lighthouseScanStatus) {
                 if (data.lighthouseScanStatus === 'scanning') {
                     await MonitorService.updateOneBy(

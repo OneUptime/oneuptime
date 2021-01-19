@@ -101,6 +101,7 @@ export class IncomingRequestUrl extends React.Component {
                                             )
                                         }
                                         disabled={this.state.copied}
+                                        id="copyToClipboardBtn"
                                     >
                                         {this.state.copied ? (
                                             <span>Copied</span>
@@ -117,6 +118,7 @@ export class IncomingRequestUrl extends React.Component {
                                             })
                                         }
                                         autoFocus={true}
+                                        id="requestOkBtn"
                                     >
                                         <span>OK</span>
                                         <span className="cancel-btn__keycode">

@@ -163,13 +163,6 @@ export class SmsLogsList extends Component {
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                                 style={{
                                                     height: '1px',
-                                                    cursor: 'pointer',
-                                                }}
-                                                onClick={() => {
-                                                    history.push(
-                                                        '/admin/projects/' +
-                                                            smsLog.projectId._id
-                                                    );
                                                 }}
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -207,6 +200,9 @@ export class SmsLogsList extends Component {
                                                 style={{
                                                     height: '1px',
                                                     cursor: 'pointer',
+                                                    textDecoration: smsLog.projectId
+                                                        ? 'underline'
+                                                        : null,
                                                 }}
                                                 onClick={() => {
                                                     history.push(
@@ -217,7 +213,7 @@ export class SmsLogsList extends Component {
                                             >
                                                 <div className="db-ListViewItem-link">
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root">
                                                                 <span>
                                                                     {smsLog.projectId
@@ -236,12 +232,18 @@ export class SmsLogsList extends Component {
                                                 style={{
                                                     height: '1px',
                                                     cursor: 'pointer',
+                                                    textDecoration: smsLog.userId
+                                                        ? 'underline'
+                                                        : null,
                                                 }}
                                                 onClick={() => {
-                                                    history.push(
-                                                        '/admin/projects/' +
-                                                            smsLog.projectId._id
-                                                    );
+                                                    if (smsLog.userId) {
+                                                        history.push(
+                                                            '/admin/users/' +
+                                                                smsLog.userId
+                                                                    ._id
+                                                        );
+                                                    }
                                                 }}
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -262,13 +264,6 @@ export class SmsLogsList extends Component {
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
                                                 style={{
                                                     height: '1px',
-                                                    cursor: 'pointer',
-                                                }}
-                                                onClick={() => {
-                                                    history.push(
-                                                        '/admin/projects/' +
-                                                            smsLog.projectId._id
-                                                    );
                                                 }}
                                             >
                                                 <div className="db-ListViewItem-link">

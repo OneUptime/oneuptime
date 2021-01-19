@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { reduxForm, Field } from 'redux-form';
 import { bindActionCreators } from 'redux';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
@@ -66,8 +67,6 @@ export class SubProjectForm extends React.Component {
             editSubProject,
             resetRenameSubProject,
             createNewSubProjectReset,
-            closeModal,
-            subProjectModalId,
         } = this.props;
         switch (e.key) {
             case 'Escape':
@@ -76,14 +75,18 @@ export class SubProjectForm extends React.Component {
                 } else {
                     createNewSubProjectReset();
                 }
-                return closeModal({
-                    id: subProjectModalId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return document.getElementById('btnAddSubProjects').click();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.subProjectModalId,
+        });
     };
 
     render() {
@@ -113,108 +116,117 @@ export class SubProjectForm extends React.Component {
                     >
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--medium">
-                                <div className="bs-Modal-header">
-                                    <div className="bs-Modal-header-copy">
-                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>
-                                                {editSubProject
-                                                    ? `Edit Sub Project ${subProjectTitle}`
-                                                    : 'Add New Sub Project'}
+                                <ClickOutside
+                                    onClickOutside={this.handleCloseModal}
+                                >
+                                    <div className="bs-Modal-header">
+                                        <div className="bs-Modal-header-copy">
+                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                <span>
+                                                    {editSubProject
+                                                        ? `Edit Sub Project ${subProjectTitle}`
+                                                        : 'Add New Sub Project'}
+                                                </span>
                                             </span>
-                                        </span>
-                                    </div>
-                                    <div className="bs-Modal-messages">
-                                        <ShouldRender
-                                            if={
-                                                editSubProject &&
-                                                subProject.renameSubProject &&
-                                                subProject.renameSubProject
-                                                    .error
-                                            }
-                                        >
-                                            <p
-                                                className="bs-Modal-message"
-                                                id="subProjectEditErrorMessage"
-                                            >
-                                                {
+                                        </div>
+                                        <div className="bs-Modal-messages">
+                                            <ShouldRender
+                                                if={
+                                                    editSubProject &&
+                                                    subProject.renameSubProject &&
                                                     subProject.renameSubProject
                                                         .error
                                                 }
-                                            </p>
-                                        </ShouldRender>
-                                        <ShouldRender
-                                            if={
-                                                !editSubProject &&
-                                                subProject.newSubProject &&
-                                                subProject.newSubProject.error
-                                            }
-                                        >
-                                            <p
-                                                className="bs-Modal-message"
-                                                id="subProjectCreateErrorMessage"
                                             >
-                                                {subProject.newSubProject.error}
-                                            </p>
-                                        </ShouldRender>
-                                    </div>
-                                </div>
-                                <div className="bs-Modal-body">
-                                    <Field
-                                        component="input"
-                                        name="subProjectName"
-                                        placeholder="Sub Project Name"
-                                        id="title"
-                                        className="bs-TextInput"
-                                        style={{
-                                            width: '90%',
-                                            margin: '10px 0 10px 5%',
-                                        }}
-                                        disabled={disabled}
-                                        autoFocus={true}
-                                    />
-                                </div>
-                                <div className="bs-Modal-footer">
-                                    <div className="bs-Modal-footer-actions">
-                                        <button
-                                            className={`bs-Button bs-DeprecatedButton btn__modal ${disabled &&
-                                                'bs-is-disabled'}`}
-                                            type="button"
-                                            onClick={() => {
-                                                if (editSubProject) {
-                                                    resetRenameSubProject();
-                                                } else {
-                                                    createNewSubProjectReset();
+                                                <p
+                                                    className="bs-Modal-message"
+                                                    id="subProjectEditErrorMessage"
+                                                >
+                                                    {
+                                                        subProject
+                                                            .renameSubProject
+                                                            .error
+                                                    }
+                                                </p>
+                                            </ShouldRender>
+                                            <ShouldRender
+                                                if={
+                                                    !editSubProject &&
+                                                    subProject.newSubProject &&
+                                                    subProject.newSubProject
+                                                        .error
                                                 }
-                                                return closeModal({
-                                                    id: subProjectModalId,
-                                                });
+                                            >
+                                                <p
+                                                    className="bs-Modal-message"
+                                                    id="subProjectCreateErrorMessage"
+                                                >
+                                                    {
+                                                        subProject.newSubProject
+                                                            .error
+                                                    }
+                                                </p>
+                                            </ShouldRender>
+                                        </div>
+                                    </div>
+                                    <div className="bs-Modal-body">
+                                        <Field
+                                            component="input"
+                                            name="subProjectName"
+                                            placeholder="Sub Project Name"
+                                            id="title"
+                                            className="bs-TextInput"
+                                            style={{
+                                                width: '90%',
+                                                margin: '10px 0 10px 5%',
                                             }}
                                             disabled={disabled}
-                                        >
-                                            <span>Cancel</span>
-                                            <span className="cancel-btn__keycode">
-                                                Esc
-                                            </span>
-                                        </button>
-                                        <button
-                                            id="btnAddSubProjects"
-                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${disabled &&
-                                                'bs-is-disabled'}`}
-                                            type="save"
-                                            disabled={disabled}
-                                        >
-                                            <ShouldRender if={disabled}>
-                                                <FormLoader />
-                                            </ShouldRender>
-                                            <ShouldRender if={!disabled}>
-                                                <span>Save</span>
-                                                <span className="create-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </ShouldRender>
-                                        </button>
+                                            autoFocus={true}
+                                        />
                                     </div>
-                                </div>
+                                    <div className="bs-Modal-footer">
+                                        <div className="bs-Modal-footer-actions">
+                                            <button
+                                                className={`bs-Button bs-DeprecatedButton btn__modal ${disabled &&
+                                                    'bs-is-disabled'}`}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (editSubProject) {
+                                                        resetRenameSubProject();
+                                                    } else {
+                                                        createNewSubProjectReset();
+                                                    }
+                                                    return closeModal({
+                                                        id: subProjectModalId,
+                                                    });
+                                                }}
+                                                disabled={disabled}
+                                            >
+                                                <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
+                                            </button>
+                                            <button
+                                                id="btnAddSubProjects"
+                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${disabled &&
+                                                    'bs-is-disabled'}`}
+                                                type="save"
+                                                disabled={disabled}
+                                            >
+                                                <ShouldRender if={disabled}>
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                                <ShouldRender if={!disabled}>
+                                                    <span>Save</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </ShouldRender>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </ClickOutside>
                             </div>
                         </div>
                     </div>

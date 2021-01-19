@@ -6,7 +6,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { history } from '../../store';
 import {
     fetchAllIncomingRequest,
     setActiveIncomingRequest,
@@ -40,15 +39,10 @@ class IncomingRequestList extends React.Component {
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
         } = this.props;
-        let { projectId } = this.props;
+        const { projectId } = this.props;
 
-        if (!projectId) {
-            projectId = history.location.pathname
-                .split('project/')[1]
-                .split('/')[0];
-        }
         fetchAllIncomingRequest(projectId, 0, 10);
-        fetchIncidentPriorities(projectId, 0, 0);
+        fetchIncidentPriorities(projectId);
         fetchBasicIncidentSettings(projectId);
 
         if (SHOULD_LOG_ANALYTICS) {
@@ -58,6 +52,14 @@ class IncomingRequestList extends React.Component {
 
     componentDidMount() {
         this.ready();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (String(prevProps.projectId) !== String(this.props.projectId)) {
+            this.props.fetchAllIncomingRequest(this.props.projectId, 0, 10);
+            this.props.fetchIncidentPriorities(this.props.projectId);
+            this.props.fetchBasicIncidentSettings(this.props.projectId);
+        }
     }
 
     handleKeyBoard = e => {
@@ -162,8 +164,8 @@ class IncomingRequestList extends React.Component {
                                 }}
                             >
                                 <button
-                                    id={`editIncomingRequestBtn_${index}`}
-                                    title="edit"
+                                    id={`copyIncomingRequestBtn_${index}`}
+                                    title="copy url"
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--clipboard"
                                     style={{
                                         marginLeft: 20,
@@ -313,6 +315,7 @@ class IncomingRequestList extends React.Component {
                                 backgroundColor: 'white',
                                 padding: '20px 10px 0',
                             }}
+                            id="noIncomingRequest"
                         >
                             <span>
                                 {(!incomingRequestList ||
@@ -407,14 +410,13 @@ class IncomingRequestList extends React.Component {
 
 IncomingRequestList.displayName = 'IncomingRequestList';
 
-const mapStateToProps = (state, ownProps) => {
-    const monitorData = state.monitor.monitorsList.monitors.find(
-        data => String(data._id) === String(ownProps.projectId)
-    );
-    const monitors = monitorData ? monitorData.monitors : [];
+const mapStateToProps = state => {
+    let monitors = [];
+    state.monitor.monitorsList.monitors.forEach(monitor => {
+        monitors = [...monitors, ...monitor.monitors];
+    });
 
     return {
-        currentProject: state.project.currentProject,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         monitors,
