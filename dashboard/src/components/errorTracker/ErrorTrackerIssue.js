@@ -7,6 +7,7 @@ import formatNumber from '../../utils/formatNumber';
 import { history } from '../../store';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import ShouldRender from '../basic/ShouldRender';
+import { FormLoader } from '../basic/Loader';
 
 function getComponentBadge(componentName) {
     return (
@@ -42,6 +43,7 @@ function ErrorTrackerIssue({
     selectedErrorEvents,
     openEventMemberModal,
     resolveSingleIssue,
+    errorTrackerStatus,
 }) {
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
@@ -273,7 +275,12 @@ function ErrorTrackerIssue({
                             <span>Assign Members</span>
                         </button>
                         <button
-                            className="bs-Button bs-Button--icon bs-Button--check"
+                            className={`bs-Button ${
+                                errorTrackerStatus &&
+                                errorTrackerStatus.requestingResolve
+                                    ? 'bs-Button--blue'
+                                    : 'bs-Button--icon bs-Button--check'
+                            }  `}
                             type="button"
                             disabled={errorTrackerIssue.resolved}
                             onClick={() =>
@@ -281,9 +288,16 @@ function ErrorTrackerIssue({
                             }
                         >
                             <span>
-                                {errorTrackerIssue.resolved
-                                    ? 'Resolved'
-                                    : 'Resolve'}
+                                {errorTrackerStatus &&
+                                errorTrackerStatus.requestingResolve ? (
+                                    <FormLoader />
+                                ) : (
+                                    <span>
+                                        {errorTrackerIssue.resolved
+                                            ? 'Resolved'
+                                            : 'Resolve'}
+                                    </span>
+                                )}
                             </span>
                         </button>
                     </div>
@@ -301,6 +315,7 @@ ErrorTrackerIssue.propTypes = {
     selectedErrorEvents: PropTypes.array,
     openEventMemberModal: PropTypes.func,
     resolveSingleIssue: PropTypes.func,
+    errorTrackerStatus: PropTypes.func,
 };
 ErrorTrackerIssue.displayName = 'ErrorTrackerIssue';
 export default ErrorTrackerIssue;
