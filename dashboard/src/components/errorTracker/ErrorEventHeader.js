@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import moment from 'moment';
-import { ListLoader } from '../basic/Loader';
+import { FormLoader, ListLoader } from '../basic/Loader';
 import TooltipMini from '../basic/TooltipMini';
 
 class ErrorEventHeader extends Component {
@@ -30,7 +30,11 @@ class ErrorEventHeader extends Component {
         }
     };
     render() {
-        const { errorEvent, errorTrackerIssue } = this.props;
+        const {
+            errorEvent,
+            errorTrackerIssue,
+            errorTrackerStatus,
+        } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
         return (
             <div>
@@ -106,7 +110,12 @@ class ErrorEventHeader extends Component {
                                         }
                                         content={
                                             <button
-                                                className="bs-Button bs-Button--icon bs-Button--check"
+                                                className={`bs-Button ${
+                                                    errorTrackerStatus &&
+                                                    errorTrackerStatus.requestingResolve
+                                                        ? 'bs-Button--blue'
+                                                        : 'bs-Button--icon bs-Button--check'
+                                                }  `}
                                                 type="button"
                                                 onClick={() =>
                                                     this.handleResolveButton(
@@ -120,7 +129,12 @@ class ErrorEventHeader extends Component {
                                                         !errorTrackerIssue.resolved
                                                     }
                                                 >
-                                                    <span>Resolve</span>
+                                                    {errorTrackerStatus &&
+                                                    errorTrackerStatus.requestingResolve ? (
+                                                        <FormLoader />
+                                                    ) : (
+                                                        <span>Resolve</span>
+                                                    )}
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
@@ -128,7 +142,12 @@ class ErrorEventHeader extends Component {
                                                         errorTrackerIssue.resolved
                                                     }
                                                 >
-                                                    <span>Unresolve</span>
+                                                   {errorTrackerStatus &&
+                                                    errorTrackerStatus.requestingResolve ? (
+                                                        <FormLoader />
+                                                    ) : (
+                                                        <span>Unresolve</span>
+                                                    )}
                                                 </ShouldRender>
                                             </button>
                                         }
@@ -283,6 +302,7 @@ ErrorEventHeader.propTypes = {
     ignoreErrorEvent: PropTypes.func,
     unresolveErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.func,
+    errorTrackerStatus: PropTypes.object,
 };
 ErrorEventHeader.displayName = 'ErrorEventHeader';
 export default ErrorEventHeader;
