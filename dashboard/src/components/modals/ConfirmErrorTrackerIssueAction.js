@@ -27,10 +27,9 @@ class ConfirmErrorTrackerIssueAction extends Component {
     render() {
         let deleting = false;
         if (
-            this.props.applicationLogState &&
-            this.props.applicationLogState.deleteApplicationLog &&
-            this.props.applicationLogState.deleteApplicationLog ===
-                this.props.data.applicationLog._id
+            this.props.errorTrackerStatus &&
+            (this.props.errorTrackerStatus.requestingResolve ||
+                this.props.errorTrackerStatus.requestingIgnore)
         ) {
             deleting = true;
         }
@@ -116,13 +115,14 @@ ConfirmErrorTrackerIssueAction.displayName = 'ConfirmErrorTrackerIssueAction';
 ConfirmErrorTrackerIssueAction.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
-    applicationLogState: PropTypes.object,
+    errorTrackerStatus: PropTypes.object,
     data: PropTypes.object,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, ownProps) => {
     return {
-        applicationLogState: state.applicationLog,
+        errorTrackerStatus:
+            state.errorTracker.errorTrackerStatus[ownProps.data.errorTrackerId],
     };
 };
 

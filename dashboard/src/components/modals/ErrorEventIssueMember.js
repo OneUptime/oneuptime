@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
+import { FormLoader } from '../basic/Loader';
 
 class ErrorEventIssueMember extends Component {
     constructor(props) {
@@ -208,7 +209,7 @@ class ErrorEventIssueMember extends Component {
                                                                                                         .props
                                                                                                         .deleting
                                                                                                 }
-                                                                                                className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                                                                className="bs-Button bs-Button--blue"
                                                                                                 type="button"
                                                                                                 onClick={() =>
                                                                                                     this.manageMemberInIssue(
@@ -216,18 +217,18 @@ class ErrorEventIssueMember extends Component {
                                                                                                     )
                                                                                                 }
                                                                                             >
-                                                                                                {!(
-                                                                                                    errorTrackerIssueMembers &&
-                                                                                                    errorTrackerIssueMembers[
-                                                                                                        member
-                                                                                                            .userId
-                                                                                                    ] &&
-                                                                                                    errorTrackerIssueMembers[
-                                                                                                        member
-                                                                                                            .userId
-                                                                                                    ]
-                                                                                                        .requesting
-                                                                                                ) && (
+                                                                                                {errorTrackerIssueMembers &&
+                                                                                                errorTrackerIssueMembers[
+                                                                                                    member
+                                                                                                        .userId
+                                                                                                ] &&
+                                                                                                errorTrackerIssueMembers[
+                                                                                                    member
+                                                                                                        .userId
+                                                                                                ]
+                                                                                                    .requesting ? (
+                                                                                                    <FormLoader />
+                                                                                                ) : (
                                                                                                     <span>
                                                                                                         {this.isTeamMemberAssigned(
                                                                                                             member
