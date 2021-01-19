@@ -6,7 +6,6 @@ import FeedBackModal from '../FeedbackModal';
 import { showProfileMenu } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
 import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
-import ClickOutside from 'react-click-outside';
 import { userSettings } from '../../actions/profile';
 import { userScheduleRequest, fetchUserSchedule } from '../../actions/schedule';
 import { getVersion } from '../../actions/version';
@@ -387,10 +386,7 @@ class TopContent extends Component {
                             </div>
                         </div>
                     </div>
-
-                    <ClickOutside onClickOutside={this.hideFeedbackModal}>
-                        <FeedBackModal />
-                    </ClickOutside>
+                    <FeedBackModal hideFeedbackModal={this.hideFeedbackModal} />
 
                     <div
                         className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart"
