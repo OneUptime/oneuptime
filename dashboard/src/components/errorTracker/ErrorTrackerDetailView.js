@@ -221,6 +221,8 @@ class ErrorTrackerDetailView extends Component {
                                                                 'Resolution',
                                                             count:
                                                                 selectedErrorEvents.length,
+                                                            errorTrackerId:
+                                                                errorTracker._id,
                                                         }
                                                     ),
                                                 });
@@ -250,6 +252,8 @@ class ErrorTrackerDetailView extends Component {
                                                                 'Ignore',
                                                             count:
                                                                 selectedErrorEvents.length,
+                                                            errorTrackerId:
+                                                                errorTracker._id,
                                                         }
                                                     ),
                                                 });
