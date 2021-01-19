@@ -1,11 +1,14 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
-import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import { closeModal } from '../../actions/modal';
+import { deleteCallLogs } from '../../actions/callLogs';
+import { FormLoader } from '../basic/Loader';
 
-class DeleteStatusPageModal extends Component {
+class DeleteConfirmationModal extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -19,19 +22,22 @@ class DeleteStatusPageModal extends Component {
             case 'Escape':
                 return this.props.closeThisDialog();
             case 'Enter':
-                return this.props.confirmThisDialog();
+                return this.handleDelete();
             default:
-                break;
+                return false;
         }
     };
 
+    handleDelete = () => {
+        const { error, deleteCallLogs, closeModal, modalId } = this.props;
+        deleteCallLogs().then(() => {
+            if (!error) {
+                return closeModal({ id: modalId });
+            }
+        });
+    };
     render() {
-        const {
-            isRequesting,
-            error,
-            confirmThisDialog,
-            closeThisDialog,
-        } = this.props;
+        const { closeThisDialog, deleteRequest, error } = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -46,14 +52,13 @@ class DeleteStatusPageModal extends Component {
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>Delete Status Page</span>
+                                            <span>Delete Call Log</span>
                                         </span>
                                     </div>
                                 </div>
                                 <div className="bs-Modal-content">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        Are you sure you want to delete this
-                                        status page?
+                                        Do you want to delete all the logs?
                                     </span>
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -88,11 +93,12 @@ class DeleteStatusPageModal extends Component {
                                             </div>
                                         </ShouldRender>
                                         <button
-                                            className={`bs-Button btn__modal ${isRequesting &&
+                                            id="cancelCallDelete"
+                                            className={`bs-Button btn__modal ${deleteRequest &&
                                                 'bs-is-disabled'}`}
                                             type="button"
                                             onClick={closeThisDialog}
-                                            disabled={isRequesting}
+                                            disabled={deleteRequest}
                                         >
                                             <span>Cancel</span>
                                             <span className="cancel-btn__keycode">
@@ -101,19 +107,23 @@ class DeleteStatusPageModal extends Component {
                                         </button>
                                         <button
                                             id="confirmDelete"
-                                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${isRequesting &&
+                                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${deleteRequest &&
                                                 'bs-is-disabled'}`}
-                                            onClick={confirmThisDialog}
-                                            disabled={isRequesting}
+                                            onClick={this.handleDelete}
+                                            disabled={deleteRequest}
                                             autoFocus={true}
                                         >
-                                            <ShouldRender if={isRequesting}>
-                                                <Spinner />
+                                            <ShouldRender if={!deleteRequest}>
+                                                <span>Delete Logs</span>
+                                                <span className="delete-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
                                             </ShouldRender>
-                                            <span>Delete Status Page</span>
-                                            <span className="delete-btn__keycode">
-                                                <span className="keycode__icon keycode__icon--enter" />
-                                            </span>
+                                            <ShouldRender if={deleteRequest}>
+                                                <span>
+                                                    <FormLoader />
+                                                </span>
+                                            </ShouldRender>
                                         </button>
                                     </div>
                                 </div>
@@ -126,32 +136,30 @@ class DeleteStatusPageModal extends Component {
     }
 }
 
-DeleteStatusPageModal.displayName = 'DeleteStatusPageModal';
+const mapStateToProps = state => ({
+    deleteRequest: state.callLogs.callLogs.deleteRequest,
+    error: state.callLogs.callLogs.error,
+    modalId: state.modal.modals[0].id,
+});
 
-const mapStateToProps = state => {
-    return {
-        isRequesting:
-            state.statusPage &&
-            state.statusPage.deleteStatusPage &&
-            state.statusPage.deleteStatusPage.requesting,
-        error:
-            state.statusPage &&
-            state.statusPage.deleteStatusPage &&
-            state.statusPage.deleteStatusPage.error,
-    };
-};
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ closeModal, deleteCallLogs }, dispatch);
 
-DeleteStatusPageModal.propTypes = {
-    isRequesting: PropTypes.oneOfType([
-        PropTypes.bool,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    confirmThisDialog: PropTypes.func.isRequired,
+DeleteConfirmationModal.displayName = 'Delete Confirmation Modal';
+
+DeleteConfirmationModal.propTypes = {
     closeThisDialog: PropTypes.func,
+    deleteRequest: PropTypes.bool,
     error: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    closeModal: PropTypes.func,
+    deleteCallLogs: PropTypes.func,
+    modalId: PropTypes.string,
 };
 
-export default connect(mapStateToProps)(DeleteStatusPageModal);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(DeleteConfirmationModal);
