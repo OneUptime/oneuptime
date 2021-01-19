@@ -42,7 +42,7 @@ class IncomingRequestList extends React.Component {
         const { projectId } = this.props;
 
         fetchAllIncomingRequest(projectId, 0, 10);
-        fetchIncidentPriorities(projectId, 0, 0);
+        fetchIncidentPriorities(projectId);
         fetchBasicIncidentSettings(projectId);
 
         if (SHOULD_LOG_ANALYTICS) {
@@ -57,6 +57,8 @@ class IncomingRequestList extends React.Component {
     componentDidUpdate(prevProps) {
         if (String(prevProps.projectId) !== String(this.props.projectId)) {
             this.props.fetchAllIncomingRequest(this.props.projectId, 0, 10);
+            this.props.fetchIncidentPriorities(this.props.projectId);
+            this.props.fetchBasicIncidentSettings(this.props.projectId);
         }
     }
 
