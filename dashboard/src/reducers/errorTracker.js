@@ -467,22 +467,36 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                         errorTrackerIssues: temporaryIssues,
                     },
                 },
+                errorTrackerStatus: {
+                    ...state.errorTrackerStatus,
+                    [action.payload.errorTrackerId]: {
+                        requestingResolve: false,
+                        requestingIgnore: false,
+                        error: null,
+                    },
+                },
             });
 
         case IGNORE_ERROR_EVENT_REQUEST:
             return Object.assign({}, state, {
                 errorTrackerStatus: {
-                    requesting: true,
-                    error: null,
-                    success: false,
+                    ...state.errorTrackerStatus,
+                    [action.payload.errorTrackerId]: {
+                        requestingResolve: false,
+                        requestingIgnore: true,
+                        error: null,
+                    },
                 },
             });
         case IGNORE_ERROR_EVENT_FAILURE:
             return Object.assign({}, state, {
                 errorTrackerStatus: {
-                    requesting: false,
-                    error: action.payload,
-                    success: false,
+                    ...state.errorTrackerStatus,
+                    [action.payload.errorTrackerId]: {
+                        requestingResolve: false,
+                        requestingIgnore: false,
+                        error: action.payload.error,
+                    },
                 },
             });
 

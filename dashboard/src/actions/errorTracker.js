@@ -490,7 +490,7 @@ export function ignoreErrorEvent(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
             { issueId, action: 'ignore' }
         );
-        dispatch(ignoreErrorEventRequest());
+        dispatch(ignoreErrorEventRequest(errorTrackerId));
 
         promise.then(
             function(response) {
@@ -512,7 +512,9 @@ export function ignoreErrorEvent(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(ignoreErrorEventFailure(errors(error)));
+                dispatch(
+                    ignoreErrorEventFailure(errors(error, errorTrackerId))
+                );
             }
         );
 
@@ -526,15 +528,16 @@ export function ignoreErrorEventReset() {
     };
 }
 
-export function ignoreErrorEventRequest() {
+export function ignoreErrorEventRequest(errorTrackerId) {
     return {
         type: types.IGNORE_ERROR_EVENT_REQUEST,
+        payload: { errorTrackerId },
     };
 }
-export function ignoreErrorEventFailure(error) {
+export function ignoreErrorEventFailure(error, errorTrackerId) {
     return {
         type: types.IGNORE_ERROR_EVENT_FAILURE,
-        payload: error,
+        payload: { error, errorTrackerId },
     };
 }
 export function ignoreErrorEventSuccess(errorEvents) {
