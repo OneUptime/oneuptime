@@ -22,6 +22,13 @@ const MonitorCustomFieldService = require('../backend/services/monitorCustomFiel
 const IncidentCustomFieldService = require('../backend/services/customFieldService');
 const IncidentService = require('../backend/services/incidentService');
 const axios = require('axios');
+const {
+    resolveRequest,
+    internalNoteRequest,
+    incidentRequest,
+    incidentNoteRequest,
+    acknowledgeRequest,
+} = require('./data/incomingHttpRequest');
 
 describe('Incoming HTTP Request API', function() {
     const timeout = 30000;
@@ -38,81 +45,6 @@ describe('Incoming HTTP Request API', function() {
         resolveIncidentUrl,
         incidentNoteUrl,
         internalNoteUrl;
-
-    const incidentRequest = {
-        name: 'pyInt',
-        isDefault: true,
-        createIncident: true,
-        incidentTitle: 'Test Incident',
-        incidentType: 'offline',
-        incidentDescription:
-            'This is a sample incident to test incoming http request',
-        filterMatch: 'any',
-        filters: [
-            {
-                filterCondition: 'equalTo',
-                filterCriteria: 'monitorField',
-                filterText: 'testing',
-            },
-        ],
-        monitors: [],
-    };
-
-    const acknowledgeRequest = {
-        name: 'ack',
-        acknowledgeIncident: true,
-        filterMatch: 'any',
-        filters: [
-            {
-                filterCondition: 'greaterThanOrEqualTo',
-                filterCriteria: 'incidentId',
-                filterText: 1,
-            },
-        ],
-    };
-
-    const resolveRequest = {
-        name: 'resolve',
-        resolveIncident: true,
-        filterMatch: 'any',
-        filters: [
-            {
-                filterCondition: 'greaterThanOrEqualTo',
-                filterCriteria: 'incidentId',
-                filterText: 1,
-            },
-        ],
-    };
-
-    const incidentNoteRequest = {
-        name: 'incidentNote',
-        updateIncidentNote: true,
-        filterMatch: 'all',
-        filters: [
-            {
-                filterCondition: 'greaterThanOrEqualTo',
-                filterCriteria: 'incidentId',
-                filterText: 1,
-            },
-        ],
-        incidentState: 'update',
-        noteContent: 'This is a sample incident note',
-    };
-
-    const internalNoteRequest = {
-        name: 'internalNote',
-        updateInternalNote: true,
-        incidentState: 'investigating',
-        noteContent: 'This is a sample internal note',
-        filterMatch: 'all',
-        filters: [
-            {
-                filterCondition: 'equalTo',
-                filterCriteria: 'incidentId',
-                filterText: 1,
-            },
-        ],
-    };
 
     this.timeout(timeout);
     before(function(done) {
