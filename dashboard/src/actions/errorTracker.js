@@ -555,7 +555,7 @@ export function unresolveErrorEvent(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
             { issueId, action: 'unresolve' }
         );
-        dispatch(unresolveErrorEventRequest());
+        dispatch(unresolveErrorEventRequest(errorTrackerId));
 
         promise.then(
             function(response) {
@@ -577,7 +577,9 @@ export function unresolveErrorEvent(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(unresolveErrorEventFailure(errors(error)));
+                dispatch(
+                    unresolveErrorEventFailure(errors(error, errorTrackerId))
+                );
             }
         );
 
@@ -591,15 +593,16 @@ export function unresolveErrorEventReset() {
     };
 }
 
-export function unresolveErrorEventRequest() {
+export function unresolveErrorEventRequest(errorTrackerId) {
     return {
         type: types.UNRESOLVE_ERROR_EVENT_REQUEST,
+        payload: { errorTrackerId },
     };
 }
-export function unresolveErrorEventFailure(error) {
+export function unresolveErrorEventFailure(error, errorTrackerId) {
     return {
         type: types.UNRESOLVE_ERROR_EVENT_FAILURE,
-        payload: error,
+        payload: { error, errorTrackerId },
     };
 }
 export function unresolveErrorEventSuccess(errorEvents) {
@@ -620,7 +623,7 @@ export function resolveErrorEvent(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
             { issueId, action: 'resolve' }
         );
-        dispatch(resolveErrorEventRequest());
+        dispatch(resolveErrorEventRequest(errorTrackerId));
 
         promise.then(
             function(response) {
@@ -642,7 +645,9 @@ export function resolveErrorEvent(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(resolveErrorEventFailure(errors(error)));
+                dispatch(
+                    resolveErrorEventFailure(errors(error, errorTrackerId))
+                );
             }
         );
 
@@ -656,15 +661,16 @@ export function resolveErrorEventReset() {
     };
 }
 
-export function resolveErrorEventRequest() {
+export function resolveErrorEventRequest(errorTrackerId) {
     return {
         type: types.RESOLVE_ERROR_EVENT_REQUEST,
+        payload: { errorTrackerId },
     };
 }
-export function resolveErrorEventFailure(error) {
+export function resolveErrorEventFailure(error, errorTrackerId) {
     return {
         type: types.RESOLVE_ERROR_EVENT_FAILURE,
-        payload: error,
+        payload: { error, errorTrackerId },
     };
 }
 export function resolveErrorEventSuccess(errorEvents) {
