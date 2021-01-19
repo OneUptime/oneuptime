@@ -42,7 +42,7 @@ class IncomingRequestList extends React.Component {
         const { projectId } = this.props;
 
         fetchAllIncomingRequest(projectId, 0, 10);
-        fetchIncidentPriorities(projectId, 0, 0);
+        fetchIncidentPriorities(projectId);
         fetchBasicIncidentSettings(projectId);
 
         if (SHOULD_LOG_ANALYTICS) {
@@ -57,6 +57,8 @@ class IncomingRequestList extends React.Component {
     componentDidUpdate(prevProps) {
         if (String(prevProps.projectId) !== String(this.props.projectId)) {
             this.props.fetchAllIncomingRequest(this.props.projectId, 0, 10);
+            this.props.fetchIncidentPriorities(this.props.projectId);
+            this.props.fetchBasicIncidentSettings(this.props.projectId);
         }
     }
 
@@ -162,8 +164,8 @@ class IncomingRequestList extends React.Component {
                                 }}
                             >
                                 <button
-                                    id={`editIncomingRequestBtn_${index}`}
-                                    title="edit"
+                                    id={`copyIncomingRequestBtn_${index}`}
+                                    title="copy url"
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--clipboard"
                                     style={{
                                         marginLeft: 20,
@@ -313,6 +315,7 @@ class IncomingRequestList extends React.Component {
                                 backgroundColor: 'white',
                                 padding: '20px 10px 0',
                             }}
+                            id="noIncomingRequest"
                         >
                             <span>
                                 {(!incomingRequestList ||
