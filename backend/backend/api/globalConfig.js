@@ -53,9 +53,10 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
                 !value &&
                 name !== 'auditLogMonitoringStatus' &&
                 name !== 'emailLogMonitoringStatus' &&
-                name !== 'smsLogMonitoringStatus'
+                name !== 'smsLogMonitoringStatus' &&
+                name !== 'callLogMonitoringStatus'
             ) {
-                // Audit or Email or SMS Log Status can be 'false'
+                // Audit or Email or SMS or Call Log Status can be 'false'
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Value must be present.',
@@ -156,6 +157,15 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
                 value: true,
             };
             await GlobalConfigService.create(smsLogConfig);
+        }
+
+        // If Call logs status was fetched and it doesnt exist, we need to create it
+        if (!globalConfig && req.params.name === 'callLogMonitoringStatus') {
+            const callLogConfig = {
+                name: 'callLogMonitoringStatus',
+                value: true,
+            };
+            await GlobalConfigService.create(callLogConfig);
         }
         globalConfig = await GlobalConfigService.findOneBy({
             name: req.params.name,

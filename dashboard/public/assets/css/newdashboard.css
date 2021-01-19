@@ -10305,6 +10305,9 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
         padding-left: 278px;
         padding-right: 20px;
     }
+    .margin-20 {
+        margin-right: 20px;
+    }
 }
 @media only screen and (max-width: 1060px) {
     .db-World-sideNavContainer {
@@ -11147,6 +11150,11 @@ table {
 .bs-Modal fieldset {
     padding: 10px 20px 0;
 }
+
+.projectNameClass{
+ padding-top:20px;
+}
+
 .Margin-bottom--20i {
     margin-bottom: 20px !important;
 }

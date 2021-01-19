@@ -87,6 +87,7 @@ module.exports = {
                     monitor.monitorSla = data.monitorSla;
                     monitor.incidentCommunicationSla =
                         data.incidentCommunicationSla;
+                    monitor.customFields = data.customFields;
                     monitor.createdById = data.createdById;
                     if (data.type === 'url' || data.type === 'api') {
                         monitor.data = {};

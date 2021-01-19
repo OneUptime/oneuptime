@@ -143,11 +143,6 @@ router.delete(
 // process incoming http request from post request
 router.post('/:projectId/request/:requestId', async function(req, res) {
     try {
-        // target value key on request body, request query or request headers
-        // more may be added in the future
-        const externalFilter =
-            req.body.value || req.query.value || req.headers.value;
-
         // request object for use in variables
         const request = {
             body: { ...req.body },
@@ -156,7 +151,7 @@ router.post('/:projectId/request/:requestId', async function(req, res) {
         };
 
         const { projectId, requestId } = req.params;
-        const data = { projectId, requestId, filter: externalFilter, request };
+        const data = { projectId, requestId, request };
 
         const response = await IncomingRequestService.handleIncomingRequestAction(
             data
@@ -170,20 +165,15 @@ router.post('/:projectId/request/:requestId', async function(req, res) {
 // process incoming http request from get request
 router.get('/:projectId/request/:requestId', async function(req, res) {
     try {
-        // target value key on request body, request query or request headers
-        // more may be added in the future
-        // request body won't be available on get request
-        const externalFilter = req.query.value || req.headers.value;
-
         // request object for use in variables
+        // request body won't be available for a get request
         const request = {
-            body: { ...req.body },
             query: { ...req.query },
             headers: { ...req.headers },
         };
 
         const { projectId, requestId } = req.params;
-        const data = { projectId, requestId, filter: externalFilter, request };
+        const data = { projectId, requestId, request };
 
         const response = await IncomingRequestService.handleIncomingRequestAction(
             data
