@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader, LoadingState } from '../basic/Loader';
 import { connect } from 'react-redux';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 
 class DeleteCredentialModal extends Component {
@@ -68,121 +69,128 @@ class DeleteCredentialModal extends Component {
                     >
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--medium">
-                                <div className="bs-Modal-header">
-                                    <div className="bs-Modal-header-copy">
-                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>Confirm Removal</span>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="bs-Modal-content">
-                                    {securities.length > 0 ? (
-                                        <>
-                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                Please delete the following
-                                                dependencies before you continue
+                                <ClickOutside onClickOutside={closeThisDialog}>
+                                    <div className="bs-Modal-header">
+                                        <div className="bs-Modal-header-copy">
+                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                <span>Confirm Removal</span>
                                             </span>
-                                            {securities.map(security => (
-                                                <span
-                                                    key={security._id}
-                                                    style={{
-                                                        display: 'block',
-                                                        textDecoration:
-                                                            'underline',
-                                                    }}
-                                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                                >
-                                                    <a
-                                                        href={`/dashboard/project/${projectId}/${security.componentId._id}/security/${securityType}/${security._id}`}
-                                                    >
-                                                        {security.name}
-                                                    </a>
+                                        </div>
+                                    </div>
+                                    <div className="bs-Modal-content">
+                                        {securities.length > 0 ? (
+                                            <>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Please delete the following
+                                                    dependencies before you
+                                                    continue
                                                 </span>
-                                            ))}
-                                        </>
-                                    ) : (
-                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            Are you sure you want to remove this{' '}
-                                            {credentialType} credential ?
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="bs-Modal-footer">
-                                    <div
-                                        className="bs-Modal-footer-actions"
-                                        style={{ width: 280 }}
-                                    >
-                                        <ShouldRender
-                                            if={
-                                                !isRequesting &&
-                                                (deleteCredentialError ||
-                                                    getSecuritiesError)
-                                            }
+                                                {securities.map(security => (
+                                                    <span
+                                                        key={security._id}
+                                                        style={{
+                                                            display: 'block',
+                                                            textDecoration:
+                                                                'underline',
+                                                        }}
+                                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                    >
+                                                        <a
+                                                            href={`/dashboard/project/${projectId}/${security.componentId._id}/security/${securityType}/${security._id}`}
+                                                        >
+                                                            {security.name}
+                                                        </a>
+                                                    </span>
+                                                ))}
+                                            </>
+                                        ) : (
+                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                Are you sure you want to remove
+                                                this {credentialType} credential
+                                                ?
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="bs-Modal-footer">
+                                        <div
+                                            className="bs-Modal-footer-actions"
+                                            style={{ width: 280 }}
                                         >
-                                            <div
-                                                id="deleteCardError"
-                                                className="bs-Tail-copy"
+                                            <ShouldRender
+                                                if={
+                                                    !isRequesting &&
+                                                    (deleteCredentialError ||
+                                                        getSecuritiesError)
+                                                }
                                             >
                                                 <div
-                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                    style={{
-                                                        marginTop: '10px',
-                                                    }}
+                                                    id="deleteCardError"
+                                                    className="bs-Tail-copy"
                                                 >
-                                                    <div className="Box-root Margin-right--8">
-                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                    </div>
-                                                    <div className="Box-root">
-                                                        <span
-                                                            style={{
-                                                                color: 'red',
-                                                            }}
-                                                        >
-                                                            {deleteCredentialError ||
-                                                                getSecuritiesError}
-                                                        </span>
+                                                    <div
+                                                        className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                        style={{
+                                                            marginTop: '10px',
+                                                        }}
+                                                    >
+                                                        <div className="Box-root Margin-right--8">
+                                                            <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                        </div>
+                                                        <div className="Box-root">
+                                                            <span
+                                                                style={{
+                                                                    color:
+                                                                        'red',
+                                                                }}
+                                                            >
+                                                                {deleteCredentialError ||
+                                                                    getSecuritiesError}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </ShouldRender>
-                                    </div>
-                                    <div className="bs-Modal-footer-actions">
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
-                                            type="button"
-                                            onClick={closeThisDialog}
-                                            id="cancelCredentialDeleteBtn"
-                                            disabled={isRequesting}
-                                        >
-                                            <span>Cancel</span>
-                                            <span className="cancel-btn__keycode">
-                                                Esc
-                                            </span>
-                                        </button>
-                                        <ShouldRender
-                                            if={securities.length === 0}
-                                        >
+                                            </ShouldRender>
+                                        </div>
+                                        <div className="bs-Modal-footer-actions">
                                             <button
-                                                id="deleteCredentialBtn"
-                                                className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                                 type="button"
-                                                onClick={confirmThisDialog}
+                                                onClick={closeThisDialog}
+                                                id="cancelCredentialDeleteBtn"
                                                 disabled={isRequesting}
-                                                autoFocus={true}
                                             >
-                                                {!isRequesting && (
-                                                    <>
-                                                        <span>Remove</span>
-                                                        <span className="delete-btn__keycode">
-                                                            <span className="keycode__icon keycode__icon--enter" />
-                                                        </span>
-                                                    </>
-                                                )}
-                                                {isRequesting && <FormLoader />}
+                                                <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
                                             </button>
-                                        </ShouldRender>
+                                            <ShouldRender
+                                                if={securities.length === 0}
+                                            >
+                                                <button
+                                                    id="deleteCredentialBtn"
+                                                    className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
+                                                    type="button"
+                                                    onClick={confirmThisDialog}
+                                                    disabled={isRequesting}
+                                                    autoFocus={true}
+                                                >
+                                                    {!isRequesting && (
+                                                        <>
+                                                            <span>Remove</span>
+                                                            <span className="delete-btn__keycode">
+                                                                <span className="keycode__icon keycode__icon--enter" />
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                    {isRequesting && (
+                                                        <FormLoader />
+                                                    )}
+                                                </button>
+                                            </ShouldRender>
+                                        </div>
                                     </div>
-                                </div>
+                                </ClickOutside>
                             </div>
                         </div>
                     </div>

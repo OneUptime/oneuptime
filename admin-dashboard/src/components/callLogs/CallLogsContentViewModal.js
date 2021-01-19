@@ -2,10 +2,8 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
-import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-
-class DeleteStatusPageModal extends Component {
+class CallLogsContentViewModal extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -18,43 +16,49 @@ class DeleteStatusPageModal extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
-            case 'Enter':
-                return this.props.confirmThisDialog();
             default:
-                break;
+                return false;
         }
     };
 
     render() {
-        const {
-            isRequesting,
-            error,
-            confirmThisDialog,
-            closeThisDialog,
-        } = this.props;
+        const { isRequesting, error, closeThisDialog, content } = this.props;
 
         return (
-            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
+            <div className="db-CallLogsContentViewModal ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
                     <div className="bs-BIM">
-                        <div className="bs-Modal bs-Modal--medium">
+                        <div className="bs-Modal">
                             <ClickOutside onClickOutside={closeThisDialog}>
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
-                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>Delete Status Page</span>
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Content</span>
                                         </span>
                                     </div>
                                 </div>
                                 <div className="bs-Modal-content">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        Are you sure you want to delete this
-                                        status page?
-                                    </span>
+                                    <div className="jsonViwer Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <div className="db-CallLogsContentViewModal-ContentViewerWrapper">
+                                            <div className="db-CallLogsContentViewModal-ContentViewerContainer">
+                                                {content ? (
+                                                    <div
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: content,
+                                                        }}
+                                                    ></div>
+                                                ) : (
+                                                    <span>
+                                                        The Call Body is Empty.
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
@@ -93,26 +97,11 @@ class DeleteStatusPageModal extends Component {
                                             type="button"
                                             onClick={closeThisDialog}
                                             disabled={isRequesting}
-                                        >
-                                            <span>Cancel</span>
-                                            <span className="cancel-btn__keycode">
-                                                Esc
-                                            </span>
-                                        </button>
-                                        <button
-                                            id="confirmDelete"
-                                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${isRequesting &&
-                                                'bs-is-disabled'}`}
-                                            onClick={confirmThisDialog}
-                                            disabled={isRequesting}
                                             autoFocus={true}
                                         >
-                                            <ShouldRender if={isRequesting}>
-                                                <Spinner />
-                                            </ShouldRender>
-                                            <span>Delete Status Page</span>
-                                            <span className="delete-btn__keycode">
-                                                <span className="keycode__icon keycode__icon--enter" />
+                                            <span>Close</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
                                             </span>
                                         </button>
                                     </div>
@@ -126,32 +115,32 @@ class DeleteStatusPageModal extends Component {
     }
 }
 
-DeleteStatusPageModal.displayName = 'DeleteStatusPageModal';
+CallLogsContentViewModal.displayName = 'CallLogsContentViewModal';
 
 const mapStateToProps = state => {
     return {
         isRequesting:
-            state.statusPage &&
-            state.statusPage.deleteStatusPage &&
-            state.statusPage.deleteStatusPage.requesting,
+            state.callLogs &&
+            state.callLogs.callLogs &&
+            state.callLogs.callLogs.requesting,
         error:
-            state.statusPage &&
-            state.statusPage.deleteStatusPage &&
-            state.statusPage.deleteStatusPage.error,
+            state.callLogs &&
+            state.callLogs.callLogs &&
+            state.callLogs.callLogs.error,
     };
 };
 
-DeleteStatusPageModal.propTypes = {
+CallLogsContentViewModal.propTypes = {
     isRequesting: PropTypes.oneOfType([
         PropTypes.bool,
         PropTypes.oneOf([null, undefined]),
     ]),
-    confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func,
     error: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    content: PropTypes.string,
 };
 
-export default connect(mapStateToProps)(DeleteStatusPageModal);
+export default connect(mapStateToProps)(CallLogsContentViewModal);

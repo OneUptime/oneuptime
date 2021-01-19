@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { reduxForm, Field } from 'redux-form';
 import { bindActionCreators } from 'redux';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { Spinner } from '../basic/Loader';
@@ -45,14 +46,18 @@ export class ScheduleForm extends React.Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({
-                    id: this.props.scheduleModalId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return document.getElementById('btnCreateSchedule').click();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.scheduleModalId,
+        });
     };
 
     render() {
@@ -67,99 +72,106 @@ export class ScheduleForm extends React.Component {
                     >
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--medium">
-                                <div className="bs-Modal-header">
-                                    <div className="bs-Modal-header-copy">
-                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>Create New On-Call Duty</span>
-                                        </span>
-                                    </div>
-                                    <div className="bs-Modal-messages">
-                                        <ShouldRender
-                                            if={
-                                                this.props.schedule.newSchedule
-                                                    .error
-                                            }
-                                        >
-                                            <p className="bs-Modal-message">
-                                                {
+                                <ClickOutside
+                                    onClickOutside={this.handleCloseModal}
+                                >
+                                    <div className="bs-Modal-header">
+                                        <div className="bs-Modal-header-copy">
+                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                <span>
+                                                    Create New On-Call Duty
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div className="bs-Modal-messages">
+                                            <ShouldRender
+                                                if={
                                                     this.props.schedule
                                                         .newSchedule.error
                                                 }
-                                            </p>
-                                        </ShouldRender>
+                                            >
+                                                <p className="bs-Modal-message">
+                                                    {
+                                                        this.props.schedule
+                                                            .newSchedule.error
+                                                    }
+                                                </p>
+                                            </ShouldRender>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="bs-Modal-body">
-                                    <Field
-                                        required={true}
-                                        component="input"
-                                        name="name"
-                                        placeholder="Call Duty Name?"
-                                        id="name"
-                                        className="bs-TextInput"
-                                        style={{
-                                            width: '90%',
-                                            margin: '10px 0 10px 5%',
-                                        }}
-                                        disabled={
-                                            this.props.schedule.newSchedule
-                                                .requesting
-                                        }
-                                        autoFocus={true}
-                                    />
-                                </div>
-                                <div className="bs-Modal-footer">
-                                    <div className="bs-Modal-footer-actions">
-                                        <button
-                                            className={`bs-Button bs-DeprecatedButton btn__modal ${this
-                                                .props.schedule.newSchedule
-                                                .requesting &&
-                                                'bs-is-disabled'}`}
-                                            type="button"
-                                            onClick={() => {
-                                                this.props.closeModal({
-                                                    id: this.props
-                                                        .scheduleModalId,
-                                                });
+                                    <div className="bs-Modal-body">
+                                        <Field
+                                            required={true}
+                                            component="input"
+                                            name="name"
+                                            placeholder="Call Duty Name?"
+                                            id="name"
+                                            className="bs-TextInput"
+                                            style={{
+                                                width: '90%',
+                                                margin: '10px 0 10px 5%',
                                             }}
                                             disabled={
                                                 this.props.schedule.newSchedule
                                                     .requesting
                                             }
-                                        >
-                                            <span>Cancel</span>
-                                            <span className="cancel-btn__keycode">
-                                                Esc
-                                            </span>
-                                        </button>
-                                        <button
-                                            id="btnCreateSchedule"
-                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
-                                                .props.schedule.newSchedule
-                                                .requesting &&
-                                                'bs-is-disabled'}`}
-                                            type="save"
-                                            disabled={
-                                                this.props.schedule.newSchedule
-                                                    .requesting
-                                            }
-                                        >
-                                            <ShouldRender
-                                                if={
+                                            autoFocus={true}
+                                        />
+                                    </div>
+                                    <div className="bs-Modal-footer">
+                                        <div className="bs-Modal-footer-actions">
+                                            <button
+                                                className={`bs-Button bs-DeprecatedButton btn__modal ${this
+                                                    .props.schedule.newSchedule
+                                                    .requesting &&
+                                                    'bs-is-disabled'}`}
+                                                type="button"
+                                                onClick={() => {
+                                                    this.props.closeModal({
+                                                        id: this.props
+                                                            .scheduleModalId,
+                                                    });
+                                                }}
+                                                disabled={
                                                     this.props.schedule
                                                         .newSchedule.requesting
                                                 }
                                             >
-                                                <Spinner />
-                                            </ShouldRender>
+                                                <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
+                                            </button>
+                                            <button
+                                                id="btnCreateSchedule"
+                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
+                                                    .props.schedule.newSchedule
+                                                    .requesting &&
+                                                    'bs-is-disabled'}`}
+                                                type="save"
+                                                disabled={
+                                                    this.props.schedule
+                                                        .newSchedule.requesting
+                                                }
+                                            >
+                                                <ShouldRender
+                                                    if={
+                                                        this.props.schedule
+                                                            .newSchedule
+                                                            .requesting
+                                                    }
+                                                >
+                                                    <Spinner />
+                                                </ShouldRender>
 
-                                            <span>Save</span>
-                                            <span className="create-btn__keycode">
-                                                <span className="keycode__icon keycode__icon--enter" />
-                                            </span>
-                                        </button>
+                                                <span>Save</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                </ClickOutside>
                             </div>
                         </div>
                     </div>
