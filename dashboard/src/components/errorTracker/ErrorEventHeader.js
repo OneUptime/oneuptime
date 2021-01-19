@@ -142,7 +142,7 @@ class ErrorEventHeader extends Component {
                                                         errorTrackerIssue.resolved
                                                     }
                                                 >
-                                                   {errorTrackerStatus &&
+                                                    {errorTrackerStatus &&
                                                     errorTrackerStatus.requestingResolve ? (
                                                         <FormLoader />
                                                     ) : (
@@ -161,7 +161,12 @@ class ErrorEventHeader extends Component {
                                         }
                                         content={
                                             <button
-                                                className="bs-Button bs-Button--icon bs-Button--block"
+                                                className={`bs-Button ${
+                                                    errorTrackerStatus &&
+                                                    errorTrackerStatus.requestingIgnore
+                                                        ? 'bs-Button--blue'
+                                                        : 'bs-Button--icon bs-Button--block'
+                                                }  `}
                                                 type="button"
                                                 onClick={() =>
                                                     this.handleIgnoreButton(
@@ -175,7 +180,12 @@ class ErrorEventHeader extends Component {
                                                         !errorTrackerIssue.ignored
                                                     }
                                                 >
-                                                    <span>Ignore</span>
+                                                    {errorTrackerStatus &&
+                                                    errorTrackerStatus.requestingIgnore ? (
+                                                        <FormLoader />
+                                                    ) : (
+                                                        <span>Ignore</span>
+                                                    )}
                                                 </ShouldRender>
                                             </button>
                                         }
