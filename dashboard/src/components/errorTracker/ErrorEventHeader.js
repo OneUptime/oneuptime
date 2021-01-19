@@ -36,6 +36,8 @@ class ErrorEventHeader extends Component {
             errorTrackerStatus,
         } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
+        const canPrev = errorEvent.previous;
+        const canNext = errorEvent.next;
         return (
             <div>
                 <ShouldRender if={errorEvent.requesting}>
@@ -237,90 +239,132 @@ class ErrorEventHeader extends Component {
                                         ).format('MMMM Do YYYY, h:mm:ss a')}
                                 </span>
                             </div>
-                            <div className="Navigator-Btn-Group Text-fontWeight--bold Text-fontSize--12">
-                                <div
-                                    className={`${
-                                        errorEvent.previous
-                                            ? 'Navigator-Oldest'
-                                            : 'Navigator-Oldest Navigator-Disable'
-                                    }`}
-                                    onClick={() =>
-                                        this.navigate(
-                                            errorEvent.previous
-                                                ? errorEvent.previous.oldest
-                                                : null
-                                        )
-                                    }
-                                >
-                                    <img
-                                        src={`/dashboard/assets/img/previous${
-                                            errorEvent.previous
-                                                ? ''
-                                                : '-disable'
-                                        }.svg`}
-                                        alt=""
-                                        style={{
-                                            height: '12px',
-                                            width: '12px',
-                                        }}
-                                    />
-                                </div>
-                                <div
-                                    onClick={() =>
-                                        this.navigate(
-                                            errorEvent.previous
-                                                ? errorEvent.previous._id
-                                                : null
-                                        )
-                                    }
-                                    className={`${
-                                        errorEvent.previous
-                                            ? ''
-                                            : 'Navigator-Disable'
-                                    }`}
-                                >
-                                    Older
-                                </div>
-                                <div
-                                    onClick={() =>
-                                        this.navigate(
-                                            errorEvent.next
-                                                ? errorEvent.next._id
-                                                : null
-                                        )
-                                    }
-                                    className={`${
-                                        errorEvent.next
-                                            ? ''
-                                            : 'Navigator-Disable'
-                                    }`}
-                                >
-                                    Newer
-                                </div>
-                                <div
-                                    onClick={() =>
-                                        this.navigate(
-                                            errorEvent.next
-                                                ? errorEvent.next.latest
-                                                : null
-                                        )
-                                    }
-                                    className={`${
-                                        errorEvent.next
-                                            ? 'Navigator-Newest'
-                                            : 'Navigator-Newest Navigator-Disable'
-                                    }`}
-                                >
-                                    <img
-                                        src={`/dashboard/assets/img/next${
-                                            errorEvent.next ? '' : '-disable'
-                                        }.svg`}
-                                        alt=""
-                                        style={{
-                                            height: '12px',
-                                            width: '12px',
-                                        }}
-                                    />
+                            <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                    <div className="Box-root Margin-right--8">
+                                        <button
+                                            id="btnPrevOldest"
+                                            className={
+                                                'Button bs-ButtonLegacy' +
+                                                (canPrev ? '' : 'Is--disabled')
+                                            }
+                                            disabled={!canPrev}
+                                            onClick={() =>
+                                                this.navigate(
+                                                    errorEvent.previous
+                                                        ? errorEvent.previous
+                                                              .oldest
+                                                        : null
+                                                )
+                                            }
+                                            data-db-analytics-name="list_view.pagination.previous"
+                                            type="button"
+                                        >
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <img
+                                                        src={`/dashboard/assets/img/previous${
+                                                            errorEvent.previous
+                                                                ? ''
+                                                                : '-disable'
+                                                        }.svg`}
+                                                        alt=""
+                                                        style={{
+                                                            height: '12px',
+                                                            width: '12px',
+                                                        }}
+                                                    />
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div className="Box-root Margin-right--8">
+                                        <button
+                                            id="btnPrev"
+                                            className={
+                                                'Button bs-ButtonLegacy' +
+                                                (canPrev ? '' : 'Is--disabled')
+                                            }
+                                            onClick={() =>
+                                                this.navigate(
+                                                    errorEvent.previous
+                                                        ? errorEvent.previous
+                                                              ._id
+                                                        : null
+                                                )
+                                            }
+                                            disabled={!canPrev}
+                                            data-db-analytics-name="list_view.pagination.previous"
+                                            type="button"
+                                        >
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <span>Previous</span>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div className="Box-root Margin-right--8">
+                                        <button
+                                            id="btnNext"
+                                            className={
+                                                'Button bs-ButtonLegacy' +
+                                                (canNext ? '' : 'Is--disabled')
+                                            }
+                                            disabled={!canNext}
+                                            onClick={() =>
+                                                this.navigate(
+                                                    errorEvent.next
+                                                        ? errorEvent.next._id
+                                                        : null
+                                                )
+                                            }
+                                            data-db-analytics-name="list_view.pagination.next"
+                                            type="button"
+                                        >
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <span>Next</span>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div className="Box-root">
+                                        <button
+                                            id="btnNextLatest"
+                                            className={
+                                                'Button bs-ButtonLegacy' +
+                                                (canNext ? '' : 'Is--disabled')
+                                            }
+                                            onClick={() =>
+                                                this.navigate(
+                                                    errorEvent.next
+                                                        ? errorEvent.next.latest
+                                                        : null
+                                                )
+                                            }
+                                            disabled={!canNext}
+                                            data-db-analytics-name="list_view.pagination.next"
+                                            type="button"
+                                        >
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <img
+                                                        src={`/dashboard/assets/img/next${
+                                                            errorEvent.next
+                                                                ? ''
+                                                                : '-disable'
+                                                        }.svg`}
+                                                        alt=""
+                                                        style={{
+                                                            height: '12px',
+                                                            width: '12px',
+                                                        }}
+                                                    />
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
