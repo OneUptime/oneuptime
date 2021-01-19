@@ -8,6 +8,7 @@ const express = require('express');
 const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
 const ProjectService = require('../services/projectService');
+const LighthouseLogService = require('../services/lighthouseLogService');
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const ContainerSecurityService = require('../services/containerSecurityService');
 const router = express.Router();
@@ -21,7 +22,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 
-router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
+router.post('/', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         const data = req.body;
         const probe = await ProbeService.create(data);
@@ -31,7 +32,7 @@ router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
+router.get('/', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
@@ -43,7 +44,7 @@ router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.put('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
+router.put('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         const data = req.body;
         const probe = await ProbeService.updateOneBy(
@@ -56,7 +57,7 @@ router.put('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
+router.delete('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         const probe = await ProbeService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, probe);
@@ -65,7 +66,7 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.get('/monitors', isAuthorizedProbe, async function(req, res) {
+router.get('/monitors', isAuthorizedProbe, async function (req, res) {
     try {
         const monitors = await MonitorService.getProbeMonitors(
             req.probe.id,
@@ -98,7 +99,7 @@ router.get('/monitors', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.post('/ping/:monitorId', isAuthorizedProbe, async function(
+router.post('/ping/:monitorId', isAuthorizedProbe, async function (
     req,
     response
 ) {
@@ -128,67 +129,74 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             if (type === 'api' || type === 'url') {
                 const {
                     stat: validUp,
-                    reasons: upFailedReasons,
+                    successReasons: upSuccessReasons,
+                    failedReasons: upFailedReasons,
                     matchedCriterion: matchedUpCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.up,
-                          res,
-                          resp,
-                          rawResp
-                      )
-                    : { stat: false, reasons: [] });
+                        monitor.type,
+                        monitor.criteria.up,
+                        res,
+                        resp,
+                        rawResp
+                    )
+                    : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDegraded,
-                    reasons: degradedFailedReasons,
+                    successReasons: degradedSuccessReasons,
+                    failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
                 } = await (monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded
+                    monitor.criteria &&
+                    monitor.criteria.degraded
                     ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.degraded,
-                          res,
-                          resp,
-                          rawResp
-                      )
-                    : { stat: false, reasons: [] });
+                        monitor.type,
+                        monitor.criteria.degraded,
+                        res,
+                        resp,
+                        rawResp
+                    )
+                    : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDown,
-                    reasons: downFailedReasons,
+                    successReasons: downSuccessReasons,
+                    failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.conditions(
-                          monitor.type,
-                          [
-                              ...monitor.criteria.down.filter(
-                                  criterion => criterion.default !== true
-                              ),
-                          ],
-                          res,
-                          resp,
-                          rawResp
-                      )
-                    : { stat: false, reasons: [] });
+                        monitor.type,
+                        [
+                            ...monitor.criteria.down.filter(
+                                criterion => criterion.default !== true
+                            ),
+                        ],
+                        res,
+                        resp,
+                        rawResp
+                    )
+                    : { stat: false, successReasons: [], failedReasons: [] });
 
-                if (validDown) {
-                    status = 'offline';
-                    reason = downFailedReasons;
-                    matchedCriterion = matchedDownCriterion;
+                if (validUp) {
+                    status = 'online';
+                    reason = upSuccessReasons;
+                    matchedCriterion = matchedUpCriterion;
                 } else if (validDegraded) {
                     status = 'degraded';
-                    reason = degradedFailedReasons;
+                    reason = [...degradedSuccessReasons, ...upFailedReasons];
                     matchedCriterion = matchedDegradedCriterion;
-                } else if (validUp) {
-                    status = 'online';
-                    reason = upFailedReasons;
-                    matchedCriterion = matchedUpCriterion;
+                } else if (validDown) {
+                    matchedCriterion = matchedDownCriterion;
+                    status = 'offline';
+                    reason = [
+                        ...downSuccessReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
                 } else {
                     status = 'offline';
                     reason = [
-                        ...degradedFailedReasons,
                         ...downFailedReasons,
+                        ...degradedFailedReasons,
                         ...upFailedReasons,
                     ];
                     if (monitor.criteria.down) {
@@ -197,64 +205,74 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         );
                     }
                 }
-
                 data.status = status;
                 data.reason = reason;
             }
             if (type === 'script') {
                 const {
                     stat: validUp,
-                    reasons: upFailedReasons,
+                    reasons: upSuccessReasons,
                     matchedCriterion: matchedUpCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.scriptConditions(
-                          res,
-                          resp,
-                          monitor.criteria.up
-                      )
+                        res,
+                        resp,
+                        monitor.criteria.up
+                    )
                     : { stat: false, reasons: [] });
 
                 const {
                     stat: validDegraded,
-                    reasons: degradedFailedReasons,
+                    reasons: degradedSuccessReasons,
                     matchedUpCriterion: matchedDegradedCriterion,
                 } = await (monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded
+                    monitor.criteria &&
+                    monitor.criteria.degraded
                     ? ProbeService.scriptConditions(
-                          res,
-                          resp,
-                          monitor.criteria.degraded
-                      )
+                        res,
+                        resp,
+                        monitor.criteria.degraded
+                    )
                     : { stat: false, reasons: [] });
 
                 const {
                     stat: validDown,
-                    reasons: downFailedReasons,
+                    reasons: downSuccessReasons,
                     matchedCriterion: matchedDownCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.scriptConditions(res, resp, [
-                          ...monitor.criteria.down.filter(
-                              criterion => criterion.default !== true
-                          ),
-                      ])
+                        ...monitor.criteria.down.filter(
+                            criterion => criterion.default !== true
+                        ),
+                    ])
                     : { stat: false, reasons: [] });
 
-                if (validDown) {
-                    status = 'failed';
-                    reason = upFailedReasons;
-                    matchedCriterion = matchedDownCriterion;
-                } else if (validDegraded) {
-                    status = 'degraded';
-                    reason = upFailedReasons;
-                    matchedCriterion = matchedDegradedCriterion;
-                } else if (validUp) {
-                    status = 'success';
-                    reason = [...degradedFailedReasons, ...downFailedReasons];
+                if (validUp) {
+                    data.status = 'online';
+                    data.reason = upSuccessReasons;
                     matchedCriterion = matchedUpCriterion;
+                } else if (validDegraded) {
+                    data.status = 'degraded';
+                    data.reason = [
+                        ...degradedSuccessReasons,
+                        ...upFailedReasons,
+                    ];
+                    matchedCriterion = matchedDegradedCriterion;
+                } else if (validDown) {
+                    data.status = 'offline';
+                    data.reason = [
+                        ...downSuccessReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
+                    matchedCriterion = matchedDownCriterion;
                 } else {
-                    status = 'failed';
-                    reason = upFailedReasons;
+                    data.status = 'offline';
+                    data.reason = [
+                        ...downFailedReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
                     if (monitor.criteria.down) {
                         matchedCriterion = monitor.criteria.down.find(
                             criterion => criterion.default === true
@@ -262,7 +280,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     }
                 }
                 resp.status = null;
-
                 data.status = status;
                 data.reason = reason;
             }
@@ -275,66 +292,73 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             }
             if (type === 'server-monitor') {
                 data = serverData;
-
                 const {
                     stat: validUp,
-                    reasons: upFailedReasons,
+                    successReasons: upSuccessReasons,
+                    failedReasons: upFailedReasons,
                     matchedCriterion: matchedUpCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.up,
-                          data
-                      )
-                    : { stat: false, reasons: [] });
-
+                        monitor.type,
+                        monitor.criteria.up,
+                        data
+                    )
+                    : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDegraded,
-                    reasons: degradedFailedReasons,
+                    successReasons: degradedSuccessReasons,
+                    failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
                 } = await (monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded
+                    monitor.criteria &&
+                    monitor.criteria.degraded
                     ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.degraded,
-                          data
-                      )
-                    : { stat: false, reasons: [] });
-
+                        monitor.type,
+                        monitor.criteria.degraded,
+                        data
+                    )
+                    : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDown,
-                    reasons: downFailedReasons,
+                    successReasons: downSuccessReasons,
+                    failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.conditions(
-                          monitor.type,
-                          [
-                              ...monitor.criteria.down.filter(
-                                  criterion => criterion.default !== true
-                              ),
-                          ],
-                          data
-                      )
-                    : { stat: false, reasons: [] });
+                        monitor.type,
+                        [
+                            ...monitor.criteria.down.filter(
+                                criterion => criterion.default !== true
+                            ),
+                        ],
+                        data
+                    )
+                    : { stat: false, successReasons: [], failedReasons: [] });
 
-                if (validDown) {
-                    data.status = 'offline';
-                    data.reason = downFailedReasons;
-                    matchedCriterion = matchedDownCriterion;
+                if (validUp) {
+                    data.status = 'online';
+                    data.reason = upSuccessReasons;
+                    matchedCriterion = matchedUpCriterion;
                 } else if (validDegraded) {
                     data.status = 'degraded';
-                    data.reason = degradedFailedReasons;
+                    data.reason = [
+                        ...degradedSuccessReasons,
+                        ...upFailedReasons,
+                    ];
                     matchedCriterion = matchedDegradedCriterion;
-                } else if (validUp) {
-                    data.status = 'online';
-                    data.reason = upFailedReasons;
-                    matchedCriterion = matchedUpCriterion;
+                } else if (validDown) {
+                    data.status = 'offline';
+                    data.reason = [
+                        ...downSuccessReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
+                    matchedCriterion = matchedDownCriterion;
                 } else {
                     data.status = 'offline';
                     data.reason = [
-                        ...degradedFailedReasons,
                         ...downFailedReasons,
+                        ...degradedFailedReasons,
                         ...upFailedReasons,
                     ];
                     if (monitor.criteria.down) {
@@ -380,14 +404,34 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             );
             data.monitorId = req.params.monitorId || monitor._id;
             data.probeId = req.probe && req.probe.id ? req.probe.id : null;
-
+            data.reason =
+                data && data.reason && data.reason.length
+                    ? data.reason.filter(
+                        (item, pos, self) => self.indexOf(item) === pos
+                    )
+                    : data.reason;
+            const index = data.reason.indexOf('Request Timed out');
+            if (index > -1) {
+                data.reason =
+                    data && data.reason && data.reason.length
+                        ? data.reason.filter(
+                            item => !item.includes('Response Time is')
+                        )
+                        : data.reason;
+            }
             if (data.lighthouseScanStatus) {
                 if (data.lighthouseScanStatus === 'scanning') {
                     await MonitorService.updateOneBy(
                         { _id: data.monitorId },
                         {
                             lighthouseScanStatus: data.lighthouseScanStatus,
-                        }
+                        },
+                        { fetchLightHouse: true }
+                    );
+                    await LighthouseLogService.updateAllLighthouseLogs(
+                        data.monitor.projectId,
+                        data.monitorId,
+                        { scanning: true }
                     );
                 } else {
                     await MonitorService.updateOneBy(
@@ -401,6 +445,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }
             } else {
                 if (data.lighthouseData) {
+                    data.scanning = false;
                     log = await ProbeService.saveLighthouseLog(data);
                 } else {
                     log = await ProbeService.saveMonitorLog(data);
@@ -422,7 +467,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     }
 });
 
-router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req, res) {
+router.post('/setTime/:monitorId', isAuthorizedProbe, async function (req, res) {
     try {
         const data = req.body;
         data.probeId = req.probe.id;
@@ -434,7 +479,7 @@ router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req, res) {
+router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) {
     try {
         const data = req.body;
         data.probeId = req.probe.id;
@@ -446,7 +491,7 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.get('/:projectId/probes', getUser, isAuthorized, async function(
+router.get('/:projectId/probes', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -461,7 +506,7 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function(
     }
 });
 
-router.get('/applicationSecurities', isAuthorizedProbe, async function(
+router.get('/applicationSecurities', isAuthorizedProbe, async function (
     req,
     res
 ) {
@@ -473,7 +518,7 @@ router.get('/applicationSecurities', isAuthorizedProbe, async function(
     }
 });
 
-router.post('/scan/git', isAuthorizedProbe, async function(req, res) {
+router.post('/scan/git', isAuthorizedProbe, async function (req, res) {
     try {
         let { security } = req.body;
 
@@ -489,7 +534,7 @@ router.post('/scan/git', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.get('/containerSecurities', isAuthorizedProbe, async function(req, res) {
+router.get('/containerSecurities', isAuthorizedProbe, async function (req, res) {
     try {
         const response = await ContainerSecurityService.getSecuritiesToScan();
         return sendItemResponse(req, res, response);
@@ -498,7 +543,7 @@ router.get('/containerSecurities', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.post('/scan/docker', isAuthorizedProbe, async function(req, res) {
+router.post('/scan/docker', isAuthorizedProbe, async function (req, res) {
     try {
         let { security } = req.body;
 

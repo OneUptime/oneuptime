@@ -47,6 +47,12 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "status"  }}
               servicePort: 80
+          {{- range $probeKey, $probeValue := $.Values.probes }}
+          - path: {{ printf "/%s" $probeKey }}
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name $probeKey }}
+              servicePort: 80
+          {{- end }}
           {{- if $.Values.saas.isSaasService }}
           - path: /
             backend:

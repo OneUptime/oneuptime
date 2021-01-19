@@ -82,12 +82,13 @@ export class MonitorViewLighthouseLogsBox extends Component {
         fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5, data.value);
     };
 
-    scanWebsites = () => {
+    scanWebsites = async () => {
         const { currentProject, monitor, editMonitor } = this.props;
-        editMonitor(currentProject._id, {
+        await editMonitor(currentProject._id, {
             ...monitor,
             lighthouseScanStatus: 'scan',
         });
+        this.props.fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5);
     };
 
     render() {
@@ -295,7 +296,12 @@ MonitorViewLighthouseLogsBox.propTypes = {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { editMonitor, fetchLighthouseLogs, openModal, closeModal },
+        {
+            editMonitor,
+            fetchLighthouseLogs,
+            openModal,
+            closeModal,
+        },
         dispatch
     );
 

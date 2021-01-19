@@ -22,19 +22,6 @@ const incomingRequestSchema = new Schema(
         url: String,
         deleted: { type: Boolean, default: false },
         deletedAt: Date,
-        filterCriteria: String,
-        filterCondition: {
-            type: String,
-            enum: [
-                'equalTo',
-                'notEqualTo',
-                'lessThan',
-                'greaterThan',
-                'greaterThanOrEqualTo',
-                'lessThanOrEqualTo',
-            ],
-        },
-        filterText: Schema.Types.Mixed, // expected to store both string and number
         incidentTitle: String,
         incidentType: { type: String },
         incidentPriority: {
@@ -43,6 +30,24 @@ const incomingRequestSchema = new Schema(
         },
         incidentDescription: String,
         customFields: [{ fieldName: String, fieldValue: Schema.Types.Mixed }],
+        filterMatch: String,
+        filters: [
+            {
+                filterCriteria: String,
+                filterCondition: {
+                    type: String,
+                    enum: [
+                        'equalTo',
+                        'notEqualTo',
+                        'lessThan',
+                        'greaterThan',
+                        'greaterThanOrEqualTo',
+                        'lessThanOrEqualTo',
+                    ],
+                },
+                filterText: Schema.Types.Mixed,
+            },
+        ],
     },
     { timestamps: true }
 );

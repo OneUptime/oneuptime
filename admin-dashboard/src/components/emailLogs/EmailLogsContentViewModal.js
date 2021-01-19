@@ -32,7 +32,7 @@ class EmailLogsContentViewModal extends Component {
                     style={{ marginTop: 40 }}
                 >
                     <div className="bs-BIM">
-                        <div className="bs-Modal bs-Modal--large">
+                        <div className="ds-Modal">
                             <ClickOutside onClickOutside={closeThisDialog}>
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">

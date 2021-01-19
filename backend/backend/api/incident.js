@@ -565,9 +565,10 @@ router.post(
                     );
                     incidentMessages = incidentMessages.concat(timeline);
                     incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
+                    const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
                     incidentMessage = {
                         type: data.type,
-                        data: incidentMessages
+                        data: filteredMsg
                     }
                 } else {
                     incidentMessage = await IncidentMessageService.findOneBy({
@@ -645,9 +646,10 @@ router.delete(
                     );
                     incidentMessages = incidentMessages.concat(timeline);
                     incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
+                    const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
                     result = {
                         type: checkMsg.type,
-                        data: incidentMessages
+                        data: filteredMsg
                     };
                 }
                 return sendItemResponse(req, res, result);
@@ -697,7 +699,8 @@ router.get(
             } else {
                 incidentMessages = incidentMessages.concat(timeline);
                 incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-                result = incidentMessages;
+                const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
+                result = filteredMsg;
             }
             return sendListResponse(req, res, result, count);
         } catch (error) {

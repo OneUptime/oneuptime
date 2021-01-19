@@ -33,9 +33,10 @@ class About extends Component {
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
+                     <ClickOutside onClickOutside={closeThisDialog}>
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <ClickOutside onClickOutside={closeThisDialog}>
+                           
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -43,43 +44,170 @@ class About extends Component {
                                         </span>
                                     </div>
                                 </div>
-                                <div className="bs-Modal-content">
-                                    <table>
-                                        <tbody>
-                                            <tr>
-                                                <td
+                            </div>
+                            <div className="bs-Modal-content">
+                                <table>
+                                    <tbody>
+                                        <tr>
+                                            <td
+                                                style={{
+                                                    paddingBottom: '10px',
+                                                }}
+                                                colSpan={2}
+                                            >
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Fyipe is a product of{' '}
+                                                    <a
+                                                        href="https://hackerbay.io"
+                                                        rel="noopener noreferrer"
+                                                        target="_blank"
+                                                    >
+                                                        HackerBay, Inc.
+                                                    </a>
+                                                    . HackerBay, Inc. is a
+                                                    United States Delaware C
+                                                    Corporation.
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Server Version
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    style={{
+                                                        paddingLeft: '15px',
+                                                    }}
+                                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                >
+                                                    {versions.server ? (
+                                                        <strong id="server-version">
+                                                            {versions.server}
+                                                        </strong>
+                                                    ) : null}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Admin Dashboard Version
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    style={{
+                                                        paddingLeft: '15px',
+                                                    }}
+                                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                >
+                                                    {versions.adminDashboard ? (
+                                                        <strong id="admin-dashboard-version">
+                                                            {
+                                                                versions.adminDashboard
+                                                            }
+                                                        </strong>
+                                                    ) : null}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Dashboard Version
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    style={{
+                                                        paddingLeft: '15px',
+                                                    }}
+                                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                >
+                                                    {versions.dashboard ? (
+                                                        <strong id="dashboard-version">
+                                                            {versions.dashboard}
+                                                        </strong>
+                                                    ) : null}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Docs Version
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    style={{
+                                                        paddingLeft: '15px',
+                                                    }}
+                                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                >
+                                                    {versions.docs ? (
+                                                        <strong id="docs-version">
+                                                            {versions.docs}
+                                                        </strong>
+                                                    ) : null}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Helm Chart Version
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
                                                     style={{
                                                         paddingBottom: '10px',
                                                     }}
                                                     colSpan={2}
                                                 >
-                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                        Fyipe is a product of{' '}
-                                                        <a
-                                                            href="https://hackerbay.io"
-                                                            rel="noopener noreferrer"
-                                                            target="_blank"
-                                                        >
-                                                            HackerBay, Inc.
-                                                        </a>
-                                                        . HackerBay, Inc. is a
-                                                        United States Delaware C
-                                                        Corporation.
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                        Server Version
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span
-                                                        style={{
-                                                            paddingLeft: '15px',
-                                                        }}
-                                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                    {versions.helm ? (
+                                                        <strong id="helm-version">
+                                                            {versions.helm}
+                                                        </strong>
+                                                    ) : null}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    Probe Version
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    style={{
+                                                        paddingLeft: '15px',
+                                                    }}
+                                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                >
+                                                    {versions.probe ? (
+                                                        <strong id="probe-version">
+                                                            {versions.probe}
+                                                        </strong>
+                                                    ) : null}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td
+                                                style={{ paddingTop: '20px' }}
+                                                colSpan={2}
+                                            >
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    <a
+                                                        href="https://fyipe.com/legal"
+                                                        rel="noopener noreferrer"
+                                                        target="_blank"
                                                     >
                                                         {versions.server ? (
                                                             <strong id="server-version">
@@ -88,6 +216,7 @@ class About extends Component {
                                                                 }
                                                             </strong>
                                                         ) : null}
+                                                        </a>
                                                     </span>
                                                 </td>
                                             </tr>
@@ -285,11 +414,13 @@ class About extends Component {
                                         </button>
                                     </div>
                                 </div>
-                            </ClickOutside>
+                            
                         </div>
+                        </ClickOutside>
                     </div>
+                    
                 </div>
-            </div>
+           
         );
     }
 }

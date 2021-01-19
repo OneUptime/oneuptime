@@ -539,53 +539,68 @@ router.post(
 
             const {
                 stat: validUp,
-                reasons: upFailedReasons,
+                successReasons: upSuccessReasons,
+                failedReasons: upFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? ProbeService.conditions(
                       monitor.type,
                       monitor.criteria.up,
                       data
                   )
-                : { stat: false, reasons: [] });
+                : { stat: false, failedReasons: [], successReasons: [] });
             const {
                 stat: validDegraded,
-                reasons: degradedFailedReasons,
+                successReasons: degradedSuccessReasons,
+                failedReasons: degradedFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? ProbeService.conditions(
                       monitor.type,
                       monitor.criteria.degraded,
                       data
                   )
-                : { stat: false, reasons: [] });
+                : { stat: false, failedReasons: [], successReasons: [] });
             const {
                 stat: validDown,
-                reasons: downFailedReasons,
+                successReasons: downSuccessReasons,
+                failedReasons: downFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? ProbeService.conditions(
                       monitor.type,
                       monitor.criteria.down,
                       data
                   )
-                : { stat: false, reasons: [] });
+                : { stat: false, failedReasons: [], successReasons: [] });
 
-            if (validDown) {
-                data.status = 'offline';
-                data.reason = downFailedReasons;
+            if (validUp) {
+                data.status = 'online';
+                data.reason = upSuccessReasons;
             } else if (validDegraded) {
                 data.status = 'degraded';
-                data.reason = degradedFailedReasons;
-            } else if (validUp) {
-                data.status = 'online';
-                data.reason = upFailedReasons;
+                data.reason = [...degradedSuccessReasons, ...upFailedReasons];
+            } else if (validDown) {
+                data.status = 'offline';
+                data.reason = [
+                    ...downSuccessReasons,
+                    ...degradedFailedReasons,
+                    ...upFailedReasons,
+                ];
             } else {
                 data.status = 'offline';
                 data.reason = [
-                    ...degradedFailedReasons,
                     ...downFailedReasons,
+                    ...degradedFailedReasons,
                     ...upFailedReasons,
                 ];
             }
-
+            const index = data.reason.indexOf('Request Timed out');
+            if (index > -1) {
+                data.reason = data.reason.filter(
+                    item => !item.includes('Response Time is')
+                );
+            }
+            data.reason = data.reason.filter(
+                (item, pos, self) => self.indexOf(item) === pos
+            );
             const log = await ProbeService.saveMonitorLog(data);
 
             return sendItemResponse(req, res, log);

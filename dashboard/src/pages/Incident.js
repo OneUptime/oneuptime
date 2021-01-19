@@ -343,27 +343,27 @@ class Incident extends React.Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab className={'custom-tab custom-tab-6 bs-custom-incident-tab'}>
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab className={'custom-tab custom-tab-6 bs-custom-incident-tab'}>
                                     Monitor Logs
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab className={'custom-tab custom-tab-6 bs-custom-incident-tab'}>
                                     Alert Logs
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab className={'custom-tab custom-tab-6 bs-custom-incident-tab'}>
                                     Status Page Notes
                                 </Tab>
                                 <Tab
                                     id="tab-advance"
-                                    className={'custom-tab custom-tab-6'}
+                                    className={'custom-tab custom-tab-6 bs-custom-incident-tab'}
                                 >
                                     Advanced Options
                                 </Tab>
                                 <div
                                     id="tab-slider"
-                                    className="custom-tab-6"
+                                    className="custom-tab-6 bs-custom-incident-slider"
                                 ></div>
                             </TabList>
                         </div>

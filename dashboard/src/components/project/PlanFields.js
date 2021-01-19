@@ -13,7 +13,7 @@ export default function PlanFields({ activePlan }) {
                 cursor: 'pointer',
             }}
         >
-            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20">
+            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Margin-bottom--4">
                 <div className="Box-root">
                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                         <span>{plan.title}</span>
@@ -30,13 +30,12 @@ export default function PlanFields({ activePlan }) {
                     padding: 0,
                 }}
             >
-                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                     <span
                         style={{
                             marginBottom: '4px',
                         }}
                     >
-                        {plan.category}{' '}
                         {plan.type === 'month' ? 'Monthly' : 'Yearly'}
                     </span>
                 </span>

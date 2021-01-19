@@ -587,7 +587,6 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 fetchLighthouseLogsRequest: true,
             });
-
         case FETCH_LIGHTHOUSE_LOGS_SUCCESS:
             return Object.assign({}, state, {
                 monitorsList: {
@@ -1075,7 +1074,56 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
                 fetchLighthouseLogsRequest: false,
             });
-
+        case 'UPDATE_ALL_LIGHTHOUSE_LOG':
+            return Object.assign({}, state, {
+                monitorsList: {
+                    ...state.monitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.monitorsList.monitors.map(monitor => {
+                        monitor.monitors =
+                            monitor._id === action.payload.projectId
+                                ? monitor.monitors.map(monitor => {
+                                      if (
+                                          monitor.data &&
+                                          action.payload.data.logs.lighthouseLogs.some(
+                                              log =>
+                                                  log._id ===
+                                                  monitor.currentLighthouseLog
+                                                      ._id
+                                          )
+                                      ) {
+                                          monitor.currentLighthouseLog = action.payload.data.logs.lighthouseLogs.filter(
+                                              log =>
+                                                  log._id ===
+                                                  monitor.currentLighthouseLog
+                                                      ._id
+                                          )[0];
+                                      }
+                                      if (
+                                          monitor._id ===
+                                          action.payload.monitorId
+                                      ) {
+                                          monitor.lighthouseLogs = {
+                                              data:
+                                                  action.payload.data.logs
+                                                      .lighthouseLogs,
+                                              skip: 0,
+                                              limit: 1,
+                                              count: 1,
+                                          };
+                                          return monitor;
+                                      } else {
+                                          return monitor;
+                                      }
+                                  })
+                                : monitor.monitors;
+                        return monitor;
+                    }),
+                },
+                fetchLighthouseLogsRequest: false,
+            });
         case FETCH_MONITOR_CRITERIA_REQUEST:
             return Object.assign({}, state, {
                 fetchMonitorCriteriaRequest: action.payload,
