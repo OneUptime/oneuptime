@@ -8,6 +8,8 @@ module.exports = {
             subscriberAlertModel.alertVia = data.alertVia || null;
             subscriberAlertModel.alertStatus = data.alertStatus || null;
             subscriberAlertModel.eventType = data.eventType || null;
+            subscriberAlertModel.totalSubscribers = data.totalSubscribers || 0;
+            subscriberAlertModel.identification = data.id || 0;
             if (data.error) {
                 subscriberAlertModel.error = data.error;
                 subscriberAlertModel.errorMessage = data.errorMessage;
