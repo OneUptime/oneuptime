@@ -833,4 +833,34 @@ module.exports = {
         }
         await page.click('#createSubscriber');
     },
+    addCustomField: async function(page, data, owner) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings', { visible: true });
+        await page.click('#projectSettings');
+        if (owner === 'monitor') {
+            await page.waitForSelector('#monitor', { visible: true });
+            await page.click('#monitor');
+            await page.reload({
+                waitUntil: 'networkidle0',
+            });
+            await this.gotoTab(2, page);
+        } else {
+            await page.waitForSelector('#incidentSettings', { visible: true });
+            await page.click('#incidentSettings');
+            await page.reload({
+                waitUntil: 'networkidle0',
+            });
+            await this.gotoTab(6, page);
+        }
+
+        await page.waitForSelector('#addCustomField', { visible: true });
+        await page.click('#addCustomField');
+        await page.waitForSelector('#customFieldForm', { visible: true });
+        await page.click('#fieldName');
+        await page.type('#fieldName', data.fieldName);
+        await this.selectByText('#fieldType', data.fieldType, page);
+
+        await page.click('#createCustomFieldButton');
+        await page.waitForSelector('#customFieldForm', { visible: 'hidden' });
+    },
 };
