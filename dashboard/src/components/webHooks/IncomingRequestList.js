@@ -164,8 +164,8 @@ class IncomingRequestList extends React.Component {
                                 }}
                             >
                                 <button
-                                    id={`editIncomingRequestBtn_${index}`}
-                                    title="edit"
+                                    id={`copyIncomingRequestBtn_${index}`}
+                                    title="copy url"
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--clipboard"
                                     style={{
                                         marginLeft: 20,
@@ -315,6 +315,7 @@ class IncomingRequestList extends React.Component {
                                 backgroundColor: 'white',
                                 padding: '20px 10px 0',
                             }}
+                            id="noIncomingRequest"
                         >
                             <span>
                                 {(!incomingRequestList ||

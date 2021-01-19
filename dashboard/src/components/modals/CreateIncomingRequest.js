@@ -1384,6 +1384,7 @@ class CreateIncomingRequest extends Component {
                                                                     this
                                                                         .toggleShowAdvancedOptions
                                                                 }
+                                                                id="advancedOptionsBtn"
                                                             >
                                                                 {formValues &&
                                                                 formValues.showAdvancedOptions
