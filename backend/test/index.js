@@ -2,6 +2,7 @@ try {
     require('./monitorSla.test');
     require('./customField.test');
     require('./incomingHttpRequest.test');
+    require('./monitorCustomField.test');
     require('./adminCredentials.test');
     require('./incidentCommunicationSla.test');
     require('./adminCredentials.test');
