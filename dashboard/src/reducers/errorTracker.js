@@ -482,6 +482,11 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerStatus: {
                     ...state.errorTrackerStatus,
                     [action.payload.errorTrackerId]: {
+                        [action.payload.issueId[0]]: {
+                            requestingResolve: false,
+                            requestingIgnore: true,
+                            error: null,
+                        },
                         requestingResolve: false,
                         requestingIgnore: true,
                         error: null,
@@ -549,6 +554,11 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerStatus: {
                     ...state.errorTrackerStatus,
                     [action.payload.errorTrackerId]: {
+                        [action.payload.issueId[0]]: {
+                            requestingResolve: true,
+                            requestingIgnore: false,
+                            error: null,
+                        },
                         requestingResolve: true,
                         requestingIgnore: false,
                         error: null,
@@ -616,6 +626,11 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerStatus: {
                     ...state.errorTrackerStatus,
                     [action.payload.errorTrackerId]: {
+                        [action.payload.issueId[0]]: {
+                            requestingResolve: true,
+                            requestingIgnore: false,
+                            error: null,
+                        },
                         requestingResolve: true,
                         requestingIgnore: false,
                         error: null,

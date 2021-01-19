@@ -112,7 +112,12 @@ class ErrorEventHeader extends Component {
                                             <button
                                                 className={`bs-Button ${
                                                     errorTrackerStatus &&
-                                                    errorTrackerStatus.requestingResolve
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ].requestingResolve
                                                         ? 'bs-Button--blue'
                                                         : 'bs-Button--icon bs-Button--check'
                                                 }  `}
@@ -130,7 +135,12 @@ class ErrorEventHeader extends Component {
                                                     }
                                                 >
                                                     {errorTrackerStatus &&
-                                                    errorTrackerStatus.requestingResolve ? (
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ].requestingResolve ? (
                                                         <FormLoader />
                                                     ) : (
                                                         <span>Resolve</span>
@@ -143,7 +153,12 @@ class ErrorEventHeader extends Component {
                                                     }
                                                 >
                                                     {errorTrackerStatus &&
-                                                    errorTrackerStatus.requestingResolve ? (
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ].requestingResolve ? (
                                                         <FormLoader />
                                                     ) : (
                                                         <span>Unresolve</span>
@@ -163,7 +178,12 @@ class ErrorEventHeader extends Component {
                                             <button
                                                 className={`bs-Button ${
                                                     errorTrackerStatus &&
-                                                    errorTrackerStatus.requestingIgnore
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ].requestingIgnore
                                                         ? 'bs-Button--blue'
                                                         : 'bs-Button--icon bs-Button--block'
                                                 }  `}
@@ -181,7 +201,12 @@ class ErrorEventHeader extends Component {
                                                     }
                                                 >
                                                     {errorTrackerStatus &&
-                                                    errorTrackerStatus.requestingIgnore ? (
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ].requestingIgnore ? (
                                                         <FormLoader />
                                                     ) : (
                                                         <span>Ignore</span>

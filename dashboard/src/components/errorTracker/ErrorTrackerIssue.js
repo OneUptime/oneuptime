@@ -277,7 +277,9 @@ function ErrorTrackerIssue({
                         <button
                             className={`bs-Button ${
                                 errorTrackerStatus &&
-                                errorTrackerStatus.requestingResolve
+                                errorTrackerStatus[errorTrackerIssue._id] &&
+                                errorTrackerStatus[errorTrackerIssue._id]
+                                    .requestingResolve
                                     ? 'bs-Button--blue'
                                     : 'bs-Button--icon bs-Button--check'
                             }  `}
@@ -289,7 +291,9 @@ function ErrorTrackerIssue({
                         >
                             <span>
                                 {errorTrackerStatus &&
-                                errorTrackerStatus.requestingResolve ? (
+                                errorTrackerStatus[errorTrackerIssue._id] &&
+                                errorTrackerStatus[errorTrackerIssue._id]
+                                    .requestingResolve ? (
                                     <FormLoader />
                                 ) : (
                                     <span>

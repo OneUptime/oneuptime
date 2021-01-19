@@ -490,7 +490,7 @@ export function ignoreErrorEvent(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
             { issueId, action: 'ignore' }
         );
-        dispatch(ignoreErrorEventRequest(errorTrackerId));
+        dispatch(ignoreErrorEventRequest(errorTrackerId, issueId));
 
         promise.then(
             function(response) {
@@ -528,10 +528,10 @@ export function ignoreErrorEventReset() {
     };
 }
 
-export function ignoreErrorEventRequest(errorTrackerId) {
+export function ignoreErrorEventRequest(errorTrackerId, issueId) {
     return {
         type: types.IGNORE_ERROR_EVENT_REQUEST,
-        payload: { errorTrackerId },
+        payload: { errorTrackerId, issueId },
     };
 }
 export function ignoreErrorEventFailure(error, errorTrackerId) {
@@ -558,7 +558,7 @@ export function unresolveErrorEvent(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
             { issueId, action: 'unresolve' }
         );
-        dispatch(unresolveErrorEventRequest(errorTrackerId));
+        dispatch(unresolveErrorEventRequest(errorTrackerId, issueId));
 
         promise.then(
             function(response) {
@@ -596,10 +596,10 @@ export function unresolveErrorEventReset() {
     };
 }
 
-export function unresolveErrorEventRequest(errorTrackerId) {
+export function unresolveErrorEventRequest(errorTrackerId, issueId) {
     return {
         type: types.UNRESOLVE_ERROR_EVENT_REQUEST,
-        payload: { errorTrackerId },
+        payload: { errorTrackerId, issueId },
     };
 }
 export function unresolveErrorEventFailure(error, errorTrackerId) {
@@ -626,7 +626,7 @@ export function resolveErrorEvent(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
             { issueId, action: 'resolve' }
         );
-        dispatch(resolveErrorEventRequest(errorTrackerId));
+        dispatch(resolveErrorEventRequest(errorTrackerId, issueId));
 
         promise.then(
             function(response) {
@@ -664,10 +664,10 @@ export function resolveErrorEventReset() {
     };
 }
 
-export function resolveErrorEventRequest(errorTrackerId) {
+export function resolveErrorEventRequest(errorTrackerId, issueId) {
     return {
         type: types.RESOLVE_ERROR_EVENT_REQUEST,
-        payload: { errorTrackerId },
+        payload: { errorTrackerId, issueId },
     };
 }
 export function resolveErrorEventFailure(error, errorTrackerId) {
