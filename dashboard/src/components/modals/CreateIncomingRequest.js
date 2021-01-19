@@ -72,19 +72,24 @@ class CreateIncomingRequest extends Component {
         postObj.isDefault = values.isDefault;
 
         postObj.filterMatch = values.filterMatch;
-        postObj.filters = values.filters
-            .filter(filter => !!filter)
-            .map(filter => {
-                if (!isNaN(filter.filterText)) {
-                    if (typeof filter.filterText === 'string') {
-                        filter.filterText = String(filter.filterText);
-                    } else {
-                        filter.filterText = parseFloat(filter.filterText);
-                    }
-                }
+        postObj.filters =
+            values.filters && values.filters.length > 0
+                ? values.filters
+                      .filter(filter => !!filter)
+                      .map(filter => {
+                          if (!isNaN(filter.filterText)) {
+                              if (typeof filter.filterText === 'string') {
+                                  filter.filterText = String(filter.filterText);
+                              } else {
+                                  filter.filterText = parseFloat(
+                                      filter.filterText
+                                  );
+                              }
+                          }
 
-                return filter;
-            });
+                          return filter;
+                      })
+                : [];
 
         if (values.nextAction && values.nextAction === 'createIncident') {
             postObj.createIncident = true;
@@ -731,12 +736,8 @@ class CreateIncomingRequest extends Component {
     };
 
     handleKeyBoard = e => {
-        const { closeModal, data, destroy } = this.props;
-        const { projectId } = data;
-
         switch (e.key) {
             case 'Escape':
-                destroy();
                 return this.handleCloseModal();
             case 'Enter':
                 if (e.target.localName !== 'textarea') {
@@ -751,8 +752,9 @@ class CreateIncomingRequest extends Component {
     };
 
     handleCloseModal = () => {
-        const { closeModal, data } = this.props;
+        const { closeModal, data, destroy } = this.props;
         const { projectId } = data;
+        destroy();
         closeModal({
             id: projectId,
         });
@@ -1382,6 +1384,7 @@ class CreateIncomingRequest extends Component {
                                                                     this
                                                                         .toggleShowAdvancedOptions
                                                                 }
+                                                                id="advancedOptionsBtn"
                                                             >
                                                                 {formValues &&
                                                                 formValues.showAdvancedOptions
