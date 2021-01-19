@@ -15,6 +15,7 @@ export class FeedbackModal extends Component {
     state = { innerWidth: null };
 
     componentDidMount() {
+        this.setState({ innerWidth: window.innerWidth });
         window.addEventListener('resize', () => {
             this.setState({ innerWidth: window.innerWidth });
         });
