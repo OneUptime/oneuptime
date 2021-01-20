@@ -1146,27 +1146,13 @@ module.exports = {
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 // calculate charge per 160 chars
-                // numSegments is the number of segments the sms will be divided into
-                // numSegments is provided by twilio
-                const segments = Number(sendResult.numSegments);
-                console.log(
-                    '****** segments from twilio 2 *********',
-                    segments
-                );
-                console.log(
-                    '******** send result from twilio 2 **********',
-                    sendResult
-                );
+                const segments = calcSmsSegments(sendResult.body);
                 const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                     user._id,
                     project,
                     AlertType.SMS,
                     user.alertPhoneNumber,
                     segments
-                );
-                console.log(
-                    '******* balance status 2 *********',
-                    balanceStatus
                 );
 
                 if (!balanceStatus.error) {
@@ -2803,27 +2789,13 @@ module.exports = {
                             !hasCustomTwilioSettings
                         ) {
                             // charge sms per 160 chars
-                            // numSegments is the number of segments an sms can be divided into
-                            // numSegments is provided by twilio
-                            const segments = Number(sendResult.numSegments);
-                            console.log(
-                                '****** segments from twilio 1 *********',
-                                segments
-                            );
-                            console.log(
-                                '******** send result from twilio 1 **********',
-                                sendResult
-                            );
+                            const segments = calcSmsSegments(sendResult.body);
                             const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                                 owner.userId,
                                 project,
                                 AlertType.SMS,
                                 contactPhone,
                                 segments
-                            );
-                            console.log(
-                                '********* balance status 1 ***********',
-                                balanceStatus
                             );
 
                             if (!balanceStatus.error) {
@@ -3043,6 +3015,17 @@ module.exports = {
         }
     },
 };
+
+/**
+ * @description calculates the number of segments an sms is divided into
+ * @param {string} sms the body of the sms sent
+ * @returns an interger
+ */
+function calcSmsSegments(sms) {
+    let smsLength = sms.length;
+    smsLength = Number(smsLength);
+    return Math.ceil(smsLength / 160);
+}
 
 const AlertModel = require('../models/alert');
 const ProjectService = require('./projectService');
