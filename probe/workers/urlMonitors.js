@@ -106,7 +106,7 @@ const pingfetch = async url => {
     let resp = null;
     let res = null;
     try {
-        let sslCertificate, response, data;
+        let sslCertificate, response, data, responseHeaders;
         try {
             response = await fetch(url, {
                 timeout: 120000,
@@ -140,11 +140,17 @@ const pingfetch = async url => {
                 throw e;
             }
         }
-        resp = { status: response.status, body: data, sslCertificate };
+
+        resp = {
+            status: response.status,
+            body: data,
+            sslCertificate,
+        };
     } catch (error) {
         res = new Date().getTime() - now;
         resp = { status: 408, body: error };
     }
+
     return { res, resp };
 };
 

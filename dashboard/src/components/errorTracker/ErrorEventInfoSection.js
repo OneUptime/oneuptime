@@ -67,7 +67,9 @@ function ErrorEventInfoSection({ errorEvent }) {
                 </div>
             ) : null}
 
-            {errorEventDetails && errorEventDetails.sdk ? (
+            {!errorEvent.requesting &&
+            errorEventDetails &&
+            errorEventDetails.sdk ? (
                 <div className="Box-divider--border-top-1 Padding-vertical--20">
                     <div className="Flex-flex Flex-justifyContent--spaceBetween">
                         <p className="SubHeader">SDK</p>
