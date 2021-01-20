@@ -108,6 +108,7 @@ class ErrorTrackerDetailView extends Component {
             projectId,
             componentId,
             openModal,
+            errorTrackerStatus,
         } = this.props;
         let skip =
             errorTrackerIssues && errorTrackerIssues.skip
@@ -220,6 +221,8 @@ class ErrorTrackerDetailView extends Component {
                                                                 'Resolution',
                                                             count:
                                                                 selectedErrorEvents.length,
+                                                            errorTrackerId:
+                                                                errorTracker._id,
                                                         }
                                                     ),
                                                 });
@@ -249,6 +252,8 @@ class ErrorTrackerDetailView extends Component {
                                                                 'Ignore',
                                                             count:
                                                                 selectedErrorEvents.length,
+                                                            errorTrackerId:
+                                                                errorTracker._id,
                                                         }
                                                     ),
                                                 });
@@ -343,6 +348,9 @@ class ErrorTrackerDetailView extends Component {
                                                 }
                                                 resolveSingleIssue={
                                                     this.resolveSingleIssue
+                                                }
+                                                errorTrackerStatus={
+                                                    errorTrackerStatus
                                                 }
                                             />
                                         );
@@ -466,6 +474,8 @@ function mapStateToProps(state, ownProps) {
     }
     return {
         errorTrackerIssues,
+        errorTrackerStatus:
+            state.errorTracker.errorTrackerStatus[errorTracker._id],
     };
 }
 ErrorTrackerDetailView.propTypes = {
@@ -479,6 +489,7 @@ ErrorTrackerDetailView.propTypes = {
     openModal: PropTypes.func,
     updateErrorEventMember: PropTypes.func,
     teamMembers: PropTypes.array,
+    errorTrackerStatus: PropTypes.object,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);

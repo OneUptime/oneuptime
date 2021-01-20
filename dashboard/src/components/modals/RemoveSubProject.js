@@ -10,6 +10,7 @@ import {
     resetDeleteSubProject,
 } from '../../actions/subProject';
 import ShouldRender from '../basic/ShouldRender';
+import { resetProjectNotification } from '../../actions/notification';
 
 class RemoveSubProject extends Component {
     componentDidMount() {
@@ -38,10 +39,12 @@ class RemoveSubProject extends Component {
             currentProject,
             data,
             closeModal,
+            resetProjectNotification,
         } = this.props;
         deleteSubProject(currentProject._id, data.subProjectId).then(value => {
             if (!value.error) {
                 resetDeleteSubProject();
+                resetProjectNotification(data.subProjectId);
                 return closeModal({
                     id: data.subProjectModalId,
                 });
@@ -152,7 +155,12 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { closeModal, deleteSubProject, resetDeleteSubProject },
+        {
+            closeModal,
+            deleteSubProject,
+            resetDeleteSubProject,
+            resetProjectNotification,
+        },
         dispatch
     );
 };
@@ -165,6 +173,7 @@ RemoveSubProject.propTypes = {
     deleteSubProject: PropTypes.func,
     resetDeleteSubProject: PropTypes.func,
     subProjectDelete: PropTypes.func,
+    resetProjectNotification: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(RemoveSubProject);
