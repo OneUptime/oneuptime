@@ -32,5 +32,7 @@ const subscriberAlertSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User' },
+    totalSubscribers: { type: Number },
+    identification: { type: Number }
 });
 module.exports = mongoose.model('SubscriberAlert', subscriberAlertSchema);
