@@ -5,9 +5,6 @@ import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 
 class ErrorEventIssueMember extends Component {
-    constructor(props) {
-        super(props);
-    }
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
