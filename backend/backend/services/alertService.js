@@ -1233,6 +1233,7 @@ module.exports = {
     ) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId._id,
             });
@@ -1262,7 +1263,9 @@ module.exports = {
                             note: data.content,
                             incidentState: data.incident_state,
                             statusNoteStatus,
-                        }
+                        },
+                        subscribers.length,
+                        uuid
                     );
                 }
             }
@@ -1275,6 +1278,7 @@ module.exports = {
     sendCreatedIncidentToSubscribers: async function (incident, component) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             if (incident) {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
@@ -1298,7 +1302,10 @@ module.exports = {
                                 subscriber,
                                 incident,
                                 'Subscriber Incident Created',
-                                enabledStatusPage
+                                enabledStatusPage,
+                                null,
+                                subscribers.length,
+                                uuid
                             );
                         }
                     } else {
@@ -1307,7 +1314,9 @@ module.exports = {
                             incident,
                             'Subscriber Incident Created',
                             null,
-                            component
+                            component,
+                            subscribers.length,
+                            uuid
                         );
                     }
                 }
@@ -1450,7 +1459,7 @@ module.exports = {
                             }
                         } else {
                             if (escalation.email) {
-                                _this.sendAcknowledgeEmailAlert({
+                                await _this.sendAcknowledgeEmailAlert({
                                     incident,
                                     user,
                                     project,
@@ -1755,7 +1764,7 @@ module.exports = {
                             }
                         } else {
                             if (escalation.email) {
-                                _this.sendResolveEmailAlert({
+                                await _this.sendResolveEmailAlert({
                                     incident,
                                     user,
                                     project,
@@ -1929,6 +1938,7 @@ module.exports = {
     sendAcknowledgedIncidentToSubscribers: async function (incident) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             if (incident) {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
@@ -1951,14 +1961,21 @@ module.exports = {
                                 subscriber,
                                 incident,
                                 'Subscriber Incident Acknowldeged',
-                                enabledStatusPage
+                                enabledStatusPage,
+                                {},
+                                subscribers.length,
+                                uuid
                             );
                         }
                     } else {
                         await _this.sendSubscriberAlert(
                             subscriber,
                             incident,
-                            'Subscriber Incident Acknowldeged'
+                            'Subscriber Incident Acknowldeged',
+                            null,
+                            {},
+                            subscribers.length,
+                            uuid
                         );
                     }
                 }
@@ -1975,6 +1992,7 @@ module.exports = {
     sendResolvedIncidentToSubscribers: async function (incident) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             if (incident) {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
@@ -1997,14 +2015,21 @@ module.exports = {
                                 subscriber,
                                 incident,
                                 'Subscriber Incident Resolved',
-                                enabledStatusPage
+                                enabledStatusPage,
+                                {},
+                                subscribers.length,
+                                uuid
                             );
                         }
                     } else {
                         await _this.sendSubscriberAlert(
                             subscriber,
                             incident,
-                            'Subscriber Incident Resolved'
+                            'Subscriber Incident Resolved',
+                            null,
+                            {},
+                            subscribers.length,
+                            uuid
                         );
                     }
                 }
@@ -2023,7 +2048,9 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        { note, incidentState, statusNoteStatus } = {}
+        { note, incidentState, statusNoteStatus } = {},
+        totalSubscribers,
+        id
     ) {
         try {
             const _this = this;
@@ -2111,6 +2138,8 @@ module.exports = {
                         error: true,
                         errorMessage:
                             'Investigation Note Webhook Notification Disabled',
+                        totalSubscribers,
+                        id
                     });
                 }
                 const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
@@ -2150,7 +2179,9 @@ module.exports = {
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Webhook,
                         alertStatus: alertStatus,
-                        eventType: eventType
+                        eventType: eventType,
+                        totalSubscribers,
+                        id
                     }).catch(error => {
                         ErrorService.log(
                             'AlertService.sendSubscriberAlert',
@@ -2215,7 +2246,9 @@ module.exports = {
                         eventType: eventType,
                         alertStatus: null,
                         error: true,
-                        errorMessage: errorMessageText
+                        errorMessage: errorMessageText,
+                        totalSubscribers,
+                        id
                     });
                 }
                 const emailTemplate = await EmailTemplateService.findOneBy({
@@ -2238,7 +2271,9 @@ module.exports = {
                     subscriberId: subscriber._id,
                     alertVia: AlertType.Email,
                     alertStatus: 'Pending',
-                    eventType: eventType
+                    eventType: eventType,
+                    totalSubscribers,
+                    id
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
@@ -2459,7 +2494,9 @@ module.exports = {
                         alertStatus: null,
                         error: true,
                         errorMessage: errorMessageText,
-                        eventType: eventType
+                        eventType: eventType,
+                        totalSubscribers,
+                        id
                     });
                 }
                 const countryCode = await _this.mapCountryShortNameToCountryCode(
@@ -2506,7 +2543,9 @@ module.exports = {
                             alertStatus: null,
                             error: true,
                             errorMessage: errorMessageText,
-                            eventType: eventType
+                            eventType: eventType,
+                            totalSubscribers,
+                            id
                         });
                     }
 
@@ -2538,7 +2577,9 @@ module.exports = {
                             alertStatus: null,
                             error: true,
                             errorMessage: status.message,
-                            eventType: eventType
+                            eventType: eventType,
+                            totalSubscribers,
+                            id
                         });
                     }
                 }
@@ -2566,7 +2607,9 @@ module.exports = {
                     subscriberId: subscriber._id,
                     alertVia: AlertType.SMS,
                     alertStatus: 'Pending',
-                    eventType: eventType
+                    eventType: eventType,
+                    totalSubscribers,
+                    id
                 });
                 const alertId = subscriberAlert._id;
 
