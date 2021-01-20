@@ -22,8 +22,36 @@ class About extends Component {
     };
 
     render() {
-        const { versions, closeThisDialog } = this.props;
+        const { versions, closeThisDialog, probes } = this.props;
         const currentYear = new Date().getFullYear();
+        let probeVersion = null;
+        if (probes && probes.length > 0) {
+            probeVersion = probes.map((probe, i) => {
+                return (
+                    <tr key={i}>
+                        <td>
+                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                {probe.probeName} Version
+                            </span>
+                        </td>
+                        <td>
+                            <span
+                                style={{
+                                    paddingLeft: '15px',
+                                }}
+                                className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                            >
+                                {probe.version ? (
+                                    <strong id="probe-version">
+                                        {probe.version}
+                                    </strong>
+                                ) : null}
+                            </span>
+                        </td>
+                    </tr>
+                );
+            });
+        }
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -178,27 +206,7 @@ class About extends Component {
                                                     </span>
                                                 </td>
                                             </tr>
-                                            <tr>
-                                                <td>
-                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                        Probe Version
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span
-                                                        style={{
-                                                            paddingLeft: '15px',
-                                                        }}
-                                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                                    >
-                                                        {versions.probe ? (
-                                                            <strong id="probe-version">
-                                                                {versions.probe}
-                                                            </strong>
-                                                        ) : null}
-                                                    </span>
-                                                </td>
-                                            </tr>
+                                            {probeVersion}
                                             <tr>
                                                 <td
                                                     style={{
@@ -319,12 +327,17 @@ About.displayName = 'AboutModal';
 const mapStateToProps = state => {
     return {
         versions: state.version.versions,
+        probes: state.probe.probes.data,
     };
 };
 
 About.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     versions: PropTypes.object,
+    probes: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 export default connect(mapStateToProps)(About);
