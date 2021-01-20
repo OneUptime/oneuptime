@@ -1,10 +1,4 @@
-import {
-    getApi,
-    getApiDocs,
-    getApiHelm,
-    getApiDashboard,
-    getApiProbe,
-} from '../api';
+import { getApi, getApiDocs, getApiHelm, getApiDashboard } from '../api';
 import * as types from '../constants/version';
 
 export function getVersionRequest(promise) {
