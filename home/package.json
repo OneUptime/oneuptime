@@ -30,7 +30,7 @@
         "lighthouse": "^6.2.0",
         "nodemon": "^2.0.4",
         "ora": "^4.0.3",
-        "puppeteer": "^1.20.0",
+        "puppeteer": "^5.5.0",
         "start-server-and-test": "^1.9.1"
     }
 }
