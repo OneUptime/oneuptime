@@ -105,19 +105,7 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            const project = await ProjectModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        deleted: true,
-                        deletedById: userId,
-                        deletedAt: Date.now(),
-                    },
-                },
-                {
-                    new: true,
-                }
-            );
+            let project = await ProjectModel.findOne(query);
             if (project) {
                 if (project.stripeSubscriptionId) {
                     await PaymentService.removeSubscription(
@@ -160,6 +148,32 @@ module.exports = {
                 await integrationService.deleteBy(
                     { projectId: project._id },
                     userId
+                );
+
+                const components = await componentService.findBy({
+                    projectId: project._id,
+                });
+                await Promise.all(
+                    components.map(async component => {
+                        await componentService.deleteBy(
+                            { _id: component._id },
+                            userId
+                        );
+                    })
+                );
+
+                project = await ProjectModel.findOneAndUpdate(
+                    query,
+                    {
+                        $set: {
+                            deleted: true,
+                            deletedById: userId,
+                            deletedAt: Date.now(),
+                        },
+                    },
+                    {
+                        new: true,
+                    }
                 );
             }
             return project;
@@ -743,3 +757,4 @@ const StatusPageService = require('./statusPageService');
 const slugify = require('slugify');
 const generate = require('nanoid/generate');
 const { IS_SAAS_SERVICE } = require('../config/server');
+const componentService = require('./componentService');
