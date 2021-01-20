@@ -1,3 +1,5 @@
+const packageJson = require('../package.json');
+
 const COMMAND = {
     linux: {
         load: "top -b -n 2 | egrep --color 'load average|%Cpu'",
@@ -40,5 +42,5 @@ module.exports = {
     probeName: process.env['PROBE_NAME'],
     probeKey: process.env['PROBE_KEY'],
     clusterKey: process.env['CLUSTER_KEY'],
-    probeVersion: process.env['SERVER_VERSION'],
+    probeVersion: packageJson.version,
 };
