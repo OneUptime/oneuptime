@@ -923,7 +923,7 @@ module.exports = {
                 alertStatus: null,
                 error: true,
                 eventType,
-                errorMessage: 'Error',
+                errorMessage: alertStatus.message,
             });
         } else if (alertStatus) {
             alert = await _this.create({
@@ -2808,7 +2808,7 @@ module.exports = {
                         {
                             alertStatus: null,
                             error: true,
-                            errorMessage: 'Error',
+                            errorMessage: error.message,
                         }
                     );
                     throw error;
