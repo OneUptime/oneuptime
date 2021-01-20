@@ -8,6 +8,7 @@ import {
     NOTIFICATION_READ_SUCCESS,
     NOTIFICATION_CLOSED_SUCCESS,
     ALL_NOTIFICATION_READ_SUCCESS,
+    RESET_PROJECT_NOTIFICATIONS,
 } from '../constants/notification';
 
 const initialState = {
@@ -149,6 +150,17 @@ export default (state = initialState, action) => {
                                 ]),
                             };
                         }
+                    ),
+                },
+            });
+
+        case RESET_PROJECT_NOTIFICATIONS:
+            return Object.assign({}, state, {
+                notifications: {
+                    ...state.notifications,
+                    notifications: state.notifications.notifications.filter(
+                        notification =>
+                            notification.projectId !== action.payload
                     ),
                 },
             });

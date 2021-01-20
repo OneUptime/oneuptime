@@ -206,3 +206,10 @@ export function billingActionTaken(projectId, notificationId, values) {
         }
     };
 }
+
+export function resetProjectNotification(projectId) {
+    return {
+        type: types.RESET_PROJECT_NOTIFICATIONS,
+        payload: projectId,
+    };
+}
