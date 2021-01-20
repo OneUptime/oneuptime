@@ -41,20 +41,17 @@ export function getVersion() {
         let helmChartPromise = null;
         let docsPromise = null;
         let dashboardPromise = null;
-        let probePromise = null;
 
         backendPromise = getApi('version');
         helmChartPromise = getApiHelm('version');
         docsPromise = getApiDocs('version');
         dashboardPromise = getApiDashboard('version');
-        probePromise = getApiProbe('version');
 
         promise = Promise.all([
             backendPromise,
             helmChartPromise,
             docsPromise,
             dashboardPromise,
-            probePromise,
         ]);
 
         dispatch(getVersionRequest(promise));

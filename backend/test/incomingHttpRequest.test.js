@@ -22,6 +22,13 @@ const MonitorCustomFieldService = require('../backend/services/monitorCustomFiel
 const IncidentCustomFieldService = require('../backend/services/customFieldService');
 const IncidentService = require('../backend/services/incidentService');
 const axios = require('axios');
+const {
+    resolveRequest,
+    internalNoteRequest,
+    incidentRequest,
+    incidentNoteRequest,
+    acknowledgeRequest,
+} = require('./data/incomingHttpRequest');
 
 describe('Incoming HTTP Request API', function() {
     const timeout = 30000;
@@ -35,52 +42,9 @@ describe('Incoming HTTP Request API', function() {
         authorization,
         createIncidentUrl,
         acknowledgeIncidentUrl,
-        resolveIncidentUrl;
-
-    const incidentRequest = {
-        name: 'pyInt',
-        isDefault: true,
-        createIncident: true,
-        incidentTitle: 'Test Incident',
-        incidentType: 'offline',
-        incidentDescription:
-            'This is a sample incident to test incoming http request',
-        filterMatch: 'any',
-        filters: [
-            {
-                filterCondition: 'equalTo',
-                filterCriteria: 'monitorField',
-                filterText: 'testing',
-            },
-        ],
-        monitors: [],
-    };
-
-    const acknowledgeRequest = {
-        name: 'ack',
-        acknowledgeIncident: true,
-        filterMatch: 'any',
-        filters: [
-            {
-                filterCondition: 'greaterThanOrEqualTo',
-                filterCriteria: 'incidentId',
-                filterText: 1,
-            },
-        ],
-    };
-
-    const resolveRequest = {
-        name: 'resolve',
-        resolveIncident: true,
-        filterMatch: 'any',
-        filters: [
-            {
-                filterCondition: 'greaterThanOrEqualTo',
-                filterCriteria: 'incidentId',
-                filterText: 1,
-            },
-        ],
-    };
+        resolveIncidentUrl,
+        incidentNoteUrl,
+        internalNoteUrl;
 
     this.timeout(timeout);
     before(function(done) {
@@ -225,6 +189,40 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
+    it('should create an incoming http request (Update incident note)', function(done) {
+        request
+            .post(`/incoming-request/${projectId}/create-request-url`)
+            .send(incidentNoteRequest)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                incidentNoteUrl = res.body.url;
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal(incidentNoteRequest.name);
+                expect(res.body.filterMatch).to.be.equal(
+                    incidentNoteRequest.filterMatch
+                );
+                expect(res.body.filters).to.be.an('array');
+                done();
+            });
+    });
+
+    it('should create an incoming http request (Update internal note)', function(done) {
+        request
+            .post(`/incoming-request/${projectId}/create-request-url`)
+            .send(internalNoteRequest)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                internalNoteUrl = res.body.url;
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal(internalNoteRequest.name);
+                expect(res.body.filters).to.be.an('array');
+                expect(res.body.filterMatch).to.be.equal(
+                    internalNoteRequest.filterMatch
+                );
+                done();
+            });
+    });
+
     it('should update an incoming http request', function(done) {
         const update = {
             name: 'updateName',
@@ -296,6 +294,31 @@ describe('Incoming HTTP Request API', function() {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.resolved_incidents).to.be.an('array');
+            done();
+        });
+    });
+
+    it('should add incident note with an incoming http request url', function(done) {
+        // it should also work for a get request
+        axios({
+            method: 'get',
+            url: incidentNoteUrl,
+        }).then(function(res) {
+            expect(res).to.have.status(200);
+            expect(res.data.status).to.be.equal('success');
+            expect(res.data.notes_addedTo).to.be.an('array');
+            done();
+        });
+    });
+
+    it('should add internal note with an incoming http request url', function(done) {
+        axios({
+            method: 'get',
+            url: internalNoteUrl,
+        }).then(function(res) {
+            expect(res).to.have.status(200);
+            expect(res.data.status).to.be.equal('success');
+            expect(res.data.notes_addedTo).to.be.an('array');
             done();
         });
     });

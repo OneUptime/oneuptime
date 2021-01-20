@@ -268,7 +268,7 @@ main header{
 .stars-panel{
     display:flex;
     justify-content: space-evenly;
-    margin-top: 100px;
+    margin-top: 120px;
 }
 
 
@@ -281,7 +281,7 @@ main header{
     .stars-panel{
         display:flex;
         justify-content: space-evenly;
-        margin-top: 130px;
+        margin-top: 150px;
     }
 }
 
