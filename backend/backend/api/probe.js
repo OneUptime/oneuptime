@@ -345,7 +345,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           (item, pos, self) => self.indexOf(item) === pos
                       )
                     : data.reason;
-            const index = data.reason.indexOf('Request Timed out');
+            const index =
+                data && data.reason && data.reason.length
+                    ? data.reason.indexOf('Request Timed out')
+                    : -1;
             if (index > -1) {
                 data.reason =
                     data && data.reason && data.reason.length
