@@ -907,9 +907,9 @@ router.get(
 );
 
 function uniqByKeepFirst(a, key) {
-    let seen = new Set();
+    const seen = new Set();
     return a.filter(item => {
-        let k = key(item);
+        const k = key(item);
         return seen.has(k) ? false : seen.add(k);
     });
 }
