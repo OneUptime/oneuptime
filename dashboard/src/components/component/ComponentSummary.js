@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 // import moment from 'moment';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 
-function MonitorStats({ stats }) {
+function ComponentSummary({ stats }) {
     const [startDate, setStartDate] = useState(Date.now());
     const [endDate, setEndDate] = useState(Date.now());
 
@@ -101,10 +101,10 @@ function MonitorStats({ stats }) {
     );
 }
 
-MonitorStats.displayName = 'MonitorStats';
+ComponentSummary.displayName = 'ComponentSummary';
 
-MonitorStats.propTypes = {
+ComponentSummary.propTypes = {
     stats: PropTypes.array,
 };
 
-export default MonitorStats;
+export default ComponentSummary;

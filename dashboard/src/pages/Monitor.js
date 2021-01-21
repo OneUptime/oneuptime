@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { destroy } from 'redux-form';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
-import MonitorStats from '../components/monitor/MonitorStats';
+import ComponentSummary from '../components/component/ComponentSummary';
 import NewMonitor from '../components/monitor/NewMonitor';
 import MonitorList from '../components/monitor/MonitorList';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -334,7 +334,7 @@ class DashboardView extends Component {
                                                             {incidentslist}
                                                         </div>
 
-                                                        <MonitorStats
+                                                        <ComponentSummary
                                                             stats={[
                                                                 {
                                                                     name:
