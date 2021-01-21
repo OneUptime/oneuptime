@@ -29,7 +29,16 @@ module.exports = {
         }
     },
 
-    create: async function({ from, to, status, subject, body, template }) {
+    create: async function({
+        from,
+        to,
+        status,
+        subject,
+        body,
+        template,
+        content,
+        error,
+    }) {
         try {
             let item = new EmailStatusModel();
 
@@ -39,7 +48,8 @@ module.exports = {
             item.subject = subject;
             item.body = body;
             item.template = template;
-
+            item.content = content;
+            item.error = error;
             item = await item.save();
 
             return item;
@@ -81,6 +91,15 @@ module.exports = {
             return items;
         } catch (error) {
             ErrorService.log('emailStatusService.findOneAndUpdate', error);
+            throw error;
+        }
+    },
+
+    hardDeleteBy: async function({ query }) {
+        try {
+            await EmailStatusModel.deleteMany(query);
+        } catch (error) {
+            ErrorService.log('emailLogs.hardDeleteBy', error);
             throw error;
         }
     },
@@ -142,6 +161,18 @@ module.exports = {
             ErrorService.log('emailStatusService.updateMany', error);
             throw error;
         }
+    },
+
+    search: async function({ filter, skip, limit }) {
+        const _this = this;
+        const query = {
+            to: { $regex: new RegExp(filter), $options: 'i' },
+        };
+
+        const searchedEmailLogs = await _this.findBy({ query, skip, limit });
+        const totalSearchCount = await _this.countBy({ query });
+
+        return { searchedEmailLogs, totalSearchCount };
     },
 };
 

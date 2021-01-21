@@ -1,5 +1,8 @@
 try {
     require('./monitorSla.test');
+    require('./customField.test');
+    require('./incomingHttpRequest.test');
+    require('./monitorCustomField.test');
     require('./adminCredentials.test');
     require('./incidentCommunicationSla.test');
     require('./adminCredentials.test');
@@ -7,6 +10,7 @@ try {
     require('./applicationLog.test');
     require('./applicationSecurity.test');
     require('./auditLogs.test');
+    require('./emailLogs.test');
     require('./component.test');
     require('./containerSecurity.test');
     require('./disableSignup.test');

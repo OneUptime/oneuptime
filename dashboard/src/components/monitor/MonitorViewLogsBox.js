@@ -35,7 +35,8 @@ export class MonitorViewLogsBox extends Component {
             start,
             end,
             this.state.probeValue.value,
-            incidentId
+            incidentId,
+            this.props.monitorType
         );
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Previous Incident Requested', {
@@ -57,7 +58,8 @@ export class MonitorViewLogsBox extends Component {
             start,
             end,
             this.state.probeValue.value,
-            incidentId
+            incidentId,
+            this.props.monitorType
         );
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Next Incident Requested', {
@@ -87,7 +89,9 @@ export class MonitorViewLogsBox extends Component {
             10,
             startDate.clone().utc(),
             endDate.clone().utc(),
-            this.state.probeValue.value
+            this.state.probeValue.value,
+            null,
+            this.props.monitorType
         );
     };
 
@@ -100,7 +104,9 @@ export class MonitorViewLogsBox extends Component {
             10,
             startDate.clone().utc(),
             endDate.clone().utc(),
-            this.state.probeValue.value
+            this.state.probeValue.value,
+            null,
+            this.props.monitorType
         );
     };
 
@@ -114,7 +120,9 @@ export class MonitorViewLogsBox extends Component {
             10,
             this.state.startDate.clone().utc(),
             this.state.endDate.clone().utc(),
-            data.value
+            data.value,
+            null,
+            this.props.monitorType
         );
     };
 
@@ -150,7 +158,8 @@ export class MonitorViewLogsBox extends Component {
                                             Here&#39;s all of the logs for the
                                             monitor created by the{' '}
                                             {this.props.monitorType ===
-                                            'server-monitor'
+                                                'server-monitor' &&
+                                            !this.props.agentless
                                                 ? 'daemon'
                                                 : 'probes'}
                                             .
@@ -164,7 +173,8 @@ export class MonitorViewLogsBox extends Component {
                         if={
                             !(
                                 this.props.incidentId ||
-                                this.props.monitorType === 'server-monitor'
+                                (this.props.monitorType === 'server-monitor' &&
+                                    !this.props.agentless)
                             )
                         }
                     >
@@ -222,6 +232,7 @@ export class MonitorViewLogsBox extends Component {
                         monitorId={this.props.monitorId}
                         monitorName={this.props.monitorName}
                         monitorType={this.props.monitorType}
+                        agentless={this.props.agentless}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
                     />
@@ -241,6 +252,7 @@ MonitorViewLogsBox.propTypes = {
     monitorLogs: PropTypes.object,
     monitorName: PropTypes.string,
     monitorType: PropTypes.string,
+    agentless: PropTypes.bool,
     probes: PropTypes.array,
 };
 

@@ -6,8 +6,15 @@ import { showProfileMenu } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
 import { API_URL, User } from '../../config';
 import { openSideNav } from '../../actions/page';
+import { getVersion } from '../../actions/version';
+import { getProbes } from '../../actions/probe';
 
 class TopContent extends Component {
+    componentDidMount() {
+        const { getVersion } = this.props;
+        getVersion();
+        this.props.getProbes(0, 10);
+    }
     showProfileMenu = e => {
         this.props.showProfileMenu(e.clientX);
         if (window.location.href.indexOf('localhost') <= -1) {
@@ -130,11 +137,18 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { showProfileMenu, openNotificationMenu, openSideNav },
+        {
+            showProfileMenu,
+            openNotificationMenu,
+            openSideNav,
+            getVersion,
+            getProbes,
+        },
         dispatch
     );
 
 TopContent.propTypes = {
+    getVersion: PropTypes.func,
     openSideNav: PropTypes.func,
     showProfileMenu: PropTypes.func.isRequired,
     openNotificationMenu: PropTypes.func.isRequired,
@@ -148,6 +162,7 @@ TopContent.propTypes = {
     ]),
     length: PropTypes.number,
     map: PropTypes.func,
+    getProbes: PropTypes.func.isRequired,
 };
 
 TopContent.contextTypes = {

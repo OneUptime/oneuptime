@@ -30,43 +30,43 @@ let resourceCategory = {
 let componentId;
 
 const httpMonitorCriteria = {
-      "up": {
-        "and": [
-          {
-            "responseType": "responseBody",
-            "filter": "notEmpty"
-          }
+    up: {
+        and: [
+            {
+                responseType: 'responseBody',
+                filter: 'notEmpty',
+            },
         ],
-        "or": [],
-        "createAlert": false,
-        "autoAcknowledge": false,
-        "autoResolve": false
-      },
-      "degraded": {
-        "and": [
-          {
-            "responseType": "responseBody",
-            "filter": "empty"
-          }
+        or: [],
+        createAlert: false,
+        autoAcknowledge: false,
+        autoResolve: false,
+    },
+    degraded: {
+        and: [
+            {
+                responseType: 'responseBody',
+                filter: 'empty',
+            },
         ],
-        "or": [],
-        "createAlert": true,
-        "autoAcknowledge": true,
-        "autoResolve": true
-      },
-      "down": {
-        "and": [],
-        "or": [
-          {
-            "responseType": "responseBody",
-            "filter": "empty"
-          }
+        or: [],
+        createAlert: true,
+        autoAcknowledge: true,
+        autoResolve: true,
+    },
+    down: {
+        and: [],
+        or: [
+            {
+                responseType: 'responseBody',
+                filter: 'empty',
+            },
         ],
-        "createAlert": true,
-        "autoAcknowledge": true,
-        "autoResolve": true
-      }
-  };
+        createAlert: true,
+        autoAcknowledge: true,
+        autoResolve: true,
+    },
+};
 
 describe('Monitor API', function() {
     this.timeout(30000);
@@ -183,6 +183,25 @@ describe('Monitor API', function() {
                 name: 'New Monitor 2',
                 type: 'url',
                 data: null,
+                componentId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('should not create an agentless server monitor when identityFile authentication is selected and the `identityFile` field is not valid', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'Agentless Server',
+                type: 'server-monitor',
+                agentlessConfig: {
+                    authentication: 'identityFile',
+                },
                 componentId,
             })
             .end(function(err, res) {
@@ -693,7 +712,9 @@ describe('IncomingHttpRequest Monitor', function() {
                 projectId,
                 criteria: httpMonitorCriteria,
                 type: 'incomingHttpRequest',
-                data: { link: `${global.apiHost}/incomingHttpRequest/${httpMonitorId}`},
+                data: {
+                    link: `${global.apiHost}/incomingHttpRequest/${httpMonitorId}`,
+                },
                 componentId,
             })
             .end(function(err, res) {
@@ -710,7 +731,7 @@ describe('IncomingHttpRequest Monitor', function() {
             .send({})
             .end(function(err, res) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
-                expect(res.body.status).to.be.equal("offline");
+                expect(res.body.status).to.be.equal('offline');
                 done();
             });
     });
@@ -720,18 +741,18 @@ describe('IncomingHttpRequest Monitor', function() {
             .get(`/incomingHttpRequest/${httpMonitorId}`)
             .end(function(err, res) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
-                expect(res.body.status).to.be.equal("offline");
+                expect(res.body.status).to.be.equal('offline');
                 done();
             });
     });
 
     it('should report monitor up when api has a valid body in post request', function(done) {
         request
-        .post(`/incomingHttpRequest/${httpMonitorId}`)
-        .send({id: '123456'})
+            .post(`/incomingHttpRequest/${httpMonitorId}`)
+            .send({ id: '123456' })
             .end(function(err, res) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
-                expect(res.body.status).to.be.equal("online");
+                expect(res.body.status).to.be.equal('online');
                 done();
             });
     });
@@ -739,10 +760,10 @@ describe('IncomingHttpRequest Monitor', function() {
     it('should report monitor up when api has a valid body in get request', function(done) {
         request
             .get(`/incomingHttpRequest/${httpMonitorId}`)
-            .send({id: '123456'})
+            .send({ id: '123456' })
             .end(function(err, res) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
-                expect(res.body.status).to.be.equal("online");
+                expect(res.body.status).to.be.equal('online');
                 done();
             });
     });

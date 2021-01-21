@@ -17,6 +17,7 @@ import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 import AlertBilling from '../modals/AlertBilling';
 import Tooltip from '../basic/Tooltip';
+import { FormLoader } from '../basic/Loader';
 
 export class AlertAdvanceOption extends Component {
     state = {
@@ -30,27 +31,38 @@ export class AlertAdvanceOption extends Component {
             openModal,
             formValues,
             alertOptionsUpdate,
+            balance,
         } = this.props;
         value._id = projectId;
         const userId = User.getUserId();
         if (isOwnerOrAdmin(userId, currentProject)) {
-            openModal({
-                id: this.state.MessageBoxId,
-                content: AlertBilling,
-                title: 'Message',
-                onConfirm: () => {
-                    return alertOptionsUpdate(projectId, value).then(() => {
-                        const { paymentIntent } = this.props;
-                        if (paymentIntent) {
-                            //init payment
-                            this.handlePaymentIntent(paymentIntent);
-                        }
-                    });
-                },
-                message: `Your card will be charged by $${Number(
-                    formValues.rechargeToBalance
-                )}`,
-            });
+            if (balance < parseInt(formValues.minimumBalance)) {
+                openModal({
+                    id: this.state.MessageBoxId,
+                    content: AlertBilling,
+                    title: 'Message',
+                    onConfirm: () => {
+                        return alertOptionsUpdate(projectId, value).then(() => {
+                            const { paymentIntent } = this.props;
+                            if (paymentIntent) {
+                                //init payment
+                                this.handlePaymentIntent(paymentIntent);
+                            }
+                        });
+                    },
+                    message: `Your card will be charged by $${Number(
+                        formValues.rechargeToBalance
+                    )}`,
+                });
+            } else {
+                alertOptionsUpdate(projectId, value).then(() => {
+                    const { paymentIntent } = this.props;
+                    if (paymentIntent) {
+                        //init payment
+                        this.handlePaymentIntent(paymentIntent);
+                    }
+                });
+            }
         } else {
             openModal({
                 id: projectId,
@@ -457,7 +469,12 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             Charge:
-                                                                            $0.05/SMS{' '}
+                                                                            $0.02
+                                                                            /
+                                                                            SMS
+                                                                            /
+                                                                            160
+                                                                            Chars{' '}
                                                                             <br></br>
                                                                             Minimum
                                                                             Account
@@ -482,7 +499,11 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             Charge:
-                                                                            $1/SMS{' '}
+                                                                            $1 /
+                                                                            SMS
+                                                                            /
+                                                                            160
+                                                                            Chars{' '}
                                                                             <br></br>
                                                                             Minimum
                                                                             Account
@@ -508,7 +529,11 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             Charge:
-                                                                            $1/SMS{' '}
+                                                                            $1 /
+                                                                            SMS
+                                                                            /
+                                                                            160
+                                                                            Chars{' '}
                                                                             <br></br>
                                                                             Minimum
                                                                             Account
@@ -854,7 +879,18 @@ export class AlertAdvanceOption extends Component {
                                                 }
                                                 type="submit"
                                             >
-                                                <span>Save</span>
+                                                <ShouldRender
+                                                    if={
+                                                        !this.props.isRequesting
+                                                    }
+                                                >
+                                                    <span>Save</span>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={this.props.isRequesting}
+                                                >
+                                                    <FormLoader />
+                                                </ShouldRender>
                                             </button>
                                         </div>
                                     </div>

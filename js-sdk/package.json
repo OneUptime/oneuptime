@@ -2,19 +2,21 @@
     "name": "fyipe",
     "version": "3.0.0",
     "description": "Fyipe is a JS package that tracks error event and send logs from your applications to your fyipe dashboard.",
-    "main": "dist/logger.js",
+    "main": "dist/fyipe.js",
+    "unpkg": "dist/fyipe.min.js",
     "scripts": {
         "build-dev": "npm run build && npm link",
         "test": "mocha --require @babel/polyfill --require @babel/register",
         "build": "webpack --mode production",
         "audit": "npm audit --audit-level=low",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli'"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli,babel-loader,depcheck,mocha,webpack'"
     },
     "keywords": [
         "fyipe",
         "logger",
         "activities",
-        "logs"
+        "logs",
+        "tracker"
     ],
     "author": "HackerBay, Inc.",
     "license": "ISC",
@@ -25,7 +27,6 @@
         "@babel/plugin-transform-runtime": "^7.11.0",
         "@babel/preset-env": "^7.10.2",
         "@babel/register": "^7.10.1",
-        "babel-loader": "^8.1.0",
         "chai": "^4.2.0",
         "chai-http": "^4.3.0",
         "depcheck": "^0.9.2",
@@ -35,7 +36,8 @@
     },
     "dependencies": {
         "@babel/polyfill": "^7.10.1",
-        "axios": "^0.19.2",
+        "axios": "^0.21.1",
+        "babel-loader": "^8.2.2",
         "uuid": "^8.3.1"
     },
     "directories": {

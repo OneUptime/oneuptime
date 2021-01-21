@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { name, version } from '../package.json';
 
-class FyipeTracker {
+class ErrorTracker {
     // constructor to set up global listeners
     #utilObj;
     #listenerObj;
@@ -294,4 +294,4 @@ class FyipeTracker {
         this.#listenerObj.clearTimeline(newEventId);
     }
 }
-export default FyipeTracker;
+export default ErrorTracker;

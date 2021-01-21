@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Field, reduxForm } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 import { ValidateField } from '../../config';
 import Color from '../basic/Color';
 import { RenderField } from '../basic/RenderField';
@@ -99,134 +100,141 @@ class EditIncidentPriority extends Component {
                 <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Edit Incident Priority</span>
-                                </span>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <div className="bs-Fieldset-rows">
-                                    <div className="bs-Fieldset-row Margin-bottom--12">
-                                        <label className="bs-Fieldset-label">
-                                            Priority name
-                                        </label>
-                                        <div className="bs-Fieldset-fields">
-                                            <Field
-                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                component={RenderField}
-                                                name="name"
-                                                placeholder="Priority name"
-                                                disabled={
+                            <ClickOutside onClickOutside={closeThisDialog}>
+                                <div className="bs-Modal-header">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>Edit Incident Priority</span>
+                                    </span>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <div className="bs-Fieldset-rows">
+                                        <div className="bs-Fieldset-row Margin-bottom--12">
+                                            <label className="bs-Fieldset-label">
+                                                Priority name
+                                            </label>
+                                            <div className="bs-Fieldset-fields">
+                                                <Field
+                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                    component={RenderField}
+                                                    name="name"
+                                                    placeholder="Priority name"
+                                                    disabled={
+                                                        this.props
+                                                            .editIncidentPriority
+                                                            .requesting
+                                                    }
+                                                    validate={
+                                                        ValidateField.required
+                                                    }
+                                                    autoFocus={true}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="bs-Fieldset-row Margin-bottom--12">
+                                            <label className="bs-Fieldset-label">
+                                                Priority Color
+                                            </label>
+                                            <div className="bs-Fieldset-fields">
+                                                <Field
+                                                    component={ColorPicker}
+                                                    id="color"
+                                                    name="color"
+                                                    currentColorPicker="color"
+                                                    displayColorPicker={
+                                                        !this.props
+                                                            .editIncidentPriority
+                                                            .requesting &&
+                                                        displayColorPicker
+                                                    }
+                                                    handleClick={() =>
+                                                        this.setState({
+                                                            displayColorPicker: !this
+                                                                .state
+                                                                .displayColorPicker,
+                                                        })
+                                                    }
+                                                    handleClose={() =>
+                                                        this.setState({
+                                                            displayColorPicker: !this
+                                                                .state
+                                                                .displayColorPicker,
+                                                        })
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender
+                                            if={
+                                                this.props.editIncidentPriority
+                                                    .error
+                                            }
+                                        >
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {
+                                                                this.props
+                                                                    .editIncidentPriority
+                                                                    .error
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
+                                            type="button"
+                                            onClick={closeThisDialog}
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            disabled={
+                                                this.props.editIncidentPriority
+                                                    .requesting
+                                            }
+                                            id="EditIncidentPriority"
+                                        >
+                                            <ShouldRender
+                                                if={
                                                     this.props
                                                         .editIncidentPriority
                                                         .requesting
                                                 }
-                                                validate={
-                                                    ValidateField.required
-                                                }
-                                                autoFocus={true}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="bs-Fieldset-row Margin-bottom--12">
-                                        <label className="bs-Fieldset-label">
-                                            Priority Color
-                                        </label>
-                                        <div className="bs-Fieldset-fields">
-                                            <Field
-                                                component={ColorPicker}
-                                                id="color"
-                                                name="color"
-                                                currentColorPicker="color"
-                                                displayColorPicker={
-                                                    !this.props
-                                                        .editIncidentPriority
-                                                        .requesting &&
-                                                    displayColorPicker
-                                                }
-                                                handleClick={() =>
-                                                    this.setState({
-                                                        displayColorPicker: !this
-                                                            .state
-                                                            .displayColorPicker,
-                                                    })
-                                                }
-                                                handleClose={() =>
-                                                    this.setState({
-                                                        displayColorPicker: !this
-                                                            .state
-                                                            .displayColorPicker,
-                                                    })
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender
-                                        if={
-                                            this.props.editIncidentPriority
-                                                .error
-                                        }
-                                    >
-                                        <div className="bs-Tail-copy">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
                                             >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {
-                                                            this.props
-                                                                .editIncidentPriority
-                                                                .error
-                                                        }
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton btn__modal"
-                                        type="button"
-                                        onClick={closeThisDialog}
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                        disabled={
-                                            this.props.editIncidentPriority
-                                                .requesting
-                                        }
-                                        id="EditIncidentPriority"
-                                    >
-                                        <ShouldRender
-                                            if={
-                                                this.props.editIncidentPriority
-                                                    .requesting
-                                            }
-                                        >
-                                            <Spinner />
-                                        </ShouldRender>
-                                        <span>Save</span>
-                                        <span className="create-btn__keycode">
-                                            <span className="keycode__icon keycode__icon--enter" />
-                                        </span>
-                                    </button>
+                                                <Spinner />
+                                            </ShouldRender>
+                                            <span>Save</span>
+                                            <span className="create-btn__keycode">
+                                                <span className="keycode__icon keycode__icon--enter" />
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </form>

@@ -12,6 +12,7 @@ function BreadCrumbItem({
     type,
     status,
     containerType,
+    icon,
 }) {
     const id = name ? name.split(' ').join('') : '';
     const pages = pageTitles();
@@ -38,7 +39,7 @@ function BreadCrumbItem({
         titleIcon.setAttribute(
             'class',
             `page-title-icon db-SideNav-icon--${
-                pages[pageTitle ?? name]
+                icon ? icon : pages[pageTitle ?? name]
             } db-SideNav-icon--selected`
         );
         if (!type && !status && !containerType) {
@@ -53,6 +54,8 @@ function BreadCrumbItem({
         resourceType.innerHTML = type
             ? type === 'server-monitor'
                 ? 'Server Monitor'
+                : type === 'incomingHttpRequest'
+                ? 'incoming Http Request Monitor'
                 : type + ' Monitor'
             : status
             ? ' Status Page'
@@ -82,6 +85,7 @@ BreadCrumbItem.propTypes = {
     type: PropTypes.string,
     status: PropTypes.string,
     containerType: PropTypes.string,
+    icon: PropTypes.string,
 };
 
 export default BreadCrumbItem;

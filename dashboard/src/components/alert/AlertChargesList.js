@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import { ListLoader } from '../basic/Loader';
 import moment from 'moment';
 import { fetchAlertCharges } from '../../actions/alert';
+import { getProjectBalance } from '../../actions/project';
 import { history } from '../../store';
 
 export class AlertChargesList extends Component {
@@ -13,7 +14,7 @@ export class AlertChargesList extends Component {
         this.props = props;
     }
     componentDidMount() {
-        const { fetchAlertCharges } = this.props;
+        const { fetchAlertCharges, getProjectBalance } = this.props;
         let { projectId } = this.props;
         if (!projectId) {
             projectId = history.location.pathname
@@ -23,6 +24,7 @@ export class AlertChargesList extends Component {
         } else {
             fetchAlertCharges(projectId, 0, 5);
         }
+        getProjectBalance(projectId);
     }
 
     prevClicked = () => {
@@ -90,6 +92,16 @@ export class AlertChargesList extends Component {
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Alert Type</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Phone Number</span>
                                         </span>
                                     </div>
                                 </td>
@@ -177,16 +189,32 @@ export class AlertChargesList extends Component {
                                                             history.push(
                                                                 '/dashboard/project/' +
                                                                     projectId +
+                                                                    '/' +
+                                                                    alertCharge
+                                                                        .monitorId
+                                                                        .componentId +
                                                                     '/incidents/' +
-                                                                    alertCharge.incidentId
+                                                                    alertCharge
+                                                                        .incidentId
+                                                                        ._id
                                                             );
                                                         }}
                                                         className="Box-root Margin-right--16"
                                                     >
-                                                        <span>
-                                                            {
-                                                                alertCharge.incidentId
-                                                            }
+                                                        <span
+                                                            style={{
+                                                                textDecoration:
+                                                                    'underline',
+                                                            }}
+                                                        >
+                                                            <b>
+                                                                {'#'}
+                                                                {
+                                                                    alertCharge
+                                                                        .incidentId
+                                                                        .idNumber
+                                                                }
+                                                            </b>
                                                         </span>
                                                     </div>
                                                 </span>
@@ -220,15 +248,34 @@ export class AlertChargesList extends Component {
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                            <span>
+                                                                {alertCharge.alertId
+                                                                    ? alertCharge
+                                                                          .alertId
+                                                                          .alertVia
+                                                                    : alertCharge
+                                                                          .subscriberAlertId
+                                                                          .alertVia}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td
+                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                            style={{
+                                                height: '1px',
+                                                minWidth: '100px',
+                                            }}
+                                        >
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root Margin-right--16">
                                                         <span>
-                                                            {alertCharge.alertId
-                                                                ? alertCharge
-                                                                      .alertId
-                                                                      .alertVia
-                                                                : alertCharge
-                                                                      .subscriberAlertId
-                                                                      .alertVia}
+                                                            {alertCharge.sentTo}
                                                         </span>
                                                     </div>
                                                 </span>
@@ -361,7 +408,10 @@ export class AlertChargesList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ fetchAlertCharges }, dispatch);
+    return bindActionCreators(
+        { fetchAlertCharges, getProjectBalance },
+        dispatch
+    );
 };
 
 const mapStateToProps = state => {
@@ -403,6 +453,7 @@ AlertChargesList.propTypes = {
     limit: PropTypes.number,
     count: PropTypes.number,
     fetchAlertCharges: PropTypes.func.isRequired,
+    getProjectBalance: PropTypes.func,
 };
 
 AlertChargesList.displayName = 'AlertChargesList';

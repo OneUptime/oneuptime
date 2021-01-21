@@ -109,7 +109,7 @@ module.exports = {
             // get all unique hashes by error tracker Id
             const errorTrackerIssues = await IssueService.findBy(
                 query,
-                limit,
+                0,
                 skip
             );
 
@@ -117,7 +117,10 @@ module.exports = {
             let index = 0;
 
             // if the next index is available in the issue tracker, proceed
-            while (errorTrackerIssues[index]) {
+            while (
+                errorTrackerIssues[index] &&
+                totalErrorEvents.length < limit
+            ) {
                 const issue = errorTrackerIssues[index];
 
                 if (issue) {
@@ -168,6 +171,10 @@ module.exports = {
                 // increment index
                 index = index + 1;
             }
+            // sort total error events by latest occurence date
+            totalErrorEvents.sort((eventA, eventB) =>
+                moment(eventB.latestOccurennce).isAfter(eventA.latestOccurennce)
+            );
             let dateRange = { startDate: '', endDate: '' };
             // set the date time range
             if (query.createdAt) {
@@ -182,6 +189,17 @@ module.exports = {
                               totalErrorEvents[totalErrorEvents.length - 1]
                                   .earliestOccurennce,
                           endDate: totalErrorEvents[0].latestOccurennce,
+                      })
+                    : null;
+                errorTrackerIssues.length > 0
+                    ? (dateRange = {
+                          startDate:
+                              errorTrackerIssues[errorTrackerIssues.length - 1]
+                                  .createdAt,
+                          endDate:
+                              totalErrorEvents.length > 0
+                                  ? totalErrorEvents[0].latestOccurennce
+                                  : errorTrackerIssues[0].createdAt,
                       })
                     : null;
             }
@@ -327,3 +345,4 @@ const ErrorEventModel = require('../models/errorEvent');
 const ErrorService = require('./errorService');
 const IssueService = require('./issueService');
 const IssueMemberService = require('./issueMemberService');
+const moment = require('moment');

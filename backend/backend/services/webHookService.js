@@ -6,7 +6,8 @@ module.exports = {
         incident,
         monitor,
         component,
-        duration
+        duration,
+        { note, incidentState, statusNoteStatus } = {}
     ) {
         try {
             const project = await ProjectService.findOneBy({ _id: projectId });
@@ -25,7 +26,8 @@ module.exports = {
                 monitorStatus ? monitorStatus.status : null,
                 component,
                 duration,
-                EXTERNAL_SUBSCRIBER_WEBHOOK
+                EXTERNAL_SUBSCRIBER_WEBHOOK,
+                { note, incidentState, statusNoteStatus }
             );
         } catch (error) {
             ErrorService.log(
@@ -41,7 +43,8 @@ module.exports = {
         monitor,
         incidentStatus,
         component,
-        duration
+        duration,
+        { note, incidentState, statusNoteStatus } = {}
     ) {
         try {
             const self = this;
@@ -86,7 +89,13 @@ module.exports = {
                     integration,
                     monitorStatus ? monitorStatus.status : null,
                     component,
-                    duration
+                    duration,
+                    PROJECT_WEBHOOK,
+                    {
+                        note,
+                        incidentState,
+                        statusNoteStatus,
+                    }
                 );
             }
             return response;
@@ -108,7 +117,8 @@ module.exports = {
         monitorStatus,
         component,
         duration,
-        webHookType = PROJECT_WEBHOOK
+        webHookType = PROJECT_WEBHOOK,
+        { note, incidentState, statusNoteStatus } = {}
     ) {
         try {
             const uri = `${global.dashboardHost}/project/${component.projectId._id}/${component._id}/incidents/${incident._id}`;
@@ -117,48 +127,71 @@ module.exports = {
             let payload;
             let webHookURL;
             let httpMethod;
+            const isStatusPageNoteNotification =
+                note && incidentState && statusNoteStatus;
+            let notificationTitle = '';
+            let notificationText = '';
+
+            // set title and text for status note notifications
+            if (isStatusPageNoteNotification) {
+                notificationText = note;
+                if (statusNoteStatus === 'created') {
+                    notificationTitle = `A new status note with status "${incidentState}" is created for incident #${incident.idNumber}`;
+                } else if (statusNoteStatus === 'updated') {
+                    notificationTitle = `A status note is updated`;
+                }
+            }
 
             if (incident.resolved) {
+                if (!isStatusPageNoteNotification) {
+                    notificationTitle = 'Incident Resolved';
+                    notificationText = `Incident on *${component.name} / ${
+                        monitor.name
+                    }* is resolved by ${
+                        incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
+                    } after being ${incident.incidentType} for ${duration}`;
+                }
+
                 payload = {
                     attachments: [
                         {
                             color: green,
-                            title: `Incident Resolved`,
+                            title: notificationTitle,
                             title_link: uri,
                             incidentId: incident._id,
-                            text: `Incident on *${component.name} / ${
-                                monitor.name
-                            }* is resolved by ${
-                                incident.resolvedBy
-                                    ? incident.resolvedBy.name
-                                    : 'Fyipe'
-                            } after being ${
-                                incident.incidentType
-                            } for ${duration}`,
+                            text: notificationText,
                         },
                     ],
                 };
             } else if (incident.acknowledged) {
+                if (!isStatusPageNoteNotification) {
+                    notificationTitle = 'Incident Acknowledged';
+                    notificationText = `Incident on *${component.name} / ${
+                        monitor.name
+                    }* is acknowledged by ${
+                        incident.acknowledgedBy
+                            ? incident.acknowledgedBy.name
+                            : 'Fyipe'
+                    } after being ${incident.incidentType} for ${duration}`;
+                }
+
                 payload = {
                     attachments: [
                         {
                             color: yellow,
-                            title: `Incident Acknowledged`,
+                            title: notificationTitle,
                             title_link: uri,
                             incidentId: incident._id,
-                            text: `Incident on *${component.name} / ${
-                                monitor.name
-                            }* is acknowledged by ${
-                                incident.acknowledgedBy
-                                    ? incident.acknowledgedBy.name
-                                    : 'Fyipe'
-                            } after being ${
-                                incident.incidentType
-                            } for ${duration}`,
+                            text: notificationText,
                         },
                     ],
                 };
             } else {
+                if (!isStatusPageNoteNotification) {
+                    notificationTitle = 'New Incident Created';
+                    notificationText = `New ${incident.incidentType} incident for ${monitor.name}`;
+                }
+
                 payload = {
                     attachments: [
                         {
@@ -168,7 +201,10 @@ module.exports = {
                                     : incident.incidentType === 'degraded'
                                     ? yellow
                                     : '#f00',
-                            title: `New ${incident.incidentType} incident for ${monitor.name}`,
+
+                            title: notificationTitle,
+                            text: notificationText,
+
                             title_link: uri,
                             fields: [
                                 {
@@ -238,7 +274,10 @@ module.exports = {
                     ],
                 };
             }
+
             const data = {
+                title: notificationTitle,
+                text: notificationText,
                 monitorName: monitor.name,
                 monitorId: monitor._id,
                 projectId: project._id,
@@ -284,6 +323,7 @@ module.exports = {
                         headers: {
                             'Content-Type': 'application/json',
                         },
+                        timeout: 5000,
                     })
                     .then(response => response.status)
                     .catch(error => {

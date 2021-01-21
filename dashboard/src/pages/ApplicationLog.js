@@ -125,7 +125,10 @@ class ApplicationLog extends Component {
                                             }
                                         />
                                     </ShouldRender>
-                                    <LibraryList />
+                                    <LibraryList
+                                        title="Log Container"
+                                        type="logs"
+                                    />
                                     {applicationLogsList}
                                     <NewApplicationLog
                                         index={2000}

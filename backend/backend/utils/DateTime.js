@@ -20,6 +20,42 @@ const _this = {
             .toDate();
     },
 
+    compareDate: function(startTime, endTime, currentTime) {
+        const isDifferentDay = startTime >= endTime;
+        const [startHour, startMin] = startTime.split(':');
+        const [endHour, endMin] = endTime.split(':');
+        const [nowHour, nowMin] = currentTime.split(':');
+        const addDay = 86400000;
+
+        const start = new Date(
+            new Date().setHours(startHour, startMin)
+        ).getTime();
+        const end = isDifferentDay
+            ? new Date(
+                  new Date(new Date().getTime() + addDay).setHours(
+                      endHour,
+                      endMin
+                  )
+              ).getTime()
+            : new Date(
+                  new Date(new Date().getTime()).setHours(endHour, endMin)
+              ).getTime();
+        let current = new Date(new Date().setHours(nowHour, nowMin)).getTime();
+
+        current =
+            current < start && isDifferentDay
+                ? new Date(
+                      new Date(new Date().getTime() + addDay).setHours(
+                          nowHour,
+                          nowMin
+                      )
+                  ).getTime()
+                : current;
+
+        if (current >= start && current <= end) return true;
+        return false;
+    },
+
     convertToTimezone: function(date, timezone) {
         if (typeof date === 'string') {
             date = new Date(date);

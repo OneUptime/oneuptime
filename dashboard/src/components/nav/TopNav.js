@@ -6,7 +6,6 @@ import FeedBackModal from '../FeedbackModal';
 import { showProfileMenu } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
 import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
-import ClickOutside from 'react-click-outside';
 import { userSettings } from '../../actions/profile';
 import { userScheduleRequest, fetchUserSchedule } from '../../actions/schedule';
 import { getVersion } from '../../actions/version';
@@ -278,82 +277,81 @@ class TopContent extends Component {
 
         if (userSchedules && userSchedules.length > 0) {
             userSchedules.forEach(userSchedule => {
-                const now = (userSchedule && userSchedule.timezone
-                    ? moment().tz(userSchedule.timezone)
-                    : moment()
-                ).format('HH:mm');
+                const now = (userSchedule && moment()).format('HH:mm');
+                const oncallstart = moment(userSchedule.startTime).format(
+                    'HH:mm'
+                );
+                const oncallend = moment(userSchedule.endTime).format('HH:mm');
                 const dayStart = moment().startOf('day');
                 const dayEnd = moment().endOf('day');
 
-                const startTime = (userSchedule && userSchedule.timezone
-                    ? moment(userSchedule.startTime || dayStart).tz(
-                          userSchedule.timezone
-                      )
-                    : moment(userSchedule.startTime || dayStart)
-                ).format('HH:mm');
-                const endTime = (userSchedule && userSchedule.timezone
-                    ? moment(userSchedule.endTime || dayEnd).tz(
-                          userSchedule.timezone
-                      )
-                    : moment(userSchedule.endTime || dayEnd)
+                const startTime = moment(
+                    (userSchedule && userSchedule.startTime) || dayStart
                 ).format('HH:mm');
 
-                let hours = Math.ceil(
-                    moment(endTime, 'HH:mm').diff(
-                        moment(startTime, 'HH:mm'),
-                        'minutes'
-                    ) / 60
-                );
-                hours = hours < 0 ? hours + 24 : hours;
+                const endTime = moment(
+                    (userSchedule && userSchedule.endTime) || dayEnd
+                ).format('HH:mm');
 
-                let hoursToStart = Math.ceil(
-                    moment(startTime, 'HH:mm').diff(
-                        moment(now, 'HH:mm'),
-                        'minutes'
-                    ) / 60
-                );
-                hoursToStart =
-                    hoursToStart < 0 ? hoursToStart + 24 : hoursToStart;
+                const compareDate = (oncallstart, oncallend, now) => {
+                    const isDifferentDay = oncallstart >= oncallend;
+                    const [startHour, startMin] = oncallstart.split(':');
+                    const [endHour, endMin] = oncallend.split(':');
+                    const [nowHour, nowMin] = now.split(':');
+                    const addDay = 86400000;
 
-                const hoursToEnd = hours + hoursToStart;
+                    const start = new Date(
+                        new Date().setHours(startHour, startMin)
+                    ).getTime();
+                    const end = isDifferentDay
+                        ? new Date(
+                              new Date(new Date().getTime() + addDay).setHours(
+                                  endHour,
+                                  endMin
+                              )
+                          ).getTime()
+                        : new Date(
+                              new Date(new Date().getTime()).setHours(
+                                  endHour,
+                                  endMin
+                              )
+                          ).getTime();
+                    let current = new Date(
+                        new Date().setHours(nowHour, nowMin)
+                    ).getTime();
 
-                let nowToEnd = Math.ceil(
-                    moment(endTime, 'HH:mm').diff(
-                        moment(now, 'HH:mm'),
-                        'minutes'
-                    ) / 60
-                );
-                nowToEnd = nowToEnd < 0 ? nowToEnd + 24 : nowToEnd;
+                    current =
+                        current < start && isDifferentDay
+                            ? new Date(
+                                  new Date(
+                                      new Date().getTime() + addDay
+                                  ).setHours(nowHour, nowMin)
+                              ).getTime()
+                            : current;
+
+                    if (current >= start && current <= end) return true;
+                    return false;
+                };
 
                 const isUserActive =
-                    (hoursToEnd !== nowToEnd || hoursToStart <= 0) &&
-                    nowToEnd > 0;
+                    compareDate(oncallstart, oncallend, now) ||
+                    oncallstart === oncallend;
 
-                const timezone = (userSchedule && userSchedule.timezone
-                    ? moment(userSchedule.startTime || dayStart).tz(
-                          userSchedule.timezone
-                      )
-                    : moment(userSchedule.startTime || dayStart)
-                ).zoneAbbr();
-
+                const isUpcoming = moment(startTime, 'HH:mm').diff(
+                    moment(now, 'HH:mm'),
+                    'minutes'
+                );
                 const isOnDutyAllTheTime =
-                    userSchedule.startTime &&
-                    userSchedule.endTime &&
-                    userSchedule.timezone
-                        ? false
-                        : true;
+                    userSchedule.startTime === userSchedule.endTime;
 
                 const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
-                tempObj.timezone = timezone;
 
                 if (isUserActive) {
                     activeSchedules.push(tempObj);
                 } else {
-                    hoursToStart =
-                        hoursToStart <= 0 ? hoursToStart + 24 : hoursToStart;
-                    if (hoursToStart < 24) {
+                    if (isUpcoming) {
                         upcomingSchedules.push(tempObj);
                     } else {
                         inactiveSchedules.push(tempObj);
@@ -388,10 +386,7 @@ class TopContent extends Component {
                             </div>
                         </div>
                     </div>
-
-                    <ClickOutside onClickOutside={this.hideFeedbackModal}>
-                        <FeedBackModal />
-                    </ClickOutside>
+                    <FeedBackModal hideFeedbackModal={this.hideFeedbackModal} />
 
                     <div
                         className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart"
@@ -494,7 +489,7 @@ class TopContent extends Component {
                                 </button>
                             </div>
                         </div>
-                        <div className="Box-root">
+                        <div className="Box-root margin-20">
                             <div>
                                 <div className="Box-root Flex-flex">
                                     <div className="Box-root Flex-flex">

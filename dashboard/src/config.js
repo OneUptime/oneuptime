@@ -318,6 +318,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 264,
                     details: '$264 / Year / User',
+                    title: 'Startup Plan',
                 },
                 {
                     category: 'Growth',
@@ -332,6 +333,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 588,
                     details: '$588 / Year / User',
+                    title: 'Growth Plan',
                 },
                 {
                     category: 'Scale',
@@ -346,6 +348,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 1188,
                     details: '$1188 / Year / User',
+                    title: 'Scale Plan',
                 },
             ];
         } else {
@@ -363,6 +366,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 264,
                     details: '$264 / Year / User',
+                    title: 'Startup Plan',
                 },
                 {
                     category: 'Growth',
@@ -377,6 +381,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 588,
                     details: '$588 / Year / User',
+                    title: 'Growth Plan',
                 },
                 {
                     category: 'Scale',
@@ -391,6 +396,7 @@ export const PricingPlan = {
                     type: 'annual',
                     amount: 1188,
                     details: '$1188 / Year / User',
+                    title: 'Scale Plan',
                 },
             ];
         }
@@ -489,14 +495,14 @@ export const tutorials = {
             },
             {
                 id: 'call-schedule',
-                title: 'What are call schedules?',
+                title: 'What are call duties?',
                 iconText: 'schedule',
                 icon:
                     'data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMTkuMC4wLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogNi4wMCBCdWlsZCAwKSAgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeD0iMHB4IiB5PSIwcHgiIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgd2lkdGg9IjUxMnB4IiBoZWlnaHQ9IjUxMnB4Ij4KPHBhdGggc3R5bGU9ImZpbGw6I0VGRjJGQTsiIGQ9Ik00OTQuMzQ1LDQ1OS4wMzRIMTcuNjU1QzcuOTA0LDQ1OS4wMzQsMCw0NTEuMTMsMCw0NDEuMzc5VjM1LjMxYzAtOS43NTEsNy45MDQtMTcuNjU1LDE3LjY1NS0xNy42NTUgIGg0NzYuNjljOS43NTEsMCwxNy42NTUsNy45MDQsMTcuNjU1LDE3LjY1NXY0MDYuMDY5QzUxMiw0NTEuMTI5LDUwNC4wOTUsNDU5LjAzNCw0OTQuMzQ1LDQ1OS4wMzR6Ii8+CjxwYXRoIHN0eWxlPSJmaWxsOiNFNEVBRjY7IiBkPSJNMzc4LjE5MSw0NTkuMDM0YzEyLjA0NC0yMC43OTEsMTkuMDUtNDQuODY0LDE5LjA1LTcwLjYyMWMwLTc4LjAwNS02My4yMzYtMTQxLjI0MS0xNDEuMjQxLTE0MS4yNDEgIHMtMTQxLjI0MSw2My4yMzYtMTQxLjI0MSwxNDEuMjQxYzAsMjUuNzU3LDcuMDA2LDQ5LjgyOSwxOS4wNSw3MC42MjFIMzc4LjE5MXoiLz4KPHBhdGggc3R5bGU9ImZpbGw6I0ZGNjQ2NDsiIGQ9Ik01MTIsMTA1LjkzMUgwVjM1LjMxYzAtOS43NTEsNy45MDQtMTcuNjU1LDE3LjY1NS0xNy42NTVoNDc2LjY5YzkuNzUxLDAsMTcuNjU1LDcuOTA0LDE3LjY1NSwxNy42NTUgIFYxMDUuOTMxeiIvPgo8cmVjdCB5PSIxMDUuOTMxIiBzdHlsZT0iZmlsbDojRTRFQUY2OyIgd2lkdGg9IjUxMiIgaGVpZ2h0PSIxNy42NTUiLz4KPGNpcmNsZSBzdHlsZT0iZmlsbDojRDI1NTVBOyIgY3g9Ijc1LjAzNCIgY3k9IjU3LjM3OSIgcj0iMjYuNDgzIi8+CjxwYXRoIHN0eWxlPSJmaWxsOiNDN0NGRTI7IiBkPSJNNzUuMDM0LDcwLjYyMUw3NS4wMzQsNzAuNjIxYy03LjMxMywwLTEzLjI0MS01LjkyOS0xMy4yNDEtMTMuMjQxVjEzLjI0MSAgQzYxLjc5Myw1LjkyOSw2Ny43MjIsMCw3NS4wMzQsMGwwLDBjNy4zMTMsMCwxMy4yNDEsNS45MjksMTMuMjQxLDEzLjI0MXY0NC4xMzhDODguMjc2LDY0LjY5Miw4Mi4zNDcsNzAuNjIxLDc1LjAzNCw3MC42MjF6Ii8+CjxwYXRoIHN0eWxlPSJmaWxsOiNBRkI5RDI7IiBkPSJNNzUuMDM0LDQ0LjEzOGMtNy4zMTMsMC0xMy4yNDEtNS45MjktMTMuMjQxLTEzLjI0MXYyNi40ODNjMCw3LjMxMyw1LjkyOSwxMy4yNDEsMTMuMjQxLDEzLjI0MSAgYzcuMzEzLDAsMTMuMjQxLTUuOTI5LDEzLjI0MS0xMy4yNDFWMzAuODk3Qzg4LjI3NiwzOC4yMDksODIuMzQ3LDQ0LjEzOCw3NS4wMzQsNDQuMTM4eiIvPgo8Y2lyY2xlIHN0eWxlPSJmaWxsOiNEMjU1NUE7IiBjeD0iNDM2Ljk2NiIgY3k9IjU3LjM3OSIgcj0iMjYuNDgzIi8+CjxwYXRoIHN0eWxlPSJmaWxsOiNDN0NGRTI7IiBkPSJNNDM2Ljk2Niw3MC42MjFMNDM2Ljk2Niw3MC42MjFjLTcuMzEzLDAtMTMuMjQxLTUuOTI5LTEzLjI0MS0xMy4yNDFWMTMuMjQxICBDNDIzLjcyNCw1LjkyOSw0MjkuNjUzLDAsNDM2Ljk2NiwwbDAsMGM3LjMxMywwLDEzLjI0MSw1LjkyOSwxMy4yNDEsMTMuMjQxdjQ0LjEzOEM0NTAuMjA3LDY0LjY5Miw0NDQuMjc4LDcwLjYyMSw0MzYuOTY2LDcwLjYyMXoiLz4KPHBhdGggc3R5bGU9ImZpbGw6I0FGQjlEMjsiIGQ9Ik00MzYuOTY2LDQ0LjEzOGMtNy4zMTMsMC0xMy4yNDEtNS45MjktMTMuMjQxLTEzLjI0MXYyNi40ODNjMCw3LjMxMyw1LjkyOSwxMy4yNDEsMTMuMjQxLDEzLjI0MSAgczEzLjI0MS01LjkyOSwxMy4yNDEtMTMuMjQxVjMwLjg5N0M0NTAuMjA3LDM4LjIwOSw0NDQuMjc4LDQ0LjEzOCw0MzYuOTY2LDQ0LjEzOHoiLz4KPGc+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTk3LjEwMywyMjkuNTE3aC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOHYtMjYuNDgzYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDMTA1LjkzMSwyMjUuNTY1LDEwMS45NzgsMjI5LjUxNyw5Ny4xMDMsMjI5LjUxN3oiLz4KCTxwYXRoIHN0eWxlPSJmaWxsOiNFNEVBRjY7IiBkPSJNMTY3LjcyNCwyMjkuNTE3aC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOHYtMjYuNDgzYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDMTc2LjU1MiwyMjUuNTY1LDE3Mi41OTksMjI5LjUxNywxNjcuNzI0LDIyOS41MTd6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTIzOC4zNDUsMjI5LjUxN2gtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44Mjh2LTI2LjQ4M2MwLTQuODc1LDMuOTUzLTguODI4LDguODI4LTguODI4ICAgaDM1LjMxYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44Mjh2MjYuNDgzQzI0Ny4xNzIsMjI1LjU2NSwyNDMuMjIsMjI5LjUxNywyMzguMzQ1LDIyOS41MTd6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTMwOC45NjYsMjI5LjUxN2gtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44Mjh2LTI2LjQ4M2MwLTQuODc1LDMuOTUzLTguODI4LDguODI4LTguODI4ICAgaDM1LjMxYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44Mjh2MjYuNDgzQzMxNy43OTMsMjI1LjU2NSwzMTMuODQxLDIyOS41MTcsMzA4Ljk2NiwyMjkuNTE3eiIvPgo8L2c+CjxnPgoJPHBhdGggc3R5bGU9ImZpbGw6I0Q3REVFRDsiIGQ9Ik0zNzkuNTg2LDIyOS41MTdoLTM1LjMxYy00Ljg3NSwwLTguODI4LTMuOTUzLTguODI4LTguODI4di0yNi40ODNjMC00Ljg3NSwzLjk1My04LjgyOCw4LjgyOC04LjgyOCAgIGgzNS4zMWM0Ljg3NSwwLDguODI4LDMuOTUzLDguODI4LDguODI4djI2LjQ4M0MzODguNDE0LDIyNS41NjUsMzg0LjQ2MSwyMjkuNTE3LDM3OS41ODYsMjI5LjUxN3oiLz4KCTxwYXRoIHN0eWxlPSJmaWxsOiNEN0RFRUQ7IiBkPSJNNDUwLjIwNywyMjkuNTE3aC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOHYtMjYuNDgzYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDNDU5LjAzNCwyMjUuNTY1LDQ1NS4wODIsMjI5LjUxNyw0NTAuMjA3LDIyOS41MTd6Ii8+CjwvZz4KPGc+Cgk8cGF0aCBzdHlsZT0iZmlsbDojQzdDRkUyOyIgZD0iTTk3LjEwMywxNjcuNzI0aC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOGwwLDBjMC00Ljg3NSwzLjk1My04LjgyOCw4LjgyOC04LjgyOCAgIGgzNS4zMWM0Ljg3NSwwLDguODI4LDMuOTUzLDguODI4LDguODI4bDAsMEMxMDUuOTMxLDE2My43NzIsMTAxLjk3OCwxNjcuNzI0LDk3LjEwMywxNjcuNzI0eiIvPgoJPHBhdGggc3R5bGU9ImZpbGw6I0M3Q0ZFMjsiIGQ9Ik0xNjcuNzI0LDE2Ny43MjRoLTM1LjMxYy00Ljg3NSwwLTguODI4LTMuOTUzLTguODI4LTguODI4bDAsMGMwLTQuODc1LDMuOTUzLTguODI4LDguODI4LTguODI4ICAgaDM1LjMxYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44MjhsMCwwQzE3Ni41NTIsMTYzLjc3MiwxNzIuNTk5LDE2Ny43MjQsMTY3LjcyNCwxNjcuNzI0eiIvPgoJPHBhdGggc3R5bGU9ImZpbGw6I0M3Q0ZFMjsiIGQ9Ik0yMzguMzQ1LDE2Ny43MjRoLTM1LjMxYy00Ljg3NSwwLTguODI4LTMuOTUzLTguODI4LTguODI4bDAsMGMwLTQuODc1LDMuOTUzLTguODI4LDguODI4LTguODI4ICAgaDM1LjMxYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44MjhsMCwwQzI0Ny4xNzIsMTYzLjc3MiwyNDMuMjIsMTY3LjcyNCwyMzguMzQ1LDE2Ny43MjR6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojQzdDRkUyOyIgZD0iTTMwOC45NjYsMTY3LjcyNGgtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44MjhsMCwwYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOGwwLDBDMzE3Ljc5MywxNjMuNzcyLDMxMy44NDEsMTY3LjcyNCwzMDguOTY2LDE2Ny43MjR6Ii8+CjwvZz4KPGc+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRkY2NDY0OyIgZD0iTTM3OS41ODYsMTY3LjcyNGgtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44MjhsMCwwYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOGwwLDBDMzg4LjQxNCwxNjMuNzcyLDM4NC40NjEsMTY3LjcyNCwzNzkuNTg2LDE2Ny43MjR6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRkY2NDY0OyIgZD0iTTQ1MC4yMDcsMTY3LjcyNGgtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44MjhsMCwwYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOGwwLDBDNDU5LjAzNCwxNjMuNzcyLDQ1NS4wODIsMTY3LjcyNCw0NTAuMjA3LDE2Ny43MjR6Ii8+CjwvZz4KPGc+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTk3LjEwMywyOTEuMzFoLTM1LjMxYy00Ljg3NSwwLTguODI4LTMuOTUzLTguODI4LTguODI4VjI1NmMwLTQuODc1LDMuOTUzLTguODI4LDguODI4LTguODI4aDM1LjMxICAgYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44Mjh2MjYuNDgzQzEwNS45MzEsMjg3LjM1OCwxMDEuOTc4LDI5MS4zMSw5Ny4xMDMsMjkxLjMxeiIvPgoJPHBhdGggc3R5bGU9ImZpbGw6I0U0RUFGNjsiIGQ9Ik0xNjcuNzI0LDI5MS4zMWgtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44MjhWMjU2YzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDMTc2LjU1MiwyODcuMzU4LDE3Mi41OTksMjkxLjMxLDE2Ny43MjQsMjkxLjMxeiIvPgoJPHBhdGggc3R5bGU9ImZpbGw6I0U0RUFGNjsiIGQ9Ik0yMzguMzQ1LDI5MS4zMWgtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44MjhWMjU2YzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDMjQ3LjE3MiwyODcuMzU4LDI0My4yMiwyOTEuMzEsMjM4LjM0NSwyOTEuMzF6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTMwOC45NjYsMjkxLjMxaC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOFYyNTZjMC00Ljg3NSwzLjk1My04LjgyOCw4LjgyOC04LjgyOCAgIGgzNS4zMWM0Ljg3NSwwLDguODI4LDMuOTUzLDguODI4LDguODI4djI2LjQ4M0MzMTcuNzkzLDI4Ny4zNTgsMzEzLjg0MSwyOTEuMzEsMzA4Ljk2NiwyOTEuMzF6Ii8+CjwvZz4KPGc+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRDdERUVEOyIgZD0iTTM3OS41ODYsMjkxLjMxaC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOFYyNTZjMC00Ljg3NSwzLjk1My04LjgyOCw4LjgyOC04LjgyOCAgIGgzNS4zMWM0Ljg3NSwwLDguODI4LDMuOTUzLDguODI4LDguODI4djI2LjQ4M0MzODguNDE0LDI4Ny4zNTgsMzg0LjQ2MSwyOTEuMzEsMzc5LjU4NiwyOTEuMzF6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRDdERUVEOyIgZD0iTTQ1MC4yMDcsMjkxLjMxaC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOFYyNTZjMC00Ljg3NSwzLjk1My04LjgyOCw4LjgyOC04LjgyOCAgIGgzNS4zMWM0Ljg3NSwwLDguODI4LDMuOTUzLDguODI4LDguODI4djI2LjQ4M0M0NTkuMDM0LDI4Ny4zNTgsNDU1LjA4MiwyOTEuMzEsNDUwLjIwNywyOTEuMzF6Ii8+CjwvZz4KPGc+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTk3LjEwMywzNTMuMTAzaC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOHYtMjYuNDgzYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDMTA1LjkzMSwzNDkuMTUxLDEwMS45NzgsMzUzLjEwMyw5Ny4xMDMsMzUzLjEwM3oiLz4KCTxwYXRoIHN0eWxlPSJmaWxsOiNFNEVBRjY7IiBkPSJNMTY3LjcyNCwzNTMuMTAzaC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOHYtMjYuNDgzYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDMTc2LjU1MiwzNDkuMTUxLDE3Mi41OTksMzUzLjEwMywxNjcuNzI0LDM1My4xMDN6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTIzOC4zNDUsMzUzLjEwM2gtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44Mjh2LTI2LjQ4M2MwLTQuODc1LDMuOTUzLTguODI4LDguODI4LTguODI4ICAgaDM1LjMxYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44Mjh2MjYuNDgzQzI0Ny4xNzIsMzQ5LjE1MSwyNDMuMjIsMzUzLjEwMywyMzguMzQ1LDM1My4xMDN6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTMwOC45NjYsMzUzLjEwM2gtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44Mjh2LTI2LjQ4M2MwLTQuODc1LDMuOTUzLTguODI4LDguODI4LTguODI4ICAgaDM1LjMxYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44Mjh2MjYuNDgzQzMxNy43OTMsMzQ5LjE1MSwzMTMuODQxLDM1My4xMDMsMzA4Ljk2NiwzNTMuMTAzeiIvPgo8L2c+CjxnPgoJPHBhdGggc3R5bGU9ImZpbGw6I0Q3REVFRDsiIGQ9Ik0zNzkuNTg2LDM1My4xMDNoLTM1LjMxYy00Ljg3NSwwLTguODI4LTMuOTUzLTguODI4LTguODI4di0yNi40ODNjMC00Ljg3NSwzLjk1My04LjgyOCw4LjgyOC04LjgyOCAgIGgzNS4zMWM0Ljg3NSwwLDguODI4LDMuOTUzLDguODI4LDguODI4djI2LjQ4M0MzODguNDE0LDM0OS4xNTEsMzg0LjQ2MSwzNTMuMTAzLDM3OS41ODYsMzUzLjEwM3oiLz4KCTxwYXRoIHN0eWxlPSJmaWxsOiNEN0RFRUQ7IiBkPSJNNDUwLjIwNywzNTMuMTAzaC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOHYtMjYuNDgzYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDNDU5LjAzNCwzNDkuMTUxLDQ1NS4wODIsMzUzLjEwMyw0NTAuMjA3LDM1My4xMDN6Ii8+CjwvZz4KPGc+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTk3LjEwMyw0MTQuODk3aC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOHYtMjYuNDgzYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDMTA1LjkzMSw0MTAuOTQ0LDEwMS45NzgsNDE0Ljg5Nyw5Ny4xMDMsNDE0Ljg5N3oiLz4KCTxwYXRoIHN0eWxlPSJmaWxsOiNFNEVBRjY7IiBkPSJNMTY3LjcyNCw0MTQuODk3aC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOHYtMjYuNDgzYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDMTc2LjU1Miw0MTAuOTQ0LDE3Mi41OTksNDE0Ljg5NywxNjcuNzI0LDQxNC44OTd6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTIzOC4zNDUsNDE0Ljg5N2gtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44Mjh2LTI2LjQ4M2MwLTQuODc1LDMuOTUzLTguODI4LDguODI4LTguODI4ICAgaDM1LjMxYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44Mjh2MjYuNDgzQzI0Ny4xNzIsNDEwLjk0NCwyNDMuMjIsNDE0Ljg5NywyMzguMzQ1LDQxNC44OTd6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRTRFQUY2OyIgZD0iTTMwOC45NjYsNDE0Ljg5N2gtMzUuMzFjLTQuODc1LDAtOC44MjgtMy45NTMtOC44MjgtOC44Mjh2LTI2LjQ4M2MwLTQuODc1LDMuOTUzLTguODI4LDguODI4LTguODI4ICAgaDM1LjMxYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44Mjh2MjYuNDgzQzMxNy43OTMsNDEwLjk0NCwzMTMuODQxLDQxNC44OTcsMzA4Ljk2Niw0MTQuODk3eiIvPgo8L2c+CjxnPgoJPHBhdGggc3R5bGU9ImZpbGw6I0Q3REVFRDsiIGQ9Ik0zNzkuNTg2LDQxNC44OTdoLTM1LjMxYy00Ljg3NSwwLTguODI4LTMuOTUzLTguODI4LTguODI4di0yNi40ODNjMC00Ljg3NSwzLjk1My04LjgyOCw4LjgyOC04LjgyOCAgIGgzNS4zMWM0Ljg3NSwwLDguODI4LDMuOTUzLDguODI4LDguODI4djI2LjQ4M0MzODguNDE0LDQxMC45NDQsMzg0LjQ2MSw0MTQuODk3LDM3OS41ODYsNDE0Ljg5N3oiLz4KCTxwYXRoIHN0eWxlPSJmaWxsOiNEN0RFRUQ7IiBkPSJNNDUwLjIwNyw0MTQuODk3aC0zNS4zMWMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOHYtMjYuNDgzYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjggICBoMzUuMzFjNC44NzUsMCw4LjgyOCwzLjk1Myw4LjgyOCw4LjgyOHYyNi40ODNDNDU5LjAzNCw0MTAuOTQ0LDQ1NS4wODIsNDE0Ljg5Nyw0NTAuMjA3LDQxNC44OTd6Ii8+CjwvZz4KPGNpcmNsZSBzdHlsZT0iZmlsbDojQUZCOUQyOyIgY3g9IjI1NiIgY3k9IjM4OC40MTQiIHI9IjEyMy41ODYiLz4KPGNpcmNsZSBzdHlsZT0iZmlsbDojRkZGRkZGOyIgY3g9IjI1NiIgY3k9IjM4OC40MTQiIHI9IjEwNS45MzEiLz4KPGNpcmNsZSBzdHlsZT0iZmlsbDojRUZGMkZBOyIgY3g9IjI1NiIgY3k9IjM4OC40MTQiIHI9IjYxLjc5MyIvPgo8Zz4KCTxwYXRoIHN0eWxlPSJmaWxsOiM3MDc0ODc7IiBkPSJNMjU2LDI3My42NTVMMjU2LDI3My42NTVjLTQuODc1LDAtOC44MjgsMy45NTMtOC44MjgsOC44Mjh2OC44MjhjMCw0Ljg3NSwzLjk1Myw4LjgyOCw4LjgyOCw4LjgyOCAgIGwwLDBjNC44NzUsMCw4LjgyOC0zLjk1Myw4LjgyOC04LjgyOHYtOC44MjhDMjY0LjgyOCwyNzcuNjA4LDI2MC44NzUsMjczLjY1NSwyNTYsMjczLjY1NXoiLz4KCTxwYXRoIHN0eWxlPSJmaWxsOiM3MDc0ODc7IiBkPSJNMjU2LDQ3Ni42OUwyNTYsNDc2LjY5Yy00Ljg3NSwwLTguODI4LDMuOTUzLTguODI4LDguODI4djguODI4YzAsNC44NzUsMy45NTMsOC44MjgsOC44MjgsOC44MjggICBsMCwwYzQuODc1LDAsOC44MjgtMy45NTMsOC44MjgtOC44Mjh2LTguODI4QzI2NC44MjgsNDgwLjY0MiwyNjAuODc1LDQ3Ni42OSwyNTYsNDc2LjY5eiIvPgoJPHBhdGggc3R5bGU9ImZpbGw6IzcwNzQ4NzsiIGQ9Ik0zNzAuNzU5LDM4OC40MTRMMzcwLjc1OSwzODguNDE0YzAtNC44NzUtMy45NTMtOC44MjgtOC44MjgtOC44MjhoLTguODI4ICAgYy00Ljg3NSwwLTguODI4LDMuOTUzLTguODI4LDguODI4bDAsMGMwLDQuODc1LDMuOTUzLDguODI4LDguODI4LDguODI4aDguODI4QzM2Ni44MDYsMzk3LjI0MSwzNzAuNzU5LDM5My4yODksMzcwLjc1OSwzODguNDE0eiIvPgoJPHBhdGggc3R5bGU9ImZpbGw6IzcwNzQ4NzsiIGQ9Ik0xNjcuNzI0LDM4OC40MTRMMTY3LjcyNCwzODguNDE0YzAtNC44NzUtMy45NTMtOC44MjgtOC44MjgtOC44MjhoLTguODI4ICAgYy00Ljg3NSwwLTguODI4LDMuOTUzLTguODI4LDguODI4bDAsMGMwLDQuODc1LDMuOTUzLDguODI4LDguODI4LDguODI4aDguODI4QzE2My43NzIsMzk3LjI0MSwxNjcuNzI0LDM5My4yODksMTY3LjcyNCwzODguNDE0eiIvPgo8L2c+CjxnPgoJPHBhdGggc3R5bGU9ImZpbGw6IzVCNUQ2RTsiIGQ9Ik0yNTYsNDIzLjcyNEwyNTYsNDIzLjcyNGMtNC44NzUsMC04LjgyOC0zLjk1My04LjgyOC04LjgyOHYtODguMjc2ICAgYzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjhsMCwwYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44Mjh2ODguMjc2QzI2NC44MjgsNDE5Ljc3MiwyNjAuODc1LDQyMy43MjQsMjU2LDQyMy43MjR6Ii8+Cgk8cGF0aCBzdHlsZT0iZmlsbDojNUI1RDZFOyIgZD0iTTIyMC42OSwzODguNDE0TDIyMC42OSwzODguNDE0YzAtNC44NzUsMy45NTMtOC44MjgsOC44MjgtOC44MjhoODguMjc2ICAgYzQuODc1LDAsOC44MjgsMy45NTMsOC44MjgsOC44MjhsMCwwYzAsNC44NzUtMy45NTMsOC44MjgtOC44MjgsOC44MjhoLTg4LjI3NkMyMjQuNjQyLDM5Ny4yNDEsMjIwLjY5LDM5My4yODksMjIwLjY5LDM4OC40MTR6Ii8+CjwvZz4KPGNpcmNsZSBzdHlsZT0iZmlsbDojQzdDRkUyOyIgY3g9IjI1NiIgY3k9IjM4OC40MTQiIHI9IjE3LjY1NSIvPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8Zz4KPC9nPgo8L3N2Zz4K',
                 description: (
                     <p>
-                        Call Schedules let&apos;s you connect your team members
-                        to specific monitors, so only on-duty members who are
+                        Call Duty let&apos;s you connect your team members to
+                        specific monitors, so only on-duty members who are
                         responsible for certain monitors are alerted when an
                         incident is created.
                     </p>
@@ -1044,4 +1050,258 @@ export const logLibraries = {
             },
         ];
     },
+    getQuickStarts() {
+        return [
+            {
+                id: 'js',
+                language: 'JavaScript',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: {
+                    installation: {
+                        package: 'NPM Install',
+                        command: '$ npm install fyipe',
+                    },
+                    usage: `// In a FrontEnd Environment
+import { ErrorTracker } from 'fyipe';
+                                
+// In a Backend Environment                    
+const { ErrorTracker } = require('fyipe');
+                                                    
+// in a Backend Environment with ES6                    
+import Fyipe from 'fyipe';                    
+const { ErrorTracker } = Fyipe;
+                                                    
+// set up tracking configurations                    
+const options = {                    
+    maxTimeline: 10,                    
 };
+                                                    
+// constructor                    
+const tracker = new ErrorTracker(                    
+    'https://fyipe.com/api'
+    'ERROR_TRACKER_ID',
+    'ERROR_TRACKER_KEY',
+    options // Optional Field
+);
+                                
+// capturing error exception 
+NonExistingMethodCall(); // this is automatically captured and sent to your fyipe dashboard
+                                
+// capturing error exception manually
+try {
+    // your code logic
+    NonExistingMethodCall();
+} catch (error) {
+    tracker.captureException(error);
+}
+                `,
+                },
+
+                logs: {
+                    installation: {
+                        package: 'NPM Install',
+                        command: '$ npm install fyipe',
+                    },
+                    usage: `
+// In a FrontEnd Environment
+import { Logger } from 'fyipe';
+                            
+// In a Backend Environment
+const { Logger } = require('fyipe');
+                            
+// in a Backend Environment with ES6
+import Fyipe from 'fyipe';
+const { Logger } = Fyipe;
+            
+// constructor
+const logger = new Logger(
+    'https://fyipe.com/api'
+    'APPLICATION_LOG_ID',
+    'APPLICATION_LOG_KEY'
+);
+                
+// Sending a JSON object log to the server    
+                
+const item = {
+    user: 'Test User',
+    page: {
+        title: 'Landing Page',
+        loadTime: '6s',
+    },
+};
+
+logger.log(item); // returns a promise
+            `,
+                },
+                old: 'No Docs available at the moment',
+            },
+            {
+                id: 'php',
+                language: 'PHP',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: {
+                    installation: {
+                        package: 'Composer Install',
+                        command: '$ composer require fyipe/sdk',
+                    },
+                    usage: `
+use Fyipe\\FyipeLogger;
+                
+// constructor
+$logger = new Fyipe\\FyipeLogger(                    
+    'https://fyipe.com/api'                    
+    'APPLICATION_LOG_ID',                    
+    'APPLICATION_LOG_KEY'
+);
+                
+// Sending an object log to the server
+$item = new stdClass();
+$item->user = 'Test User';
+$item->page = 'Landing Page';
+                
+$response = $logger->log($item);
+// response after logging a request
+var_dump($response);
+                `,
+                },
+            },
+            {
+                id: 'java',
+                language: 'Java',
+                errorTracking: 'No Docs available at the moment',
+                height: {
+                    install: '100px',
+                    usage: '300px',
+                },
+                logs: {
+                    installation: {
+                        package: 'Maven Install',
+                        command: `                        
+<dependency>
+    <groupId>io.hackerbay.fyipe</groupId>
+    <artifactId>java-sdk</artifactId>
+    <version>CURRENT_VERSION</version>
+</dependency>
+    `,
+                    },
+                    usage: `                        
+import com.google.gson.JsonObject;                        
+import io.hackerbay.fyipe.FyipeLogger;
+                                            
+// constructor                        
+FyipeLogger logger = new FyipeLogger(                        
+    "https://fyipe.com/api"                        
+    "APPLICATION_LOG_ID",                        
+    "APPLICATION_LOG_KEY"                    
+);
+                        
+// Logging any object of a class                        
+public void logACustomClassInformation(CustomClass customClass) {                        
+    String content = new Gson().toJson(customClass); // converts your custom class to a json object                        
+    JsonObject response = logger.log(content); // returns a JsonObject of response                        
+    System.out.println(response);                        
+}`,
+                },
+            },
+            {
+                id: 'python',
+                language: 'Python',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+            {
+                id: 'dotnet',
+                language: '.Net',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+            {
+                id: 'swift',
+                language: 'Swift',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+            {
+                id: 'rust',
+                language: 'Rust',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+            {
+                id: 'ruby',
+                language: 'Ruby',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+            {
+                id: 'go',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                language: 'Go',
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+        ];
+    },
+};
+
+export const incomingRequestVariables = [
+    {
+        variable: '{{monitorName}}',
+        description:
+            '{{monitorName}} : Name of the monitor on which the incident has occured',
+    },
+    {
+        variable: '{{projectName}}',
+        description:
+            '{{projectName}} : Name of the project on which the incident has occured',
+    },
+    {
+        variable: '{{componentName}}',
+        description:
+            '{{componentName}} : Name of the component the monitor belongs to',
+    },
+    {
+        variable: '{{request.body.*}}',
+        description:
+            '{{request.body.*}} : You can have any key value pair on the request body',
+    },
+    {
+        variable: '{{request.query.*}}',
+        description: '{{request.query.*}} : Attach any value to the query',
+    },
+    {
+        variable: '{{request.headers.*}}',
+        description:
+            '{{request.headers.*}} : You can attach any key value pair on the request headers',
+    },
+];

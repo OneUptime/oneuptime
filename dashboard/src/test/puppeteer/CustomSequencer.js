@@ -10,6 +10,7 @@ class CustomSequencer extends TestSequencer {
             'Component.test.js',
             'ApplicationLog.test.js',
             'CustomTutorial.test.js',
+            'KeyboardShortcut.test.js',
         ];
         const copyTests = Array.from(tests);
         return copyTests.sort((testA, testB) => {

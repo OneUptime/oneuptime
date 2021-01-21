@@ -6,6 +6,8 @@
 
 'use strict';
 
+const path = require('path');
+
 /** The api url to send server information. */
 const API_URL =
     process.env.API_URL ||
@@ -53,8 +55,25 @@ const offlineTestData = {
     maxTemp: 0,
 };
 
+const LOG_PATH = {
+    linux: {
+        log: '/var/log/Fyipe Server Monitor/fyipeservermonitor.log',
+        error: '/var/log/Fyipe Server Monitor/fyipeservermonitor_error.log',
+    },
+    darwin: {
+        log: '/Library/Logs/Fyipe Server Monitor/fyipeservermonitor.log',
+        error:
+            '/Library/Logs/Fyipe Server Monitor/fyipeservermonitor_error.log',
+    },
+    win32: {
+        log: path.join(__dirname, 'fyipeservermonitor.out.log'),
+        error: path.join(__dirname, 'fyipeservermonitor.err.log'),
+    },
+};
+
 module.exports = {
     API_URL,
+    LOG_PATH,
     onlineTestData,
     degradedTestData,
     offlineTestData,

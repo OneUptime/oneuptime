@@ -15,5 +15,6 @@ const lighthouseLogSchema = new Schema({
         type: Date,
         default: Date.now,
     },
+    scanning: Boolean,
 });
 module.exports = mongoose.model('LighthouseLog', lighthouseLogSchema);

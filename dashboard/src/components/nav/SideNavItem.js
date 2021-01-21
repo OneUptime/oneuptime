@@ -106,7 +106,7 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
             ) &&
-                route.title === 'On-Call Schedules') ||
+                route.title === 'On-Call Duty') ||
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/monitors\/([0-9]|[a-z])*/
             ) &&
@@ -136,7 +136,7 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/settings\/basic/
             ) &&
-                route.title === 'Scheduled Events') ||
+                route.title === 'Scheduled Maintenance') ||
             (location.pathname.match(/project\/([0-9]|[a-z])*\/consulting/) &&
                 route.title === 'Consulting & Services') ||
             (location.pathname.match(
@@ -234,6 +234,7 @@ export class SidebarNavItem extends Component {
                 <ShouldRender if={!route.invisible}>
                     <span
                         id={this.camalize(route.title)}
+                        style={{ cursor: 'pointer' }}
                         onClick={() => {
                             if (route.title === 'Back to Dashboard') {
                                 this.props.animateSidebar(true);
@@ -261,7 +262,8 @@ export class SidebarNavItem extends Component {
                                                     route.icon
                                                 } ${
                                                     isLinkActive ||
-                                                    isSubLinkActive || isScheduleLinkActive
+                                                    isSubLinkActive ||
+                                                    isScheduleLinkActive
                                                         ? 'db-SideNav-icon--selected'
                                                         : null
                                                 }`}
@@ -271,7 +273,9 @@ export class SidebarNavItem extends Component {
                                     <span
                                         className={
                                             'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
-                                            (isLinkActive || isSubLinkActive || isScheduleLinkActive
+                                            (isLinkActive ||
+                                            isSubLinkActive ||
+                                            isScheduleLinkActive
                                                 ? ' Text-color--fyipeblue Text-fontWeight--bold'
                                                 : ' Text-color--dark')
                                         }

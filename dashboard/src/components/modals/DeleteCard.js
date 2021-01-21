@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import ClickOutside from 'react-click-outside';
 import { deleteCard } from '../../actions/card';
 import { closeModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
@@ -18,17 +19,20 @@ class DeleteCard extends Component {
     }
 
     handleKeyBoard = e => {
-        const { deleteCardModalId } = this.props;
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({
-                    id: deleteCardModalId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return this.handleDelete();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.deleteCardModalId,
+        });
     };
 
     handleDelete = () => {
@@ -57,80 +61,89 @@ class DeleteCard extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Confirm Deletion</span>
+                            <ClickOutside
+                                onClickOutside={this.handleCloseModal}
+                            >
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Confirm Deletion</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-content">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        Are you sure you want to remove this
+                                        card ?
                                     </span>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Are you sure you want to remove this card ?
-                                </span>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div
-                                    className="bs-Modal-footer-actions"
-                                    style={{ width: 280 }}
-                                >
-                                    <ShouldRender if={error}>
-                                        <div
-                                            id="deleteCardError"
-                                            className="bs-Tail-copy"
-                                        >
+                                <div className="bs-Modal-footer">
+                                    <div
+                                        className="bs-Modal-footer-actions"
+                                        style={{ width: 280 }}
+                                    >
+                                        <ShouldRender if={error}>
                                             <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
+                                                id="deleteCardError"
+                                                className="bs-Tail-copy"
                                             >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {error}
-                                                    </span>
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {error}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
+                                        </ShouldRender>
+                                    </div>
+                                    <button
+                                        id="deleteCardCancel"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
+                                        type="button"
+                                        onClick={() =>
+                                            this.props.closeModal({
+                                                id: deleteCardModalId,
+                                            })
+                                        }
+                                    >
+                                        <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={this.handleDelete}
+                                        id="deleteCardButton"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
+                                        disabled={requesting}
+                                        type="submit"
+                                        autoFocus={true}
+                                    >
+                                        {!requesting && (
+                                            <>
+                                                <span>Remove</span>
+                                                <span className="delete-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </>
+                                        )}
+                                        {requesting && <FormLoader />}
+                                    </button>
                                 </div>
-                                <button
-                                    id="deleteCardCancel"
-                                    className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
-                                    type="button"
-                                    onClick={() =>
-                                        this.props.closeModal({
-                                            id: deleteCardModalId,
-                                        })
-                                    }
-                                >
-                                    <span>Cancel</span>
-                                    <span className="cancel-btn__keycode">
-                                        Esc
-                                    </span>
-                                </button>
-                                <button
-                                    onClick={this.handleDelete}
-                                    id="deleteCardButton"
-                                    className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
-                                    disabled={requesting}
-                                    type="submit"
-                                    autoFocus={true}
-                                >
-                                    {!requesting && (
-                                        <>
-                                            <span>Remove</span>
-                                            <span className="delete-btn__keycode">
-                                                <span className="keycode__icon keycode__icon--enter" />
-                                            </span>
-                                        </>
-                                    )}
-                                    {requesting && <FormLoader />}
-                                </button>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

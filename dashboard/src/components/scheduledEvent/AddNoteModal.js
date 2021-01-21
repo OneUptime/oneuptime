@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { ValidateField, SHOULD_LOG_ANALYTICS } from '../../config';
@@ -99,6 +100,7 @@ class AddNoteModal extends Component {
             creatingNote,
             createError,
             content,
+            closeThisDialog,
         } = this.props;
         const { type } = this.props.data;
 
@@ -110,173 +112,190 @@ class AddNoteModal extends Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--large">
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span id="incidentMessageTitleLabel">
-                                        {`Add New ${type
-                                            .charAt(0)
-                                            .toUpperCase()}${type.slice(
-                                            1
-                                        )} Note`}
+                        <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span id="incidentMessageTitleLabel">
+                                            {`Add New ${type
+                                                .charAt(0)
+                                                .toUpperCase()}${type.slice(
+                                                1
+                                            )} Note`}
+                                        </span>
                                     </span>
-                                </span>
+                                </div>
                             </div>
-                        </div>
-                        <form
-                            id={`form-new-schedule-${type}-message`}
-                            onSubmit={handleSubmit(this.submitForm)}
-                        >
-                            <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                                <div>
-                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                        <fieldset className="bs-Fieldset">
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
-                                                    Event State
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <Field
-                                                        className="db-select-nw-300"
-                                                        component={RenderSelect}
-                                                        name="event_state"
-                                                        id="event_state"
-                                                        placeholder="Event State"
-                                                        disabled={false}
-                                                        validate={
-                                                            ValidateField.select
-                                                        }
-                                                        style={{
-                                                            width: '300px',
-                                                        }}
-                                                        options={[
-                                                            {
-                                                                value:
-                                                                    'investigating',
-                                                                label:
-                                                                    'Investigating',
-                                                            },
-                                                            {
-                                                                value: 'update',
-                                                                label: 'Update',
-                                                            },
-                                                            {
-                                                                value: 'others',
-                                                                label: 'Others',
-                                                            },
-                                                        ]}
-                                                        autoFocus={true}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <ShouldRender
-                                                if={event_state === 'others'}
-                                            >
+                            <form
+                                id={`form-new-schedule-${type}-message`}
+                                onSubmit={handleSubmit(this.submitForm)}
+                            >
+                                <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                                    <div>
+                                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                            <fieldset className="bs-Fieldset">
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
-                                                        Custom Event State
+                                                        Maintenance State
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
-                                                            className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                            className="db-select-nw-300"
                                                             component={
-                                                                RenderField
+                                                                RenderSelect
                                                             }
-                                                            type="text"
-                                                            name={`custom_event_state`}
-                                                            id="custom_event_state"
-                                                            placeholder="Enter a custom event state"
+                                                            name="event_state"
+                                                            id="event_state"
+                                                            placeholder="Maintenance State"
+                                                            disabled={false}
                                                             validate={
-                                                                ValidateField.text
+                                                                ValidateField.select
                                                             }
+                                                            style={{
+                                                                width: '300px',
+                                                            }}
+                                                            options={[
+                                                                {
+                                                                    value:
+                                                                        'investigating',
+                                                                    label:
+                                                                        'Investigating',
+                                                                },
+                                                                {
+                                                                    value:
+                                                                        'update',
+                                                                    label:
+                                                                        'Update',
+                                                                },
+                                                                {
+                                                                    value:
+                                                                        'others',
+                                                                    label:
+                                                                        'Others',
+                                                                },
+                                                            ]}
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
-                                            </ShouldRender>
-                                            <div className="bs-Fieldset-rows">
-                                                <div className="bs-Fieldset-row">
-                                                    <ShouldRender if={true}>
+                                                <ShouldRender
+                                                    if={
+                                                        event_state === 'others'
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
-                                                            {`${type
-                                                                .charAt(0)
-                                                                .toUpperCase()}${type.slice(
-                                                                1
-                                                            )} Notes`}
+                                                            Custom Maintenance
+                                                            State
                                                         </label>
-                                                    </ShouldRender>
-                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                        <CodeEditor
-                                                            code={content}
-                                                            onCodeChange={
-                                                                this
-                                                                    .onContentChange
-                                                            }
-                                                            textareaId={`new-${type}`}
-                                                            placeholder="This can be markdown"
-                                                        />
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name={`custom_event_state`}
+                                                                id="custom_event_state"
+                                                                placeholder="Enter a custom maintenance state"
+                                                                validate={
+                                                                    ValidateField.text
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <div className="bs-Fieldset-rows">
+                                                    <div className="bs-Fieldset-row">
+                                                        <ShouldRender if={true}>
+                                                            <label className="bs-Fieldset-label">
+                                                                {`${type
+                                                                    .charAt(0)
+                                                                    .toUpperCase()}${type.slice(
+                                                                    1
+                                                                )} Notes`}
+                                                            </label>
+                                                        </ShouldRender>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <CodeEditor
+                                                                code={content}
+                                                                onCodeChange={
+                                                                    this
+                                                                        .onContentChange
+                                                                }
+                                                                textareaId={`new-${type}`}
+                                                                placeholder="This can be markdown"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </fieldset>
+                                            </fieldset>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                                <div className="bs-Tail-copy">
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                        <ShouldRender if={createError}>
-                                            <div className="Box-root Margin-right--8">
-                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                            </div>
-                                            <div className="Box-root">
-                                                <span style={{ color: 'red' }}>
-                                                    {createError}
-                                                </span>
-                                            </div>
-                                        </ShouldRender>
-                                    </div>
-                                </div>
-                                <span className="db-SettingsForm-footerMessage"></span>
-                                <ShouldRender if={true}>
-                                    <div style={{ display: 'flex' }}>
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton btn__modal"
-                                            type="button"
-                                            onClick={this.props.closeThisDialog}
-                                            disabled={creatingNote}
-                                        >
-                                            <span>Cancel</span>
-                                            <span className="cancel-btn__keycode">
-                                                Esc
-                                            </span>
-                                        </button>
-                                        <button
-                                            id={`${type}-addButton`}
-                                            className="bs-Button bs-Button--blue btn__modal"
-                                            type="submit"
-                                            disabled={creatingNote}
-                                        >
-                                            <ShouldRender if={!creatingNote}>
-                                                <span>Save</span>
-                                                <span className="create-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
+                                <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                    <div className="bs-Tail-copy">
+                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                            <ShouldRender if={createError}>
+                                                <div className="Box-root Margin-right--8">
+                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                </div>
+                                                <div className="Box-root">
+                                                    <span
+                                                        style={{ color: 'red' }}
+                                                    >
+                                                        {createError}
+                                                    </span>
+                                                </div>
                                             </ShouldRender>
+                                        </div>
+                                    </div>
+                                    <span className="db-SettingsForm-footerMessage"></span>
+                                    <ShouldRender if={true}>
+                                        <div style={{ display: 'flex' }}>
+                                            <button
+                                                className="bs-Button bs-DeprecatedButton btn__modal"
+                                                type="button"
+                                                onClick={
+                                                    this.props.closeThisDialog
+                                                }
+                                                disabled={creatingNote}
+                                            >
+                                                <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
+                                            </button>
+                                            <button
+                                                id={`${type}-addButton`}
+                                                className="bs-Button bs-Button--blue btn__modal"
+                                                type="submit"
+                                                disabled={creatingNote}
+                                            >
+                                                <ShouldRender
+                                                    if={!creatingNote}
+                                                >
+                                                    <span>Save</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </ShouldRender>
 
-                                            <ShouldRender if={creatingNote}>
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
-                                    </div>
-                                </ShouldRender>
-                            </div>
-                        </form>
+                                                <ShouldRender if={creatingNote}>
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Field } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
-import TimezoneSelector from '../basic/TimezoneSelector';
 import TeamMemberSelector from '../basic/TeamMemberSelector';
 import TimeSelector from '../basic/TimeSelector';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
+import moment from 'moment-timezone';
 
 const RenderMember = ({
     memberValue,
@@ -33,6 +33,15 @@ const RenderMember = ({
 
     const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
     const showTimes = memberHasCallTimes ? !forcedTimeHide : timeVisible;
+
+    const getCurrentTimezone = () => {
+        const tz = moment.tz.guess();
+        const result = `${tz} GMT${moment()
+            .tz(tz)
+            .format('Z')}`;
+        return result;
+    };
+
     return (
         <li key={nameIndex}>
             <div className="bs-Fieldset-row">
@@ -122,6 +131,9 @@ const RenderMember = ({
                                 </div>
                             </Tooltip>
                         </span>
+                        <label className="bs-oncall-label">
+                            {getCurrentTimezone()}
+                        </label>
                     </div>
                 </div>
             )}
@@ -165,32 +177,9 @@ const RenderMember = ({
                                 </div>
                             </Tooltip>
                         </span>
-                    </div>
-                </div>
-            )}
-            {showTimes && (
-                <div className="bs-Fieldset-row">
-                    <label className="bs-Fieldset-label">Timezone</label>
-                    <div className="bs-Fieldset-fields">
-                        <span className="flex">
-                            <Field
-                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                type="text"
-                                name={`${inputarray}.timezone`}
-                                component={TimezoneSelector}
-                                style={{ width: '250px' }}
-                                placeholder="Select Timezone"
-                            />
-                            <Tooltip title="On-Call Timezone">
-                                <div>
-                                    <p>
-                                        {' '}
-                                        Timezone of on-call start call time and
-                                        on-call end time.{' '}
-                                    </p>
-                                </div>
-                            </Tooltip>
-                        </span>
+                        <label className="bs-oncall-label">
+                            {getCurrentTimezone()}
+                        </label>
                     </div>
                 </div>
             )}

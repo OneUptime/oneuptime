@@ -11,6 +11,7 @@ const RenderCodeEditor = ({
     input,
     mode,
     placeholder,
+    readOnly,
     style = {
         backgroundColor: '#fff',
         borderRadius: '4px',
@@ -39,6 +40,7 @@ const RenderCodeEditor = ({
             enableSnippets: true,
             showGutter: false,
         }}
+        readOnly={readOnly || false}
         wrapEnabled={wrapEnabled}
         onLoad={() => onLoad(input)}
         onBlur={() => onBlur(input)}
@@ -62,6 +64,7 @@ RenderCodeEditor.propTypes = {
     onLoad: PropTypes.func,
     onBlur: PropTypes.func,
     wrapEnabled: PropTypes.bool,
+    readOnly: PropTypes.bool,
 };
 
 export default RenderCodeEditor;

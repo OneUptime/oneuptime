@@ -168,7 +168,8 @@ export function createNewIncident(
     incidentType,
     title,
     description,
-    incidentPriority
+    incidentPriority,
+    customFields
 ) {
     return function(dispatch) {
         const promise = postApi(`incident/${projectId}/${monitorId}`, {
@@ -178,6 +179,7 @@ export function createNewIncident(
             title,
             description,
             incidentPriority,
+            customFields,
         });
 
         dispatch(createIncidentRequest(monitorId));
@@ -385,26 +387,34 @@ export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
         }
 
         promise.then(
-            function(incident) {
+            function(result) {
                 if (multiple) {
                     dispatch(
                         acknowledgeIncidentSuccess({
                             multiple: true,
-                            data: incident.data,
+                            data: result.data.incident,
                         })
                     );
                 } else {
                     dispatch(
                         acknowledgeIncidentSuccess({
                             multiple: false,
-                            data: incident.data,
+                            data: result.data.incident,
                         })
                     );
                 }
                 dispatch({
                     type: 'ACKNOWLEDGE_INCIDENT_SUCCESS',
-                    payload: incident.data,
+                    payload: result.data.incident,
                 });
+                dispatch(
+                    fetchIncidentMessagesSuccess({
+                        incidentId,
+                        incidentMessages: result.data.data,
+                        count: result.data.data.length,
+                        type: result.data.type,
+                    })
+                );
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -466,26 +476,34 @@ export function resolveIncident(projectId, incidentId, userId, multiple) {
         }
 
         promise.then(
-            function(incident) {
+            function(result) {
                 if (multiple) {
                     dispatch(
                         resolveIncidentSuccess({
                             multiple: true,
-                            data: incident.data,
+                            data: result.data.incident,
                         })
                     );
                 } else {
                     dispatch(
                         resolveIncidentSuccess({
                             multiple: false,
-                            data: incident.data,
+                            data: result.data.incident,
                         })
                     );
                 }
                 dispatch({
                     type: 'RESOLVE_INCIDENT_SUCCESS',
-                    payload: incident.data,
+                    payload: result.data.incident,
                 });
+                dispatch(
+                    fetchIncidentMessagesSuccess({
+                        incidentId,
+                        incidentMessages: result.data.data,
+                        count: result.data.data.length,
+                        type: result.data.type,
+                    })
+                );
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -731,7 +749,18 @@ export function setInternalNote(projectId, incidentId, body) {
 
         promise.then(
             function(incidents) {
-                dispatch(internalNoteSuccess(incidents.data));
+                if(incidents.data.type === 'internal') {
+                    dispatch(
+                        fetchIncidentMessagesSuccess({
+                            incidentId,
+                            incidentMessages: incidents.data.data,
+                            count: incidents.data.data.length,
+                            type: incidents.data.type,
+                        })
+                    );
+                } else {
+                    dispatch(internalNoteSuccess(incidents.data));
+                }
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -908,7 +937,18 @@ export function deleteIncidentMessage(
 
         promise.then(
             function(incidentMessage) {
-                dispatch(deleteIncidentMessageSuccess(incidentMessage.data));
+                if(incidentMessage.data.type === 'internal') {
+                    dispatch(
+                        fetchIncidentMessagesSuccess({
+                            incidentId,
+                            incidentMessages: incidentMessage.data.data,
+                            count: incidentMessage.data.data.length,
+                            type: incidentMessage.data.type,
+                        })
+                    );
+                } else {
+                    dispatch(deleteIncidentMessageSuccess(incidentMessage.data));
+                }
             },
             function(error) {
                 if (error && error.response && error.response.data)

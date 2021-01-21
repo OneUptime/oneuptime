@@ -13,7 +13,13 @@ const subscriberAlertSchema = new Schema({
     alertStatus: String,
     eventType: {
         type: String,
-        enum: ['identified', 'acknowledged', 'resolved'],
+        enum: [
+            'identified',
+            'acknowledged',
+            'resolved',
+            'status page note created',
+            'status page note updated',
+        ],
         required: true,
     },
     createdAt: { type: Date, default: Date.now },
@@ -26,5 +32,7 @@ const subscriberAlertSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User' },
+    totalSubscribers: { type: Number },
+    identification: { type: Number }
 });
 module.exports = mongoose.model('SubscriberAlert', subscriberAlertSchema);

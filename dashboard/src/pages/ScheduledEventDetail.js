@@ -114,13 +114,13 @@ class ScheduledEvent extends Component {
                 <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
-                        name="Scheduled Events"
+                        name="Scheduled Maintenance Event"
                     />
                     <BreadCrumbItem
                         route={pathname}
                         name={eventName}
                         pageTitle="Scheduled Event Detail"
-                        containerType="Scheduled Event"
+                        containerType="Scheduled Maintenance Event"
                     />
                     <ShouldRender if={requesting}>
                         <LoadingState />

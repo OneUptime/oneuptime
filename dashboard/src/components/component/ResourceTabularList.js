@@ -45,6 +45,9 @@ class ResourceTabularList extends Component {
             case 'log container':
                 route = 'application-logs';
                 break;
+            case 'error tracker':
+                route = 'error-trackers';
+                break;
             default:
                 break;
         }
@@ -186,6 +189,26 @@ class ResourceTabularList extends Component {
                     </div>
                 );
                 break;
+            case 'error tracker':
+                if (componentResource.status === 'Listening for Errors')
+                    statusColor = 'green';
+                statusDescription = componentResource.status;
+                indicator = (
+                    <div className="Flex-flex">
+                        <div
+                            className={`db-Badge Box-background--${statusColor}`}
+                        ></div>
+
+                        <span
+                            id={`resource_status_${componentResource.name}`}
+                            className={`Text-color--${statusColor}`}
+                        >
+                            {' '}
+                            {` ${statusDescription}`}{' '}
+                        </span>
+                    </div>
+                );
+                break;
             default:
                 break;
         }
@@ -296,7 +319,9 @@ class ResourceTabularList extends Component {
                                                                             componentResource.icon ===
                                                                                 'appLog' ||
                                                                             componentResource.icon ===
-                                                                                'security'
+                                                                                'security' ||
+                                                                            componentResource.icon ===
+                                                                                'errorTracking'
                                                                                 ? '12px'
                                                                                 : '15px'
                                                                         }`,
@@ -351,6 +376,9 @@ class ResourceTabularList extends Component {
                                                                 {componentResource.type ===
                                                                 'api monitor'
                                                                     ? 'API Monitor'
+                                                                    : componentResource.type ===
+                                                                      'incomingHttpRequest monitor'
+                                                                    ? 'incoming Http Request Monitor'
                                                                     : componentResource.type}
                                                             </span>
                                                         </div>

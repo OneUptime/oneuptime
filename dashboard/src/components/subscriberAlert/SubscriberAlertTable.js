@@ -207,6 +207,13 @@ TD4.propTypes = {
 };
 
 function TD5({ text }) {
+    const incidentStatusColor = {
+        identified: 'green',
+        acknowledged: 'yellow',
+        resolved: 'red',
+    };
+    const isIncidentStatus = Object.keys(incidentStatusColor).includes(text);
+
     return (
         <td
             aria-hidden="true"
@@ -218,26 +225,20 @@ function TD5({ text }) {
             <div className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                        {text === 'acknowledged' && (
-                            <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                        {isIncidentStatus ? (
+                            <div
+                                className={`Badge Badge--color--${incidentStatusColor[text]} Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                            >
+                                <span
+                                    className={`Badge-text Text-color--${incidentStatusColor[text]} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                >
                                     {text}
                                 </span>
                             </div>
-                        )}
-                        {text === 'resolved' && (
-                            <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                    {text}
-                                </span>
-                            </div>
-                        )}
-                        {text === 'identified' && (
-                            <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                    {text}
-                                </span>
-                            </div>
+                        ) : (
+                            <span className="Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                {text}
+                            </span>
                         )}
                     </span>
                 </div>

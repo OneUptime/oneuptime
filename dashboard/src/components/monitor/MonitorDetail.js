@@ -177,6 +177,9 @@ export class MonitorDetail extends Component {
     };
 
     replaceDashWithSpace = string => {
+        if (string === 'incomingHttpRequest') {
+            return 'incoming Http Request';
+        }
         return string.replace('-', ' ');
     };
 
@@ -541,7 +544,7 @@ export class MonitorDetail extends Component {
                                     );
                                 }}
                             >
-                                <span>More</span>
+                                <span>View Monitor</span>
                             </button>
                         </div>
                     </div>

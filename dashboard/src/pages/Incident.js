@@ -24,7 +24,6 @@ import PropTypes from 'prop-types';
 import IncidentDeleteBox from '../components/incident/IncidentDeleteBox';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
-import IncidentTimelineBox from '../components/incident/IncidentTimelineBox';
 import { getMonitorLogs } from '../actions/monitor';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -178,7 +177,7 @@ class Incident extends React.Component {
         this.setState({
             tabIndex: index,
         });
-        if (index === 2) {
+        if (index === 2 || index === 0) {
             this.fetchAllIncidentData();
         }
     };
@@ -226,7 +225,8 @@ class Incident extends React.Component {
             null,
             null,
             null,
-            this.props.match.params.incidentId
+            this.props.match.params.incidentId,
+            this.props.type
         );
         this.props.fetchIncidentMessages(
             this.props.match.params.projectId,
@@ -252,7 +252,12 @@ class Incident extends React.Component {
 
     render() {
         let variable = null;
-        const { currentProject, history, scheduleWarning } = this.props;
+        const {
+            currentProject,
+            history,
+            scheduleWarning,
+            defaultSchedule,
+        } = this.props;
         const projectId = currentProject ? currentProject._id : null;
         const redirectTo = `/dashboard/project/${projectId}/on-call`;
         const {
@@ -275,6 +280,8 @@ class Incident extends React.Component {
             this.props.monitor && this.props.monitor.type
                 ? this.props.monitor.type
                 : '';
+        const agentless =
+            this.props.monitor && this.props.monitor.agentlessConfig;
 
         const incidentCommunicationSla =
             this.props.monitor &&
@@ -282,7 +289,10 @@ class Incident extends React.Component {
                 this.props.defaultIncidentSla);
 
         let scheduleAlert;
-        if (scheduleWarning.includes(monitorId) === false) {
+        if (
+            scheduleWarning.includes(monitorId) === false &&
+            defaultSchedule !== true
+        ) {
             scheduleAlert = (
                 <div id="alertWarning" className="Box-root Margin-vertical--12">
                     <div className="db-Trends bs-ContentSection Card-root">
@@ -333,30 +343,27 @@ class Incident extends React.Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab className={'custom-tab custom-tab-6 bs-custom-incident-tab'}>
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab className={'custom-tab custom-tab-6 bs-custom-incident-tab'}>
                                     Monitor Logs
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab className={'custom-tab custom-tab-6 bs-custom-incident-tab'}>
                                     Alert Logs
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
-                                    Incident Timeline
-                                </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab className={'custom-tab custom-tab-6 bs-custom-incident-tab'}>
                                     Status Page Notes
                                 </Tab>
                                 <Tab
                                     id="tab-advance"
-                                    className={'custom-tab custom-tab-6'}
+                                    className={'custom-tab custom-tab-6 bs-custom-incident-tab'}
                                 >
                                     Advanced Options
                                 </Tab>
                                 <div
                                     id="tab-slider"
-                                    className="custom-tab-6"
+                                    className="custom-tab-6 bs-custom-incident-slider"
                                 ></div>
                             </TabList>
                         </div>
@@ -468,6 +475,7 @@ class Incident extends React.Component {
                                         monitorId={monitorId}
                                         monitorName={monitorName}
                                         monitorType={monitorType}
+                                        agentless={agentless}
                                     />
                                 </div>
                             </Fade>
@@ -484,17 +492,6 @@ class Incident extends React.Component {
                                     previous={this.previousSubscribers}
                                     incident={this.props.incident}
                                 />
-                            </Fade>
-                        </TabPanel>
-                        <TabPanel>
-                            <Fade>
-                                <div className="Box-root Margin-bottom--12">
-                                    <IncidentTimelineBox
-                                        next={this.nextTimeline}
-                                        previous={this.previousTimeline}
-                                        incident={this.props.incidentTimeline}
-                                    />
-                                </div>
                             </Fade>
                         </TabPanel>
                         <TabPanel>
@@ -604,7 +601,12 @@ const mapStateToProps = (state, props) => {
             });
         });
     });
-
+    let defaultSchedule;
+    state.schedule.subProjectSchedules.forEach(item => {
+        item.schedules.forEach(item => {
+            defaultSchedule = item.isDefault;
+        });
+    });
     const { componentId } = props.match.params;
     const monitorId =
         state.incident &&
@@ -628,8 +630,10 @@ const mapStateToProps = (state, props) => {
         )
         .filter(monitor => monitor)[0];
     return {
+        defaultSchedule,
         scheduleWarning,
         monitor,
+        type: monitor && monitor.type ? monitor.type : null,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
         incidentTimeline: state.incident.incident,
@@ -707,6 +711,8 @@ Incident.propTypes = {
     ]),
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
+    defaultSchedule: PropTypes.bool,
+    type: PropTypes.string,
 };
 
 Incident.displayName = 'Incident';

@@ -22,11 +22,19 @@ $ npm install fyipe
 ### In a Node.js Project
 
 ```javascript
-import { FyipeLogger } from 'fyipe';
+// In a FrontEnd Environment
+import { Logger } from 'fyipe';
+
+// In a Backend Environment
+const { Logger } = require('fyipe');
+
+// in a Backend Environment with ES6
+import Fyipe from 'fyipe';
+const { Logger } = Fyipe;
 
 // constructor
 
-const logger = new FyipeLogger(
+const logger = new Logger(
     'API_URL', // https://fyipe.com/api
     'APPLICATION_LOG_ID',
     'APPLICATION_LOG_KEY'
@@ -64,7 +72,7 @@ logger.log(item, tag);
 <script>
     function logError() {
         // constructor
-        const logger = new FyipeLogger(
+        const logger = new Fyipe.Logger(
             'API_URL', // https://fyipe.com/api
             'APPLICATION_LOG_ID',
             'APPLICATION_LOG_KEY'
@@ -86,15 +94,22 @@ logger.log(item, tag);
 ### Error Tracking APIs
 
 ```javascript
-import { FyipeTracker } from 'fyipe';
+// In a FrontEnd Environment
+import { ErrorTracker } from 'fyipe';
 
-// constructor
+// In a Backend Environment
+const { ErrorTracker } = require('fyipe');
+
+// in a Backend Environment with ES6
+import Fyipe from 'fyipe';
+const { ErrorTracker } = Fyipe;
 
 // set up tracking configurations
 const options = {
     maxTimeline: 10,
 };
-const tracker = new FyipeTracker(
+// constructor
+const tracker = new ErrorTracker(
     'API_URL', // https://fyipe.com/api
     'ERROR_TRACKER_ID',
     'ERROR_TRACKER_KEY',
@@ -115,8 +130,8 @@ tracker.setTags([
     { key: 'location', value: 'online' },
 ]); // an array of tags
 
-// capturing error exception authomatically
-NonExistingMethodCall(); // this is authomatically captured and sent to your fyipe dashboard
+// capturing error exception automatically
+NonExistingMethodCall(); // this is automatically captured and sent to your fyipe dashboard
 
 // capturing error exception manually
 try {
@@ -144,8 +159,8 @@ Main API to send logs to the server.
         -   [In the Browser](#in-the-browser)
         -   [Error Tracking APIs](#error-tracking-apis)
     -   [API Documentation](#api-documentation)
-        -   [new FyipeLogger(apiUrl, applicationId, applicationKey)](#new-fyipeloggerapiurl-applicationid-applicationkey)
-        -   [new FyipeTracker(apiUrl, errorTrackerId, errorTrackerKey, options)](#new-fyipetrackerapiurl-errortrackerid-errortrackerkey-options)
+        -   [new Logger(apiUrl, applicationId, applicationKey)](#new-loggerapiurl-applicationid-applicationkey)
+        -   [new ErrorTracker(apiUrl, errorTrackerId, errorTrackerKey, options)](#new-errortrackerapiurl-errortrackerid-errortrackerkey-options)
             -   [logger.log(log, tags)](#loggerloglog-tags)
             -   [logger.warning(log, tags)](#loggerwarninglog-tags)
             -   [logger.error(log, tags)](#loggererrorlog-tags)
@@ -159,7 +174,7 @@ Main API to send logs to the server.
 
 <a name="logger_api--logger"></a>
 
-### new FyipeLogger(apiUrl, applicationId, applicationKey)
+### new Logger(apiUrl, applicationId, applicationKey)
 
 Create a constructor from the class, which will be used to send logs to the server.
 
@@ -172,7 +187,7 @@ Create a constructor from the class, which will be used to send logs to the serv
 | applicationId  | <code>string</code> | The Application Log ID.  |
 | applicationKey | <code>string</code> | The Application Log Key. |
 
-### new FyipeTracker(apiUrl, errorTrackerId, errorTrackerKey, options)
+### new ErrorTracker(apiUrl, errorTrackerId, errorTrackerKey, options)
 
 Create a constructor from the class, which will be used to track events and exceptions to be sent to the server.
 
@@ -190,7 +205,7 @@ Create a constructor from the class, which will be used to track events and exce
 
 Logs a request of type `info` to the server.
 
-**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
 **Returns**: <code>Promise</code> - A promise response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
@@ -202,7 +217,7 @@ Logs a request of type `info` to the server.
 
 Logs a request of type `warning` to the server.
 
-**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
 **Returns**: <code>Promise</code> - A promise response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
@@ -214,7 +229,7 @@ Logs a request of type `warning` to the server.
 
 Logs a request of type `error` to the server.
 
-**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
 **Returns**: <code>Promise</code> - A promise response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
@@ -226,7 +241,7 @@ Logs a request of type `error` to the server.
 
 Set a tag for the error to be captured.
 
-**Kind**: method of [<code>new FyipeTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
 **Returns**: <code>null</code>
 
 | Param | Type                | Description            |
@@ -238,7 +253,7 @@ Set a tag for the error to be captured.
 
 Set an array of tags for the error to be captured.
 
-**Kind**: method of [<code>new FyipeTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
 **Returns**: <code>null</code>
 
 | Param | Type                | Description            |
@@ -250,7 +265,7 @@ Set an array of tags for the error to be captured.
 
 Set fingerprint for the next error to be captured.
 
-**Kind**: method of [<code>new FyipeTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
 **Returns**: <code>null</code>
 
 | Param       | Type                                                 | Description                                                   |
@@ -261,7 +276,7 @@ Set fingerprint for the next error to be captured.
 
 Add a custom timeline element to the next error to be sent to the server
 
-**Kind**: method of [<code>new FyipeTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
 **Returns**: <code>null</code>
 
 | Param    | Type                                       | Description                         |
@@ -274,7 +289,7 @@ Add a custom timeline element to the next error to be sent to the server
 
 Capture a custom error message to be sent to the server
 
-**Kind**: method of [<code>new FyipeTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
 **Returns**: <code>null</code>
 
 | Param   | Type                | Description                           |
@@ -285,7 +300,7 @@ Capture a custom error message to be sent to the server
 
 Capture a custom error object to be sent to the server
 
-**Kind**: method of [<code>new FyipeTracker</code>](#logger_api--logger)
+**Kind**: method of [<code>new ErrorTracker</code>](#logger_api--logger)
 **Returns**: <code>null</code>
 
 | Param | Type                | Description                                |

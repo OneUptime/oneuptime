@@ -17,6 +17,7 @@ const smsTemplateSchema = new Schema({
             'Subscriber Incident Acknowldeged',
             'Subscriber Incident Resolved',
             'Team Member Incident',
+            'Investigation note is created',
         ],
         required: true,
     },

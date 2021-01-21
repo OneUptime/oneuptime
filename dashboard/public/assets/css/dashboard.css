@@ -1556,6 +1556,15 @@ figure.bs-Number>figcaption {
   background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPGc+DQoJCTxnPg0KCQkJPHBhdGggZD0iTTEyOCwzMlYwSDE2QzcuMTYzLDAsMCw3LjE2MywwLDE2djExMmgzMlY1NC41NkwxODAuNjQsMjAzLjJsMjIuNTYtMjIuNTZMNTQuNTYsMzJIMTI4eiIvPg0KCQkJPHBhdGggZD0iTTQ5NiwwSDM4NHYzMmg3My40NEwzMDguOCwxODAuNjRsMjIuNTYsMjIuNTZMNDgwLDU0LjU2VjEyOGgzMlYxNkM1MTIsNy4xNjMsNTA0LjgzNywwLDQ5NiwweiIvPg0KCQkJPHBhdGggZD0iTTQ4MCw0NTcuNDRMMzMxLjM2LDMwOC44bC0yMi41NiwyMi41Nkw0NTcuNDQsNDgwSDM4NHYzMmgxMTJjOC44MzcsMCwxNi03LjE2MywxNi0xNlYzODRoLTMyVjQ1Ny40NHoiLz4NCgkJCTxwYXRoIGQ9Ik0xODAuNjQsMzA4LjY0TDMyLDQ1Ny40NFYzODRIMHYxMTJjMCw4LjgzNyw3LjE2MywxNiwxNiwxNmgxMTJ2LTMySDU0LjU2TDIwMy4yLDMzMS4zNkwxODAuNjQsMzA4LjY0eiIvPg0KCQk8L2c+DQoJPC9nPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPC9zdmc+DQo=');
 }
 
+.bs-Button--moreMonitorTypes:before, .bs-Button--icon--right.bs-Button--moreMonitorTypes:after {
+  height: 10px;
+  width: 10px;
+  top: 50%;
+  margin-top: -5px;
+  margin-left: 5px;
+  background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNDI2LjY2NyA0MjYuNjY3IiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA0MjYuNjY3IDQyNi42Njc7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxnPg0KCTxnPg0KCQk8Y2lyY2xlIGN4PSI0Mi42NjciIGN5PSIyMTMuMzMzIiByPSI0Mi42NjciLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCgk8Zz4NCgkJPGNpcmNsZSBjeD0iMjEzLjMzMyIgY3k9IjIxMy4zMzMiIHI9IjQyLjY2NyIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8Y2lyY2xlIGN4PSIzODQiIGN5PSIyMTMuMzMzIiByPSI0Mi42NjciLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==');
+}
+
 .bs-Button--help:active:before, .bs-Button--help:focus:hover:before, .bs-Button--help:hover:before, .bs-Button--icon--right.bs-Button--help:active:after, .bs-Button--icon--right.bs-Button--help:focus:hover:after, .bs-Button--icon--right.bs-Button--help:hover:after {
   background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgNTggNTgiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDU4IDU4OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgd2lkdGg9IjIwcHgiIGhlaWdodD0iMjBweCIgY2xhc3M9IiI+PGcgdHJhbnNmb3JtPSJtYXRyaXgoMC41MjAxMzMgMCAwIDAuNTIwMTMzIDEzLjkxNjIgMTMuOTE2MikiPjxjaXJjbGUgY3g9IjI5IiBjeT0iNyIgcj0iNyIgZGF0YS1vcmlnaW5hbD0iIzczODNCRiIgY2xhc3M9ImFjdGl2ZS1wYXRoIiBkYXRhLW9sZF9jb2xvcj0iIzczODNCRiIgZmlsbD0iIzMyMzI1RCIvPjxjaXJjbGUgY3g9IjI5IiBjeT0iNTEiIHI9IjciIGRhdGEtb3JpZ2luYWw9IiM3MzgzQkYiIGNsYXNzPSJhY3RpdmUtcGF0aCIgZGF0YS1vbGRfY29sb3I9IiM3MzgzQkYiIGZpbGw9IiMzMjMyNUQiLz48Y2lyY2xlIGN4PSIyOSIgY3k9IjI5IiByPSI3IiBkYXRhLW9yaWdpbmFsPSIjNzM4M0JGIiBjbGFzcz0iYWN0aXZlLXBhdGgiIGRhdGEtb2xkX2NvbG9yPSIjNzM4M0JGIiBmaWxsPSIjMzIzMjVEIi8+PGNpcmNsZSBjeD0iMjkiIGN5PSI3IiByPSI3IiBkYXRhLW9yaWdpbmFsPSIjNzM4M0JGIiBjbGFzcz0iYWN0aXZlLXBhdGgiIGRhdGEtb2xkX2NvbG9yPSIjNzM4M0JGIiBmaWxsPSIjMzIzMjVEIi8+PGNpcmNsZSBjeD0iMjkiIGN5PSI1MSIgcj0iNyIgZGF0YS1vcmlnaW5hbD0iIzczODNCRiIgY2xhc3M9ImFjdGl2ZS1wYXRoIiBkYXRhLW9sZF9jb2xvcj0iIzczODNCRiIgZmlsbD0iIzMyMzI1RCIvPjxjaXJjbGUgY3g9IjI5IiBjeT0iMjkiIHI9IjciIGRhdGEtb3JpZ2luYWw9IiM3MzgzQkYiIGNsYXNzPSJhY3RpdmUtcGF0aCIgZGF0YS1vbGRfY29sb3I9IiM3MzgzQkYiIGZpbGw9IiMzMjMyNUQiLz48L2c+IDwvc3ZnPg==');
 }
@@ -5868,6 +5877,11 @@ pre.bs-PropertyList-definition, pre.bs-PropertyList-property {
   padding: 10px 20px;
 }
 
+.nm-Fieldset-row {
+  display: flex;
+  padding: 0px 20px;
+}
+
 .bs-Fieldset-row:first-child {
   padding-top: 20px;
 }
@@ -5892,6 +5906,16 @@ pre.bs-PropertyList-definition, pre.bs-PropertyList-property {
   color: #4c4c4c;
   line-height: 1.6;
   text-align: right;
+}
+
+.new-monitor-label {
+  align-self: flex-start;
+  flex: 30% 0 0;
+  padding: 4px 5px 0 0;
+  color: #4c4c4c;
+  line-height: 1.6;
+  text-align: left;
+  padding-left:5px;
 }
 
 .bs-Fieldset-row.bs-is-optional .bs-Fieldset-label {
@@ -5927,6 +5951,15 @@ pre.bs-PropertyList-definition, pre.bs-PropertyList-property {
   flex: 0 0 55%;
   flex-direction: column;
   max-width: 350px;
+  padding-left: 5px;
+}
+
+.radio-field {
+  align-items: flex-start;
+  display: flex;
+  flex: 0 0 55%;
+  flex-direction: row;
+  /* max-width: 350px; */
   padding-left: 5px;
 }
 
@@ -35024,8 +35057,128 @@ span.CodeMirror-selectedtext {
   color: black;
 }
 
+.bs-mar-cursor {
+  cursor: default;
+  margin-bottom: 8px
+}
+
+.bs-oncall-label {
+  margin-top: 10px;
+  color: #6b7c93;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* Investigation notes */
+.bs-thread-container {
+  position: relative;
+  padding: 20px;
+  /* z-index: -2; */
+}
+
+.bs-thread-card {
+  width: 100%;
+  height: auto;
+  min-height: 100px;
+  box-shadow: 0 0 0 1px rgba(69,79,91,0.05), 0 1px 3px 0 rgba(69,79,91,0.15);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bs-thread-line-up, .bs-thread-line-down {
+  width: 3px;
+  left: 40px;
+  position: relative;
+  height: 8px;
+  background: #dfe3e8;
+}
+
+.bs-thread-display {
+  display: flex;
+  width: 100%;
+}
+
+.bs-ma-10 {
+  margin-left: 10px;
+}
+
+.bs-thread-content {
+  width: 65%;
+}
+
+.bs-action-side > div {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bs-incident-notes {
+  width: 18px;
+  height: 18px;
+  border-radius: 50px;
+  margin-left: 32px;
+}
+
+.bs-note-display-flex {
+  display: flex;
+  align-items: center;
+}
+
+.bs-incident-notes-content {
+  /* margin-left: 10px; */
+  display: flex;
+  /* width: 100%; */
+  justify-content: space-between;
+  padding-right: 20px;
+  align-items: center;
+  position: absolute;
+  margin-left: 70px;
+  width: calc(100% - 92px);
+}
+
+.bs-note-offline {
+  background-color: rgb(255, 0, 0);
+  border: 1px solid rgb(255, 0, 0);
+}
+
+.bs-note-acknowleged {
+  background-color: #e39f48;
+  border: 1px solid #e39f48;
+}
+
+.bs-note-resolved {
+  background-color: #24b47e;
+  border: 1px solid #24b47e;
+}
+
+.bs-note-updated {
+  background-color: #b76ac4;
+}
+
+.bs-ex-up, .bs-ex-down {
+  height: 20px;
+}
+
+.bs-note-offline-o {
+  background-color: rgb(0,0,0);
+}
+
+.bs-custom-incident-tab, .bs-custom-incident-slider {
+  width: 20% !important
+}
+
 @media (max-width: 768px) {
-  .bs-Fieldset.bs-container, .bs-content-1 {
+  .bs-thread-container {
+    margin-top: 20px
+  }
+  .bs-ex-up, .bs-ex-down {
+    height: 60px;
+  }
+  .bs-incident-notes-content, .bs-mob-block {
+    display: block;
+  }
+  .bs-Fieldset.bs-container, .bs-content-1, .bs-thread-content {
     width: 100%;
   }
   .Fieldset-extra {
@@ -35061,6 +35214,9 @@ span.CodeMirror-selectedtext {
     float: none!important;
     padding-right: 37px!important;
   }
+  .bs-thread-display {
+    display: block;
+  }
 }
 .email-smt-row{
   justify-content: center;
@@ -35068,4 +35224,25 @@ span.CodeMirror-selectedtext {
 .email-smt-label{
   width: 6rem;
   flex: none
+}
+
+.radioButtonClass{
+  display: flex;
+  flex-direction: row;
+}
+
+@media (max-width: 930px) {
+  .bs-incident-notes-content {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  .bs-note-7 {
+    margin-top: -7px
+  }
+  
+.bs-action-side {
+  width: 35%;
+}
 }

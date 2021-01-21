@@ -5,6 +5,7 @@ import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import 'imrc-datetime-picker/dist/imrc-datetime-picker.css';
 import { reduxForm, Field, formValueSelector, FieldArray } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 
 import { updateScheduledEvent } from '../../actions/scheduledEvent';
 import { closeModal } from '../../actions/modal';
@@ -19,7 +20,7 @@ function validate(values) {
     const errors = {};
 
     if (!values.name) {
-        errors.name = 'Event name is required';
+        errors.name = 'Maintenance name is required';
     }
     return errors;
 }
@@ -113,12 +114,9 @@ class UpdateSchedule extends React.Component {
     };
 
     handleKeyBoard = e => {
-        const { closeModal, updateScheduledEventModalId } = this.props;
         switch (e.key) {
             case 'Escape':
-                return closeModal({
-                    id: updateScheduledEventModalId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return document
                     .getElementById('updateScheduledEventButton')
@@ -126,6 +124,12 @@ class UpdateSchedule extends React.Component {
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.updateScheduledEventModalId,
+        });
     };
 
     renderMonitors = ({ fields }) => {
@@ -340,433 +344,464 @@ class UpdateSchedule extends React.Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal" style={{ width: 600 }}>
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Update Scheduled event</span>
-                                </span>
-                            </div>
-                        </div>
-                        <form
-                            id="editScheduledEventForm"
-                            onSubmit={handleSubmit(this.submitForm)}
+                        <ClickOutside
+                            onClickOutside={e => {
+                                if (e.target.className === 'bs-BIM') {
+                                    this.handleCloseModal();
+                                }
+                            }}
                         >
-                            <div className="bs-Modal-content">
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="endpoint"
-                                                >
-                                                    <span>Event name</span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            width: '100%',
-                                                        }}
-                                                    >
-                                                        <Field
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            name="name"
-                                                            placeholder="Event name"
-                                                            id="name"
-                                                            className="bs-TextInput"
-                                                            style={{
-                                                                width: '100%',
-                                                                padding:
-                                                                    '3px 5px',
-                                                            }}
-                                                            autoFocus={true}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="endpoint"
-                                                >
-                                                    <span>Monitors</span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            width: '100%',
-                                                        }}
-                                                    >
-                                                        <FieldArray
-                                                            name="monitors"
-                                                            component={
-                                                                this
-                                                                    .renderMonitors
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorIds"
-                                                >
-                                                    <span>
-                                                        Event Description
-                                                    </span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            width: '100%',
-                                                        }}
-                                                    >
-                                                        <Field
-                                                            className="bs-TextArea"
-                                                            component={
-                                                                RenderTextArea
-                                                            }
-                                                            type="text"
-                                                            name="description"
-                                                            rows="5"
-                                                            id="description"
-                                                            placeholder="Event Description"
-                                                            style={{
-                                                                width: '100%',
-                                                                resize: 'none',
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorIds"
-                                                >
-                                                    <span>
-                                                        Start date and time
-                                                    </span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div className="bs-Fieldset-field">
-                                                        <Field
-                                                            className="bs-TextInput"
-                                                            type="text"
-                                                            name="startDate"
-                                                            component={
-                                                                DateTimeSelector
-                                                            }
-                                                            placeholder="10pm"
-                                                            style={{
-                                                                width: '250px',
-                                                            }}
-                                                            minDate={
-                                                                currentDate
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorIds"
-                                                >
-                                                    <span>
-                                                        End date and time
-                                                    </span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div className="bs-Fieldset-field">
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            type="text"
-                                                            name="endDate"
-                                                            component={
-                                                                DateTimeSelector
-                                                            }
-                                                            placeholder="10pm"
-                                                            style={{
-                                                                width: '250px',
-                                                            }}
-                                                            minDate={startDate}
-                                                            onChange={
-                                                                this
-                                                                    .handleChangeEndDate
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                    <div className="bs-Fieldset-row">
-                                        <label className="bs-Fieldset-label">
-                                            <span></span>
-                                        </label>
-                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                            <div
-                                                className="Box-root"
-                                                style={{ height: '5px' }}
-                                            ></div>
-                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                <label
-                                                    className="Checkbox"
-                                                    htmlFor="showEventOnStatusPage"
-                                                >
-                                                    <Field
-                                                        component="input"
-                                                        type="checkbox"
-                                                        name="showEventOnStatusPage"
-                                                        className="Checkbox-source"
-                                                        id="showEventOnStatusPage"
-                                                    />
-                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                        <div className="Checkbox-target Box-root">
-                                                            <div className="Checkbox-color Box-root"></div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="Checkbox-label Box-root Margin-left--8">
-                                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <span>
-                                                                Show this event
-                                                                on Status Page
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="bs-Fieldset-row">
-                                        <label className="bs-Fieldset-label">
-                                            <span></span>
-                                        </label>
-                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                            <div
-                                                className="Box-root"
-                                                style={{ height: '5px' }}
-                                            ></div>
-                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                <label
-                                                    className="Checkbox"
-                                                    htmlFor="callScheduleOnEvent"
-                                                >
-                                                    <Field
-                                                        component="input"
-                                                        type="checkbox"
-                                                        name="callScheduleOnEvent"
-                                                        className="Checkbox-source"
-                                                        id="callScheduleOnEvent"
-                                                    />
-                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                        <div className="Checkbox-target Box-root">
-                                                            <div className="Checkbox-color Box-root"></div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="Checkbox-label Box-root Margin-left--8">
-                                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <span>
-                                                                Alert your team
-                                                                members who are
-                                                                on call when
-                                                                this event
-                                                                starts
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="bs-Fieldset-row">
-                                        <label className="bs-Fieldset-label">
-                                            <span></span>
-                                        </label>
-                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                            <div
-                                                className="Box-root"
-                                                style={{ height: '5px' }}
-                                            ></div>
-                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                <label
-                                                    className="Checkbox"
-                                                    htmlFor="alertSubscriber"
-                                                >
-                                                    <Field
-                                                        component="input"
-                                                        type="checkbox"
-                                                        name="alertSubscriber"
-                                                        className="Checkbox-source"
-                                                        id="alertSubscriber"
-                                                    />
-                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                        <div className="Checkbox-target Box-root">
-                                                            <div className="Checkbox-color Box-root"></div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="Checkbox-label Box-root Margin-left--8">
-                                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <span>
-                                                                Alert
-                                                                subscribers
-                                                                about this
-                                                                scheduled event
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="bs-Fieldset-row">
-                                        <label className="bs-Fieldset-label">
-                                            <span></span>
-                                        </label>
-                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                            <div
-                                                className="Box-root"
-                                                style={{ height: '5px' }}
-                                            ></div>
-                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                <label
-                                                    className="Checkbox"
-                                                    htmlFor="monitorDuringEvent"
-                                                >
-                                                    <Field
-                                                        component="input"
-                                                        type="checkbox"
-                                                        name="monitorDuringEvent"
-                                                        className="Checkbox-source"
-                                                        id="monitorDuringEvent"
-                                                    />
-                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                        <div className="Checkbox-target Box-root">
-                                                            <div className="Checkbox-color Box-root"></div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="Checkbox-label Box-root Margin-left--8">
-                                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <span>
-                                                                Do not monitor
-                                                                this monitor
-                                                                during this
-                                                                event
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender
-                                        if={
-                                            scheduledEventError ||
-                                            this.state.dateError
-                                        }
-                                    >
-                                        <div className="bs-Tail-copy">
-                                            <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
-                                            >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {scheduledEventError ||
-                                                            this.state
-                                                                .dateError}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton btn__modal"
-                                        type="button"
-                                        onClick={() =>
-                                            closeModal({
-                                                id: this.props
-                                                    .updateScheduledEventModalId,
-                                            })
-                                        }
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            Update Scheduled Maintenance Event
                                         </span>
-                                    </button>
-                                    <button
-                                        id="updateScheduledEventButton"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                        disabled={requesting}
-                                        type="submit"
-                                    >
-                                        {!requesting && (
-                                            <>
-                                                <span>Update</span>
-                                                <span className="create-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </>
-                                        )}
-                                        {requesting && <FormLoader />}
-                                    </button>
+                                    </span>
                                 </div>
                             </div>
-                        </form>
+                            <form
+                                id="editScheduledEventForm"
+                                onSubmit={handleSubmit(this.submitForm)}
+                            >
+                                <div className="bs-Modal-content">
+                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="endpoint"
+                                                    >
+                                                        <span>
+                                                            Maintenance Name
+                                                        </span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="name"
+                                                                placeholder="Maintenance name"
+                                                                id="name"
+                                                                className="bs-TextInput"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                    padding:
+                                                                        '3px 5px',
+                                                                }}
+                                                                autoFocus={true}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="endpoint"
+                                                    >
+                                                        <span>Monitors</span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
+                                                        >
+                                                            <FieldArray
+                                                                name="monitors"
+                                                                component={
+                                                                    this
+                                                                        .renderMonitors
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitorIds"
+                                                    >
+                                                        <span>
+                                                            Maintenance
+                                                            Description
+                                                        </span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                className="bs-TextArea"
+                                                                component={
+                                                                    RenderTextArea
+                                                                }
+                                                                type="text"
+                                                                name="description"
+                                                                rows="5"
+                                                                id="description"
+                                                                placeholder="Event Description"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                    resize:
+                                                                        'none',
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitorIds"
+                                                    >
+                                                        <span>
+                                                            Start date and time
+                                                        </span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div className="bs-Fieldset-field">
+                                                            <Field
+                                                                className="bs-TextInput"
+                                                                type="text"
+                                                                name="startDate"
+                                                                component={
+                                                                    DateTimeSelector
+                                                                }
+                                                                placeholder="10pm"
+                                                                style={{
+                                                                    width:
+                                                                        '250px',
+                                                                }}
+                                                                minDate={
+                                                                    currentDate
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor="monitorIds"
+                                                    >
+                                                        <span>
+                                                            End date and time
+                                                        </span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div className="bs-Fieldset-field">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type="text"
+                                                                name="endDate"
+                                                                component={
+                                                                    DateTimeSelector
+                                                                }
+                                                                placeholder="10pm"
+                                                                style={{
+                                                                    width:
+                                                                        '250px',
+                                                                }}
+                                                                minDate={
+                                                                    startDate
+                                                                }
+                                                                onChange={
+                                                                    this
+                                                                        .handleChangeEndDate
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <div className="bs-Fieldset-row">
+                                            <label className="bs-Fieldset-label">
+                                                <span></span>
+                                            </label>
+                                            <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                <div
+                                                    className="Box-root"
+                                                    style={{ height: '5px' }}
+                                                ></div>
+                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                    <label
+                                                        className="Checkbox"
+                                                        htmlFor="showEventOnStatusPage"
+                                                    >
+                                                        <Field
+                                                            component="input"
+                                                            type="checkbox"
+                                                            name="showEventOnStatusPage"
+                                                            className="Checkbox-source"
+                                                            id="showEventOnStatusPage"
+                                                        />
+                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                            <div className="Checkbox-target Box-root">
+                                                                <div className="Checkbox-color Box-root"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="Checkbox-label Box-root Margin-left--8">
+                                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Show this
+                                                                    maintenance
+                                                                    event on
+                                                                    Status Page
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bs-Fieldset-row">
+                                            <label className="bs-Fieldset-label">
+                                                <span></span>
+                                            </label>
+                                            <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                <div
+                                                    className="Box-root"
+                                                    style={{ height: '5px' }}
+                                                ></div>
+                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                    <label
+                                                        className="Checkbox"
+                                                        htmlFor="callScheduleOnEvent"
+                                                    >
+                                                        <Field
+                                                            component="input"
+                                                            type="checkbox"
+                                                            name="callScheduleOnEvent"
+                                                            className="Checkbox-source"
+                                                            id="callScheduleOnEvent"
+                                                        />
+                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                            <div className="Checkbox-target Box-root">
+                                                                <div className="Checkbox-color Box-root"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="Checkbox-label Box-root Margin-left--8">
+                                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Alert your
+                                                                    team members
+                                                                    who are on
+                                                                    call when
+                                                                    this
+                                                                    maintenance
+                                                                    event starts
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bs-Fieldset-row">
+                                            <label className="bs-Fieldset-label">
+                                                <span></span>
+                                            </label>
+                                            <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                <div
+                                                    className="Box-root"
+                                                    style={{ height: '5px' }}
+                                                ></div>
+                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                    <label
+                                                        className="Checkbox"
+                                                        htmlFor="alertSubscriber"
+                                                    >
+                                                        <Field
+                                                            component="input"
+                                                            type="checkbox"
+                                                            name="alertSubscriber"
+                                                            className="Checkbox-source"
+                                                            id="alertSubscriber"
+                                                        />
+                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                            <div className="Checkbox-target Box-root">
+                                                                <div className="Checkbox-color Box-root"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="Checkbox-label Box-root Margin-left--8">
+                                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Alert
+                                                                    subscribers
+                                                                    about this
+                                                                    scheduled
+                                                                    maintenance
+                                                                    event
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bs-Fieldset-row">
+                                            <label className="bs-Fieldset-label">
+                                                <span></span>
+                                            </label>
+                                            <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                <div
+                                                    className="Box-root"
+                                                    style={{ height: '5px' }}
+                                                ></div>
+                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                    <label
+                                                        className="Checkbox"
+                                                        htmlFor="monitorDuringEvent"
+                                                    >
+                                                        <Field
+                                                            component="input"
+                                                            type="checkbox"
+                                                            name="monitorDuringEvent"
+                                                            className="Checkbox-source"
+                                                            id="monitorDuringEvent"
+                                                        />
+                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                            <div className="Checkbox-target Box-root">
+                                                                <div className="Checkbox-color Box-root"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="Checkbox-label Box-root Margin-left--8">
+                                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Do not
+                                                                    monitor this
+                                                                    monitor
+                                                                    during this
+                                                                    event
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender
+                                            if={
+                                                scheduledEventError ||
+                                                this.state.dateError
+                                            }
+                                        >
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {scheduledEventError ||
+                                                                this.state
+                                                                    .dateError}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
+                                            type="button"
+                                            onClick={() =>
+                                                closeModal({
+                                                    id: this.props
+                                                        .updateScheduledEventModalId,
+                                                })
+                                            }
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            id="updateScheduledEventButton"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            disabled={requesting}
+                                            type="submit"
+                                        >
+                                            {!requesting && (
+                                                <>
+                                                    <span>Update</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
+                                            )}
+                                            {requesting && <FormLoader />}
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

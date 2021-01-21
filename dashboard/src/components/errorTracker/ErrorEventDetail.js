@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import ErrorEventHeader from './ErrorEventHeader';
-import ErrorEventDevice from './ErrorEventDevice';
 import ErrorEventMiniTag from './ErrorEventMiniTag';
 import ErrorEventStackTrace from './ErrorEventStackTrace';
 import ErrorEventTimeline from './ErrorEventTimeline';
@@ -13,6 +12,8 @@ import {
 } from '../../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import Notification from '../basic/Notification';
+import ShouldRender from '../basic/ShouldRender';
 
 class ErrorEventDetail extends Component {
     ignoreErrorEvent = issueId => {
@@ -43,9 +44,31 @@ class ErrorEventDetail extends Component {
         resolveErrorEvent(projectId, componentId, errorTrackerId, [issueId]);
     };
     render() {
-        const { errorEvent, navigationLink, errorTrackerIssue } = this.props;
+        const {
+            errorEvent,
+            navigationLink,
+            errorTrackerIssue,
+            errorTrackerStatus,
+        } = this.props;
         return (
             <div className="bs-BIM">
+                <ShouldRender if={errorTrackerIssue.ignored}>
+                    <Notification
+                        backgroundClass="Box-background--red4"
+                        icon="db-SideNav-icon--warning"
+                        message={
+                            <span>This issue has been marked as ignored.</span>
+                        }
+                    />
+                </ShouldRender>
+                <ShouldRender if={errorTrackerIssue.resolved}>
+                    <Notification
+                        backgroundClass="Box-background--green"
+                        message={
+                            <span>This issue has been marked as resolved.</span>
+                        }
+                    />
+                </ShouldRender>
                 <div className="Box-root Margin-bottom--12">
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
                         <div className="Box-root">
@@ -62,17 +85,15 @@ class ErrorEventDetail extends Component {
                                         resolveErrorEvent={
                                             this.resolveErrorEvent
                                         }
+                                        errorTrackerStatus={errorTrackerStatus}
                                     />
-                                    <ErrorEventDevice errorEvent={errorEvent} />
                                     <ErrorEventMiniTag
                                         errorEvent={errorEvent}
                                     />
                                     <ErrorEventStackTrace
                                         errorEvent={errorEvent}
                                     />
-                                    <ErrorEventTimeline
-                                        errorEvent={errorEvent}
-                                    />
+
                                     <ErrorEventInfoSection
                                         errorEvent={errorEvent}
                                     />
@@ -81,6 +102,7 @@ class ErrorEventDetail extends Component {
                         </div>
                     </div>
                 </div>
+                <ErrorEventTimeline errorEvent={errorEvent} />
             </div>
         );
     }
@@ -122,12 +144,16 @@ const mapStateToProps = (state, ownProps) => {
         ? errorEvent.issueId
         : {};
 
+    const errorTrackerStatus =
+        state.errorTracker.errorTrackerStatus[ownProps.errorTrackerId];
+
     return {
         errorTracker: currentErrorTracker[0],
         currentProject: state.project.currentProject,
         errorTrackerIssue: errorTrackerIssueStatus,
         ignored: errorTrackerIssueStatus.ignored,
         resolved: errorTrackerIssueStatus.resolved,
+        errorTrackerStatus,
     };
 };
 ErrorEventDetail.propTypes = {
@@ -140,6 +166,7 @@ ErrorEventDetail.propTypes = {
     errorTrackerIssue: PropTypes.object,
     unresolveErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.func,
+    errorTrackerStatus: PropTypes.object,
 };
 ErrorEventDetail.displayName = 'ErrorEventDetail';
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventDetail);

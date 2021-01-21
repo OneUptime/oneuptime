@@ -7,6 +7,7 @@ import formatNumber from '../../utils/formatNumber';
 import { history } from '../../store';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import ShouldRender from '../basic/ShouldRender';
+import { FormLoader } from '../basic/Loader';
 
 function getComponentBadge(componentName) {
     return (
@@ -41,6 +42,8 @@ function ErrorTrackerIssue({
     selectErrorEvent,
     selectedErrorEvents,
     openEventMemberModal,
+    resolveSingleIssue,
+    errorTrackerStatus,
 }) {
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
@@ -217,23 +220,90 @@ function ErrorTrackerIssue({
                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                 style={{
                     height: '1px',
+                    minWidth: '250px',
                 }}
             >
-                <div
-                    className="db-ListViewItem-link"
-                    onClick={() => openEventMemberModal(errorTrackerIssue)}
-                >
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Flex-flex Flex-justifyContent--center Flex-alignItems--center">
-                        <img
-                            src="/dashboard/assets/img/user.svg"
-                            alt=""
-                            style={{
-                                marginBottom: '-5px',
-                                height: '20px',
-                                width: '20px',
-                                marginRight: '10px',
-                            }}
-                        />
+                <div className="db-ListViewItem-link Flex-flex Flex-justifyContent--center  Flex-alignItems--center">
+                    <div className="Padding-all--8">
+                        <div className="">
+                            {errorTrackerIssue.members.length > 0 ? (
+                                errorTrackerIssue.members.map((member, i) => {
+                                    return (
+                                        <span
+                                            key={i}
+                                            className="Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper"
+                                        >
+                                            <span>
+                                                {member.userId.name
+                                                    ? member.userId.name
+                                                    : member.userId.email
+                                                    ? member.userId.email
+                                                    : 'N/A'}
+                                                {i <
+                                                errorTrackerIssue.members
+                                                    .length -
+                                                    1
+                                                    ? ', '
+                                                    : null}
+                                            </span>
+                                        </span>
+                                    );
+                                })
+                            ) : (
+                                <div> - </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td
+                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                style={{
+                    height: '1px',
+                    minWidth: '250px',
+                }}
+            >
+                <div className="db-ListViewItem-link Flex-flex Flex-justifyContent--center Flex-alignItems--center">
+                    <div className="Padding-all--8">
+                        <button
+                            className="bs-Button"
+                            type="button"
+                            onClick={() =>
+                                openEventMemberModal(errorTrackerIssue)
+                            }
+                        >
+                            <span>Assign Members</span>
+                        </button>
+                        <button
+                            className={`bs-Button ${
+                                errorTrackerStatus &&
+                                errorTrackerStatus[errorTrackerIssue._id] &&
+                                errorTrackerStatus[errorTrackerIssue._id]
+                                    .requestingResolve
+                                    ? 'bs-Button--blue'
+                                    : 'bs-Button--icon bs-Button--check'
+                            }  `}
+                            type="button"
+                            disabled={errorTrackerIssue.resolved}
+                            onClick={() =>
+                                resolveSingleIssue(errorTrackerIssue._id)
+                            }
+                        >
+                            <span>
+                                {errorTrackerStatus &&
+                                errorTrackerStatus[errorTrackerIssue._id] &&
+                                errorTrackerStatus[errorTrackerIssue._id]
+                                    .requestingResolve ? (
+                                    <FormLoader />
+                                ) : (
+                                    <span>
+                                        {errorTrackerIssue.resolved
+                                            ? 'Resolved'
+                                            : 'Resolve'}
+                                    </span>
+                                )}
+                            </span>
+                        </button>
                     </div>
                 </div>
             </td>
@@ -248,6 +318,8 @@ ErrorTrackerIssue.propTypes = {
     selectErrorEvent: PropTypes.func,
     selectedErrorEvents: PropTypes.array,
     openEventMemberModal: PropTypes.func,
+    resolveSingleIssue: PropTypes.func,
+    errorTrackerStatus: PropTypes.func,
 };
 ErrorTrackerIssue.displayName = 'ErrorTrackerIssue';
 export default ErrorTrackerIssue;

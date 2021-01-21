@@ -93,5 +93,9 @@ const monitorSchema = new Schema({
 
     deletedById: { type: String, ref: 'User' },
     breachedCommunicationSla: { type: Boolean, default: false },
+    customFields: [{ fieldName: String, fieldValue: Schema.Types.Mixed }],
+    acknowledgedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
+    resolvedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
+    createdByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
 });
 module.exports = mongoose.model('Incident', monitorSchema);
