@@ -36,7 +36,9 @@ export class IncidentMessageThread extends Component {
                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                            <span>Timeline</span>
+                            <span>
+                                {title === 'Status Page' ? title : 'Timeline'}
+                            </span>
                         </span>
                         <p>
                             <span>{description}</span>
@@ -648,7 +650,7 @@ export class IncidentMessageThread extends Component {
                                                             <div className="bs-thread-line-down"></div>
                                                         </ShouldRender>
                                                     </div>
-                                                ) : (
+                                                ) : incidentMessage.status ? (
                                                     <>
                                                         <ShouldRender
                                                             if={i !== 0}
@@ -848,6 +850,347 @@ export class IncidentMessageThread extends Component {
                                                                                 </div>
                                                                             </span>
                                                                         </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <span>
+                                                                        {currentTimeZone
+                                                                            ? momentTz(
+                                                                                  incidentMessage.createdAt
+                                                                              )
+                                                                                  .tz(
+                                                                                      currentTimeZone
+                                                                                  )
+                                                                                  .format(
+                                                                                      'lll'
+                                                                                  )
+                                                                            : moment(
+                                                                                  incidentMessage.createdAt
+                                                                              ).format(
+                                                                                  'lll'
+                                                                              )}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <ShouldRender
+                                                            if={
+                                                                incidentMessages
+                                                                    .incidentMessages
+                                                                    .length -
+                                                                    1 !==
+                                                                i
+                                                            }
+                                                        >
+                                                            <div className="bs-thread-line-down bs-ex-down"></div>
+                                                        </ShouldRender>
+                                                    </>
+                                                ) : incidentMessage.totalSubscribers ? (
+                                                    <>
+                                                        <ShouldRender
+                                                            if={i !== 0}
+                                                        >
+                                                            <div className="bs-thread-line-up bs-ex-up"></div>
+                                                        </ShouldRender>
+                                                        <div className="bs-note-display-flex">
+                                                            <div
+                                                                className={`bs-incident-notes 
+                                                                            ${
+                                                                                incidentMessage.eventType ===
+                                                                                'resolved'
+                                                                                    ? 'bs-note-offline'
+                                                                                    : incidentMessage.eventType ===
+                                                                                      'acknowledged'
+                                                                                    ? 'bs-note-acknowleged'
+                                                                                    : incidentMessage.eventType ===
+                                                                                      'identified'
+                                                                                    ? 'bs-note-resolved'
+                                                                                    : 'bs-note-offline-o'
+                                                                            }`}
+                                                            ></div>
+                                                            <div className="bs-incident-notes-content">
+                                                                <div className="bs-note-display-flex bs-mob-block">
+                                                                    <div>
+                                                                        {incidentMessage.eventType ===
+                                                                            'status page note created' ||
+                                                                        incidentMessage.eventType ===
+                                                                            'status page note updated'
+                                                                            ? 'Action'
+                                                                            : 'Incident'}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="db-ListViewItem-link">
+                                                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                    <div
+                                                                                        className={`Badge Badge--color--${
+                                                                                            incidentMessage.eventType ===
+                                                                                            'identified'
+                                                                                                ? 'green'
+                                                                                                : incidentMessage.eventType ===
+                                                                                                  'acknowledged'
+                                                                                                ? 'yellow'
+                                                                                                : incidentMessage.eventType ===
+                                                                                                  'resolved'
+                                                                                                ? 'red'
+                                                                                                : null
+                                                                                        } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                                                    >
+                                                                                        <span
+                                                                                            className={`Badge-text Text-color--${
+                                                                                                incidentMessage.eventType ===
+                                                                                                'identified'
+                                                                                                    ? 'green'
+                                                                                                    : incidentMessage.eventType ===
+                                                                                                      'acknowledged'
+                                                                                                    ? 'yellow'
+                                                                                                    : incidentMessage.eventType ===
+                                                                                                      'resolved'
+                                                                                                    ? 'red'
+                                                                                                    : null
+                                                                                            } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                                        >
+                                                                                            {
+                                                                                                incidentMessage.eventType
+                                                                                            }
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        Alert{' '}
+                                                                        {incidentMessage.error
+                                                                            ? 'does not send'
+                                                                            : 'sent'}{' '}
+                                                                        to{' '}
+                                                                        <span
+                                                                            style={{
+                                                                                fontWeight:
+                                                                                    '600',
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                incidentMessage.totalSubscribers
+                                                                            }
+                                                                        </span>{' '}
+                                                                        {incidentMessage.totalSubscribers >
+                                                                        1
+                                                                            ? 'subscribers'
+                                                                            : 'subscriber'}
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="db-ListViewItem-link">
+                                                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                    <div className="Box-root Flex-flex">
+                                                                                        <div className="Box-root Flex-flex">
+                                                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                                <div
+                                                                                                    className="Box-root Flex-flex Flex-alignItems--center"
+                                                                                                    style={{
+                                                                                                        height:
+                                                                                                            '100%',
+                                                                                                    }}
+                                                                                                >
+                                                                                                    <div
+                                                                                                        className={`Badge ${
+                                                                                                            !incidentMessage.error
+                                                                                                                ? 'Badge--color--green'
+                                                                                                                : 'Badge--color--red'
+                                                                                                        } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                                                                    >
+                                                                                                        <span
+                                                                                                            className={`Badge-text ${
+                                                                                                                !incidentMessage.error
+                                                                                                                    ? 'Text-color--green'
+                                                                                                                    : 'Text-color--red'
+                                                                                                            } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                                                        >
+                                                                                                            <span>
+                                                                                                                {incidentMessage.error
+                                                                                                                    ? 'Error'
+                                                                                                                    : 'Sent'}
+                                                                                                            </span>
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </span>
+                                                                            </div>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <span>
+                                                                        {currentTimeZone
+                                                                            ? momentTz(
+                                                                                  incidentMessage.createdAt
+                                                                              )
+                                                                                  .tz(
+                                                                                      currentTimeZone
+                                                                                  )
+                                                                                  .format(
+                                                                                      'lll'
+                                                                                  )
+                                                                            : moment(
+                                                                                  incidentMessage.createdAt
+                                                                              ).format(
+                                                                                  'lll'
+                                                                              )}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <ShouldRender
+                                                            if={
+                                                                incidentMessages
+                                                                    .incidentMessages
+                                                                    .length -
+                                                                    1 !==
+                                                                i
+                                                            }
+                                                        >
+                                                            <div className="bs-thread-line-down bs-ex-down"></div>
+                                                        </ShouldRender>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <ShouldRender
+                                                            if={i !== 0}
+                                                        >
+                                                            <div className="bs-thread-line-up bs-ex-up"></div>
+                                                        </ShouldRender>
+                                                        <div className="bs-note-display-flex">
+                                                            <div
+                                                                className={`bs-incident-notes 
+                                                                        ${
+                                                                            incidentMessage.eventType ===
+                                                                            'resolved'
+                                                                                ? 'bs-note-offline'
+                                                                                : incidentMessage.eventType ===
+                                                                                  'acknowledged'
+                                                                                ? 'bs-note-acknowleged'
+                                                                                : incidentMessage.eventType ===
+                                                                                  'identified'
+                                                                                ? 'bs-note-resolved'
+                                                                                : 'bs-note-offline'
+                                                                        }`}
+                                                            ></div>
+                                                            <div className="bs-incident-notes-content">
+                                                                <div className="bs-note-display-flex bs-mob-block">
+                                                                    <div
+                                                                        className="Box-root bs-note-7"
+                                                                        style={{
+                                                                            cursor:
+                                                                                'pointer',
+                                                                            marginRight:
+                                                                                '5px',
+                                                                        }}
+                                                                        onClick={() => {
+                                                                            if (
+                                                                                incidentMessage.userId
+                                                                            ) {
+                                                                                history.push(
+                                                                                    '/dashboard/profile/' +
+                                                                                        incidentMessage
+                                                                                            .userId
+                                                                                            ._id
+                                                                                );
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <img
+                                                                            src={
+                                                                                incidentMessage.userId &&
+                                                                                incidentMessage
+                                                                                    .userId
+                                                                                    .name
+                                                                                    ? '/dashboard/assets/img/profile-user.svg'
+                                                                                    : '/dashboard/assets/img/Fyipe.svg'
+                                                                            }
+                                                                            className="userIcon"
+                                                                            alt=""
+                                                                            style={{
+                                                                                marginBottom:
+                                                                                    '-5px',
+                                                                            }}
+                                                                        />
+                                                                        <span>
+                                                                            {incidentMessage.userId &&
+                                                                            incidentMessage
+                                                                                .userId
+                                                                                .name
+                                                                                ? incidentMessage
+                                                                                      .userId
+                                                                                      .name
+                                                                                : 'Fyipe'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div>
+                                                                        got{' '}
+                                                                        {incidentMessage.alertVia ===
+                                                                        'email'
+                                                                            ? 'an'
+                                                                            : 'a'}{' '}
+                                                                        <span
+                                                                            style={{
+                                                                                fontWeight:
+                                                                                    '600',
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                incidentMessage.alertVia
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="db-ListViewItem-link">
+                                                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                    <div className="Box-root Flex-flex">
+                                                                                        <div className="Box-root Flex-flex">
+                                                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                                <div
+                                                                                                    className="Box-root Flex-flex Flex-alignItems--center"
+                                                                                                    style={{
+                                                                                                        height:
+                                                                                                            '100%',
+                                                                                                    }}
+                                                                                                >
+                                                                                                    <div
+                                                                                                        className={`Badge ${
+                                                                                                            incidentMessage.alertStatus ===
+                                                                                                            'Success'
+                                                                                                                ? 'Badge--color--green'
+                                                                                                                : 'Badge--color--red'
+                                                                                                        } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                                                                    >
+                                                                                                        <span
+                                                                                                            className={`Badge-text ${
+                                                                                                                incidentMessage.alertStatus ===
+                                                                                                                'Success'
+                                                                                                                    ? 'Text-color--green'
+                                                                                                                    : 'Text-color--red'
+                                                                                                            } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                                                        >
+                                                                                                            <span>
+                                                                                                                {
+                                                                                                                    incidentMessage.alertStatus
+                                                                                                                }
+                                                                                                            </span>
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </span>
+                                                                            </div>
+                                                                        </span>
                                                                     </div>
                                                                 </div>
                                                                 <div>

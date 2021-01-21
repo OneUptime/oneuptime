@@ -143,6 +143,7 @@ class MonitorCustomFields extends Component {
                                                 backgroundColor: 'white',
                                                 cursor: 'pointer',
                                             }}
+                                            id={`customfield_${field.fieldName}`}
                                         >
                                             <div className="bs-ObjectList-cell bs-u-v-middle">
                                                 <div className="bs-ObjectList-cell-row">
@@ -243,6 +244,7 @@ class MonitorCustomFields extends Component {
                                     backgroundColor: 'white',
                                     padding: '20px 10px 0',
                                 }}
+                                id="noCustomFields"
                             >
                                 <span>
                                     {(!customFields ||

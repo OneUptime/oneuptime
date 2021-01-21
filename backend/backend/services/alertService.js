@@ -929,7 +929,7 @@ module.exports = {
                 alertStatus: null,
                 error: true,
                 eventType,
-                errorMessage: 'Error',
+                errorMessage: alertStatus.message,
             });
         } else if (alertStatus) {
             alert = await _this.create({
@@ -1146,27 +1146,13 @@ module.exports = {
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 // calculate charge per 160 chars
-                // numSegments is the number of segments the sms will be divided into
-                // numSegments is provided by twilio
-                const segments = Number(sendResult.numSegments);
-                console.log(
-                    '****** segments from twilio 2 *********',
-                    segments
-                );
-                console.log(
-                    '******** send result from twilio 2 **********',
-                    sendResult
-                );
+                const segments = calcSmsSegments(sendResult.body);
                 const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                     user._id,
                     project,
                     AlertType.SMS,
                     user.alertPhoneNumber,
                     segments
-                );
-                console.log(
-                    '******* balance status 2 *********',
-                    balanceStatus
                 );
 
                 if (!balanceStatus.error) {
@@ -1243,6 +1229,7 @@ module.exports = {
     ) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId._id,
             });
@@ -1272,7 +1259,9 @@ module.exports = {
                             note: data.content,
                             incidentState: data.incident_state,
                             statusNoteStatus,
-                        }
+                        },
+                        subscribers.length,
+                        uuid
                     );
                 }
             }
@@ -1285,6 +1274,7 @@ module.exports = {
     sendCreatedIncidentToSubscribers: async function(incident, component) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             if (incident) {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
@@ -1308,7 +1298,10 @@ module.exports = {
                                 subscriber,
                                 incident,
                                 'Subscriber Incident Created',
-                                enabledStatusPage
+                                enabledStatusPage,
+                                null,
+                                subscribers.length,
+                                uuid
                             );
                         }
                     } else {
@@ -1317,7 +1310,9 @@ module.exports = {
                             incident,
                             'Subscriber Incident Created',
                             null,
-                            component
+                            component,
+                            subscribers.length,
+                            uuid
                         );
                     }
                 }
@@ -1460,7 +1455,7 @@ module.exports = {
                             }
                         } else {
                             if (escalation.email) {
-                                _this.sendAcknowledgeEmailAlert({
+                                await _this.sendAcknowledgeEmailAlert({
                                     incident,
                                     user,
                                     project,
@@ -1767,7 +1762,7 @@ module.exports = {
                             }
                         } else {
                             if (escalation.email) {
-                                _this.sendResolveEmailAlert({
+                                await _this.sendResolveEmailAlert({
                                     incident,
                                     user,
                                     project,
@@ -1943,6 +1938,7 @@ module.exports = {
     sendAcknowledgedIncidentToSubscribers: async function(incident) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             if (incident) {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
@@ -1965,14 +1961,21 @@ module.exports = {
                                 subscriber,
                                 incident,
                                 'Subscriber Incident Acknowldeged',
-                                enabledStatusPage
+                                enabledStatusPage,
+                                {},
+                                subscribers.length,
+                                uuid
                             );
                         }
                     } else {
                         await _this.sendSubscriberAlert(
                             subscriber,
                             incident,
-                            'Subscriber Incident Acknowldeged'
+                            'Subscriber Incident Acknowldeged',
+                            null,
+                            {},
+                            subscribers.length,
+                            uuid
                         );
                     }
                 }
@@ -1989,6 +1992,7 @@ module.exports = {
     sendResolvedIncidentToSubscribers: async function(incident) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             if (incident) {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
@@ -2011,14 +2015,21 @@ module.exports = {
                                 subscriber,
                                 incident,
                                 'Subscriber Incident Resolved',
-                                enabledStatusPage
+                                enabledStatusPage,
+                                {},
+                                subscribers.length,
+                                uuid
                             );
                         }
                     } else {
                         await _this.sendSubscriberAlert(
                             subscriber,
                             incident,
-                            'Subscriber Incident Resolved'
+                            'Subscriber Incident Resolved',
+                            null,
+                            {},
+                            subscribers.length,
+                            uuid
                         );
                     }
                 }
@@ -2037,7 +2048,9 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        { note, incidentState, statusNoteStatus } = {}
+        { note, incidentState, statusNoteStatus } = {},
+        totalSubscribers,
+        id
     ) {
         try {
             const _this = this;
@@ -2103,8 +2116,8 @@ module.exports = {
                     isStatusPageNoteAlert &&
                     !project.enableInvestigationNoteNotificationWebhook;
 
+                let eventType;
                 if (investigationNoteNotificationWebhookDisabled) {
-                    let eventType;
                     if (isStatusPageNoteAlert) {
                         eventType = statusPageNoteAlertEventType;
                     } else if (
@@ -2128,6 +2141,8 @@ module.exports = {
                         error: true,
                         errorMessage:
                             'Investigation Note Webhook Notification Disabled',
+                        totalSubscribers,
+                        id,
                     });
                 }
                 const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
@@ -2171,6 +2186,8 @@ module.exports = {
                         alertVia: AlertType.Webhook,
                         alertStatus: alertStatus,
                         eventType: eventType,
+                        totalSubscribers,
+                        id,
                     }).catch(error => {
                         ErrorService.log(
                             'AlertService.sendSubscriberAlert',
@@ -2202,12 +2219,12 @@ module.exports = {
                     isStatusPageNoteAlert &&
                     !project.enableInvestigationNoteNotificationEmail;
 
+                let errorMessageText, eventType;
                 if (
                     (!areEmailAlertsEnabledInGlobalSettings &&
                         !hasCustomSmtpSettings) ||
                     investigationNoteNotificationEmailDisabled
                 ) {
-                    let errorMessageText, eventType;
                     if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
                         errorMessageText =
                             'SMTP Settings not found on Admin Dashboard';
@@ -2242,6 +2259,8 @@ module.exports = {
                         alertStatus: null,
                         error: true,
                         errorMessage: errorMessageText,
+                        totalSubscribers,
+                        id,
                     });
                 }
                 const emailTemplate = await EmailTemplateService.findOneBy({
@@ -2266,6 +2285,8 @@ module.exports = {
                     alertVia: AlertType.Email,
                     alertStatus: 'Pending',
                     eventType: eventType,
+                    totalSubscribers,
+                    id,
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
@@ -2492,6 +2513,8 @@ module.exports = {
                         error: true,
                         errorMessage: errorMessageText,
                         eventType: eventType,
+                        totalSubscribers,
+                        id,
                     });
                 }
                 const countryCode = await _this.mapCountryShortNameToCountryCode(
@@ -2545,6 +2568,8 @@ module.exports = {
                             error: true,
                             errorMessage: errorMessageText,
                             eventType: eventType,
+                            totalSubscribers,
+                            id,
                         });
                     }
 
@@ -2579,6 +2604,8 @@ module.exports = {
                             error: true,
                             errorMessage: status.message,
                             eventType: eventType,
+                            totalSubscribers,
+                            id,
                         });
                     }
                 }
@@ -2607,6 +2634,8 @@ module.exports = {
                     alertVia: AlertType.SMS,
                     alertStatus: 'Pending',
                     eventType: eventType,
+                    totalSubscribers,
+                    id,
                 });
                 const alertId = subscriberAlert._id;
 
@@ -2760,27 +2789,13 @@ module.exports = {
                             !hasCustomTwilioSettings
                         ) {
                             // charge sms per 160 chars
-                            // numSegments is the number of segments an sms can be divided into
-                            // numSegments is provided by twilio
-                            const segments = Number(sendResult.numSegments);
-                            console.log(
-                                '****** segments from twilio 1 *********',
-                                segments
-                            );
-                            console.log(
-                                '******** send result from twilio 1 **********',
-                                sendResult
-                            );
+                            const segments = calcSmsSegments(sendResult.body);
                             const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                                 owner.userId,
                                 project,
                                 AlertType.SMS,
                                 contactPhone,
                                 segments
-                            );
-                            console.log(
-                                '********* balance status 1 ***********',
-                                balanceStatus
                             );
 
                             if (!balanceStatus.error) {
@@ -2805,7 +2820,7 @@ module.exports = {
                         {
                             alertStatus: null,
                             error: true,
-                            errorMessage: 'Error',
+                            errorMessage: error.message,
                         }
                     );
                     throw error;
@@ -3000,6 +3015,17 @@ module.exports = {
         }
     },
 };
+
+/**
+ * @description calculates the number of segments an sms is divided into
+ * @param {string} sms the body of the sms sent
+ * @returns an interger
+ */
+function calcSmsSegments(sms) {
+    let smsLength = sms.length;
+    smsLength = Number(smsLength);
+    return Math.ceil(smsLength / 160);
+}
 
 const AlertModel = require('../models/alert');
 const ProjectService = require('./projectService');

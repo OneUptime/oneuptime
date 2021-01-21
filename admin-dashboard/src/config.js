@@ -20,7 +20,6 @@ let adminDashboardUrl = window.location.origin + '/admin';
 let accountsUrl = window.location.origin + '/accounts';
 let helmChartUrl = window.location.origin + '/chart';
 let docsUrl = window.location.origin + '/docs';
-let probeUrl = window.location.origin + '/probe';
 const licensingUrl = env('LICENSE_URL');
 
 if (
@@ -42,7 +41,6 @@ if (
     accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
     helmChartUrl = window.location.protocol + `//${address}:3423`;
     docsUrl = window.location.protocol + `//${address}:1445`;
-    probeUrl = window.location.protocol + `//${address}:3008`;
 }
 
 export const API_URL = apiUrl;
@@ -56,8 +54,6 @@ export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
 export const HELM_CHART_URL = helmChartUrl;
 
 export const API_DOCS_URL = docsUrl;
-
-export const PROBE_URL = probeUrl;
 
 export const IS_SAAS_SERVICE = booleanParser(env('IS_SAAS_SERVICE'));
 

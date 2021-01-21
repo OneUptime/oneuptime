@@ -25,6 +25,7 @@ const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const subscriberAlertService = require('../services/subscriberAlertService');
 
 // Route
 // Description: Creating incident.
@@ -284,6 +285,7 @@ router.post(
     async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
+            const projectId = req.params.projectId;
             // Call the IncidentService
             const incident = await IncidentService.acknowledge(
                 req.params.incidentId,
@@ -297,10 +299,31 @@ router.post(
             const timeline = await IncidentTimelineService.findBy({
                 incidentId: incident._id,
             });
-            incidentMessages = incidentMessages.concat(timeline);
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incident._id },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incident._id,
+                projectId,
+            });
+            const subAlerts = uniqByKeepFirst(
+                subscriberAlerts,
+                it => it.identification
+            );
+            incidentMessages = [
+                ...incidentMessages,
+                ...timeline,
+                ...alerts,
+                ...subAlerts,
+            ];
             incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+            const filteredMsg = incidentMessages.filter(
+                a =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
+            );
             const result = {
-                data: incidentMessages,
+                data: filteredMsg,
                 incident,
                 type: 'internal',
             };
@@ -323,6 +346,7 @@ router.post(
     async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
+            const projectId = req.params.projectId;
             // Call the IncidentService
             const incident = await IncidentService.resolve(
                 req.params.incidentId,
@@ -335,10 +359,31 @@ router.post(
             const timeline = await IncidentTimelineService.findBy({
                 incidentId: incident._id,
             });
-            incidentMessages = incidentMessages.concat(timeline);
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incident._id },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incident._id,
+                projectId,
+            });
+            const subAlerts = uniqByKeepFirst(
+                subscriberAlerts,
+                it => it.identification
+            );
+            incidentMessages = [
+                ...incidentMessages,
+                ...timeline,
+                ...alerts,
+                ...subAlerts,
+            ];
             incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+            const filteredMsg = incidentMessages.filter(
+                a =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
+            );
             const result = {
-                data: incidentMessages,
+                data: filteredMsg,
                 incident,
                 type: 'internal',
             };
@@ -558,6 +603,14 @@ router.post(
                     status,
                 });
 
+                const alerts = await AlertService.findBy({
+                    query: { incidentId: incident._id },
+                });
+                const subscriberAlerts = await subscriberAlertService.findBy({
+                    incidentId: incident._id,
+                    projectId: req.params.projectId,
+                });
+
                 if (
                     data.type === 'internal' ||
                     (data.type === 'internal' &&
@@ -570,7 +623,16 @@ router.post(
                     const timeline = await IncidentTimelineService.findBy({
                         incidentId: incident._id,
                     });
-                    incidentMessages = incidentMessages.concat(timeline);
+                    const subAlerts = uniqByKeepFirst(
+                        subscriberAlerts,
+                        it => it.identification
+                    );
+                    incidentMessages = [
+                        ...incidentMessages,
+                        ...timeline,
+                        ...alerts,
+                        ...subAlerts,
+                    ];
                     incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
                     const filteredMsg = incidentMessages.filter(
                         a =>
@@ -624,7 +686,7 @@ router.delete(
     isAuthorized,
     async function(req, res) {
         try {
-            const { incidentId, incidentMessageId } = req.params;
+            const { incidentId, incidentMessageId, projectId } = req.params;
             const checkMsg = await IncidentMessageService.findOneBy({
                 _id: incidentMessageId,
             });
@@ -644,6 +706,13 @@ router.delete(
                     createdById: req.user.id,
                     status,
                 });
+                const alerts = await AlertService.findBy({
+                    query: { incidentId: incidentId },
+                });
+                const subscriberAlerts = await subscriberAlertService.findBy({
+                    incidentId: incidentId,
+                    projectId,
+                });
 
                 await RealTimeService.deleteIncidentNote(incidentMessage);
                 if (checkMsg.type === 'investigation') {
@@ -656,7 +725,16 @@ router.delete(
                     const timeline = await IncidentTimelineService.findBy({
                         incidentId,
                     });
-                    incidentMessages = incidentMessages.concat(timeline);
+                    const subAlerts = uniqByKeepFirst(
+                        subscriberAlerts,
+                        it => it.identification
+                    );
+                    incidentMessages = [
+                        ...incidentMessages,
+                        ...timeline,
+                        ...alerts,
+                        ...subAlerts,
+                    ];
                     incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
                     const filteredMsg = incidentMessages.filter(
                         a =>
@@ -692,6 +770,7 @@ router.get(
         try {
             let incidentMessages, result;
             const incidentId = req.params.incidentId;
+            const projectId = req.params.projectId;
             if (type === 'investigation') {
                 incidentMessages = await IncidentMessageService.findBy(
                     { incidentId, type },
@@ -707,6 +786,13 @@ router.get(
             const timeline = await IncidentTimelineService.findBy({
                 incidentId,
             });
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incidentId },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incidentId,
+                projectId,
+            });
             const count = await IncidentMessageService.countBy({
                 incidentId,
                 type,
@@ -714,7 +800,16 @@ router.get(
             if (type === 'investigation') {
                 result = incidentMessages;
             } else {
-                incidentMessages = incidentMessages.concat(timeline);
+                const subAlerts = uniqByKeepFirst(
+                    subscriberAlerts,
+                    it => it.identification
+                );
+                incidentMessages = [
+                    ...incidentMessages,
+                    ...timeline,
+                    ...alerts,
+                    ...subAlerts,
+                ];
                 incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
                 const filteredMsg = incidentMessages.filter(
                     a =>
@@ -810,5 +905,13 @@ router.get(
         }
     }
 );
+
+function uniqByKeepFirst(a, key) {
+    let seen = new Set();
+    return a.filter(item => {
+        let k = key(item);
+        return seen.has(k) ? false : seen.add(k);
+    });
+}
 
 module.exports = router;
