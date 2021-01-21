@@ -17,6 +17,7 @@ const LogService = require('../services/logService');
 const ApplicationSecurityLogService = require('../services/applicationSecurityLogService');
 const ContainerSecurityLogService = require('../services/containerSecurityLogService');
 const ErrorTrackerService = require('../services/errorTrackerService');
+const IssueService = require('../services/issueService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -323,6 +324,36 @@ router.get(
                         createdAt: elem.createdAt,
                         icon: 'appLog',
                         status: logStatus,
+                    };
+                    // add it to the total resources
+                    totalResources.push(newElement);
+                    return newElement;
+                })
+            );
+
+            // fetch error trackers
+            const errorTrackers = await ErrorTrackerService.getErrorTrackersByComponentId(
+                componentId,
+                limit,
+                skip
+            );
+
+            await Promise.all(
+                errorTrackers.map(async errorTracker => {
+                    let errorStatus = 'No Errors yet';
+                    const issues = await IssueService.findBy(
+                        { errorTrackerId: errorTracker._id },
+                        1,
+                        0
+                    );
+                    if (issues.length > 0) errorStatus = 'Listening for Errors';
+                    const newElement = {
+                        _id: errorTracker._id,
+                        name: errorTracker.name,
+                        type: 'error tracker',
+                        createdAt: errorTracker.createdAt,
+                        icon: 'errorTracking',
+                        status: errorStatus,
                     };
                     // add it to the total resources
                     totalResources.push(newElement);
