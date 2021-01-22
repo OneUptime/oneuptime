@@ -14,15 +14,15 @@ try {
     require('./component.test'); // Passed
     require('./containerSecurity.test');
     require('./disableSignup.test'); // Passed
-    require('./dockerCredential.test'); // 
+    require('./dockerCredential.test');  
     require('./emailAuthorization.test'); // Passed
-    require('./emailSmtp.test');
+    require('./emailSmtp.test'); // Passed
     require('./emailTemplate.test'); // Passed
-    require('./errorTracker.test');
+    require('./errorTracker.test'); ///// Failed
     require('./feedback.test'); // Passed
     require('./gitCredential.test'); // Passed
     require('./globalConfig.test'); // Passed
-    require('./incident.test');
+    require('./incident.test'); //////// Failed
     require('./incidentAlerts.test');
     require('./incidentPriority.test');
     require('./incidentSettings.test');
