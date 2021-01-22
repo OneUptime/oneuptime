@@ -87,7 +87,7 @@ class MonitorSla extends Component {
         } = this.props;
 
         return (
-            <div id="monitorSettings">
+            <tbody id="monitorSettings">
                 {monitorSlas &&
                     monitorSlas.length > 0 &&
                     monitorSlas.map((monitorSla, index) => {
@@ -98,7 +98,7 @@ class MonitorSla extends Component {
                                     String(monitorSla._id)
                         );
                         return (
-                            <div
+                            <tr
                                 key={monitorSla._id}
                                 className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
                                 style={{
@@ -108,11 +108,15 @@ class MonitorSla extends Component {
                                 id={`monitorSla_${monitorSla.name}`}
                             >
                                 {monitorSla.isDefault ? (
-                                    <div
+                                    <td
                                         className="bs-ObjectList-cell bs-u-v-middle"
                                         style={{
                                             display: 'flex',
+                                            alignItems: 'center',
                                             width: '20vw',
+                                            flexWrap: 'wrap',
+                                            minWidth: 160,
+                                            marginTop: 10,
                                         }}
                                     >
                                         <div className="bs-ObjectList-cell-row">
@@ -128,37 +132,41 @@ class MonitorSla extends Component {
                                                 <span>Default</span>
                                             </span>
                                         </div>
-                                    </div>
+                                    </td>
                                 ) : (
-                                    <div
+                                    <td
                                         className="bs-ObjectList-cell bs-u-v-middle"
                                         style={{
                                             display: 'flex',
+                                            alignItems: 'center',
                                             width: '20vw',
+                                            flexWrap: 'wrap',
+                                            minWidth: 160,
+                                            marginTop: 10,
                                         }}
                                     >
                                         <div className="bs-ObjectList-cell-row">
                                             {monitorSla.name}
                                         </div>
-                                    </div>
+                                    </td>
                                 )}
-                                <div
+                                <td
                                     className="bs-ObjectList-cell bs-u-v-middle"
                                     style={{ width: '20vw' }}
                                 >
                                     <div className="bs-ObjectList-cell-row">
                                         {monitorSla.frequency}
                                     </div>
-                                </div>
-                                <div
+                                </td>
+                                <td
                                     className="bs-ObjectList-cell bs-u-v-middle"
                                     style={{ width: '20vw' }}
                                 >
                                     <div className="bs-ObjectList-cell-row">
                                         {monitorSla.monitorUptime}
                                     </div>
-                                </div>
-                                <div
+                                </td>
+                                <td
                                     className="bs-ObjectList-cell bs-u-v-middle"
                                     style={{ width: '20vw' }}
                                 >
@@ -173,8 +181,8 @@ class MonitorSla extends Component {
                                             )}
                                         </div>
                                     )}
-                                </div>
-                                <div
+                                </td>
+                                <td
                                     className="bs-ObjectList-cell bs-u-v-middle"
                                     style={{ width: '20vw' }}
                                 >
@@ -282,11 +290,11 @@ class MonitorSla extends Component {
                                             <span>Delete</span>
                                         </button>
                                     </div>
-                                </div>
-                            </div>
+                                </td>
+                            </tr>
                         );
                     })}
-            </div>
+            </tbody>
         );
     };
 
