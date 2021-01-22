@@ -32,7 +32,7 @@ try {
     require('./monitor.test');
     require('./monitorCriteria.test'); // Passed
     require('./notification.test');
-    require('./probe.test');
+    require('./probe.test'); // Passed
     require('./project.test');
     require('./rateLimit.test'); // Passed
     require('./reports.test'); // Passed
