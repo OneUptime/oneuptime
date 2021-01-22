@@ -1,58 +1,58 @@
 try {
-    require('./monitorSla.test'); // Passed
-    require('./customField.test'); // Passed
-    require('./incomingHttpRequest.test'); // Passed
-    require('./monitorCustomField.test'); // Passed
-    require('./adminCredentials.test'); // Passed
-    require('./incidentCommunicationSla.test'); // Passed
-    require('./adminCredentials.test'); //Passed
-    require('./alert.test'); // Passed
-    require('./applicationLog.test');  // Passed
+    require('./monitorSla.test');
+    require('./customField.test');
+    require('./incomingHttpRequest.test');
+    require('./monitorCustomField.test');
+    require('./adminCredentials.test');
+    require('./incidentCommunicationSla.test');
+    require('./adminCredentials.test');
+    require('./alert.test');
+    require('./applicationLog.test');
     require('./applicationSecurity.test');
-    require('./auditLogs.test'); // Passed
-    require('./emailLogs.test'); // Passed
-    require('./component.test'); // Passed
+    require('./auditLogs.test');
+    require('./emailLogs.test');
+    require('./component.test');
     require('./containerSecurity.test');
-    require('./disableSignup.test'); // Passed
+    require('./disableSignup.test');
     require('./dockerCredential.test');
-    require('./emailAuthorization.test'); // Passed
+    require('./emailAuthorization.test');
     require('./emailSmtp.test');
-    require('./emailTemplate.test'); // Passed
+    require('./emailTemplate.test');
     require('./errorTracker.test');
-    require('./feedback.test'); // Passed
-    require('./gitCredential.test'); // Passed
-    require('./globalConfig.test'); // Passed
+    require('./feedback.test');
+    require('./gitCredential.test');
+    require('./globalConfig.test');
     require('./incident.test');
     require('./incidentAlerts.test');
     require('./incidentPriority.test');
     require('./incidentSettings.test');
-    require('./invoice.test'); // Passed
-    require('./jwttoken.test'); // Passed
-    require('./lead.test'); // Passed
+    require('./invoice.test');
+    require('./jwttoken.test');
+    require('./lead.test');
     require('./monitor.test');
-    require('./monitorCriteria.test'); // Passed
+    require('./monitorCriteria.test');
     require('./notification.test');
     require('./probe.test');
     require('./project.test');
-    require('./rateLimit.test'); // Passed
-    require('./reports.test'); // Passed
+    require('./rateLimit.test');
+    require('./reports.test');
     require('./resourceCategory.test');
     require('./schedule.test');
-    require('./scheduledEvent.test'); // Passed
-    require('./scheduledEventNote.test'); // Passed
-    require('./smsTemplate.test'); // Passed
-    require('./sso.test'); // Passed
+    require('./scheduledEvent.test');
+    require('./scheduledEventNote.test');
+    require('./smsTemplate.test');
+    require('./sso.test');
     require('./statusPage.test');
-    require('./stripe.test'); // Passed
-    require('./subscriber.test'); // Passed
+    require('./stripe.test');
+    require('./subscriber.test');
     require('./subscriberAlert.test');
-    require('./team.test'); // Passed
-    require('./tutorial.test'); // Passed
-    require('./twilio.test'); // Passed
-    require('./user.test'); 
-    require('./version.test'); // Passed
-    require('./webhook.test'); // Passed
-    require('./zapier.test'); // Passed
+    require('./team.test');
+    require('./tutorial.test');
+    require('./twilio.test');
+    require('./user.test');
+    require('./version.test');
+    require('./webhook.test');
+    require('./zapier.test');
 } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error);
