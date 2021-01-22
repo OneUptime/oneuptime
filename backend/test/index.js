@@ -25,11 +25,11 @@ try {
     require('./incident.test'); //////// Failed
     require('./incidentAlerts.test');  //////// Failed
     require('./incidentPriority.test'); // Passed
-    require('./incidentSettings.test');
+    require('./incidentSettings.test'); // Passed
     require('./invoice.test'); // Passed
     require('./jwttoken.test'); // Passed
     require('./lead.test'); // Passed
-    require('./monitor.test');
+    require('./monitor.test'); /////// Failed
     require('./monitorCriteria.test'); // Passed
     require('./notification.test');
     require('./probe.test'); // Passed
