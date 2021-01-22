@@ -725,23 +725,23 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    it('should report monitor down when api has no body in post request', function(done) {
+    it('should report monitor degraded when api has no body in post request', function(done) {
         request
             .post(`/incomingHttpRequest/${httpMonitorId}`)
             .send({})
             .end(function(err, res) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
-                expect(res.body.status).to.be.equal('offline');
+                expect(res.body.status).to.be.equal('degraded');
                 done();
             });
     });
 
-    it('should report monitor down when api has no body in get request', function(done) {
+    it('should report monitor degraded when api has no body in get request', function(done) {
         request
             .get(`/incomingHttpRequest/${httpMonitorId}`)
             .end(function(err, res) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
-                expect(res.body.status).to.be.equal('offline');
+                expect(res.body.status).to.be.equal('degraded');
                 done();
             });
     });
