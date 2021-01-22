@@ -42,7 +42,7 @@ try {
     require('./scheduledEventNote.test'); // Passed
     require('./smsTemplate.test'); // Passed
     require('./sso.test'); // Passed
-    require('./statusPage.test');
+    require('./statusPage.test'); // Passed
     require('./stripe.test'); // Passed
     require('./subscriber.test'); // Passed
     require('./subscriberAlert.test');
