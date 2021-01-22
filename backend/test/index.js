@@ -14,7 +14,7 @@ try {
     require('./component.test'); // Passed
     require('./containerSecurity.test');
     require('./disableSignup.test'); // Passed
-    require('./dockerCredential.test');
+    require('./dockerCredential.test'); // 
     require('./emailAuthorization.test'); // Passed
     require('./emailSmtp.test');
     require('./emailTemplate.test'); // Passed
