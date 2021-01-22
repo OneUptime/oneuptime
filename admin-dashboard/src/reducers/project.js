@@ -42,6 +42,16 @@ import {
     CHANGE_PLAN_REQUEST,
     CHANGE_PLAN_SUCCESS,
     CHANGE_PLAN_FAILURE,
+    FETCH_PROJECT_TEAM_REQUEST,
+    FETCH_PROJECT_TEAM_SUCCESS,
+    FETCH_PROJECT_TEAM_ERROR,
+    TEAM_DELETE_REQUEST,
+    TEAM_DELETE_SUCCESS,
+    TEAM_DELETE_FAILURE,
+    TEAM_DELETE_RESET,
+    USER_UPDATE_ROLE_REQUEST,
+    USER_UPDATE_ROLE_SUCCESS,
+    USER_UPDATE_ROLE_FAILURE,
 } from '../constants/project';
 
 const INITIAL_STATE = {
@@ -103,6 +113,24 @@ const INITIAL_STATE = {
         requesting: false,
         error: null,
         success: false,
+    },
+    projectTeam: {
+        requesting: false,
+        error: null,
+        success: false,
+        team: [],
+    },
+    teamdelete: {
+        error: null,
+        requesting: false,
+        success: false,
+        deleting: [],
+    },
+    updateUser: {
+        error: null,
+        requesting: false,
+        success: false,
+        updating: [],
     },
 };
 
@@ -180,7 +208,129 @@ export default function project(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
             });
+        //fetch project members
+        case FETCH_PROJECT_TEAM_REQUEST:
+            return Object.assign({}, state, {
+                projectTeam: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case FETCH_PROJECT_TEAM_SUCCESS:
+            return Object.assign({}, state, {
+                projectTeam: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    team: action.payload,
+                },
+            });
+        case FETCH_PROJECT_TEAM_ERROR:
+            return Object.assign({}, state, {
+                projectTeam: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+        //update project users role
+        case USER_UPDATE_ROLE_REQUEST:
+            return Object.assign({}, state, {
+                updateUser: {
+                    ...state.updateUser,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                    updating: state.updateUser.updating.concat([
+                        action.payload,
+                    ]),
+                },
+            });
+        case USER_UPDATE_ROLE_SUCCESS:
+            return Object.assign({}, state, {
+                updateUser: {
+                    ...state.updateUser,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    updating: []
+                },
+                projectTeam: {
+                    ...state.projectTeam,
+                    team: {
+                        ...state.projectTeam.team,
+                        teamMembers: action.payload.team,
+                    },
+                },
+            });
+        case USER_UPDATE_ROLE_FAILURE:
+            return {
+                ...state,
+                teamdelete: {
+                    ...state.teamdelete,
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                    deleting: [],
+                },
+            };
+        //delete users
+        case TEAM_DELETE_REQUEST:
+            return {
+                ...state,
+                teamdelete: {
+                    ...state.teamdelete,
+                    error: null,
+                    requesting: true,
+                    success: false,
+                    deleting: state.teamdelete.deleting.concat([
+                        action.payload,
+                    ]),
+                },
+            };
+        case TEAM_DELETE_SUCCESS:
+            return {
+                ...state,
+                teamdelete: {
+                    ...state.teamdelete,
+                    error: null,
+                    requesting: false,
+                    success: true,
+                    deleting: [],
+                },
+                projectTeam: {
+                    ...state.projectTeam,
+                    team: {
+                        ...state.projectTeam.team,
+                        teamMembers: action.payload,
+                        count: action.payload.length,
+                    },
+                },
+            };
+        case TEAM_DELETE_FAILURE:
+            return {
+                ...state,
+                teamdelete: {
+                    ...state.teamdelete,
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                    deleting: [],
+                },
+            };
 
+        case TEAM_DELETE_RESET:
+            return {
+                ...state,
+                teamdelete: {
+                    ...state.teamdelete,
+                    error: null,
+                    requesting: false,
+                    success: false,
+                    deleting: [],
+                },
+            };
         // fetch userProjects
         case FETCH_USER_PROJECTS_REQUEST:
             return Object.assign({}, state, {

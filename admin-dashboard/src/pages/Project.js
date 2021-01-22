@@ -10,21 +10,23 @@ import ProjectRestoreBox from '../components/project/ProjectRestoreBox';
 import ProjectBlockBox from '../components/project/ProjectBlockBox';
 import ProjectAlertLimitBox from '../components/project/ProjectAlertLimitBox';
 import ProjectUnblockBox from '../components/project/ProjectUnblockBox';
+import ProjectUsers from '../components/project/ProjectUsers';
 import ProjectUpgrade from '../components/project/ProjectUpgrade';
 import AdminNotes from '../components/adminNote/AdminNotes';
 import { addProjectNote, fetchProject } from '../actions/project';
 import { IS_SAAS_SERVICE } from '../config';
+import { fetchProjectTeam } from '../actions/project';
 
 class Project extends Component {
     componentDidMount() {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Project page Loaded');
         }
+        this.props.fetchProjectTeam(this.props.match.params.projectId);
     }
 
     ready = async () => {
         const { fetchProject } = this.props;
-
         await fetchProject(this.props.match.params.projectId);
     };
 
@@ -55,6 +57,20 @@ class Project extends Component {
                                                     }
                                                     initialValues={
                                                         this.props.initialValues
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectUsers
+                                                    users={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .team
+                                                    }
+                                                    projectId={
+                                                        this.props.match.params
+                                                            .projectId
                                                     }
                                                 />
                                             </div>
@@ -141,13 +157,18 @@ class Project extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ addProjectNote, fetchProject }, dispatch);
+    return bindActionCreators(
+        { addProjectNote, fetchProject, fetchProjectTeam },
+        dispatch
+    );
 };
 
 const mapStateToProps = state => {
     const project = state.project.project.project || {};
+    const projectUsers = state.project.projectTeam;
     return {
         project,
+        projectUsers,
         adminNote: state.adminNote,
         initialValues: { adminNotes: project.adminNotes || [] },
     };
@@ -163,6 +184,8 @@ Project.propTypes = {
     match: PropTypes.object.isRequired,
     fetchProject: PropTypes.func.isRequired,
     project: PropTypes.object.isRequired,
+    fetchProjectTeam: PropTypes.func.isRequired,
+    projectUsers: PropTypes.object.isRequired,
 };
 
 Project.displayName = 'Project';
