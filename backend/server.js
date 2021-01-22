@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const subscriptionHandler = require('./subscriptionHandler')
 
 const { NODE_ENV } = process.env;
 
@@ -265,6 +266,9 @@ app.use(
 );
 
 app.set('port', process.env.PORT || 3002);
+
+// Push notification
+app.post("/subscribe", subscriptionHandler.sendPushNotification);
 
 const server = http.listen(app.get('port'), function() {
     // eslint-disable-next-line

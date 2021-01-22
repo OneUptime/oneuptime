@@ -11,6 +11,7 @@ let RenderEscalation = ({
     subProjectId,
     form,
 }) => {
+    console.log('form', form)
     return (
         <ul>
             {fields.map((policy, i) => {

@@ -9,6 +9,7 @@ import * as serviceWorker from './serviceWorker';
 import store, { history, isServer } from './store';
 import App from './App';
 import './index.css';
+import registerWorker from './useNotification.js'
 
 if (!isServer) {
     ReactGA.initialize('UA-115085157-1');
@@ -30,4 +31,5 @@ render(
 );
 
 // this will enable the app to work offline and load faster
-serviceWorker.register();
+// serviceWorker.register();
+registerWorker();

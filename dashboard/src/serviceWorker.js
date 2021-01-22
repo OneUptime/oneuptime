@@ -153,3 +153,27 @@ export function unregister() {
         });
     }
 }
+
+// function registerServiceWorker() {
+//     return navigator.serviceWorker.register("/sw.js");
+// }
+
+// async function askUserPermission() {
+//     return await Notification.requestPermission();
+// }
+
+// function isPushNotificationSupported() {
+//     return "serviceWorker" in navigator && "PushManager" in window;
+// }
+
+// console.log('isPushNotificationSupported', isPushNotificationSupported())
+
+// askUserPermission().then(consent => {
+//     console.log('consent', consent)
+// })
+
+// registerServiceWorker();
+
+// export {
+//     askUserPermission
+// }

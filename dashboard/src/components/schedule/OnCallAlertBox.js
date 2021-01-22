@@ -117,9 +117,11 @@ export class OnCallAlertBox extends Component {
                     callReminders: 3,
                     smsReminders: 3,
                     emailReminders: 3,
+                    pushReminders: 3,
                     email: true,
                     sms: false,
                     call: false,
+                    push: false,
                     rotateBy: '',
                     rotationInterval: '',
                     firstRotationOn: '',
@@ -285,9 +287,11 @@ const mapStateToProps = (state, props) => {
                       callReminders: '3',
                       smsReminders: '3',
                       emailReminders: '3',
+                      pushReminders: '3',
                       email: true,
                       sms: false,
                       call: false,
+                      push: false,
                       teams: [
                           {
                               teamMembers: [
