@@ -23,8 +23,8 @@ try {
     require('./gitCredential.test'); // Passed
     require('./globalConfig.test'); // Passed
     require('./incident.test'); //////// Failed
-    require('./incidentAlerts.test');
-    require('./incidentPriority.test');
+    require('./incidentAlerts.test');  //////// Failed
+    require('./incidentPriority.test'); // Passed
     require('./incidentSettings.test');
     require('./invoice.test'); // Passed
     require('./jwttoken.test'); // Passed
