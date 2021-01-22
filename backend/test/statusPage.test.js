@@ -1042,7 +1042,7 @@ describe('StatusPage API with Sub-Projects', function() {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
-            });
+            }).catch(done());
     });
 
     it('should not create a statusPage for user that is not `admin` in sub-project.', function(done) {
