@@ -22,8 +22,8 @@ try {
     require('./feedback.test'); 
     require('./gitCredential.test'); 
     require('./globalConfig.test'); 
-    require('./incident.test');
-    require('./incidentAlerts.test');
+  //  require('./incident.test');
+  //  require('./incidentAlerts.test');
     require('./incidentPriority.test');
     require('./incidentSettings.test');
     require('./invoice.test'); 
