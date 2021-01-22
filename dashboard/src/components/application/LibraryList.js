@@ -1,10 +1,10 @@
 import React from 'react';
 import { logLibraries } from '../../config';
 import PropTypes from 'prop-types';
-import Markdown from 'markdown-to-jsx';
 import { RenderSelect } from '../basic/RenderSelect';
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
+import AceCodeEditor from '../basic/AceCodeEditor';
 
 function renderLibraries() {
     const list = logLibraries.getLibraries().map(library => {
@@ -33,11 +33,55 @@ function renderLanguageQuickStart(library, type) {
     const currentLibrary = logLibraries
         .getQuickStarts()
         .filter(quickStart => quickStart.id === library);
-    return currentLibrary[0]
+    const libraryDoc = currentLibrary[0]
         ? currentLibrary[0][type]
             ? currentLibrary[0][type]
             : ''
         : '';
+    if (libraryDoc === '') {
+        return <div className="Padding-all--20"> No Doc Now</div>;
+    } else if (!libraryDoc.installation) {
+        return <div className="Padding-all--20"> {libraryDoc} </div>;
+    } else {
+        return (
+            <div>
+                <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28 Padding-horizontal--20">
+                    <span>
+                        {' '}
+                        {libraryDoc.installation
+                            ? libraryDoc.installation.package
+                            : ''}
+                    </span>
+                </span>
+
+                <div className="Padding-horizontal--20">
+                    <AceCodeEditor
+                        value={
+                            libraryDoc.installation
+                                ? libraryDoc.installation.command
+                                : ''
+                        }
+                        name={`quickstart-command-${type}`}
+                        readOnly={true}
+                        language={type === 'java' ? 'xml' : ' markdown'}
+                        height={currentLibrary[0].height.install}
+                    />
+                </div>
+                <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28 Padding-horizontal--20">
+                    <span>{'Usage'}</span>
+                </span>
+                <div className="Padding-horizontal--20">
+                    <AceCodeEditor
+                        value={libraryDoc.usage ? libraryDoc.usage : ''}
+                        name={`quickstart-${type}`}
+                        readOnly={true}
+                        mode="javascript"
+                        height={currentLibrary[0].height.usage}
+                    />
+                </div>
+            </div>
+        );
+    }
 }
 const LibraryList = ({ title, type, library }) => (
     <div tabIndex="0" className="Box-root Margin-vertical--12">
@@ -54,9 +98,9 @@ const LibraryList = ({ title, type, library }) => (
                 </div>
             </div>
             <div className="Box-root">
-                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-vertical--16">
                     <div className="Box-root">
-                        <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28">
+                        <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28 Padding-horizontal--20">
                             <span> Quick Start</span>
                         </span>
                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"></span>
@@ -111,11 +155,7 @@ const LibraryList = ({ title, type, library }) => (
                             </div>
                         </div>
                     </form>
-                    <div className="Padding-vertical--12">
-                        <Markdown>
-                            {renderLanguageQuickStart(library, type)}
-                        </Markdown>
-                    </div>
+                    {renderLanguageQuickStart(library, type)}
                 </div>
             </div>
         </div>
@@ -135,7 +175,7 @@ LibraryList.propTypes = {
 };
 const mapStateToProps = state => {
     const initialValues = {
-        library: '',
+        library: 'js',
     };
     return {
         initialValues,

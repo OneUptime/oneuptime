@@ -20,6 +20,7 @@ module.exports = {
                 const probe = new ProbeModel();
                 probe.probeKey = probeKey;
                 probe.probeName = data.probeName;
+                probe.version = data.probeVersion;
                 const savedProbe = await probe.save();
                 return savedProbe;
             }

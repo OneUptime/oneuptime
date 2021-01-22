@@ -10,7 +10,7 @@ const CLUSTER_KEY = process.env.CLUSTER_KEY;
 module.exports = {
     isAuthorizedProbe: async function(req, res, next) {
         try {
-            let probeKey, probeName, clusterKey;
+            let probeKey, probeName, clusterKey, probeVersion;
 
             if (req.params.probeKey) {
                 probeKey = req.params.probeKey;
@@ -58,6 +58,18 @@ module.exports = {
                 clusterKey = req.body.clusterKey;
             }
 
+            if (req.params.probeVersion) {
+                probeVersion = req.params.probeVersion;
+            } else if (req.query.probeVersion) {
+                probeVersion = req.query.probeVersion;
+            } else if (req.headers['probeversion']) {
+                probeVersion = req.headers['probeversion'];
+            } else if (req.headers['probeversion']) {
+                probeVersion = req.headers['probeversion'];
+            } else if (req.body.probeVersion) {
+                probeVersion = req.body.probeVersion;
+            }
+
             let probe = null;
 
             if (clusterKey && clusterKey === CLUSTER_KEY) {
@@ -81,6 +93,7 @@ module.exports = {
                 probe = await ProbeService.create({
                     probeKey,
                     probeName,
+                    probeVersion,
                 });
             }
 
@@ -93,10 +106,25 @@ module.exports = {
                     { probeKey }
                 );
             }
-
             req.probe = {};
             req.probe.id = probe._id;
             await ProbeService.updateProbeStatus(probe._id);
+
+            //Update probe version
+            let probeValue = await ProbeService.findOneBy({
+                probeKey,
+                probeName,
+            });
+
+            if (!probeValue.version || probeValue.version !== probeVersion) {
+                await ProbeService.updateOneBy(
+                    {
+                        probeName,
+                    },
+                    { version: probeVersion }
+                );
+            }
+
             next();
         } catch (error) {
             ErrorService.log('probeAuthorization.isAuthorizedProbe', error);

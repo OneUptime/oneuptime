@@ -15,7 +15,6 @@ const initialState = {
         dashboard: '',
         docs: '',
         adminDashboard: '',
-        probe: '',
     },
 };
 
@@ -42,7 +41,6 @@ export default (state = initialState, action) => {
                     dashboard: action.payload.dashboardVersion,
                     docs: action.payload.docsVersion,
                     adminDashboard: process.env.REACT_APP_VERSION,
-                    probe: action.payload.probeVersion,
                 },
             });
 
@@ -67,7 +65,6 @@ export default (state = initialState, action) => {
                     dashboard: '',
                     docs: '',
                     adminDashboard: '',
-                    probe: '',
                 },
             });
 

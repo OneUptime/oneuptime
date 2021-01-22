@@ -32,6 +32,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             alertVia: data.alertVia,
             userId: userId,
             incidentId: data.incidentId,
+            eventType: data.eventType
         });
         return sendItemResponse(req, res, alert);
     } catch (error) {
