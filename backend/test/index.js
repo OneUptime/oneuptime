@@ -49,7 +49,7 @@ try {
     require('./team.test'); // Passed
     require('./tutorial.test'); // Passed
     require('./twilio.test'); // Passed
-    require('./user.test'); 
+    require('./user.test');  // Passed
     require('./version.test'); // Passed
     require('./webhook.test'); // Passed
     require('./zapier.test'); // Passed

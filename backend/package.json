@@ -55,7 +55,7 @@
     "scripts": {
         "start": "node server.js",
         "dev": "cross-env NODE_ENV=development nodemon server.js",
-        "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
+        "test": "cross-env NODE_ENV=development mocha --exit test/statusPage.test.js test/schedule.test.js test/resourceCategory.test.js test/project.test.js test/probe.test.js test/notification.test.js test/monitor.test.js",
         "enterprise-test": "cross-env NODE_ENV=development mocha --exit test/enterprise.js",
         "audit": "npm audit --audit-level=low",
         "preinstall": "npx npm-force-resolutions",
