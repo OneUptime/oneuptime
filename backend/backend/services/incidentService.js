@@ -509,7 +509,9 @@ module.exports = {
                     status: 'acknowledged',
                 });
 
-                await AlertService.sendAcknowledgedIncidentToSubscribers(incident);
+                await AlertService.sendAcknowledgedIncidentToSubscribers(
+                    incident
+                );
                 await AlertService.sendAcknowledgedIncidentMail(incident);
 
                 WebHookService.sendIntegrationNotification(

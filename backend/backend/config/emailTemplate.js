@@ -557,6 +557,7 @@ span.st-Delink.st-Delink--footer a {
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
+            '{{length}} : Time the incident was acknowledged',
         ],
         emailType: 'Subscriber Incident Acknowldeged',
         subject:
@@ -892,6 +893,28 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
    
     <strong￼ style="color: #000000 !important;">{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been acknowledged on {{incidentTime}}.
 
+
+    </td>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+</tbody>
+</table>
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+<tbody>
+  <tr>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+    <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+    Length: {{length}},
 
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1661,6 +1684,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
+            '{{length}} : Time the incident was resolved',
         ],
         emailType: 'Subscriber Incident Resolved',
         subject:
@@ -1992,6 +2016,28 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
     <strong￼ style="color: #000000 !important;">{{projectName}} - {{componentName}}/{{monitorName}} is {{incidentType}}</strong>. An incident has been resolved on {{incidentTime}}.
+
+    </td>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+  </tr>
+</tbody>
+</table>
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+<tbody>
+  <tr>
+    <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+      <div class="st-Spacer st-Spacer--filler"></div>
+    </td>
+    <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+    Length: {{length}},
 
     </td>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
