@@ -1436,7 +1436,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * Global twilio settings Call enable : true
          * SMS/Call alerts enabled for the project (billing): true
          */
-        it('should not cut project balance for invalid twilio settings', async function() {
+        it('should not cut project balance for invalid twilio settings', async function(done) {
             // update global setting to enable call and sms
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -1516,6 +1516,7 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(revertedTwilioSettings.value)
                 .to.have.property('phone')
                 .to.equal(originalPhone);
+            done();
         });
 
         /**
@@ -1584,9 +1585,8 @@ describe('SMS/Calls Incident Alerts', function() {
                 _id: projectId,
             });
 
-            const { rechargeToBalance, minimumBalance } = alertOptions;
-
-            expect(balance).to.be.lessThan(rechargeToBalance);
+            const { rechargeToBalance, minimumBalance } = alertOptions;           
+            expect(balance).to.be.eqaulTo(rechargeToBalance);
             expect(balance).to.be.greaterThan(minimumBalance);
             // resolve the incident
             const incidentResolved = await markIncidentAsResolved({
