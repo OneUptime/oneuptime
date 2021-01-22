@@ -8,7 +8,7 @@ try {
     require('./adminCredentials.test'); //Passed
     require('./alert.test'); // Passed
     require('./applicationLog.test');  // Passed
-    require('./applicationSecurity.test');
+    require('./applicationSecurity.test'); // Passed
     require('./auditLogs.test'); // Passed
     require('./emailLogs.test'); // Passed
     require('./component.test'); // Passed
