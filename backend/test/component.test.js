@@ -295,7 +295,7 @@ describe('Component API', function() {
                             done();
                         });
                 });
-        });
+        }).then(done());
     });
 
     it('should create a container security', function(done) {
@@ -337,7 +337,7 @@ describe('Component API', function() {
                             done();
                         });
                 });
-        });
+        }).then(done());
     });
 
     it('should delete a component and its monitor when componentId is valid', function(done) {

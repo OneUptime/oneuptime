@@ -193,7 +193,7 @@ describe('Email Logs API', function() {
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
-        expect(res.body.data.length).to.be.equal(3);
+        expect(res.body.data.length).to.be.equal(2);
 
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
