@@ -199,7 +199,7 @@ describe('Container Security API', function() {
                 expect(res).to.have.status(200);
                 done();
             });
-    });
+    }).catch(done());
 
     it('should throw error if scanning with an invalid docker credentials or invalid image path', function(done) {
         this.timeout(500000);
@@ -230,7 +230,7 @@ describe('Container Security API', function() {
                         done();
                     });
             });
-    });
+    }).catch(done());
 
     it('should not create a container security if name already exist in the component', function(done) {
         const authorization = `Basic ${token}`;

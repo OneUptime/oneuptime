@@ -1,58 +1,58 @@
 try {
-    require('./monitorSla.test'); // Passed
-    require('./customField.test'); // Passed
-    require('./incomingHttpRequest.test'); // Passed
-    require('./monitorCustomField.test'); // Passed
-    require('./adminCredentials.test'); // Passed
-    require('./incidentCommunicationSla.test'); // Passed
-    require('./adminCredentials.test'); //Passed
-    require('./alert.test'); // Passed
-    require('./applicationLog.test');  // Passed
-    require('./applicationSecurity.test'); // Passed
-    require('./auditLogs.test'); // Passed
-    require('./emailLogs.test'); // Passed
-    require('./component.test'); // Passed
+    require('./monitorSla.test'); 
+    require('./customField.test'); 
+    require('./incomingHttpRequest.test'); 
+    require('./monitorCustomField.test'); 
+    require('./adminCredentials.test'); 
+    require('./incidentCommunicationSla.test'); 
+    require('./adminCredentials.test');
+    require('./alert.test'); 
+    require('./applicationLog.test');  
+    require('./applicationSecurity.test');
+    require('./auditLogs.test'); 
+    require('./emailLogs.test'); 
+    require('./component.test'); 
     require('./containerSecurity.test');
-    require('./disableSignup.test'); // Passed
-    require('./dockerCredential.test');   // Passed
-    require('./emailAuthorization.test'); // Passed
-    require('./emailSmtp.test'); // Passed
-    require('./emailTemplate.test'); // Passed
-    require('./errorTracker.test'); ///// Passed
-    require('./feedback.test'); // Passed
-    require('./gitCredential.test'); // Passed
-    require('./globalConfig.test'); // Passed
-    require('./incident.test'); //////// Failed
-    require('./incidentAlerts.test');  //////// Failed
-    require('./incidentPriority.test'); // Passed
-    require('./incidentSettings.test'); // Passed
-    require('./invoice.test'); // Passed
-    require('./jwttoken.test'); // Passed
-    require('./lead.test'); // Passed
-    require('./monitor.test'); /////// Failed
-    require('./monitorCriteria.test'); // Passed
-    require('./notification.test'); // Passed
-    require('./probe.test'); // Passed
-    require('./project.test'); // Passed
-    require('./rateLimit.test'); // Passed
-    require('./reports.test'); // Passed
+    require('./disableSignup.test'); 
+    require('./dockerCredential.test');
+    require('./emailAuthorization.test'); 
+    require('./emailSmtp.test');
+    require('./emailTemplate.test'); 
+    require('./errorTracker.test');
+    require('./feedback.test'); 
+    require('./gitCredential.test'); 
+    require('./globalConfig.test'); 
+    require('./incident.test');
+    require('./incidentAlerts.test');
+    require('./incidentPriority.test');
+    require('./incidentSettings.test');
+    require('./invoice.test'); 
+    require('./jwttoken.test'); 
+    require('./lead.test'); 
+    require('./monitor.test');
+    require('./monitorCriteria.test'); 
+    require('./notification.test');
+    require('./probe.test');
+    require('./project.test');
+    require('./rateLimit.test'); 
+    require('./reports.test'); 
     require('./resourceCategory.test');
-    require('./schedule.test'); // Passed
-    require('./scheduledEvent.test'); // Passed
-    require('./scheduledEventNote.test'); // Passed
-    require('./smsTemplate.test'); // Passed
-    require('./sso.test'); // Passed
-    require('./statusPage.test'); // Passed
-    require('./stripe.test'); // Passed
-    require('./subscriber.test'); // Passed
+    require('./schedule.test');
+    require('./scheduledEvent.test'); 
+    require('./scheduledEventNote.test'); 
+    require('./smsTemplate.test'); 
+    require('./sso.test'); 
+    require('./statusPage.test');
+    require('./stripe.test'); 
+    require('./subscriber.test'); 
     require('./subscriberAlert.test');
-    require('./team.test'); // Passed
-    require('./tutorial.test'); // Passed
-    require('./twilio.test'); // Passed
-    require('./user.test');  // Passed
-    require('./version.test'); // Passed
-    require('./webhook.test'); // Passed
-    require('./zapier.test'); // Passed
+    require('./team.test'); 
+    require('./tutorial.test'); 
+    require('./twilio.test'); 
+    require('./user.test'); 
+    require('./version.test'); 
+    require('./webhook.test'); 
+    require('./zapier.test'); 
 } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error);
