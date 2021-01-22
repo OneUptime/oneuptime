@@ -87,7 +87,7 @@ class MonitorSla extends Component {
         } = this.props;
 
         return (
-            <div id="monitorSettings">
+            <tbody id="monitorSettings">
                 {monitorSlas &&
                     monitorSlas.length > 0 &&
                     monitorSlas.map((monitorSla, index) => {
@@ -286,7 +286,7 @@ class MonitorSla extends Component {
                             </div>
                         );
                     })}
-            </div>
+            </tbody>
         );
     };
 
