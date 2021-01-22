@@ -31,7 +31,7 @@ try {
     require('./lead.test'); // Passed
     require('./monitor.test'); /////// Failed
     require('./monitorCriteria.test'); // Passed
-    require('./notification.test');
+    require('./notification.test'); // Passed
     require('./probe.test'); // Passed
     require('./project.test'); // Passed
     require('./rateLimit.test'); // Passed
