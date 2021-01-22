@@ -109,7 +109,7 @@ module.exports = {
             // get all unique hashes by error tracker Id
             const errorTrackerIssues = await IssueService.findBy(
                 query,
-                0,
+                limit,
                 skip
             );
 

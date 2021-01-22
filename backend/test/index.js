@@ -18,7 +18,7 @@ try {
     require('./emailAuthorization.test'); // Passed
     require('./emailSmtp.test'); // Passed
     require('./emailTemplate.test'); // Passed
-    require('./errorTracker.test'); ///// Failed
+    require('./errorTracker.test'); ///// Passed
     require('./feedback.test'); // Passed
     require('./gitCredential.test'); // Passed
     require('./globalConfig.test'); // Passed

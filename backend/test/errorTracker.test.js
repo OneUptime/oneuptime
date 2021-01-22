@@ -378,7 +378,7 @@ describe('Error Tracker API', function() {
     });
     it('should return a list of issues under an error event based on limit', function(done) {
         const authorization = `Basic ${token}`;
-        const limit = 2;
+        const limit = 1;
         request
             .post(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues`
