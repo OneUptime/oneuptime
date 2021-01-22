@@ -37,7 +37,7 @@ try {
     require('./rateLimit.test'); // Passed
     require('./reports.test'); // Passed
     require('./resourceCategory.test');
-    require('./schedule.test');
+    require('./schedule.test'); // Passed
     require('./scheduledEvent.test'); // Passed
     require('./scheduledEventNote.test'); // Passed
     require('./smsTemplate.test'); // Passed
