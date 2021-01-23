@@ -22,7 +22,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 
-router.post('/', getUser, isAuthorizedAdmin, async function (req, res) {
+router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const data = req.body;
         const probe = await ProbeService.create(data);
@@ -32,7 +32,7 @@ router.post('/', getUser, isAuthorizedAdmin, async function (req, res) {
     }
 });
 
-router.get('/', getUser, isAuthorizedAdmin, async function (req, res) {
+router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
@@ -44,7 +44,7 @@ router.get('/', getUser, isAuthorizedAdmin, async function (req, res) {
     }
 });
 
-router.put('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
+router.put('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const data = req.body;
         const probe = await ProbeService.updateOneBy(
@@ -57,7 +57,7 @@ router.put('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     }
 });
 
-router.delete('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
+router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const probe = await ProbeService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, probe);
@@ -66,7 +66,7 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     }
 });
 
-router.get('/monitors', isAuthorizedProbe, async function (req, res) {
+router.get('/monitors', isAuthorizedProbe, async function(req, res) {
     try {
         const monitors = await MonitorService.getProbeMonitors(
             req.probe.id,
@@ -99,7 +99,7 @@ router.get('/monitors', isAuthorizedProbe, async function (req, res) {
     }
 });
 
-router.post('/ping/:monitorId', isAuthorizedProbe, async function (
+router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     req,
     response
 ) {
@@ -134,12 +134,12 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
                     matchedCriterion: matchedUpCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.conditions(
-                        monitor.type,
-                        monitor.criteria.up,
-                        res,
-                        resp,
-                        rawResp
-                    )
+                          monitor.type,
+                          monitor.criteria.up,
+                          res,
+                          resp,
+                          rawResp
+                      )
                     : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDegraded,
@@ -147,15 +147,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
                     failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
                 } = await (monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.degraded
+                monitor.criteria &&
+                monitor.criteria.degraded
                     ? ProbeService.conditions(
-                        monitor.type,
-                        monitor.criteria.degraded,
-                        res,
-                        resp,
-                        rawResp
-                    )
+                          monitor.type,
+                          monitor.criteria.degraded,
+                          res,
+                          resp,
+                          rawResp
+                      )
                     : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDown,
@@ -164,16 +164,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
                     matchedCriterion: matchedDownCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.conditions(
-                        monitor.type,
-                        [
-                            ...monitor.criteria.down.filter(
-                                criterion => criterion.default !== true
-                            ),
-                        ],
-                        res,
-                        resp,
-                        rawResp
-                    )
+                          monitor.type,
+                          [
+                              ...monitor.criteria.down.filter(
+                                  criterion => criterion.default !== true
+                              ),
+                          ],
+                          res,
+                          resp,
+                          rawResp
+                      )
                     : { stat: false, successReasons: [], failedReasons: [] });
 
                 if (validUp) {
@@ -215,10 +215,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
                     matchedCriterion: matchedUpCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.scriptConditions(
-                        res,
-                        resp,
-                        monitor.criteria.up
-                    )
+                          res,
+                          resp,
+                          monitor.criteria.up
+                      )
                     : { stat: false, reasons: [] });
 
                 const {
@@ -226,13 +226,13 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
                     reasons: degradedSuccessReasons,
                     matchedUpCriterion: matchedDegradedCriterion,
                 } = await (monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.degraded
+                monitor.criteria &&
+                monitor.criteria.degraded
                     ? ProbeService.scriptConditions(
-                        res,
-                        resp,
-                        monitor.criteria.degraded
-                    )
+                          res,
+                          resp,
+                          monitor.criteria.degraded
+                      )
                     : { stat: false, reasons: [] });
 
                 const {
@@ -241,10 +241,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
                     matchedCriterion: matchedDownCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.scriptConditions(res, resp, [
-                        ...monitor.criteria.down.filter(
-                            criterion => criterion.default !== true
-                        ),
-                    ])
+                          ...monitor.criteria.down.filter(
+                              criterion => criterion.default !== true
+                          ),
+                      ])
                     : { stat: false, reasons: [] });
 
                 if (validUp) {
@@ -299,10 +299,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
                     matchedCriterion: matchedUpCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.conditions(
-                        monitor.type,
-                        monitor.criteria.up,
-                        data
-                    )
+                          monitor.type,
+                          monitor.criteria.up,
+                          data
+                      )
                     : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDegraded,
@@ -310,13 +310,13 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
                     failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
                 } = await (monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.degraded
+                monitor.criteria &&
+                monitor.criteria.degraded
                     ? ProbeService.conditions(
-                        monitor.type,
-                        monitor.criteria.degraded,
-                        data
-                    )
+                          monitor.type,
+                          monitor.criteria.degraded,
+                          data
+                      )
                     : { stat: false, successReasons: [], failedReasons: [] });
                 const {
                     stat: validDown,
@@ -325,14 +325,14 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
                     matchedCriterion: matchedDownCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.conditions(
-                        monitor.type,
-                        [
-                            ...monitor.criteria.down.filter(
-                                criterion => criterion.default !== true
-                            ),
-                        ],
-                        data
-                    )
+                          monitor.type,
+                          [
+                              ...monitor.criteria.down.filter(
+                                  criterion => criterion.default !== true
+                              ),
+                          ],
+                          data
+                      )
                     : { stat: false, successReasons: [], failedReasons: [] });
 
                 if (validUp) {
@@ -407,8 +407,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
             data.reason =
                 data && data.reason && data.reason.length
                     ? data.reason.filter(
-                        (item, pos, self) => self.indexOf(item) === pos
-                    )
+                          (item, pos, self) => self.indexOf(item) === pos
+                      )
                     : data.reason;
             const index =
                 data.reason && data.reason.indexOf('Request Timed out');
@@ -416,8 +416,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
                 data.reason =
                     data && data.reason && data.reason.length
                         ? data.reason.filter(
-                            item => !item.includes('Response Time is')
-                        )
+                              item => !item.includes('Response Time is')
+                          )
                         : data.reason;
             }
             if (data.lighthouseScanStatus) {
@@ -468,7 +468,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
     }
 });
 
-router.post('/setTime/:monitorId', isAuthorizedProbe, async function (req, res) {
+router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req, res) {
     try {
         const data = req.body;
         data.probeId = req.probe.id;
@@ -480,7 +480,7 @@ router.post('/setTime/:monitorId', isAuthorizedProbe, async function (req, res) 
     }
 });
 
-router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) {
+router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req, res) {
     try {
         const data = req.body;
         data.probeId = req.probe.id;
@@ -492,7 +492,7 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) 
     }
 });
 
-router.get('/:projectId/probes', getUser, isAuthorized, async function (
+router.get('/:projectId/probes', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -507,7 +507,7 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function (
     }
 });
 
-router.get('/applicationSecurities', isAuthorizedProbe, async function (
+router.get('/applicationSecurities', isAuthorizedProbe, async function(
     req,
     res
 ) {
@@ -519,7 +519,7 @@ router.get('/applicationSecurities', isAuthorizedProbe, async function (
     }
 });
 
-router.post('/scan/git', isAuthorizedProbe, async function (req, res) {
+router.post('/scan/git', isAuthorizedProbe, async function(req, res) {
     try {
         let { security } = req.body;
 
@@ -535,7 +535,7 @@ router.post('/scan/git', isAuthorizedProbe, async function (req, res) {
     }
 });
 
-router.get('/containerSecurities', isAuthorizedProbe, async function (req, res) {
+router.get('/containerSecurities', isAuthorizedProbe, async function(req, res) {
     try {
         const response = await ContainerSecurityService.getSecuritiesToScan();
         return sendItemResponse(req, res, response);
@@ -544,7 +544,7 @@ router.get('/containerSecurities', isAuthorizedProbe, async function (req, res) 
     }
 });
 
-router.post('/scan/docker', isAuthorizedProbe, async function (req, res) {
+router.post('/scan/docker', isAuthorizedProbe, async function(req, res) {
     try {
         let { security } = req.body;
 

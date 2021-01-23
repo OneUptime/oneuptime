@@ -1,5 +1,5 @@
 module.exports = {
-    create: async function (data) {
+    create: async function(data) {
         try {
             const _this = this;
             let probeKey;
@@ -30,7 +30,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -51,7 +51,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -69,7 +69,7 @@ module.exports = {
         }
     },
 
-    findBy: async function (query, limit, skip) {
+    findBy: async function(query, limit, skip) {
         try {
             if (!skip) skip = 0;
 
@@ -99,7 +99,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -114,7 +114,7 @@ module.exports = {
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -129,7 +129,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query) {
+    deleteBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -147,7 +147,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await ProbeModel.deleteMany(query);
             return 'Probe(s) removed successfully!';
@@ -157,7 +157,7 @@ module.exports = {
         }
     },
 
-    sendProbe: async function (probeId, monitorId) {
+    sendProbe: async function(probeId, monitorId) {
         try {
             const probe = await this.findOneBy({ _id: probeId });
             if (probe) {
@@ -170,7 +170,7 @@ module.exports = {
         }
     },
 
-    saveLighthouseLog: async function (data) {
+    saveLighthouseLog: async function(data) {
         try {
             const log = await LighthouseLogService.create(data);
             return log;
@@ -180,7 +180,7 @@ module.exports = {
         }
     },
 
-    createMonitorDisabledStatus: async function (data) {
+    createMonitorDisabledStatus: async function(data) {
         try {
             let monitorStatus = await MonitorStatusService.findOneBy({
                 monitorId: data.monitorId,
@@ -201,7 +201,7 @@ module.exports = {
         }
     },
 
-    saveMonitorLog: async function (data) {
+    saveMonitorLog: async function(data) {
         try {
             const _this = this;
             const monitorStatus = await MonitorStatusService.findOneBy({
@@ -292,7 +292,7 @@ module.exports = {
         }
     },
 
-    getMonitorLog: async function (data) {
+    getMonitorLog: async function(data) {
         try {
             const date = new Date();
             const log = await MonitorLogService.findOneBy({
@@ -307,7 +307,7 @@ module.exports = {
         }
     },
 
-    incidentCreateOrUpdate: async function (data) {
+    incidentCreateOrUpdate: async function(data) {
         try {
             const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
@@ -475,7 +475,7 @@ module.exports = {
         }
     },
 
-    incidentResolveOrAcknowledge: async function (
+    incidentResolveOrAcknowledge: async function(
         data,
         lastStatus,
         autoAcknowledge,
@@ -498,7 +498,7 @@ module.exports = {
                                 if (
                                     probe.probeId &&
                                     String(probe.probeId._id) ===
-                                    String(data.probeId)
+                                        String(data.probeId)
                                 ) {
                                     incidentsV1.push(incident);
                                     return true;
@@ -587,7 +587,7 @@ module.exports = {
         }
     },
 
-    updateProbeStatus: async function (probeId) {
+    updateProbeStatus: async function(probeId) {
         try {
             const probe = await ProbeModel.findOneAndUpdate(
                 { _id: probeId },
@@ -606,8 +606,8 @@ module.exports = {
             ? resp.status
                 ? resp.status
                 : resp.statusCode
-                    ? resp.statusCode
-                    : null
+                ? resp.statusCode
+                : null
             : null;
         const body = resp && resp.body ? resp.body : null;
         const reasons = [];
@@ -651,8 +651,8 @@ module.exports = {
             ? resp.status
                 ? resp.status
                 : resp.statusCode
-                    ? resp.statusCode
-                    : null
+                ? resp.statusCode
+                : null
             : null;
         const body = resp && resp.body ? resp.body : null;
         const sslCertificate =
@@ -1119,7 +1119,7 @@ module.exports = {
         return { eventOccurred, matchedCriterion };
     },
 
-    processHttpRequest: async function (data) {
+    processHttpRequest: async function(data) {
         try {
             const _this = this;
             const { monitor, body } = data;
@@ -1132,8 +1132,8 @@ module.exports = {
                 failedReasons: upFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? _this.conditions(monitor.type, monitor.criteria.up, payload, {
-                    body,
-                })
+                      body,
+                  })
                 : { stat: false, successReasons: [], failedReasons: [] });
             const {
                 stat: validDegraded,
@@ -1141,11 +1141,11 @@ module.exports = {
                 failedReasons: degradedFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? _this.conditions(
-                    monitor.type,
-                    monitor.criteria.degraded,
-                    payload,
-                    { body }
-                )
+                      monitor.type,
+                      monitor.criteria.degraded,
+                      payload,
+                      { body }
+                  )
                 : { stat: false, successReasons: [], failedReasons: [] });
             const {
                 stat: validDown,
@@ -1153,11 +1153,11 @@ module.exports = {
                 failedReasons: downFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? _this.conditions(
-                    monitor.type,
-                    monitor.criteria.down,
-                    payload,
-                    { body }
-                )
+                      monitor.type,
+                      monitor.criteria.down,
+                      payload,
+                      { body }
+                  )
                 : { stat: false, successReasons: [], failedReasons: [] });
 
             if (validUp) {
@@ -1216,7 +1216,7 @@ module.exports = {
         }
     },
 
-    probeHttpRequest: async function (monitor, probeId) {
+    probeHttpRequest: async function(monitor, probeId) {
         try {
             const _this = this;
             let status, reason;
@@ -1243,10 +1243,10 @@ module.exports = {
                 matchedCriterion: matchedDownCriterion,
             } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? _this.incomingCondition(payload, [
-                    ...monitor.criteria.down.filter(
-                        criterion => criterion.default !== true
-                    ),
-                ])
+                      ...monitor.criteria.down.filter(
+                          criterion => criterion.default !== true
+                      ),
+                  ])
                 : false);
             let timeHours = 0;
             let timeMinutes = payload;
@@ -3288,13 +3288,13 @@ const checkAnd = async (
             ) {
                 const responseDisplay = con[i].field1
                     ? con[i].field1.includes('response.body') &&
-                        con[i].field1.includes('response.headers')
+                      con[i].field1.includes('response.headers')
                         ? { headers: response.headers, body: response.body }
                         : con[i].field1.includes('response.headers')
-                            ? response.headers
-                            : con[i].field1.includes('response.body')
-                                ? response.body
-                                : response
+                        ? response.headers
+                        : con[i].field1.includes('response.body')
+                        ? response.body
+                        : response
                     : response;
                 try {
                     if (
@@ -3304,10 +3304,10 @@ const checkAnd = async (
                             response &&
                             Function(
                                 '"use strict";const response = ' +
-                                JSON.stringify(response) +
-                                ';return (' +
-                                con[i].field1 +
-                                ');'
+                                    JSON.stringify(response) +
+                                    ';return (' +
+                                    con[i].field1 +
+                                    ');'
                             )()
                         )
                     ) {
@@ -4941,13 +4941,13 @@ const checkOr = async (
             ) {
                 const responseDisplay = con[i].field1
                     ? con[i].field1.includes('response.body') &&
-                        con[i].field1.includes('response.headers')
+                      con[i].field1.includes('response.headers')
                         ? { headers: response.headers, body: response.body }
                         : con[i].field1.includes('response.headers')
-                            ? response.headers
-                            : con[i].field1.includes('response.body')
-                                ? response.body
-                                : response
+                        ? response.headers
+                        : con[i].field1.includes('response.body')
+                        ? response.body
+                        : response
                     : response;
                 try {
                     if (
@@ -4956,10 +4956,10 @@ const checkOr = async (
                         response &&
                         Function(
                             '"use strict";const response = ' +
-                            JSON.stringify(response) +
-                            ';return (' +
-                            con[i].field1 +
-                            ');'
+                                JSON.stringify(response) +
+                                ';return (' +
+                                con[i].field1 +
+                                ');'
                         )()
                     ) {
                         validity = true;
@@ -5288,10 +5288,10 @@ const formatBytes = (a, b, c, d, e) => {
     return (
         formatDecimal(
             ((b = Math),
-                (c = b.log),
-                (d = 1e3),
-                (e = (c(value) / c(d)) | 0),
-                value / b.pow(d, e)),
+            (c = b.log),
+            (d = 1e3),
+            (e = (c(value) / c(d)) | 0),
+            value / b.pow(d, e)),
             decimalPlaces >= 0 ? decimalPlaces : 2,
             roundType
         ) +
@@ -5338,7 +5338,7 @@ async function deleteFile(file) {
 function readFileContent(filePath) {
     return new Promise((resolve, reject) => {
         if (fs.existsSync(filePath)) {
-            fs.readFile(filePath, { encoding: 'utf8' }, function (error, data) {
+            fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
                 if (error) {
                     reject(error);
                 }
