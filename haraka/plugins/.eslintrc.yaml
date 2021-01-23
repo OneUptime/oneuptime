@@ -1,0 +1,10 @@
+
+globals:
+  server: true
+  OK: true
+  CONT: true
+  DENY: true
+  DENYSOFT: true
+  DENYDISCONNECT: true
+  DENYSOFTDISCONNECT: true
+  NEXT_HOOK: true

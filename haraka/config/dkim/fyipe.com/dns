@@ -1,0 +1,32 @@
+
+Add this TXT record to the fyipe.com DNS zone.
+
+jan2021._domainkey    IN   TXT   v=DKIM1;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv2+DP7SCgo/sfolapHnDz1qSPms7ZJIpsIF6j7Qt5F5QxyQP1PUuabbOxb/wZ+xljCL44dp2kfZL4zAm6rrMB7OLr01vUziU0qpYClWVmx7sZj2LdKmISmaH/enFG99muYjiRCDImDNCtrRRkPvrGs06DrXxDzL7vS0AD54oQlckJpCcGF5SDijTzSU8Cpwb09oxugpnbI+i0tXRN/Kk5yiYWbEd4VNC3pQ8Yorx7HKqpvrWJ1uiXkE1SvnrFKYNVS+pOYrWRpb2y77/oYLDpJN0DWVJV9EzT/G7S7bA2BbTOGvI0WV9w6Dr5wWuozJ2tTqNWt5xaQHlvco8fZGw/QIDAQAB
+
+
+BIND zone file formatted:
+
+jan2021._domainkey    IN   TXT (
+	"v=DKIM1;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv2+DP7SCgo/sfolapHnDz1qSPms7ZJIpsIF6j7Qt5F5QxyQP1PUuabbO"
+	"xb/wZ+xljCL44dp2kfZL4zAm6rrMB7OLr01vUziU0qpYClWVmx7sZj2LdKmISmaH/enFG99muYjiRCDImDNCtrRRkPvrGs06DrXxDzL7vS0AD5"
+	"4oQlckJpCcGF5SDijTzSU8Cpwb09oxugpnbI+i0tXRN/Kk5yiYWbEd4VNC3pQ8Yorx7HKqpvrWJ1uiXkE1SvnrFKYNVS+pOYrWRpb2y77/oYLD"
+	"pJN0DWVJV9EzT/G7S7bA2BbTOGvI0WV9w6Dr5wWuozJ2tTqNWt5xaQHlvco8fZGw/QIDAQAB"
+        )
+
+Tell the world that the ONLY mail servers that send mail from this domain are DKIM signed and/or bear our MX and A records.
+
+With SPF:
+
+        SPF "v=spf1 mx a -all"
+        TXT "v=spf1 mx a -all"
+
+With DMARC:
+
+_dmarc  TXT "v=DMARC1; p=reject; adkim=s; aspf=r; rua=mailto:dmarc-feedback@fyipe.com; ruf=mailto:dmarc-feedback@fyipe.com; pct=100"
+
+For more information about DKIM and SPF policy,
+the documentation within each plugin contains a longer discussion and links to more detailed information:
+
+   haraka -h dkim_sign
+   haraka -h spf
+

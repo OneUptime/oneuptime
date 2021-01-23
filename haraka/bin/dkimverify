@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+
+// DKIM test tool
+
+const nopt = require('nopt');
+const path = require('path');
+const base_path = path.join(__dirname, '..');
+const dkim = require(`${base_path}/dkim`);
+const DKIMVerifyStream = dkim.DKIMVerifyStream;
+
+const parsed = nopt({ debug: Boolean });
+
+// function print_usage() {
+//     console.log('Usage: dkimverify [--debug] < message');
+//     process.exit(1);
+// }
+
+if (!parsed.debug) {
+    dkim.DKIMObject.prototype.debug = function(str) {};
+    DKIMVerifyStream.prototype.debug = function(str) {};
+}
+
+const verifier = new DKIMVerifyStream(function(err, result, results) {
+    if (err) console.log(err.message);
+    if (Array.isArray(results)) {
+        results.forEach(function(res) {
+            console.log(
+                `identity="${res.identity}" domain="${res.domain}" result=${
+                    res.result
+                } ${res.error ? `(${res.error})` : ''}`
+            );
+        });
+    } else {
+        console.log(`Result: ${result}`);
+    }
+});
+
+process.stdin.pipe(verifier);

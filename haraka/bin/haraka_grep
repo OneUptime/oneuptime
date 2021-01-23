@@ -1,0 +1,32 @@
+#!/bin/sh
+
+if [ -z $1 ]; then
+	echo "$0 email@example.com"
+	exit
+fi
+
+LOG="/var/log/maillog"
+UUIDS=$(grep $1 $LOG | awk '{ print $7 }' | cut -d. -f1 | cut -f2 -d[ | sort -u)
+echo $UUIDS
+
+ARCHIVES=0
+if [ -z $UUIDS ]; then
+	echo "no recent matches, checking archives"
+	UUIDS=$(/usr/bin/bzgrep $1 $LOG.?.bz2 | awk '{ print $7 }' | cut -d. -f1 | cut -f2 -d[ | sort -u)
+	ARCHIVES=1
+	#echo "$UUIDS"
+fi
+
+show_uuids()
+{
+	for u in $UUIDS
+	do
+		echo; echo
+		echo $u
+		grep $u $LOG
+		if [ "$ARCHIVES" = "1" ]; then
+			bzgrep $u $LOG.0.bz2
+		fi
+	done
+}
+show_uuids

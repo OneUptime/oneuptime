@@ -1,0 +1,13 @@
+# Basic whitelist/blacklist mechanism for domains and e-mail addresses
+# add a single domain or e-mail per line
+# default behavior for entries is to DENY or blacklist
+# reverse behavior by prepending an exclamation point !
+# foo.com    <-- denied
+# !foo.com   <-- allowed
+#
+# More complex/granular behaviors are possible, e.g.
+# To block everything claiming to be from aol.com, but still allow a single aol address:
+# aol.com
+# !friend@aol.com
+#
+# See full docs for details:  http://haraka.github.io/manual/plugins/access.html
