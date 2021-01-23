@@ -788,6 +788,7 @@ class NewMonitor extends Component {
                                                                             <button
                                                                                 className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--moreMonitorTypes"
                                                                                 type="button"
+                                                                                id="showMoreMonitors"
                                                                                 onClick={() => {
                                                                                     this.setState(
                                                                                         {

@@ -353,7 +353,8 @@ module.exports = {
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await this.selectByText('#type', 'device', page);
+        await page.click('button[id=showMoreMonitors]');
+        await page.click('#device');
         await page.waitForSelector('#deviceId');
         await page.click('#deviceId');
         await page.type('#deviceId', utils.generateRandomString());
