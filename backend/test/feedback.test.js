@@ -26,7 +26,6 @@ describe('Feedback API', function() {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
-                console.log("Project: ", project)
                 projectId = project._id;
                 userId = res.body.id;
 
