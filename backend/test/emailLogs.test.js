@@ -182,18 +182,18 @@ describe('Email Logs API', function() {
         await request.get('/version');
 
         const noOfEmailLogsNow = await EmailLogsService.countBy({});
-
+        console.log("Number of email logs", noOfEmailLogsNow)
         const res = await request
             .get('/email-logs/')
             .query({ skip: noOfEmailLogsNow - 2 })
             .set('Authorization', authorization)
             .send();
-
+      
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
-        expect(res.body.data.length).to.be.equal(2);
+        expect(res.body.data.length).to.be.equal(3);
 
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
