@@ -24,7 +24,7 @@ module.exports = {
         '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
         '{{incident.customFields.*}} : The value of any incident custom field',
         '{{monitor.customFields.*}} : The value of any monitor custom field',
-        '{{length}} : Time the incident was acknowledged',
+        '{{length}} : Length of the incident',
     ],
     'Subscriber Incident Resolved': [
         '{{userName}} : User display name.',
@@ -38,7 +38,7 @@ module.exports = {
         '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
         '{{incident.customFields.*}} : The value of any incident custom field',
         '{{monitor.customFields.*}} : The value of any monitor custom field',
-        '{{length}} : Time the incident was resolved',
+        '{{length}} : Length of the incident',
     ],
     'Team Member Incident': [
         '{{ incidentTime }} : Time at which this incident occured.',
