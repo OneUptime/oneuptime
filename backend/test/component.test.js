@@ -337,7 +337,7 @@ describe('Component API', function() {
                             done();
                         });
                 });
-        }).then(done());
+        });
     });
 
     it('should delete a component and its monitor when componentId is valid', function(done) {
@@ -467,9 +467,7 @@ describe('Component API with Sub-Projects', function() {
         createUser(request, userData.anotherUser, function(err, res) {
             let project = res.body.project;
             otherProjectId = project._id;
-            otherUserId = res.body.id;
-            console.log("Other Project: ",otherProjectId);
-            console.log("Other UserId: ",otherUserId);            
+            otherUserId = res.body.id;                      
             VerificationTokenModel.findOne({ userId: otherUserId }, function(
                 err,
                 verificationToken
