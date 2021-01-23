@@ -1041,7 +1041,7 @@ describe('StatusPage API with Sub-Projects', function() {
             .end(function(err, res) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
-                done();
+                //done();
             }).then(done,done);
     });
 
