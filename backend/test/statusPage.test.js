@@ -1034,6 +1034,7 @@ describe('StatusPage API with Sub-Projects', function() {
     });
 
     it('should not get private status page for authorized user that is not in project', function(done) {
+        this.timeout(100000)
         const authorization = `Basic ${newUserToken}`;
         request
             .get(`/statusPage/${privateStatusPageId}`)
