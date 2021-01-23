@@ -667,7 +667,7 @@ class EditIncomingRequest extends Component {
                                                       ).fieldType
                                                     : 'text'
                                             }
-                                            placeholder="request.body.value"
+                                            placeholder="{{request.body.value}}"
                                             id={`${field}.filterText`}
                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                             style={{
@@ -706,7 +706,7 @@ class EditIncomingRequest extends Component {
                                                           ).fieldType
                                                     : 'text'
                                             }
-                                            placeholder="request.body.value"
+                                            placeholder="{{request.body.value}}"
                                             id={`${field}.filterText`}
                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                             style={{
