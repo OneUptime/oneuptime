@@ -57,33 +57,6 @@ describe('Component API', function() {
             });
         });
     });
-    after(async function() {
-        await GlobalConfig.removeTestConfig();
-        await ProjectService.hardDeleteBy({
-            _id: {
-                $in: [projectId, newProjectId, otherProjectId, subProjectId],
-            },
-        });
-        await UserService.hardDeleteBy({
-            email: {
-                $in: [
-                    userData.user.email,
-                    userData.newUser.email,
-                    userData.anotherUser.email,
-                ],
-            },
-        });
-        await ComponentService.hardDeleteBy({
-            _id: { $in: [componentId, newComponentId, subProjectComponentId] },
-        });
-        await NotificationService.hardDeleteBy({
-            projectId: {
-                $in: [projectId, newProjectId, otherProjectId, subProjectId],
-            },
-        });
-        await AirtableService.deleteAll({ tableName: 'User' });
-    });
-
 
     it('should reject the request of an unauthenticated user', function(done) {
         request
@@ -463,12 +436,40 @@ describe('Component API with Sub-Projects', function() {
         });
     });
 
+    after(async function() {
+        await GlobalConfig.removeTestConfig();
+        await ProjectService.hardDeleteBy({
+            _id: {
+                $in: [projectId, newProjectId, otherProjectId, subProjectId],
+            },
+        });
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [
+                    userData.user.email,
+                    userData.newUser.email,
+                    userData.anotherUser.email,
+                ],
+            },
+        });
+        await ComponentService.hardDeleteBy({
+            _id: { $in: [componentId, newComponentId, subProjectComponentId] },
+        });
+        await NotificationService.hardDeleteBy({
+            projectId: {
+                $in: [projectId, newProjectId, otherProjectId, subProjectId],
+            },
+        });
+        await AirtableService.deleteAll({ tableName: 'User' });
+    });
+
     it('should not create a component for user not present in project', function(done) {
         createUser(request, userData.anotherUser, function(err, res) {
             let project = res.body.project;
             otherProjectId = project._id;
             otherUserId = res.body.id;
-
+            console.log("Other Project: ",otherProjectId);
+            console.log("Other UserId: ",otherUserId);            
             VerificationTokenModel.findOne({ userId: otherUserId }, function(
                 err,
                 verificationToken
