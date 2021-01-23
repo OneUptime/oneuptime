@@ -412,7 +412,7 @@ describe('Team API with Sub-Projects', async function() {
         expect(res.body[0].team.length).to.be.equal(100);
     });
 
-    it('should add unlimited members for the Viewer role (role -> `Viewer`)', async function(done) {
+    it('should add unlimited members for the Viewer role (role -> `Viewer`)', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/team/${projectId}`)
@@ -423,6 +423,5 @@ describe('Team API with Sub-Projects', async function() {
             });
         expect(res).to.have.status(200);
         expect(res.body[0].team.length).to.be.equal(220);
-        done();
     });
 });
