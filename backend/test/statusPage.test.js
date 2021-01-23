@@ -1033,16 +1033,15 @@ describe('StatusPage API with Sub-Projects', function() {
         });
     });
 
-    it('should not get private status page for authorized user that is not in project', function(done) {
-        this.timeout(100000)
+    it('should not get private status page for authorized user that is not in project', async function() {
+      //  this.timeout(100000)
         const authorization = `Basic ${newUserToken}`;
-        request
+        await request
             .get(`/statusPage/${privateStatusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
-                done();
             });
     });
 
