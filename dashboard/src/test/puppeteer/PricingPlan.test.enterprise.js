@@ -52,7 +52,7 @@ describe('Status Page', () => {
                     waitUntil: 'networkidle0',
                 });
 
-                await page.$eval('#statusPages > a', elem => elem.click());
+                await page.$eval('#statusPages', elem => elem.click());
                 await page.waitForSelector(
                     'button[type="button"] .bs-FileUploadButton'
                 );
@@ -71,7 +71,7 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 await page.$$eval('ul#customTabList > li', elems =>
-                    elems[3].click()
+                    elems[4].click()
                 );
                 await page.$eval('input[name="isPrivate"]', elem =>
                     elem.click()
