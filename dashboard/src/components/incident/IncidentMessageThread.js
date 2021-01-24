@@ -992,9 +992,9 @@ export class IncidentMessageThread extends Component {
                                                                                         </span>
                                                                                     </div>
                                                                                     <div>
-                                                                                        got {
+                                                                                        is notified by {
                                                                                             incidentMessage.alertVia === 'email' ? 'an' : 'a'
-                                                                                        } <span style={{ fontWeight: '600' }}>{incidentMessage.alertVia}</span>
+                                                                                        } <span style={{ fontSize: '13px', fontWeight: '600', textTransform: 'uppercase' }}>{incidentMessage.alertVia}</span>
                                                                                     </div>
                                                                                     <div>
                                                                                         <span className="db-ListViewItem-link">
