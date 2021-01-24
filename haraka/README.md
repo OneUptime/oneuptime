@@ -5,21 +5,13 @@ plugin architecture. Haraka can serve thousands of concurrent connections
 and deliver thousands of messages per second. Haraka and plugins are written
 in asynchronous JS and are very fast.
 
-Haraka has very good spam protection (see [plugins][4]) and works
-well as a filtering [MTA][3]. It also works well as a [MSA][5] running on
-port 587 with auth and [dkim_sign][6] plugins enabled.
-
-Haraka makes no attempt to be a mail store (like Exchange or Postfix/Exim/Qmail),
-a [LDA][7], nor an IMAP server (like Dovecot or Courier). Haraka is
-typically used **with** such systems.
-
 Haraka has a scalable outbound mail delivery engine built in. Mail
 marked as `relaying` (such as via an `auth` plugin) is automatically
 queued for outbound delivery.
 
 ### Installing Haraka
 
-Haraka requires [node.js][1] to run. Install Haraka with [npm][2]:
+Haraka requires [node.js][1] to run. Install Haraka with npm:
 
 ```sh
 # If the second command gives "nobody" errors, uncomment & run the next command
@@ -48,10 +40,7 @@ The docs detail how each plugin is configured. After editing
 If you are unable to use npm to install Haraka, you can run from git by
 following these steps:
 
-First clone the repository:
-
-    $ git clone https://github.com/deityhub/jharaka.git
-    $ cd jharaka
+    $ cd haraka
 
 Install Haraka's node.js dependencies locally:
 
@@ -63,3 +52,5 @@ config you want.
 Finally run Haraka:
 
     $ node haraka.js
+
+[1]: http://nodejs.org/
