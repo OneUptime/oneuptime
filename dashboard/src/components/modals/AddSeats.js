@@ -5,7 +5,6 @@ import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { isThisISOWeek } from 'date-fns';
 
 class AddSeats extends Component {
     componentDidMount() {
@@ -35,9 +34,7 @@ class AddSeats extends Component {
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
-                    <ClickOutside
-                        onClickOutside={isThisISOWeek.props.closeThisDialog}
-                    >
+                    <ClickOutside onClickOutside={this.props.closeThisDialog}>
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--medium">
                                 <div className="bs-Modal-header">

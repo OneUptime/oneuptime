@@ -111,7 +111,7 @@ module.exports = {
             await ProbeService.updateProbeStatus(probe._id);
 
             //Update probe version
-            let probeValue = await ProbeService.findOneBy({
+            const probeValue = await ProbeService.findOneBy({
                 probeKey,
                 probeName,
             });

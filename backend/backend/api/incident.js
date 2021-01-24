@@ -292,27 +292,41 @@ router.post(
                 userId,
                 req.user.name
             );
-            let incidentMessages = await IncidentMessageService.findBy(
-                { incidentId: incident._id, type: "internal" }
-            );
-            const timeline = await IncidentTimelineService.findBy(
-                { incidentId: incident._id }
-            );
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incident._id }
+            let incidentMessages = await IncidentMessageService.findBy({
+                incidentId: incident._id,
+                type: 'internal',
             });
-            const subscriberAlerts = await subscriberAlertService.findBy(
-                { incidentId: incident._id, projectId }
-            );
+            const timeline = await IncidentTimelineService.findBy({
+                incidentId: incident._id,
+            });
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incident._id },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incident._id,
+                projectId,
+            });
             const subAlerts = deduplicate(subscriberAlerts);
-            incidentMessages = [...incidentMessages, ...timeline, ...alerts, ...subAlerts]
-            incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-            const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
+            incidentMessages = [
+                ...incidentMessages,
+                ...timeline,
+                ...alerts,
+                ...subAlerts
+            ];
+            incidentMessages.sort(
+                (a, b) =>
+                    b.createdAt - a.createdAt
+            );
+            const filteredMsg = incidentMessages.filter(
+                a =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
+            );
             const result = {
                 data: filteredMsg,
                 incident,
-                type: "internal"
-            }
+                type: 'internal',
+            };
             return sendItemResponse(req, res, result);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -338,27 +352,41 @@ router.post(
                 req.params.incidentId,
                 userId
             );
-            let incidentMessages = await IncidentMessageService.findBy(
-                { incidentId: incident._id, type: "internal" }
-            );
-            const timeline = await IncidentTimelineService.findBy(
-                { incidentId: incident._id }
-            );
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incident._id }
+            let incidentMessages = await IncidentMessageService.findBy({
+                incidentId: incident._id,
+                type: 'internal',
             });
-            const subscriberAlerts = await subscriberAlertService.findBy(
-                { incidentId: incident._id, projectId }
-            );
+            const timeline = await IncidentTimelineService.findBy({
+                incidentId: incident._id,
+            });
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incident._id },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incident._id,
+                projectId,
+            });
             const subAlerts = deduplicate(subscriberAlerts);
-            incidentMessages = [...incidentMessages, ...timeline, ...alerts, ...subAlerts]
-            incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-            const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
+            incidentMessages = [
+                ...incidentMessages,
+                ...timeline,
+                ...alerts,
+                ...subAlerts
+            ];
+            incidentMessages.sort(
+                (a, b) =>
+                    b.createdAt - a.createdAt
+            );
+            const filteredMsg = incidentMessages.filter(
+                a =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
+            );
             const result = {
                 data: filteredMsg,
                 incident,
-                type: "internal"
-            }
+                type: 'internal',
+            };
 
             return sendItemResponse(req, res, result);
         } catch (error) {
@@ -575,27 +603,45 @@ router.post(
                 });
 
                 const alerts = await AlertService.findBy({
-                    query: { incidentId: incident._id }
+                    query: { incidentId: incident._id },
                 });
-                const subscriberAlerts = await subscriberAlertService.findBy(
-                    { incidentId: incident._id, projectId: req.params.projectId }
-                );
+                const subscriberAlerts = await subscriberAlertService.findBy({
+                    incidentId: incident._id,
+                    projectId: req.params.projectId,
+                });
 
-                if (data.type === "internal" || (data.type === "internal" && data.incident_state === 'update')) {
-                    let incidentMessages = await IncidentMessageService.findBy(
-                        { incidentId: incident._id, type: data.type }
-                    );
-                    const timeline = await IncidentTimelineService.findBy(
-                        { incidentId: incident._id }
-                    );
+                if (
+                    data.type === 'internal' ||
+                    (data.type === 'internal' &&
+                        data.incident_state === 'update')
+                ) {
+                    let incidentMessages = await IncidentMessageService.findBy({
+                        incidentId: incident._id,
+                        type: data.type,
+                    });
+                    const timeline = await IncidentTimelineService.findBy({
+                        incidentId: incident._id,
+                    });
                     const subAlerts = deduplicate(subscriberAlerts);
-                    incidentMessages = [...incidentMessages, ...timeline, ...alerts, ...subAlerts];
-                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-                    const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
+                    incidentMessages = [
+                        ...incidentMessages,
+                        ...timeline,
+                        ...alerts,
+                        ...subAlerts
+                    ];
+                    incidentMessages.sort(
+                        (a, b) =>
+                            b.createdAt - a.createdAt
+                    );
+                    const filteredMsg = incidentMessages.filter(
+                        a =>
+                            a.status !== 'internal notes added' &&
+                            a.status !== 'internal notes updated'
+                    );
                     incidentMessage = {
                         type: data.type,
-                        data: filteredMsg
-                    }
+                        data: filteredMsg,
+                    };
                 } else {
                     incidentMessage = await IncidentMessageService.findOneBy({
                         _id: incidentMessage._id,
@@ -640,9 +686,9 @@ router.delete(
     async function (req, res) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
-            const checkMsg = await IncidentMessageService.findOneBy(
-                { _id: incidentMessageId }
-            );
+            const checkMsg = await IncidentMessageService.findOneBy({
+                _id: incidentMessageId,
+            });
             let result;
             const incidentMessage = await IncidentMessageService.deleteBy(
                 {
@@ -660,29 +706,43 @@ router.delete(
                     status,
                 });
                 const alerts = await AlertService.findBy({
-                    query: { incidentId: incidentId }
+                    query: { incidentId: incidentId },
                 });
-                const subscriberAlerts = await subscriberAlertService.findBy(
-                    { incidentId: incidentId, projectId }
-                );
+                const subscriberAlerts = await subscriberAlertService.findBy({
+                    incidentId: incidentId,
+                    projectId,
+                });
 
                 await RealTimeService.deleteIncidentNote(incidentMessage);
                 if (checkMsg.type === 'investigation') {
-                    result = incidentMessage
+                    result = incidentMessage;
                 } else {
-                    let incidentMessages = await IncidentMessageService.findBy(
-                        { incidentId, type: checkMsg.type }
-                    );
-                    const timeline = await IncidentTimelineService.findBy(
-                        { incidentId }
-                    );
+                    let incidentMessages = await IncidentMessageService.findBy({
+                        incidentId,
+                        type: checkMsg.type,
+                    });
+                    const timeline = await IncidentTimelineService.findBy({
+                        incidentId,
+                    });
                     const subAlerts = deduplicate(subscriberAlerts);
-                    incidentMessages = [...incidentMessages, ...timeline, ...alerts, ...subAlerts];
-                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-                    const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
+                    incidentMessages = [
+                        ...incidentMessages,
+                        ...timeline,
+                        ...alerts,
+                        ...subAlerts
+                    ];
+                    incidentMessages.sort(
+                        (a, b) =>
+                            b.createdAt - a.createdAt
+                    );
+                    const filteredMsg = incidentMessages.filter(
+                        a =>
+                            a.status !== 'internal notes added' &&
+                            a.status !== 'internal notes updated'
+                    );
                     result = {
                         type: checkMsg.type,
-                        data: filteredMsg
+                        data: filteredMsg,
                     };
                 }
                 return sendItemResponse(req, res, result);
@@ -717,19 +777,21 @@ router.get(
                     req.query.limit || 10
                 );
             } else {
-                incidentMessages = await IncidentMessageService.findBy(
-                    { incidentId, type }
-                );
+                incidentMessages = await IncidentMessageService.findBy({
+                    incidentId,
+                    type,
+                });
             }
-            const timeline = await IncidentTimelineService.findBy(
-                { incidentId }
-            );
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incidentId }
+            const timeline = await IncidentTimelineService.findBy({
+                incidentId,
             });
-            const subscriberAlerts = await subscriberAlertService.findBy(
-                { incidentId: incidentId, projectId }
-            );
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incidentId },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incidentId,
+                projectId,
+            });
             const count = await IncidentMessageService.countBy({
                 incidentId,
                 type,
@@ -738,9 +800,21 @@ router.get(
                 result = incidentMessages;
             } else {
                 const subAlerts = deduplicate(subscriberAlerts);
-                incidentMessages = [...incidentMessages, ...timeline, ...alerts, ...subAlerts];
-                incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-                const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
+                incidentMessages = [
+                    ...incidentMessages,
+                    ...timeline,
+                    ...alerts,
+                    ...subAlerts
+                ];
+                incidentMessages.sort(
+                    (a, b) =>
+                        b.createdAt - a.createdAt
+                );
+                const filteredMsg = incidentMessages.filter(
+                    a =>
+                        a.status !== 'internal notes added' &&
+                        a.status !== 'internal notes updated'
+                );
                 result = filteredMsg;
             }
             return sendListResponse(req, res, result, count);
@@ -832,23 +906,23 @@ router.get(
 );
 
 function deduplicate(arr = []) {
-	const map = {};
+    const map = {};
 
-	let curr;
+    let curr;
 
-	for (let i = 0; i < arr.length; i++) {
-		curr = arr[i];
+    for (let i = 0; i < arr.length; i++) {
+        curr = arr[i];
 
-		if (!map[curr.identification]) {
-			map[curr.identification] = curr;
-		} else {
-			if (curr.error && !map[curr.identification].error) {
-				map[curr.identification].error = true;
-			}
-		}
-	}
+        if (!map[curr.identification]) {
+            map[curr.identification] = curr;
+        } else {
+            if (curr.error && !map[curr.identification].error) {
+                map[curr.identification].error = true;
+            }
+        }
+    }
 
-	return Object.values(map);
+    return Object.values(map);
 }
 
 module.exports = router;

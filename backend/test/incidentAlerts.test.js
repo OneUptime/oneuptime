@@ -2306,8 +2306,14 @@ describe('Email Incident Alerts', function() {
         expect(onCallAlerts.body.data.length).to.equal(2);
 
         const eventTypesSentToTeamMembers = [];
-        for(let onCallAlert of onCallAlerts.body.data){
-            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+        for (const onCallAlert of onCallAlerts.body.data) {
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            } = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal(null);
@@ -2318,7 +2324,9 @@ describe('Email Incident Alerts', function() {
         }
 
         expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
-        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(
+            true
+        );
     });
 
     /**
@@ -2405,17 +2413,25 @@ describe('Email Incident Alerts', function() {
         expect(onCallAlerts.body.data.length).to.equal(2);
 
         const eventTypesSentToTeamMembers = [];
-        for(let onCallAlert of onCallAlerts.body.data){
-            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+        for (const onCallAlert of onCallAlerts.body.data) {
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            } = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal(null);
             expect(error).to.equal(true);
-            expect(errorMessage).equal('Alert Disabled on Admin Dashboard');    
+            expect(errorMessage).equal('Alert Disabled on Admin Dashboard');
         }
 
         expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
-        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(
+            true
+        );
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
     });
 
@@ -2496,8 +2512,14 @@ describe('Email Incident Alerts', function() {
         expect(onCallAlerts.body.data.length).to.equal(2);
 
         const eventTypesSentToTeamMembers = [];
-        for(let onCallAlert of onCallAlerts.body.data){
-            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+        for (const onCallAlert of onCallAlerts.body.data) {
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            } = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -2506,7 +2528,9 @@ describe('Email Incident Alerts', function() {
         }
 
         expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
-        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(
+            true
+        );
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
     });
 
@@ -2694,8 +2718,14 @@ describe('Email Incident Alerts', function() {
         expect(onCallAlerts.body.data.length).to.equal(2);
 
         const eventTypesSentToTeamMembers = [];
-        for(let onCallAlert of onCallAlerts.body.data){
-            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+        for (const onCallAlert of onCallAlerts.body.data) {
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            } = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -2704,7 +2734,9 @@ describe('Email Incident Alerts', function() {
         }
 
         expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
-        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(
+            true
+        );
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
         await EmailSmtpService.hardDeleteBy({ projectId });
     });
@@ -2784,8 +2816,14 @@ describe('Email Incident Alerts', function() {
         expect(onCallAlerts.body.data.length).to.equal(2);
 
         const eventTypesSentToTeamMembers = [];
-        for(let onCallAlert of onCallAlerts.body.data){
-            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+        for (const onCallAlert of onCallAlerts.body.data) {
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            } = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -2794,7 +2832,9 @@ describe('Email Incident Alerts', function() {
         }
 
         expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
-        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(
+            true
+        );
         await EmailSmtpService.hardDeleteBy({ projectId });
     });
 });
