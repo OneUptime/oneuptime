@@ -862,7 +862,12 @@ export class IncidentMessageThread extends Component {
                                                                                         </div>
                                                                                     </div>
                                                                                     <div>
-                                                                                        Alert {incidentMessage.error ? 'does not send' : 'sent'} to <span style={{ fontWeight: '600' }}>{incidentMessage.totalSubscribers}</span> {incidentMessage.totalSubscribers > 1 ? 'subscribers' : 'subscriber'}
+                                                                                        {
+                                                                                            !incidentMessage.error ? `Alert sent to ${incidentMessage.totalSubscribers} ${incidentMessage.totalSubscribers > 1 ? "subscribers" : "subscriber"}`
+                                                                                                :
+                                                                                                `Alert sent to ${incidentMessage.totalSubscribers} ${incidentMessage.totalSubscribers > 1 ? "subscribers" : "subscriber"} while some failed`
+                                                                                        }
+                                                                                        {/* Alert {incidentMessage.error ? 'does not send' : 'sent'} to <span style={{ fontWeight: '600' }}>{incidentMessage.totalSubscribers}</span> {incidentMessage.totalSubscribers > 1 ? 'subscribers' : 'subscriber'} */}
                                                                                     </div>
                                                                                     <div>
                                                                                         <span className="db-ListViewItem-link">
