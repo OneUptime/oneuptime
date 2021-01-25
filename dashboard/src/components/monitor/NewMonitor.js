@@ -393,8 +393,18 @@ class NewMonitor extends Component {
             }
         }
 
-        if (postObj.type === 'incomingHttpRequest')
+        if (postObj.type === 'incomingHttpRequest') {
             postObj.data.link = thisObj.state.httpRequestLink;
+            if (
+                values &&
+                values[`headers_${this.props.index}`] &&
+                values[`headers_${this.props.index}`].length
+            ) {
+                postObj.headers = values[`headers_${this.props.index}`];
+            } else {
+                postObj.headers = null;
+            }
+        }
 
         if (
             postObj.type === 'url' ||
@@ -2271,13 +2281,16 @@ class NewMonitor extends Component {
                                                         if={
                                                             this.state
                                                                 .advance &&
-                                                            type === 'api'
+                                                            (type === 'api' ||
+                                                                type ===
+                                                                    'incomingHttpRequest')
                                                         }
                                                     >
                                                         <ApiAdvance
                                                             index={
                                                                 this.props.index
                                                             }
+                                                            type={type}
                                                         />
                                                     </ShouldRender>
 

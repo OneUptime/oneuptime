@@ -41,7 +41,7 @@ export class ApiAdvance extends Component {
     };
 
     render() {
-        const { bodytype } = this.props;
+        const { bodytype, type } = this.props;
         return (
             <div
                 className="bs-ContentSection Card-root Card-shadow--medium"
@@ -91,168 +91,175 @@ export class ApiAdvance extends Component {
                             </div>
                         </div>
                     </div>
-
-                    <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root">
-                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                <span>Body</span>
-                            </span>
-                            <p>
-                                <span>
-                                    This section belongs to customizing your
-                                    body that will be sent with the api request.
+                    <ShouldRender if={type === 'api'}>
+                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                            <div className="Box-root">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span>Body</span>
                                 </span>
-                            </p>
-                        </div>
-                        <ShouldRender
-                            if={
-                                bodytype === 'form-data' ||
-                                bodytype === 'x-www-form-urlencoded'
-                            }
-                        >
-                            <div
-                                className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16"
-                                style={{ marginRight: '15px' }}
-                            >
-                                <div>
-                                    <button
-                                        className="Button bs-ButtonLegacy ActionIconParent"
-                                        type="button"
-                                        onClick={this.addRows}
-                                    >
-                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                            <span>Add Rows</span>
-                                        </span>
-                                    </button>
-                                </div>
+                                <p>
+                                    <span>
+                                        This section belongs to customizing your
+                                        body that will be sent with the api
+                                        request.
+                                    </span>
+                                </p>
                             </div>
-                        </ShouldRender>
-                    </div>
-                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1">
-                        <div>
-                            <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                <fieldset className="bs-Fieldset">
-                                    <div className="bs-Fieldset-rows">
-                                        <div className="bs-Fieldset-row">
-                                            <label className="bs-Fieldset-label">
-                                                Body Type
-                                            </label>
-                                            <div className="bs-Fieldset-fields">
-                                                <Field
-                                                    className="db-select-nw"
-                                                    component={RenderSelect}
-                                                    name={`bodyType_${this.props.index}`}
-                                                    id="bodyType"
-                                                    placeholder="Body Type"
-                                                    disabled={false}
-                                                    options={[
-                                                        {
-                                                            value: '',
-                                                            label: 'None',
-                                                        },
-                                                        {
-                                                            value: 'form-data',
-                                                            label: 'form-data',
-                                                        },
-                                                        {
-                                                            value:
-                                                                'x-www-form-urlencoded',
-                                                            label:
-                                                                'x-www-form-urlencoded',
-                                                        },
-                                                        {
-                                                            value: 'text/plain',
-                                                            label:
-                                                                'Text (text/plain)',
-                                                        },
-                                                        {
-                                                            value:
-                                                                'application/json',
-                                                            label:
-                                                                'JSON (application/json)',
-                                                        },
-                                                        {
-                                                            value:
-                                                                'application/javascript',
-                                                            label:
-                                                                'Javascript (application/javascript)',
-                                                        },
-                                                        {
-                                                            value:
-                                                                'application/xml',
-                                                            label:
-                                                                'XML (application/xml)',
-                                                        },
-                                                        {
-                                                            value: 'text/xml',
-                                                            label:
-                                                                'XML (text/xml)',
-                                                        },
-                                                        {
-                                                            value: 'text/html',
-                                                            label:
-                                                                'HTML (text/html)',
-                                                        },
-                                                    ]}
-                                                />
-                                            </div>
-                                        </div>
-                                        <ShouldRender
-                                            if={
-                                                bodytype === 'form-data' ||
-                                                bodytype ===
-                                                    'x-www-form-urlencoded'
-                                            }
+                            <ShouldRender
+                                if={
+                                    bodytype === 'form-data' ||
+                                    bodytype === 'x-www-form-urlencoded'
+                                }
+                            >
+                                <div
+                                    className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16"
+                                    style={{ marginRight: '15px' }}
+                                >
+                                    <div>
+                                        <button
+                                            className="Button bs-ButtonLegacy ActionIconParent"
+                                            type="button"
+                                            onClick={this.addRows}
                                         >
-                                            <FieldArray
-                                                name={`formData_${this.props.index}`}
-                                                component={RenderHeaders}
-                                            />
-                                        </ShouldRender>
-                                        <ShouldRender
-                                            if={
-                                                [
-                                                    'text/plain',
-                                                    'application/json',
-                                                    'application/javascript',
-                                                    'application/xml',
-                                                    'text/xml',
-                                                    'text/html',
-                                                ].indexOf(bodytype) > -1
-                                            }
-                                        >
+                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                <span>Add Rows</span>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </ShouldRender>
+                        </div>
+                        <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1">
+                            <div>
+                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                    <fieldset className="bs-Fieldset">
+                                        <div className="bs-Fieldset-rows">
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
-                                                    Body Content
+                                                    Body Type
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
-                                                        component={
-                                                            RenderTextArea
-                                                        }
-                                                        className="db-FeedbackForm-textarea fixed"
-                                                        name={`text_${this.props.index}`}
-                                                        style={textboxstyle}
-                                                        rows={10}
-                                                        validate={
-                                                            bodytype &&
-                                                            bodytype ===
-                                                                'application/json'
-                                                                ? [
-                                                                      ValidateField.required,
-                                                                      ValidateField.isJson,
-                                                                  ]
-                                                                : ValidateField.required
-                                                        }
+                                                        className="db-select-nw"
+                                                        component={RenderSelect}
+                                                        name={`bodyType_${this.props.index}`}
+                                                        id="bodyType"
+                                                        placeholder="Body Type"
+                                                        disabled={false}
+                                                        options={[
+                                                            {
+                                                                value: '',
+                                                                label: 'None',
+                                                            },
+                                                            {
+                                                                value:
+                                                                    'form-data',
+                                                                label:
+                                                                    'form-data',
+                                                            },
+                                                            {
+                                                                value:
+                                                                    'x-www-form-urlencoded',
+                                                                label:
+                                                                    'x-www-form-urlencoded',
+                                                            },
+                                                            {
+                                                                value:
+                                                                    'text/plain',
+                                                                label:
+                                                                    'Text (text/plain)',
+                                                            },
+                                                            {
+                                                                value:
+                                                                    'application/json',
+                                                                label:
+                                                                    'JSON (application/json)',
+                                                            },
+                                                            {
+                                                                value:
+                                                                    'application/javascript',
+                                                                label:
+                                                                    'Javascript (application/javascript)',
+                                                            },
+                                                            {
+                                                                value:
+                                                                    'application/xml',
+                                                                label:
+                                                                    'XML (application/xml)',
+                                                            },
+                                                            {
+                                                                value:
+                                                                    'text/xml',
+                                                                label:
+                                                                    'XML (text/xml)',
+                                                            },
+                                                            {
+                                                                value:
+                                                                    'text/html',
+                                                                label:
+                                                                    'HTML (text/html)',
+                                                            },
+                                                        ]}
                                                     />
                                                 </div>
                                             </div>
-                                        </ShouldRender>
-                                    </div>
-                                </fieldset>
+                                            <ShouldRender
+                                                if={
+                                                    bodytype === 'form-data' ||
+                                                    bodytype ===
+                                                        'x-www-form-urlencoded'
+                                                }
+                                            >
+                                                <FieldArray
+                                                    name={`formData_${this.props.index}`}
+                                                    component={RenderHeaders}
+                                                />
+                                            </ShouldRender>
+                                            <ShouldRender
+                                                if={
+                                                    [
+                                                        'text/plain',
+                                                        'application/json',
+                                                        'application/javascript',
+                                                        'application/xml',
+                                                        'text/xml',
+                                                        'text/html',
+                                                    ].indexOf(bodytype) > -1
+                                                }
+                                            >
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Body Content
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            component={
+                                                                RenderTextArea
+                                                            }
+                                                            className="db-FeedbackForm-textarea fixed"
+                                                            name={`text_${this.props.index}`}
+                                                            style={textboxstyle}
+                                                            rows={10}
+                                                            validate={
+                                                                bodytype &&
+                                                                bodytype ===
+                                                                    'application/json'
+                                                                    ? [
+                                                                          ValidateField.required,
+                                                                          ValidateField.isJson,
+                                                                      ]
+                                                                    : ValidateField.required
+                                                            }
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
+                                        </div>
+                                    </fieldset>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </ShouldRender>
                 </div>
             </div>
         );
