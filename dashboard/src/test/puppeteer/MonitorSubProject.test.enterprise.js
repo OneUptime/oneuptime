@@ -50,8 +50,6 @@ describe('Enterprise Monitor SubProject API', () => {
     test(
         'Should create a monitor in sub-project for valid `admin`',
         async done => {
-            expect.assertions(1);
-
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
