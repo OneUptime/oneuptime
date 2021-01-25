@@ -23,7 +23,6 @@ import BreadCrumbItem from './breadCrumb/BreadCrumbItem';
 import BreadCrumbs from './breadCrumb/BreadCrumbs';
 import IncidentCreated from './incident/IncidentCreated';
 import { closeModal } from '../actions/modal';
-import { user } from '../config';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
@@ -51,8 +50,6 @@ export class DashboardApp extends Component {
 
     componentDidMount() {
         const { project, match, ready, getProjects } = this.props;
-
-        User.setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
         if (
             project.projects &&
@@ -366,7 +363,6 @@ DashboardApp.propTypes = {
     showDeleteBtn: PropTypes.bool,
     close: PropTypes.func,
     name: PropTypes.string,
-    setTimeZone: PropTypes.func,
 };
 
 const mapStateToProps = state => ({
