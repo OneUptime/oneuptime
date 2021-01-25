@@ -1,8 +1,8 @@
-build_n_test_dashboard:
+test_dashboard:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_dashboard dashboard backend probe accounts status-page init-script http-test-server`
+        - export next_stage=`./ci/scripts/checkhash.sh test_dashboard dashboard backend probe accounts status-page init-script http-test-server`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
@@ -39,7 +39,7 @@ build_n_test_dashboard:
         - TEST_EMAIL_SMTP_PORT=$TEST_EMAIL_SMTP_PORT TEST_EMAIL_SMTP_SERVER=$TEST_EMAIL_SMTP_SERVER TEST_EMAIL=$TEST_EMAIL TEST_EMAIL_PASSWORD=$TEST_EMAIL_PASSWORD DOCKER_UNMASKED_USERNAME=$DOCKER_UNMASKED_USERNAME DOCKER_UNMASKED_PASSWORD=$DOCKER_UNMASKED_PASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_UNMASKED_USERNAME=$GITHUB_UNMASKED_USERNAME GITHUB_UNMASKED_PASSWORD=$GITHUB_UNMASKED_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm run test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_dashboard dashboard backend probe accounts status-page init-script http-test-server
+        - ./ci/scripts/storehash.sh test_dashboard dashboard backend probe accounts status-page init-script http-test-server
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:
@@ -47,11 +47,11 @@ build_n_test_dashboard:
             - hotfix-master
             - hotfix-release
 
-build_n_test_enterprise_dashboard:
+test_enterprise_dashboard:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_enterprise_dashboard dashboard backend accounts status-page admin-dashboard`
+        - export next_stage=`./ci/scripts/checkhash.sh test_enterprise_dashboard dashboard backend accounts status-page admin-dashboard`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
@@ -79,7 +79,7 @@ build_n_test_enterprise_dashboard:
         - npm run enterprise-test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_enterprise_dashboard dashboard backend accounts status-page admin-dashboard
+        - ./ci/scripts/storehash.sh test_enterprise_dashboard dashboard backend accounts status-page admin-dashboard
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:

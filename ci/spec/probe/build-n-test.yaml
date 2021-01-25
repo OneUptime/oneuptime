@@ -1,4 +1,4 @@
-build_n_test_probe:
+test_probe:
   stage: BuildAndTest
   script:
     - echo "No test implemented"
