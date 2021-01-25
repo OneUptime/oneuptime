@@ -1651,7 +1651,8 @@ const _this = {
         componentName,
         statusPageUrl,
         replyAddress,
-        customFields
+        customFields,
+        length
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -1673,6 +1674,7 @@ const _this = {
                 statusPageUrl,
                 year: DateTime.getCurrentYear,
                 ...customFields,
+                length,
             };
             template = template(data);
             subject = subject(data);
@@ -1862,7 +1864,8 @@ const _this = {
         componentName,
         statusPageUrl,
         replyAddress,
-        customFields
+        customFields,
+        length
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -1884,6 +1887,7 @@ const _this = {
                 statusPageUrl,
                 year: DateTime.getCurrentYear,
                 ...customFields,
+                length,
             };
             template = template(data);
             subject = subject(data);

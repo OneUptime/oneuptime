@@ -1,3 +1,5 @@
+const moment = require('moment');
+
 module.exports = {
     calculateHumanReadableDownTime: function(comparedTime) {
         const downTime =
@@ -19,5 +21,28 @@ module.exports = {
         }
 
         return downTimeString;
+    },
+
+    getIncidentLength: function(createdAt, actionPerformedAt) {
+        const downtime = moment(actionPerformedAt).diff(
+            moment(createdAt),
+            'minutes'
+        );
+        let downtimestring = `${Math.ceil(downtime)} minutes`;
+        if (downtime < 1) {
+            downtimestring = 'less than a minute';
+        } else if (downtime > 24 * 60) {
+            downtimestring = `${Math.floor(
+                downtime / (24 * 60)
+            )} days ${Math.floor(
+                (downtime % (24 * 60)) / 60
+            )} hours ${Math.floor(downtime % 60)} minutes`;
+        } else if (downtime > 60) {
+            downtimestring = `${Math.floor(downtime / 60)} hours ${Math.floor(
+                downtime % 60
+            )} minutes`;
+        }
+
+        return downtimestring;
     },
 };
