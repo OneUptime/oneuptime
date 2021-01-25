@@ -856,25 +856,47 @@ export default function incident(state = initialState, action) {
             let incidentFound = false;
             let incidentMessages = [];
             if (state.incidentMessages[action.payload.incidentId._id]) {
-                incidentMessages = [
-                    ...state.incidentMessages[action.payload.incidentId._id][
-                        action.payload.type
-                    ].incidentMessages.map(incidentMessage => {
-                        if (
-                            String(incidentMessage._id) ===
-                            String(action.payload._id)
-                        ) {
-                            incidentFound = true;
-                            return action.payload;
-                        }
-                        return incidentMessage;
-                    }),
-                ];
+                let msg = state.incidentMessages[action.payload.incidentId._id];
+                msg = msg ? msg[action.payload.type] : null;
+                msg = msg ? msg.incidentMessages : null;
+                incidentMessages =
+                    msg && msg.length
+                        ? msg.map(incidentMessage => {
+                              if (
+                                  String(incidentMessage._id) ===
+                                  String(action.payload._id)
+                              ) {
+                                  incidentFound = true;
+                                  return action.payload;
+                              }
+                              return incidentMessage;
+                          })
+                        : [];
 
                 if (!incidentFound) {
                     incidentMessages = [action.payload, ...incidentMessages];
                 }
-
+                const type =
+                    state.incidentMessages[action.payload.incidentId._id] &&
+                    state.incidentMessages[action.payload.incidentId._id][
+                        action.payload.type
+                    ]
+                        ? state.incidentMessages[action.payload.incidentId._id][
+                              action.payload.type
+                          ]
+                        : null;
+                const count =
+                    state.incidentMessages[action.payload.incidentId._id] &&
+                    state.incidentMessages[action.payload.incidentId._id][
+                        action.payload.type
+                    ] &&
+                    state.incidentMessages[action.payload.incidentId._id][
+                        action.payload.type
+                    ].count
+                        ? state.incidentMessages[action.payload.incidentId._id][
+                              action.payload.type
+                          ].count
+                        : 0;
                 return {
                     ...state,
                     incidentMessages: {
@@ -884,17 +906,9 @@ export default function incident(state = initialState, action) {
                                 action.payload.incidentId._id
                             ],
                             [action.payload.type]: {
-                                ...state.incidentMessages[
-                                    action.payload.incidentId._id
-                                ][action.payload.type],
+                                ...type,
                                 incidentMessages,
-                                count: incidentFound
-                                    ? state.incidentMessages[
-                                          action.payload.incidentId._id
-                                      ][action.payload.type].count
-                                    : state.incidentMessages[
-                                          action.payload.incidentId._id
-                                      ][action.payload.type].count + 1,
+                                count: incidentFound ? count : count + 1,
                             },
                         },
                     },
