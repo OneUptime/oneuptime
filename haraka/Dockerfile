@@ -34,6 +34,6 @@ RUN apk add bash
 COPY haraka.sh /
 RUN chmod 755 /haraka.sh
 
-EXPOSE $SMTP_PORT
+EXPOSE $PORT
 
 CMD ["/haraka.sh"]
