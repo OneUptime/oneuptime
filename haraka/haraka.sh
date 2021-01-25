@@ -28,8 +28,7 @@ initDkim()
     cd "$DOMAIN" || exit
     
     # The selector can be any value that is a valid DNS label
-    # Create in the common format: mmmYYYY (apr2014)
-    date '+%h%Y' | tr '[:upper:]' '[:lower:]' > selector
+    echo 'fyipe' > selector
     
     # Generate private and public keys
     #           - Key length considerations -
@@ -43,45 +42,8 @@ initDkim()
     DNS_NAME="$(tr -d '\n' < selector)._domainkey"
     DNS_ADDRESS="v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
     
-    # echo $DNS_ADDRESS > dkim_address
-    # echo $DNS_NAME > dkim_name
-    
     # Fold width is arbitrary, any value between 80 and 255 is reasonable
     BIND_SPLIT_ADDRESS="$(echo "$DNS_ADDRESS" | fold -w 110 | sed -e 's/^/	"/g; s/$/"/g')"
-    
-    # Make it really easy to publish the public key in DNS
-    # by creating a file named 'dns', with instructions
-cat > dns <<EO_DKIM_DNS
-
-    Add this TXT record to the ${DOMAIN} DNS zone.
-
-    ${DNS_NAME}    IN   TXT   ${DNS_ADDRESS}
-
-
-    BIND zone file formatted:
-
-    ${DNS_NAME}    IN   TXT (
-    ${BIND_SPLIT_ADDRESS}
-            )
-
-    Tell the world that the ONLY mail servers that send mail from this domain are DKIM signed and/or bear our MX and A records.
-
-    With SPF:
-
-            SPF "v=spf1 mx a -all"
-            TXT "v=spf1 mx a -all"
-
-    With DMARC:
-
-    _dmarc  TXT "v=DMARC1; p=reject; adkim=s; aspf=r; rua=mailto:feedback@${DOMAIN}; ruf=mailto:feedback@${DOMAIN}; pct=100"
-
-    For more information about DKIM and SPF policy,
-    the documentation within each plugin contains a longer discussion and links to more detailed information:
-
-    haraka -h dkim_sign
-    haraka -h spf
-
-EO_DKIM_DNS
     
     cd ..
 }
@@ -95,10 +57,10 @@ if [[ ! -d  "${DATADIR}/config" ]];then
     #enable toobusy plugin
     sed -i 's/^#toobusy$\?/toobusy/g' ${DATADIR}/config/plugins
     
-    echo "listen=[::0]:${SMTP_PORT}" >> ${DATADIR}/config/smtp.ini
-    echo "user=smtp" >> ${DATADIR}/config/smtp.ini
-    echo "group=smtp" >> ${DATADIR}/config/smtp.ini
-    echo "nodes=cpus" >> ${DATADIR}/config/smtp.ini
+    #smtp
+    sed -i "s/^;listen=\[::0\]:25$\?/listen=\[::0\]:${SMTP_PORT}/g" ${DATADIR}/config/smtp.ini
+    # sed -i 's/^;nodes=cpus$\?/nodes=cpus/g' ${DATADIR}/config/smtp.ini
+    
     echo "true" > ${DATADIR}/config/header_hide_version
     echo "$HEADER" > ${DATADIR}/config/ehlo_hello_message
     
@@ -108,6 +70,7 @@ if [[ ! -d  "${DATADIR}/config" ]];then
     sed -i '/max_unrecognized_commands/d' ${DATADIR}/config/plugins
     
     #enable tls
+    #we need to abstract this out so the user can pass this details in
     openssl req -x509 -nodes -days 2190 -newkey rsa:2048 -keyout ${DATADIR}/config/tls_key.pem -out ${DATADIR}/config/tls_cert.pem -subj "/C=US/ST=Massachusetts/L=Boston/O=Hackerbay/CN=$DOMAIN"
     
     cat <<-EOF >> ${DATADIR}/config/tls.ini
@@ -119,10 +82,9 @@ if [[ ! -d  "${DATADIR}/config" ]];then
     
     #enable dkim sign
     cd ${DATADIR}/config/dkim/
-    # sh dkim_key_gen.sh $DOMAIN
     initDkim
-    
     cd -
+    
     selector=`cat ${DATADIR}/config/dkim/${DOMAIN}/selector`
   cat <<-EOF >> ${DATADIR}/config/dkim_sign.ini
 	disabled = false
@@ -131,24 +93,28 @@ if [[ ! -d  "${DATADIR}/config" ]];then
     headers_to_sign = From, Sender, Reply-To, Subject, Date, Message-ID, To, Cc, MIME-Version
 	dkim.private.key=${DATADIR}/config/dkim/${DOMAIN}/private
 	EOF
+    
     #enable outbound
   cat <<-EOF >> ${DATADIR}/config/outbound.ini
 	relaying = true
 	received_header = ${HEADER}
 	received_header_disabled=true
 	EOF
+    
     #enable log
   cat <<-EOF >> ${DATADIR}/config/log.ini
 	loglevel=${LOGLEVEL}
 	timestamps=false
 	format=logfmt
 	EOF
+    
     #enable spf
   cat <<-EOF >> ${DATADIR}/config/spf.ini
 	[relay]
 	context=sender
 	context=myself
 	EOF
+    
     #enable data.header check
   cat <<-EOF >> ${DATADIR}/config/data.headers.ini
 	[check]
@@ -166,24 +132,22 @@ if [[ ! -d  "${DATADIR}/config" ]];then
 	invalid_date=true
 	EOF
     
-    #add auth_flat_file
+    #enable auth_flat_file
     sed -i "s/^#\s*auth\/flat_file/auth\/flat_file/" ${DATADIR}/config/plugins
     
-    #add tls
+    #enable tls
     sed -i "s/^#\s*tls/tls/" ${DATADIR}/config/plugins
     
-    tmppass=`openssl rand -base64 12`
   cat <<-EOF >> ${DATADIR}/config/auth_flat_file.ini
 	[core]
 	methods=PLAIN,LOGIN,CRAM-MD5
 	[users]
-	admin@${DOMAIN}=$tmppass
     ${SMTP_USER}=${SMTP_PASSWORD}
 	EOF
     
-    ls ${DATADIR}/config/dkim/${DOMAIN}
-    
+    echo "******** DKIM TO ADD TO DNS TXT RECORD ***********"
     echo $DNS_ADDRESS
+    echo "******** SELECTOR FOR DKIM TXT RECORD **********"
     echo $DNS_NAME
 fi
 
