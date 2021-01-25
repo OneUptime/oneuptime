@@ -76,7 +76,7 @@ A component is one of the resources the user wants to monitor. It can be:
 -   A web server.
 -   A server
 
-Un this case, the user will need to install the server monitor agent in the targeted server. The agent can be found in the folder server-monitor of the project.
+In this case, the user will need to install the server monitor agent in the targeted server. The agent can be found in the folder server-monitor of the project.
 
 -   An IoT device.
 -   A script.
