@@ -842,8 +842,8 @@ export class IncidentMessageThread extends Component {
                                                                             <div className="bs-incident-notes-content">
                                                                                 <div className="bs-note-display-flex bs-mob-block">
                                                                                     <div>
-                                                                                        {(incidentMessage.eventType === 'status page note created' ||
-                                                                                            incidentMessage.eventType === 'status page note updated') ?
+                                                                                        {(incidentMessage.eventType === 'Investigation note created' ||
+                                                                                            incidentMessage.eventType === 'Investigation note updated') ?
                                                                                             'Action' : 'Incident'}
                                                                                     </div>
                                                                                     <div>

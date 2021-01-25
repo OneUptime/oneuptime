@@ -2057,7 +2057,7 @@ module.exports = {
             const date = new Date();
             const isStatusPageNoteAlert =
                 note && incidentState && statusNoteStatus;
-            const statusPageNoteAlertEventType = `status page note ${statusNoteStatus}`;
+            const statusPageNoteAlertEventType = `Investigation note ${statusNoteStatus}`;
 
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId,
