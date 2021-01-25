@@ -288,6 +288,7 @@ router.post(
             const projectId = req.params.projectId;
             console.log("User Id: ", userId);
             console.log("User name: ", req.user.name);
+            console.log("Incident Id: ", req.params.incidentId);
             // Call the IncidentService
             const incident = await IncidentService.acknowledge(
                 req.params.incidentId,

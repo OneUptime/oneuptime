@@ -445,6 +445,8 @@ module.exports = {
                 _id: incidentId,
                 acknowledged: false,
             });
+            console.log("The received Incident is : ", incident);
+            console.log("The received Incident Id is : ", _id);
             if (incident) {
                 incident = await _this.updateOneBy(
                     {
