@@ -576,7 +576,7 @@ module.exports = {
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
             date = moment(incident.createdAt)
                 .tz(user.timezone)
-                .format();
+                .format('LLLL');
         }
 
         try {

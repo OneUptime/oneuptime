@@ -108,14 +108,6 @@ export const User = {
         localStorage.setItem('project', project);
     },
 
-    setTimeZone(timezone) {
-        localStorage.setItem('timezone', timezone);
-    },
-
-    getTimeZone() {
-        return localStorage.getItem('timezone');
-    },
-
     getProject() {
         return localStorage.getItem('project');
     },
