@@ -32,7 +32,10 @@ const moment = require('moment');
 const SubscriberService = require('../backend/services/subscriberService');
 const AlertVia = require('../backend/config/alertType');
 const {
-    markIncidentAsResolved, markIncidentAsAcknowledged
+    markIncidentAsResolved, 
+    markIncidentAsAcknowledged, 
+    markSubprojectIncidentAsAcknowledged,
+    markSubprojectIncidentAsResolved
 } = require('./test-utils');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -290,26 +293,18 @@ describe('Incident API', function() {
 
     it('should acknowledge an incident and send email to users', async function() {
         const authorization = `Basic ${token}`;
-        // const res = await request
-        //     .post(`/incident/${projectId}/acknowledge/${incidentId}`)
-        //     .set('Authorization', authorization)
-        //     .send({});
         const incidentAcknowledged = await markIncidentAsAcknowledged({
             request,
             authorization,
             projectId,
             incidentId,
         });
-        console.log("Incident Acknowledged: ",incidentAcknowledged)
         const date = moment().subtract(1, 'minutes');
         const emailStatus = await EmailStatusService.findBy({
             template: 'incident_acknowledged',
             createdAt: { $gt: date },
         });
-       
-        // expect(res).to.have.status(200);
-        // expect(res.body).to.be.an('object');
-        // expect(res.body.acknowledged).to.be.equal(true);
+        expect(incidentAcknowledged).to.have.status(200);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
@@ -326,11 +321,7 @@ describe('Incident API', function() {
             projectId,
             incidentId,
         });
-        console.log("Incident Resolved: ",incidentResolved)
         expect(incidentResolved).to.have.status(200);
-        // expect(res).to.have.status(200);
-        // expect(res.body).to.be.an('object');
-        // expect(res.body.resolved).to.be.equal(true);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
@@ -794,23 +785,23 @@ describe('Incident API with Sub-Projects', function() {
 
     it('should acknowledge subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
-        const res = await request
-            .post(`/incident/${subProjectId}/acknowledge/${incidentId}`)
-            .set('Authorization', authorization)
-            .send({});
-        expect(res).to.have.status(200);
-        expect(res.body).to.be.an('object');
-        expect(res.body.acknowledged).to.be.equal(true);
+        const subProjectIncidentAcknowledged = await markSubprojectIncidentAsAcknowledged({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+        expect(subProjectIncidentAcknowledged).to.have.status(200);
     });
 
     it('should resolve subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
-        const res = await request
-            .post(`/incident/${subProjectId}/resolve/${incidentId}`)
-            .set('Authorization', authorization)
-            .send({});
-        expect(res).to.have.status(200);
-        expect(res.body).to.be.an('object');
-        expect(res.body.resolved).to.be.equal(true);
+        const subProjectIncidentResolved = await markSubprojectIncidentAsResolved({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+        expect(subProjectIncidentResolved).to.have.status(200);
     });
 });
