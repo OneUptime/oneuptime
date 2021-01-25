@@ -196,7 +196,7 @@ describe('Container Security API', function() {
             )
             .set('Authorization', authorization)
             .end( function(err){ if (err) throw err },
-            function(res) {
+                 function(res) {
                 expect(res).to.have.status(200);
                 done();
             });
