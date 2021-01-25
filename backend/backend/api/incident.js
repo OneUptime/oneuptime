@@ -620,7 +620,6 @@ router.post(
                         type: data.type,
                     });
                     let returnedIncidentMessages = incidentMessages;
-                    console.log("Incident Messages: ", incidentMessages)
                     const timeline = await IncidentTimelineService.findBy({
                         incidentId: incident._id,
                     });
@@ -784,6 +783,7 @@ router.get(
                     incidentId,
                     type,
                 });
+                console.log("Returned Incident Messages: ",returnedIncidentMessages);
                 returnedIncidentMessages = incidentMessages;
             }
             const timeline = await IncidentTimelineService.findBy({
