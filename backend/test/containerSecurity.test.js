@@ -195,7 +195,8 @@ describe('Container Security API', function() {
                 `/security/${projectId}/container/scan/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end( function(err){ if (err) throw err },
+            function(res) {
                 expect(res).to.have.status(200);
                 done();
             });
