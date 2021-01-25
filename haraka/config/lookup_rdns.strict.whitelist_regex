@@ -1,5 +1,0 @@
-# Does the same thing as the whitelist file, but each line is a regex.
-# Each line is also anchored for you, meaning '^' + regex + '$' is added for
-# you.  If you need to get around this restriction, you may use a '.*' at
-# either the start or the end of your regex.  This should help prevent people
-# from writing overly permissive rules on accident.
