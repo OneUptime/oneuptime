@@ -649,6 +649,7 @@ router.post(
                     });
                 }
             }
+            console.log("Incident Msg: ", incidentMessage)
             return sendItemResponse(req, res, incidentMessage);
         } catch (error) {
             return sendErrorResponse(req, res, error);
