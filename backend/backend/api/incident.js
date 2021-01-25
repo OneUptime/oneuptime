@@ -770,7 +770,7 @@ router.get(
             type = 'internal';
         }
         try {
-            let incidentMessages, result;
+            let incidentMessages, result , returnedIncidentMessages;
             const incidentId = req.params.incidentId;
             const projectId = req.params.projectId;
             if (type === 'investigation') {
@@ -784,6 +784,7 @@ router.get(
                     incidentId,
                     type,
                 });
+                returnedIncidentMessages = incidentMessages;
             }
             const timeline = await IncidentTimelineService.findBy({
                 incidentId,
@@ -820,7 +821,7 @@ router.get(
                 );
                 result = filteredMsg;
             }
-            return sendListResponse(req, res, result, count);
+            return sendListResponse(req, res, result, count, returnedIncidentMessages);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
