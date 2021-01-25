@@ -1,56 +1,38 @@
-## Haraka - a Node.js Mail Server
+# Haraka Docker Container for Fyipe
 
-Haraka is a highly scalable [node.js][1] email server with a modular
-plugin architecture. Haraka can serve thousands of concurrent connections
-and deliver thousands of messages per second. Haraka and plugins are written
-in asynchronous JS and are very fast.
+This is a simple SMTP server which is used to send bulk emails. This can be used to send email alerts to subscribers and team.
 
-Haraka has a scalable outbound mail delivery engine built in. Mail
-marked as `relaying` (such as via an `auth` plugin) is automatically
-queued for outbound delivery.
+## Important
 
-### Installing Haraka
+-   This will not work on your local machine because email sending is blocked by ISP. You need to run these on the server and test.
+-   Once the docker container is running, please check the logs for the generated DKIM
 
-Haraka requires [node.js][1] to run. Install Haraka with npm:
+## Build Docker Container
 
-```sh
-# If the second command gives "nobody" errors, uncomment & run the next command
-# npm -g config set user root
-npm install -g Haraka
+```
+docker build --build-arg PORT="2525" . -t haraka:latest
 ```
 
-### Configure Haraka
+## Run a Fyipe Haraka Docker Container
 
-To choose which plugins run, edit `config/plugins`. Plugins control the
-overall behaviour of Haraka. By default, only messages to domains listed
-in `config/host_list` will be accepted and then delivered via the
-`smtp-forward` plugin. Configure the destination in `config/smtp_forward.ini`.
-
-### Read the Fine Manual
-
-```sh
-haraka -h plugins/$name
+```
+docker run -p 2525:2525 -e SMTP_USER="user@hackerbay.io" -e SMTP_PASSWORD="hackerbay"  haraka:latest
 ```
 
-The docs detail how each plugin is configured. After editing
-`config/plugins`, restart Haraka and enjoy!
+## Test
 
-### Running from git
+```
+# Ubuntu
+sudo apt-get update
+sudo apt-get install swaks -y
 
-If you are unable to use npm to install Haraka, you can run from git by
-following these steps:
+# MacOS
+brew install swaks
 
-    $ cd haraka
+# Test
+swaks --to jude@hackerbay.io --from support@globalminimalism.com --server localhost \
+  --port 2525 --auth-user user@hackerbay.io --auth-password hackerbay
 
-Install Haraka's node.js dependencies locally:
+```
 
-    $ npm install
-
-Edit `config/plugins` and `config/smtp.ini` to specify the plugins and
-config you want.
-
-Finally run Haraka:
-
-    $ node haraka.js
-
-[1]: http://nodejs.org/
+Check the logs for running container and see if you get a mail in your inbox.
