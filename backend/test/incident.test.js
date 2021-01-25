@@ -418,6 +418,7 @@ describe('Incident API', function() {
                 type: 'internal',
                 incident_state: 'just test',
             });
+            console.log("Response body: ",res.body)
         internalMessageId = res.body._id;
         expect(res).to.have.status(200);
         expect(res.body.incidentId._id).to.be.equal(incidentId);
