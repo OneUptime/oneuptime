@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field, FieldArray } from 'redux-form';
+import ClickOutside from 'react-click-outside';
 import { createMonitorSla, fetchMonitorSlas } from '../../actions/monitorSla';
 import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
@@ -112,14 +113,18 @@ class MonitorSlaModal extends React.Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({
-                    id: this.props.createMonitorSlaModalId,
-                });
+                return this.handleCloseModal();
             case 'Enter':
                 return document.getElementById('createSlaBtn').click();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.createMonitorSlaModalId,
+        });
     };
 
     renderMonitors = ({ fields }) => {
@@ -250,71 +255,33 @@ class MonitorSlaModal extends React.Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal" style={{ width: 600 }}>
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Add Monitor SLA</span>
-                                </span>
-                                <br />
-                                <br />
-                                <span>
-                                    SLA is used to make sure your monitors
-                                    provide a certain reliability of service.
-                                </span>
+                        <ClickOutside onClickOutside={this.handleCloseModal}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>Add Monitor SLA</span>
+                                    </span>
+                                    <br />
+                                    <br />
+                                    <span>
+                                        SLA is used to make sure your monitors
+                                        provide a certain reliability of
+                                        service.
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                        <form
-                            id="monitorSlaForm"
-                            onSubmit={handleSubmit(this.submitForm)}
-                        >
-                            <div className="bs-Modal-content">
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="name"
-                                                >
-                                                    <span>SLA Name</span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            width: '100%',
-                                                        }}
-                                                    >
-                                                        <Field
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            name="name"
-                                                            placeholder="SLA name"
-                                                            id="name"
-                                                            className="bs-TextInput"
-                                                            style={{
-                                                                width: '100%',
-                                                                padding:
-                                                                    '3px 5px',
-                                                            }}
-                                                            autoFocus={true}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                    {formValues && !formValues.isDefault && (
+                            <form
+                                id="monitorSlaForm"
+                                onSubmit={handleSubmit(this.submitForm)}
+                            >
+                                <div className="bs-Modal-content">
+                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                         <fieldset className="Margin-bottom--16">
                                             <div className="bs-Fieldset-rows">
                                                 <div
@@ -323,9 +290,9 @@ class MonitorSlaModal extends React.Component {
                                                 >
                                                     <label
                                                         className="bs-Fieldset-label Text-align--left"
-                                                        htmlFor="endpoint"
+                                                        htmlFor="name"
                                                     >
-                                                        <span>Monitors</span>
+                                                        <span>SLA Name</span>
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <div
@@ -334,336 +301,386 @@ class MonitorSlaModal extends React.Component {
                                                                 width: '100%',
                                                             }}
                                                         >
-                                                            <FieldArray
-                                                                name="monitors"
+                                                            <Field
                                                                 component={
-                                                                    this
-                                                                        .renderMonitors
+                                                                    RenderField
                                                                 }
+                                                                name="name"
+                                                                placeholder="SLA name"
+                                                                id="name"
+                                                                className="bs-TextInput"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                    padding:
+                                                                        '3px 5px',
+                                                                }}
+                                                                autoFocus={true}
                                                             />
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </fieldset>
-                                    )}
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor={
-                                                        setCustomFrequency
-                                                            ? 'customFrequency'
-                                                            : 'frequencyOption'
-                                                    }
-                                                >
-                                                    <span>
-                                                        Frequency{' '}
-                                                        {setCustomFrequency &&
-                                                            `(days)`}
-                                                    </span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
+                                        {formValues && !formValues.isDefault && (
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
                                                     <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            width: '100%',
-                                                        }}
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
                                                     >
-                                                        {setCustomFrequency && (
-                                                            <Field
-                                                                component={
-                                                                    RenderField
-                                                                }
-                                                                name="customFrequency"
-                                                                placeholder="30"
-                                                                id="customFrequency"
-                                                                className="bs-TextInput"
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="endpoint"
+                                                        >
+                                                            <span>
+                                                                Monitors
+                                                            </span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <div
+                                                                className="bs-Fieldset-field"
                                                                 style={{
                                                                     width:
                                                                         '100%',
-                                                                    padding:
-                                                                        '3px 5px',
                                                                 }}
-                                                            />
-                                                        )}
-                                                        {!setCustomFrequency && (
-                                                            <Field
-                                                                className="db-select-nw Table-cell--width--maximized"
-                                                                name="frequencyOption"
-                                                                id="frequencyOption"
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                    height: 28,
-                                                                }}
-                                                                component={
-                                                                    RenderSelect
-                                                                }
-                                                                options={[
-                                                                    {
-                                                                        value:
-                                                                            '30',
-                                                                        label:
-                                                                            'Every month',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '90',
-                                                                        label:
-                                                                            'Every 3 months',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '180',
-                                                                        label:
-                                                                            'Every 6 months',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '365',
-                                                                        label:
-                                                                            'Every year',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            'custom',
-                                                                        label:
-                                                                            'Custom',
-                                                                    },
-                                                                ]}
-                                                                onChange={(
-                                                                    event,
-                                                                    value
-                                                                ) => {
-                                                                    value ===
-                                                                        'custom' &&
-                                                                        this.setState(
-                                                                            {
-                                                                                setCustomFrequency: true,
-                                                                            }
-                                                                        );
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor={
-                                                        setCustomFrequency
-                                                            ? 'customMonitorUptime'
-                                                            : 'monitorUptimeOption'
-                                                    }
-                                                >
-                                                    <span>
-                                                        Monitor Uptime{' '}
-                                                        {setCustomMonitorUptime &&
-                                                            `(%)`}
-                                                    </span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            width: '100%',
-                                                            flexDirection:
-                                                                'column',
-                                                        }}
-                                                    >
-                                                        {setCustomMonitorUptime && (
-                                                            <Field
-                                                                component={
-                                                                    RenderField
-                                                                }
-                                                                name="customMonitorUptime"
-                                                                placeholder="99.95"
-                                                                id="customMonitorUptime"
-                                                                className="bs-TextInput"
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                    padding:
-                                                                        '3px 5px',
-                                                                }}
-                                                            />
-                                                        )}
-                                                        {!setCustomMonitorUptime && (
-                                                            <Field
-                                                                className="db-select-nw Table-cell--width--maximized"
-                                                                name="monitorUptimeOption"
-                                                                id="monitorUptimeOption"
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                    height: 28,
-                                                                }}
-                                                                component={
-                                                                    RenderSelect
-                                                                }
-                                                                options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select monitor uptime',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '99.90',
-                                                                        label:
-                                                                            '99.90%',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '99.95',
-                                                                        label:
-                                                                            '99.95%',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '99.99',
-                                                                        label:
-                                                                            '99.99%',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            'custom',
-                                                                        label:
-                                                                            'Custom',
-                                                                    },
-                                                                ]}
-                                                                onChange={(
-                                                                    event,
-                                                                    value
-                                                                ) => {
-                                                                    value ===
-                                                                        'custom' &&
-                                                                        this.setState(
-                                                                            {
-                                                                                setCustomMonitorUptime: true,
-                                                                            }
-                                                                        );
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                    <div className="bs-Fieldset-row">
-                                        <label className="bs-Fieldset-label">
-                                            <span></span>
-                                        </label>
-                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                            <div
-                                                className="Box-root"
-                                                style={{
-                                                    height: '5px',
-                                                }}
-                                            ></div>
-                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                <label
-                                                    className="Checkbox"
-                                                    htmlFor="isDefault"
-                                                >
-                                                    <Field
-                                                        component="input"
-                                                        type="checkbox"
-                                                        name="isDefault"
-                                                        className="Checkbox-source"
-                                                        id="isDefault"
-                                                    />
-                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                        <div className="Checkbox-target Box-root">
-                                                            <div className="Checkbox-color Box-root"></div>
+                                                            >
+                                                                <FieldArray
+                                                                    name="monitors"
+                                                                    component={
+                                                                        this
+                                                                            .renderMonitors
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div className="Checkbox-label Box-root Margin-left--8">
-                                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <span>
-                                                                Set as Default
-                                                            </span>
+                                                </div>
+                                            </fieldset>
+                                        )}
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor={
+                                                            setCustomFrequency
+                                                                ? 'customFrequency'
+                                                                : 'frequencyOption'
+                                                        }
+                                                    >
+                                                        <span>
+                                                            Frequency{' '}
+                                                            {setCustomFrequency &&
+                                                                `(days)`}
                                                         </span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
+                                                        >
+                                                            {setCustomFrequency && (
+                                                                <Field
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    name="customFrequency"
+                                                                    placeholder="30"
+                                                                    id="customFrequency"
+                                                                    className="bs-TextInput"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                        padding:
+                                                                            '3px 5px',
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            {!setCustomFrequency && (
+                                                                <Field
+                                                                    className="db-select-nw Table-cell--width--maximized"
+                                                                    name="frequencyOption"
+                                                                    id="frequencyOption"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                        height: 28,
+                                                                    }}
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '30',
+                                                                            label:
+                                                                                'Every month',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '90',
+                                                                            label:
+                                                                                'Every 3 months',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '180',
+                                                                            label:
+                                                                                'Every 6 months',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '365',
+                                                                            label:
+                                                                                'Every year',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                'custom',
+                                                                            label:
+                                                                                'Custom',
+                                                                        },
+                                                                    ]}
+                                                                    onChange={(
+                                                                        event,
+                                                                        value
+                                                                    ) => {
+                                                                        value ===
+                                                                            'custom' &&
+                                                                            this.setState(
+                                                                                {
+                                                                                    setCustomFrequency: true,
+                                                                                }
+                                                                            );
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </label>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset className="Margin-bottom--16">
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        htmlFor={
+                                                            setCustomFrequency
+                                                                ? 'customMonitorUptime'
+                                                                : 'monitorUptimeOption'
+                                                        }
+                                                    >
+                                                        <span>
+                                                            Monitor Uptime{' '}
+                                                            {setCustomMonitorUptime &&
+                                                                `(%)`}
+                                                        </span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '100%',
+                                                                flexDirection:
+                                                                    'column',
+                                                            }}
+                                                        >
+                                                            {setCustomMonitorUptime && (
+                                                                <Field
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    name="customMonitorUptime"
+                                                                    placeholder="99.95"
+                                                                    id="customMonitorUptime"
+                                                                    className="bs-TextInput"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                        padding:
+                                                                            '3px 5px',
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            {!setCustomMonitorUptime && (
+                                                                <Field
+                                                                    className="db-select-nw Table-cell--width--maximized"
+                                                                    name="monitorUptimeOption"
+                                                                    id="monitorUptimeOption"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                        height: 28,
+                                                                    }}
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select monitor uptime',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '99.90',
+                                                                            label:
+                                                                                '99.90%',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '99.95',
+                                                                            label:
+                                                                                '99.95%',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                '99.99',
+                                                                            label:
+                                                                                '99.99%',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                'custom',
+                                                                            label:
+                                                                                'Custom',
+                                                                        },
+                                                                    ]}
+                                                                    onChange={(
+                                                                        event,
+                                                                        value
+                                                                    ) => {
+                                                                        value ===
+                                                                            'custom' &&
+                                                                            this.setState(
+                                                                                {
+                                                                                    setCustomMonitorUptime: true,
+                                                                                }
+                                                                            );
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <div className="bs-Fieldset-row">
+                                            <label className="bs-Fieldset-label">
+                                                <span></span>
+                                            </label>
+                                            <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                <div
+                                                    className="Box-root"
+                                                    style={{
+                                                        height: '5px',
+                                                    }}
+                                                ></div>
+                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                    <label
+                                                        className="Checkbox"
+                                                        htmlFor="isDefault"
+                                                    >
+                                                        <Field
+                                                            component="input"
+                                                            type="checkbox"
+                                                            name="isDefault"
+                                                            className="Checkbox-source"
+                                                            id="isDefault"
+                                                        />
+                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                            <div className="Checkbox-target Box-root">
+                                                                <div className="Checkbox-color Box-root"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="Checkbox-label Box-root Margin-left--8">
+                                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Set as
+                                                                    Default
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <ShouldRender if={slaError}>
-                                        <div
-                                            className="bs-Tail-copy"
-                                            style={{ width: 200 }}
-                                            id="slaError"
-                                        >
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <ShouldRender if={slaError}>
                                             <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
+                                                className="bs-Tail-copy"
+                                                style={{ width: 200 }}
+                                                id="slaError"
                                             >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {slaError}
-                                                    </span>
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {slaError}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton btn__modal"
-                                        type="button"
-                                        onClick={() =>
-                                            closeModal({
-                                                id: createMonitorSlaModalId,
-                                            })
-                                        }
-                                    >
-                                        <span>Cancel</span>
-                                        <span className="cancel-btn__keycode">
-                                            Esc
-                                        </span>
-                                    </button>
-                                    <button
-                                        id="createSlaBtn"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                        disabled={requesting}
-                                        type="submit"
-                                    >
-                                        {!requesting && (
-                                            <>
-                                                <span>Create</span>
-                                                <span className="create-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </>
-                                        )}
-                                        {requesting && <FormLoader />}
-                                    </button>
+                                        </ShouldRender>
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
+                                            type="button"
+                                            onClick={() =>
+                                                closeModal({
+                                                    id: createMonitorSlaModalId,
+                                                })
+                                            }
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        <button
+                                            id="createSlaBtn"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            disabled={requesting}
+                                            type="submit"
+                                        >
+                                            {!requesting && (
+                                                <>
+                                                    <span>Create</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
+                                            )}
+                                            {requesting && <FormLoader />}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+                            </form>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

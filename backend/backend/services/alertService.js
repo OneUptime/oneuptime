@@ -596,6 +596,16 @@ module.exports = {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
+                let errorMessageText;
+                if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
+                    errorMessageText =
+                        'SMTP Settings not found on Admin Dashboard';
+                } else if (
+                    hasGlobalSmtpSettings &&
+                    !areEmailAlertsEnabledInGlobalSettings
+                ) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard';
+                }
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId,
@@ -608,13 +618,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage:
-                        !hasGlobalSmtpSettings && !hasCustomSmtpSettings
-                            ? 'SMTP Settings not found on Admin Dashboard'
-                            : hasGlobalSmtpSettings &&
-                              !areEmailAlertsEnabledInGlobalSettings
-                            ? 'Alert Disabled on Admin Dashboard'
-                            : 'Error.',
+                    errorMessage: errorMessageText,
                 });
             }
             const incidentcreatedBy =
@@ -674,6 +678,8 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Cannot Send',
+                error: true,
+                errorMessage: e.message,
             });
         }
     },
@@ -818,6 +824,15 @@ module.exports = {
                 (!project.alertEnable || !areAlertsEnabledGlobally)) ||
                 (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
         ) {
+            let errorMessageText;
+            if (!hasGlobalTwilioSettings) {
+                errorMessageText =
+                    'Twilio Settings not found on Admin Dashboard';
+            } else if (!areAlertsEnabledGlobally) {
+                errorMessageText = 'Alert Disabled on Admin Dashboard';
+            } else if (IS_SAAS_SERVICE && !project.alertEnable) {
+                errorMessageText = 'Alert Disabled for this project';
+            }
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -830,13 +845,7 @@ module.exports = {
                 alertStatus: null,
                 error: true,
                 eventType,
-                errorMessage: !hasGlobalTwilioSettings
-                    ? 'Twilio Settings not found on Admin Dashboard'
-                    : !areAlertsEnabledGlobally
-                    ? 'Alert Disabled on Admin Dashboard'
-                    : IS_SAAS_SERVICE && !project.alertEnable
-                    ? 'Alert Disabled for this project'
-                    : 'Error',
+                errorMessage: errorMessageText,
             });
         }
 
@@ -847,6 +856,17 @@ module.exports = {
             );
             if (!doesPhoneNumberComplyWithHighRiskConfig) {
                 const countryType = getCountryType(user.alertPhoneNumber);
+                let errorMessageText;
+                if (countryType === 'us') {
+                    errorMessageText =
+                        'Calls for numbers inside US not enabled for this project';
+                } else if (countryType === 'non-us') {
+                    errorMessageText =
+                        'Calls for numbers outside US not enabled for this project';
+                } else {
+                    errorMessageText =
+                        'Calls to High Risk country not enabled for this project';
+                }
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId,
@@ -859,12 +879,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage:
-                        countryType === 'us'
-                            ? 'Calls for numbers inside US not enabled for this project'
-                            : countryType === 'non-us'
-                            ? 'Calls for numbers outside US not enabled for this project'
-                            : 'Calls to High Risk country not enabled for this project',
+                    errorMessage: errorMessageText,
                 });
             }
 
@@ -914,7 +929,7 @@ module.exports = {
                 alertStatus: null,
                 error: true,
                 eventType,
-                errorMessage: 'Error',
+                errorMessage: alertStatus.message,
             });
         } else if (alertStatus) {
             alert = await _this.create({
@@ -1003,6 +1018,17 @@ module.exports = {
                 (!project.alertEnable || !areAlertsEnabledGlobally)) ||
                 (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
         ) {
+            let errorMessageText;
+            if (!hasGlobalTwilioSettings) {
+                errorMessageText =
+                    'Twilio Settings not found on Admin Dashboard';
+            } else if (!areAlertsEnabledGlobally) {
+                errorMessageText = 'Alert Disabled on Admin Dashboard';
+            } else if (IS_SAAS_SERVICE && !project.alertEnable) {
+                errorMessageText = 'Alert Disabled for this project';
+            } else {
+                errorMessageText = 'Error';
+            }
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -1015,13 +1041,7 @@ module.exports = {
                 alertStatus: null,
                 error: true,
                 eventType,
-                errorMessage: !hasGlobalTwilioSettings
-                    ? 'Twilio Settings not found on Admin Dashboard'
-                    : !areAlertsEnabledGlobally
-                    ? 'Alert Disabled on Admin Dashboard'
-                    : IS_SAAS_SERVICE && !project.alertEnable
-                    ? 'Alert Disabled for this project'
-                    : 'Error',
+                errorMessage: errorMessageText,
             });
         }
 
@@ -1032,6 +1052,17 @@ module.exports = {
             );
             if (!doesPhoneNumberComplyWithHighRiskConfig) {
                 const countryType = getCountryType(user.alertPhoneNumber);
+                let errorMessageText;
+                if (countryType === 'us') {
+                    errorMessageText =
+                        'SMS for numbers inside US not enabled for this project';
+                } else if (countryType === 'non-us') {
+                    errorMessageText =
+                        'SMS for numbers outside US not enabled for this project';
+                } else {
+                    errorMessageText =
+                        'SMS to High Risk country not enabled for this project';
+                }
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId,
@@ -1044,12 +1075,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage:
-                        countryType === 'us'
-                            ? 'SMS for numbers inside US not enabled for this project'
-                            : countryType === 'non-us'
-                            ? 'SMS for numbers outside US not enabled for this project'
-                            : 'SMS to High Risk country not enabled for this project',
+                    errorMessage: errorMessageText,
                 });
             }
 
@@ -1120,9 +1146,7 @@ module.exports = {
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 // calculate charge per 160 chars
-                // numSegments is the number of segments the sms will be divided into
-                // numSegments is provided by twilio
-                const segments = Number(sendResult.numSegments);
+                const segments = calcSmsSegments(sendResult.body);
                 const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                     user._id,
                     project,
@@ -1205,6 +1229,7 @@ module.exports = {
     ) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId._id,
             });
@@ -1234,7 +1259,9 @@ module.exports = {
                             note: data.content,
                             incidentState: data.incident_state,
                             statusNoteStatus,
-                        }
+                        },
+                        subscribers.length,
+                        uuid
                     );
                 }
             }
@@ -1247,6 +1274,7 @@ module.exports = {
     sendCreatedIncidentToSubscribers: async function(incident, component) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             if (incident) {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
@@ -1270,7 +1298,10 @@ module.exports = {
                                 subscriber,
                                 incident,
                                 'Subscriber Incident Created',
-                                enabledStatusPage
+                                enabledStatusPage,
+                                null,
+                                subscribers.length,
+                                uuid
                             );
                         }
                     } else {
@@ -1279,7 +1310,9 @@ module.exports = {
                             incident,
                             'Subscriber Incident Created',
                             null,
-                            component
+                            component,
+                            subscribers.length,
+                            uuid
                         );
                     }
                 }
@@ -1422,7 +1455,7 @@ module.exports = {
                             }
                         } else {
                             if (escalation.email) {
-                                _this.sendAcknowledgeEmailAlert({
+                                await _this.sendAcknowledgeEmailAlert({
                                     incident,
                                     user,
                                     project,
@@ -1493,6 +1526,16 @@ module.exports = {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
+                let errorMessageText;
+                if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
+                    errorMessageText =
+                        'SMTP Settings not found on Admin Dashboard';
+                } else if (
+                    hasGlobalSmtpSettings &&
+                    !areEmailAlertsEnabledInGlobalSettings
+                ) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard';
+                }
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId: monitor._id,
@@ -1505,13 +1548,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage:
-                        !hasGlobalSmtpSettings && !hasCustomSmtpSettings
-                            ? 'SMTP Settings not found on Admin Dashboard'
-                            : hasGlobalSmtpSettings &&
-                              !areEmailAlertsEnabledInGlobalSettings
-                            ? 'Alert Disabled on Admin Dashboard'
-                            : 'Error.',
+                    errorMessage: errorMessageText,
                 });
             }
             const incidentcreatedBy =
@@ -1590,6 +1627,8 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Cannot Send',
+                error: true,
+                errorMessage: e.message,
             });
         }
     },
@@ -1723,7 +1762,7 @@ module.exports = {
                             }
                         } else {
                             if (escalation.email) {
-                                _this.sendResolveEmailAlert({
+                                await _this.sendResolveEmailAlert({
                                     incident,
                                     user,
                                     project,
@@ -1790,6 +1829,16 @@ module.exports = {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
+                let errorMessageText;
+                if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
+                    errorMessageText =
+                        'SMTP Settings not found on Admin Dashboard';
+                } else if (
+                    hasGlobalSmtpSettings &&
+                    !areEmailAlertsEnabledInGlobalSettings
+                ) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard';
+                }
                 return await _this.create({
                     projectId: incident.projectId,
                     monitorId: monitor._id,
@@ -1802,13 +1851,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage:
-                        !hasGlobalSmtpSettings && !hasCustomSmtpSettings
-                            ? 'SMTP Settings not found on Admin Dashboard'
-                            : hasGlobalSmtpSettings &&
-                              !areEmailAlertsEnabledInGlobalSettings
-                            ? 'Alert Disabled on Admin Dashboard'
-                            : 'Error.',
+                    errorMessage: errorMessageText,
                 });
             }
             const incidentcreatedBy =
@@ -1886,6 +1929,8 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Cannot Send',
+                error: true,
+                errorMessage: e.message,
             });
         }
     },
@@ -1893,6 +1938,7 @@ module.exports = {
     sendAcknowledgedIncidentToSubscribers: async function(incident) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             if (incident) {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
@@ -1915,14 +1961,21 @@ module.exports = {
                                 subscriber,
                                 incident,
                                 'Subscriber Incident Acknowldeged',
-                                enabledStatusPage
+                                enabledStatusPage,
+                                {},
+                                subscribers.length,
+                                uuid
                             );
                         }
                     } else {
                         await _this.sendSubscriberAlert(
                             subscriber,
                             incident,
-                            'Subscriber Incident Acknowldeged'
+                            'Subscriber Incident Acknowldeged',
+                            null,
+                            {},
+                            subscribers.length,
+                            uuid
                         );
                     }
                 }
@@ -1939,6 +1992,7 @@ module.exports = {
     sendResolvedIncidentToSubscribers: async function(incident) {
         try {
             const _this = this;
+            const uuid = new Date().getTime();
             if (incident) {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
@@ -1961,14 +2015,21 @@ module.exports = {
                                 subscriber,
                                 incident,
                                 'Subscriber Incident Resolved',
-                                enabledStatusPage
+                                enabledStatusPage,
+                                {},
+                                subscribers.length,
+                                uuid
                             );
                         }
                     } else {
                         await _this.sendSubscriberAlert(
                             subscriber,
                             incident,
-                            'Subscriber Incident Resolved'
+                            'Subscriber Incident Resolved',
+                            null,
+                            {},
+                            subscribers.length,
+                            uuid
                         );
                     }
                 }
@@ -1987,7 +2048,9 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        { note, incidentState, statusNoteStatus } = {}
+        { note, incidentState, statusNoteStatus } = {},
+        totalSubscribers,
+        id
     ) {
         try {
             const _this = this;
@@ -2031,6 +2094,21 @@ module.exports = {
                 }
             }
 
+            const monitorCustomFields = {},
+                incidentCustomFields = {};
+            monitor.customFields.forEach(
+                field =>
+                    (monitorCustomFields[field.fieldName] = field.fieldValue)
+            );
+            incident.customFields.forEach(
+                field =>
+                    (incidentCustomFields[field.fieldName] = field.fieldValue)
+            );
+            const customFields = {
+                monitor: { customFields: monitorCustomFields },
+                incident: { customFields: incidentCustomFields },
+            };
+
             let webhookNotificationSent = true;
 
             if (subscriber.alertVia === AlertType.Webhook) {
@@ -2038,24 +2116,33 @@ module.exports = {
                     isStatusPageNoteAlert &&
                     !project.enableInvestigationNoteNotificationWebhook;
 
+                let eventType;
                 if (investigationNoteNotificationWebhookDisabled) {
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType;
+                    } else if (
+                        templateType === 'Subscriber Incident Acknowldeged'
+                    ) {
+                        eventType = 'acknowledged';
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        eventType = 'resolved';
+                    } else {
+                        eventType = 'identified';
+                    }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Webhook,
-                        eventType: isStatusPageNoteAlert
-                            ? statusPageNoteAlertEventType
-                            : templateType ===
-                              'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                        eventType: eventType,
                         alertStatus: null,
                         error: true,
                         errorMessage:
                             'Investigation Note Webhook Notification Disabled',
+                        totalSubscribers,
+                        id,
                     });
                 }
                 const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
@@ -2079,20 +2166,28 @@ module.exports = {
                     alertStatus = null;
                     throw error;
                 } finally {
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType;
+                    } else if (
+                        templateType === 'Subscriber Incident Acknowldeged'
+                    ) {
+                        eventType = 'acknowledged';
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        eventType = 'resolved';
+                    } else {
+                        eventType = 'identified';
+                    }
                     SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Webhook,
                         alertStatus: alertStatus,
-                        eventType: isStatusPageNoteAlert
-                            ? statusPageNoteAlertEventType
-                            : templateType ===
-                              'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                        eventType: eventType,
+                        totalSubscribers,
+                        id,
                     }).catch(error => {
                         ErrorService.log(
                             'AlertService.sendSubscriberAlert',
@@ -2124,54 +2219,74 @@ module.exports = {
                     isStatusPageNoteAlert &&
                     !project.enableInvestigationNoteNotificationEmail;
 
+                let errorMessageText, eventType;
                 if (
                     (!areEmailAlertsEnabledInGlobalSettings &&
                         !hasCustomSmtpSettings) ||
                     investigationNoteNotificationEmailDisabled
                 ) {
+                    if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
+                        errorMessageText =
+                            'SMTP Settings not found on Admin Dashboard';
+                    } else if (
+                        hasGlobalSmtpSettings &&
+                        !areEmailAlertsEnabledInGlobalSettings
+                    ) {
+                        errorMessageText = 'Alert Disabled on Admin Dashboard';
+                    } else if (investigationNoteNotificationEmailDisabled) {
+                        errorMessageText =
+                            'Investigation Note Email Notification Disabled';
+                    }
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType;
+                    } else if (
+                        templateType === 'Subscriber Incident Acknowldeged'
+                    ) {
+                        eventType = 'acknowledged';
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        eventType = 'resolved';
+                    } else {
+                        eventType = 'identified';
+                    }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Email,
-                        eventType: isStatusPageNoteAlert
-                            ? statusPageNoteAlertEventType
-                            : templateType ===
-                              'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                        eventType: eventType,
                         alertStatus: null,
                         error: true,
-                        errorMessage:
-                            !hasGlobalSmtpSettings && !hasCustomSmtpSettings
-                                ? 'SMTP Settings not found on Admin Dashboard'
-                                : hasGlobalSmtpSettings &&
-                                  !areEmailAlertsEnabledInGlobalSettings
-                                ? 'Alert Disabled on Admin Dashboard'
-                                : investigationNoteNotificationEmailDisabled
-                                ? 'Investigation Note Email Notification Disabled'
-                                : 'Error',
+                        errorMessage: errorMessageText,
+                        totalSubscribers,
+                        id,
                     });
                 }
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     projectId: incident.projectId,
                     emailType: templateType,
                 });
+                if (isStatusPageNoteAlert) {
+                    eventType = statusPageNoteAlertEventType;
+                } else if (
+                    templateType === 'Subscriber Incident Acknowldeged'
+                ) {
+                    eventType = 'acknowledged';
+                } else if (templateType === 'Subscriber Incident Resolved') {
+                    eventType = 'resolved';
+                } else {
+                    eventType = 'identified';
+                }
                 const subscriberAlert = await SubscriberAlertService.create({
                     projectId: incident.projectId,
                     incidentId: incident._id,
                     subscriberId: subscriber._id,
                     alertVia: AlertType.Email,
                     alertStatus: 'Pending',
-                    eventType: isStatusPageNoteAlert
-                        ? statusPageNoteAlertEventType
-                        : templateType === 'Subscriber Incident Acknowldeged'
-                        ? 'acknowledged'
-                        : templateType === 'Subscriber Incident Resolved'
-                        ? 'resolved'
-                        : 'identified',
+                    eventType: eventType,
+                    totalSubscribers,
+                    id,
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
@@ -2193,7 +2308,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
 
                                 alertStatus = 'Sent';
@@ -2210,7 +2326,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
 
                                 alertStatus = 'Sent';
@@ -2235,7 +2352,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2251,7 +2369,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -2273,7 +2392,8 @@ module.exports = {
                             component.name,
                             note,
                             statusUrl,
-                            statusNoteStatus
+                            statusNoteStatus,
+                            customFields
                         );
                         alertStatus = 'Sent';
                     } else {
@@ -2291,7 +2411,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2307,7 +2428,8 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress
+                                    project.replyAddress,
+                                    customFields
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -2355,6 +2477,33 @@ module.exports = {
                             (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))) ||
                     investigationNoteNotificationSMSDisabled
                 ) {
+                    let errorMessageText, eventType;
+                    if (!hasGlobalTwilioSettings) {
+                        errorMessageText =
+                            'Twilio Settings not found on Admin Dashboard';
+                    } else if (!areAlertsEnabledGlobally) {
+                        errorMessageText = 'Alert Disabled on Admin Dashboard';
+                    } else if (IS_SAAS_SERVICE && !project.alertEnable) {
+                        errorMessageText = 'Alert Disabled for this project';
+                    } else if (investigationNoteNotificationSMSDisabled) {
+                        errorMessageText =
+                            'Investigation Note SMS Notification Disabled';
+                    } else {
+                        errorMessageText = 'Error';
+                    }
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType;
+                    } else if (
+                        templateType === 'Subscriber Incident Acknowldeged'
+                    ) {
+                        eventType = 'acknowledged';
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        eventType = 'resolved';
+                    } else {
+                        eventType = 'identified';
+                    }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
@@ -2362,23 +2511,10 @@ module.exports = {
                         alertVia: AlertType.SMS,
                         alertStatus: null,
                         error: true,
-                        errorMessage: !hasGlobalTwilioSettings
-                            ? 'Twilio Settings not found on Admin Dashboard'
-                            : !areAlertsEnabledGlobally
-                            ? 'Alert Disabled on Admin Dashboard'
-                            : IS_SAAS_SERVICE && !project.alertEnable
-                            ? 'Alert Disabled for this project'
-                            : investigationNoteNotificationSMSDisabled
-                            ? 'Investigation Note SMS Notification Disabled'
-                            : 'Error',
-                        eventType: isStatusPageNoteAlert
-                            ? statusPageNoteAlertEventType
-                            : templateType ===
-                              'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                        errorMessage: errorMessageText,
+                        eventType: eventType,
+                        totalSubscribers,
+                        id,
                     });
                 }
                 const countryCode = await _this.mapCountryShortNameToCountryCode(
@@ -2399,6 +2535,30 @@ module.exports = {
                     );
                     if (!doesPhoneNumberComplyWithHighRiskConfig) {
                         const countryType = getCountryType(contactPhone);
+                        let errorMessageText, eventType;
+                        if (countryType === 'us') {
+                            errorMessageText =
+                                'SMS for numbers inside US not enabled for this project';
+                        } else if (countryType === 'non-us') {
+                            errorMessageText =
+                                'SMS for numbers outside US not enabled for this project';
+                        } else {
+                            errorMessageText =
+                                'SMS to High Risk country not enabled for this project';
+                        }
+                        if (isStatusPageNoteAlert) {
+                            eventType = statusPageNoteAlertEventType;
+                        } else if (
+                            templateType === 'Subscriber Incident Acknowldeged'
+                        ) {
+                            eventType = 'acknowledged';
+                        } else if (
+                            templateType === 'Subscriber Incident Resolved'
+                        ) {
+                            eventType = 'resolved';
+                        } else {
+                            eventType = 'identified';
+                        }
                         return await SubscriberAlertService.create({
                             projectId: incident.projectId,
                             incidentId: incident._id,
@@ -2406,21 +2566,10 @@ module.exports = {
                             alertVia: AlertType.SMS,
                             alertStatus: null,
                             error: true,
-                            errorMessage:
-                                countryType === 'us'
-                                    ? 'SMS for numbers inside US not enabled for this project'
-                                    : countryType === 'non-us'
-                                    ? 'SMS for numbers outside US not enabled for this project'
-                                    : 'SMS to High Risk country not enabled for this project',
-                            eventType: isStatusPageNoteAlert
-                                ? statusPageNoteAlertEventType
-                                : templateType ===
-                                  'Subscriber Incident Acknowldeged'
-                                ? 'acknowledged'
-                                : templateType ===
-                                  'Subscriber Incident Resolved'
-                                ? 'resolved'
-                                : 'identified',
+                            errorMessage: errorMessageText,
+                            eventType: eventType,
+                            totalSubscribers,
+                            id,
                         });
                     }
 
@@ -2430,6 +2579,20 @@ module.exports = {
                         contactPhone,
                         AlertType.SMS
                     );
+                    let eventType;
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType;
+                    } else if (
+                        templateType === 'Subscriber Incident Acknowldeged'
+                    ) {
+                        eventType = 'acknowledged';
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        eventType = 'resolved';
+                    } else {
+                        eventType = 'identified';
+                    }
 
                     if (!status.success) {
                         return await SubscriberAlertService.create({
@@ -2440,15 +2603,9 @@ module.exports = {
                             alertStatus: null,
                             error: true,
                             errorMessage: status.message,
-                            eventType: isStatusPageNoteAlert
-                                ? statusPageNoteAlertEventType
-                                : templateType ===
-                                  'Subscriber Incident Acknowldeged'
-                                ? 'acknowledged'
-                                : templateType ===
-                                  'Subscriber Incident Resolved'
-                                ? 'resolved'
-                                : 'identified',
+                            eventType: eventType,
+                            totalSubscribers,
+                            id,
                         });
                     }
                 }
@@ -2458,19 +2615,27 @@ module.exports = {
                     projectId: incident.projectId,
                     smsType: templateType,
                 });
+                let eventType;
+                if (isStatusPageNoteAlert) {
+                    eventType = statusPageNoteAlertEventType;
+                } else if (
+                    templateType === 'Subscriber Incident Acknowldeged'
+                ) {
+                    eventType = 'acknowledged';
+                } else if (templateType === 'Subscriber Incident Resolved') {
+                    eventType = 'resolved';
+                } else {
+                    eventType = 'identified';
+                }
                 const subscriberAlert = await SubscriberAlertService.create({
                     projectId: incident.projectId,
                     incidentId: incident._id,
                     subscriberId: subscriber._id,
                     alertVia: AlertType.SMS,
                     alertStatus: 'Pending',
-                    eventType: isStatusPageNoteAlert
-                        ? statusPageNoteAlertEventType
-                        : templateType === 'Subscriber Incident Acknowldeged'
-                        ? 'acknowledged'
-                        : templateType === 'Subscriber Incident Resolved'
-                        ? 'resolved'
-                        : 'identified',
+                    eventType: eventType,
+                    totalSubscribers,
+                    id,
                 });
                 const alertId = subscriberAlert._id;
 
@@ -2488,7 +2653,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             } else {
@@ -2501,7 +2667,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             }
@@ -2522,7 +2689,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             } else {
@@ -2535,7 +2703,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             }
@@ -2554,7 +2723,8 @@ module.exports = {
                             project.name,
                             incident.projectId,
                             component.name,
-                            statusUrl
+                            statusUrl,
+                            customFields
                         );
                         alertStatus = 'Success';
                     } else {
@@ -2569,7 +2739,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             } else {
@@ -2582,7 +2753,8 @@ module.exports = {
                                     project.name,
                                     incident.projectId,
                                     component.name,
-                                    statusPageUrl
+                                    statusPageUrl,
+                                    customFields
                                 );
                                 alertStatus = 'Success';
                             }
@@ -2617,9 +2789,7 @@ module.exports = {
                             !hasCustomTwilioSettings
                         ) {
                             // charge sms per 160 chars
-                            // numSegments is the number of segments an sms can be divided into
-                            // numSegments is provided by twilio
-                            const segments = Number(sendResult.numSegments);
+                            const segments = calcSmsSegments(sendResult.body);
                             const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                                 owner.userId,
                                 project,
@@ -2650,7 +2820,7 @@ module.exports = {
                         {
                             alertStatus: null,
                             error: true,
-                            errorMessage: 'Error',
+                            errorMessage: error.message,
                         }
                     );
                     throw error;
@@ -2845,6 +3015,17 @@ module.exports = {
         }
     },
 };
+
+/**
+ * @description calculates the number of segments an sms is divided into
+ * @param {string} sms the body of the sms sent
+ * @returns an interger
+ */
+function calcSmsSegments(sms) {
+    let smsLength = sms.length;
+    smsLength = Number(smsLength);
+    return Math.ceil(smsLength / 160);
+}
 
 const AlertModel = require('../models/alert');
 const ProjectService = require('./projectService');

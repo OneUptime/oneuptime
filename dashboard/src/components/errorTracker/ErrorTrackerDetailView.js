@@ -72,6 +72,10 @@ class ErrorTrackerDetailView extends Component {
         });
         return promise;
     };
+    resolveSingleIssue = issueId => {
+        const promise = this.props.resolveErrorEvent([issueId]).then();
+        return promise;
+    };
     prevClicked = (skip, limit) => {
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
@@ -104,6 +108,7 @@ class ErrorTrackerDetailView extends Component {
             projectId,
             componentId,
             openModal,
+            errorTrackerStatus,
         } = this.props;
         let skip =
             errorTrackerIssues && errorTrackerIssues.skip
@@ -216,6 +221,8 @@ class ErrorTrackerDetailView extends Component {
                                                                 'Resolution',
                                                             count:
                                                                 selectedErrorEvents.length,
+                                                            errorTrackerId:
+                                                                errorTracker._id,
                                                         }
                                                     ),
                                                 });
@@ -245,6 +252,8 @@ class ErrorTrackerDetailView extends Component {
                                                                 'Ignore',
                                                             count:
                                                                 selectedErrorEvents.length,
+                                                            errorTrackerId:
+                                                                errorTracker._id,
                                                         }
                                                     ),
                                                 });
@@ -252,13 +261,6 @@ class ErrorTrackerDetailView extends Component {
                                         >
                                             <span>Ignore</span>
                                         </button>
-                                        {/* <button
-                                            className="bs-Button"
-                                            type="button"
-                                            disabled={true}
-                                        >
-                                            <span>Merge</span>
-                                        </button> */}
                                     </div>
                                 </td>
                                 <td
@@ -305,6 +307,18 @@ class ErrorTrackerDetailView extends Component {
                                         </span>
                                     </div>
                                 </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{
+                                        height: '1px',
+                                    }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Flex-flex Flex-justifyContent--center">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Action</span>
+                                        </span>
+                                    </div>
+                                </td>
                             </tr>
                         </thead>
                         <tbody className="Table-body">
@@ -331,6 +345,12 @@ class ErrorTrackerDetailView extends Component {
                                                 }
                                                 openEventMemberModal={
                                                     this.openEventMemberModal
+                                                }
+                                                resolveSingleIssue={
+                                                    this.resolveSingleIssue
+                                                }
+                                                errorTrackerStatus={
+                                                    errorTrackerStatus
                                                 }
                                             />
                                         );
@@ -454,6 +474,8 @@ function mapStateToProps(state, ownProps) {
     }
     return {
         errorTrackerIssues,
+        errorTrackerStatus:
+            state.errorTracker.errorTrackerStatus[errorTracker._id],
     };
 }
 ErrorTrackerDetailView.propTypes = {
@@ -467,6 +489,7 @@ ErrorTrackerDetailView.propTypes = {
     openModal: PropTypes.func,
     updateErrorEventMember: PropTypes.func,
     teamMembers: PropTypes.array,
+    errorTrackerStatus: PropTypes.object,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);

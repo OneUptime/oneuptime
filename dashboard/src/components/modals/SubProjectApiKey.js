@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import uuid from 'uuid';
+import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { closeModal, openModal } from '../../actions/modal';
 import {
@@ -81,6 +82,7 @@ class SubProjectApiKey extends Component {
             data,
             resetSubProjectKeyReset,
             subproject,
+            closeThisDialog,
         } = this.props;
         const { hidden } = this.state;
 
@@ -93,120 +95,105 @@ class SubProjectApiKey extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--large">
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>
-                                            API Key For Sub Project{' '}
-                                            {data.subProjectTitle}
+                            <ClickOutside onClickOutside={closeThisDialog}>
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>
+                                                API Key For Sub Project{' '}
+                                                {data.subProjectTitle}
+                                            </span>
                                         </span>
-                                    </span>
+                                    </div>
+                                    <div className="bs-Modal-messages">
+                                        <ShouldRender
+                                            if={subProjectResetToken.error}
+                                        >
+                                            <p className="bs-Modal-message">
+                                                {subProjectResetToken.error}
+                                            </p>
+                                        </ShouldRender>
+                                    </div>
                                 </div>
-                                <div className="bs-Modal-messages">
-                                    <ShouldRender
-                                        if={subProjectResetToken.error}
-                                    >
-                                        <p className="bs-Modal-message">
-                                            {subProjectResetToken.error}
-                                        </p>
-                                    </ShouldRender>
-                                </div>
-                            </div>
-                            <div
-                                className="bs-Modal-content Flex-flex Flex-direction--column"
-                                style={{ textAlign: 'center' }}
-                            >
-                                <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                                    <div>
-                                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                            <fieldset className="bs-Fieldset">
-                                                <div className="bs-Fieldset-rows">
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Project ID:
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields Margin-top--6">
-                                                            {subproject._id}
-                                                        </div>
-                                                    </div>
-                                                    <ShouldRender
-                                                        if={
-                                                            subProjectResetToken.success
-                                                        }
-                                                    >
+                                <div
+                                    className="bs-Modal-content Flex-flex Flex-direction--column"
+                                    style={{ textAlign: 'center' }}
+                                >
+                                    <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                                        <div>
+                                            <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                                <fieldset className="bs-Fieldset">
+                                                    <div className="bs-Fieldset-rows">
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">
-                                                                Old API Key:
+                                                                Project ID:
                                                             </label>
                                                             <div className="bs-Fieldset-fields Margin-top--6">
-                                                                {
-                                                                    this.state
-                                                                        .oldApiKey
-                                                                }
+                                                                {subproject._id}
                                                             </div>
                                                         </div>
-                                                    </ShouldRender>
-                                                    <div className="bs-Fieldset-row">
-                                                        <ShouldRender
-                                                            if={
-                                                                !subProjectResetToken.success
-                                                            }
-                                                        >
-                                                            <label className="bs-Fieldset-label">
-                                                                API Key:
-                                                            </label>
-                                                        </ShouldRender>
                                                         <ShouldRender
                                                             if={
                                                                 subProjectResetToken.success
                                                             }
                                                         >
-                                                            <label className="bs-Fieldset-label">
-                                                                New API Key:
-                                                            </label>
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Old API Key:
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields Margin-top--6">
+                                                                    {
+                                                                        this
+                                                                            .state
+                                                                            .oldApiKey
+                                                                    }
+                                                                </div>
+                                                            </div>
                                                         </ShouldRender>
+                                                        <div className="bs-Fieldset-row">
+                                                            <ShouldRender
+                                                                if={
+                                                                    !subProjectResetToken.success
+                                                                }
+                                                            >
+                                                                <label className="bs-Fieldset-label">
+                                                                    API Key:
+                                                                </label>
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={
+                                                                    subProjectResetToken.success
+                                                                }
+                                                            >
+                                                                <label className="bs-Fieldset-label">
+                                                                    New API Key:
+                                                                </label>
+                                                            </ShouldRender>
 
-                                                        <div
-                                                            className="bs-Fieldset-fields Margin-top--6 pointer"
-                                                            onClick={() =>
-                                                                this.setState(
-                                                                    state => ({
-                                                                        hidden: !state.hidden,
-                                                                    })
-                                                                )
-                                                            }
-                                                        >
-                                                            {this.renderAPIKey(
-                                                                hidden
-                                                            )}
+                                                            <div
+                                                                className="bs-Fieldset-fields Margin-top--6 pointer"
+                                                                onClick={() =>
+                                                                    this.setState(
+                                                                        state => ({
+                                                                            hidden: !state.hidden,
+                                                                        })
+                                                                    )
+                                                                }
+                                                            >
+                                                                {this.renderAPIKey(
+                                                                    hidden
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </fieldset>
+                                                </fieldset>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    {data.subProjectResetToken ? (
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
-                                            type="button"
-                                            onClick={() => {
-                                                resetSubProjectKeyReset();
-                                                return closeModal({
-                                                    id: data.subProjectModalId,
-                                                });
-                                            }}
-                                        >
-                                            <span>Close</span>
-                                            <span className="cancel-btn__keycode">
-                                                Esc
-                                            </span>
-                                        </button>
-                                    ) : (
-                                        <>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        {data.subProjectResetToken ? (
                                             <button
                                                 className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                                 type="button"
@@ -218,64 +205,83 @@ class SubProjectApiKey extends Component {
                                                     });
                                                 }}
                                             >
-                                                <span>Cancel</span>
+                                                <span>Close</span>
                                                 <span className="cancel-btn__keycode">
                                                     Esc
                                                 </span>
                                             </button>
-                                            <button
-                                                id="removeSubProject"
-                                                className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
-                                                type="button"
-                                                onClick={() => {
-                                                    openModal({
-                                                        id: this.state
-                                                            .confirmationModalId,
-                                                        content: DataPathHoC(
-                                                            ConfirmationDialog,
-                                                            {
-                                                                ConfirmationDialogId: this
-                                                                    .state
-                                                                    .confirmationModalId,
-                                                                SubProjectModalId:
-                                                                    data.subProjectModalId,
-                                                                subProjectId:
-                                                                    data.subProjectId,
-                                                                subProjectTitle:
-                                                                    data.subProjectTitle,
-                                                                confirm: this
-                                                                    .resetSubProjectToken,
-                                                            }
-                                                        ),
-                                                    });
-                                                    return closeModal({
-                                                        id:
-                                                            data.subProjectModalId,
-                                                    });
-                                                }}
-                                                disabled={
-                                                    subProjectResetToken.requesting
-                                                }
-                                                autoFocus={true}
-                                            >
-                                                {!subProjectResetToken.requesting && (
-                                                    <>
-                                                        <span>
-                                                            Reset API Key
-                                                        </span>
-                                                        <span className="delete-btn__keycode">
-                                                            <span className="keycode__icon keycode__icon--enter" />
-                                                        </span>
-                                                    </>
-                                                )}
-                                                {subProjectResetToken.requesting && (
-                                                    <FormLoader />
-                                                )}
-                                            </button>
-                                        </>
-                                    )}
+                                        ) : (
+                                            <>
+                                                <button
+                                                    className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
+                                                    type="button"
+                                                    onClick={() => {
+                                                        resetSubProjectKeyReset();
+                                                        return closeModal({
+                                                            id:
+                                                                data.subProjectModalId,
+                                                        });
+                                                    }}
+                                                >
+                                                    <span>Cancel</span>
+                                                    <span className="cancel-btn__keycode">
+                                                        Esc
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    id="removeSubProject"
+                                                    className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
+                                                    type="button"
+                                                    onClick={() => {
+                                                        openModal({
+                                                            id: this.state
+                                                                .confirmationModalId,
+                                                            content: DataPathHoC(
+                                                                ConfirmationDialog,
+                                                                {
+                                                                    ConfirmationDialogId: this
+                                                                        .state
+                                                                        .confirmationModalId,
+                                                                    SubProjectModalId:
+                                                                        data.subProjectModalId,
+                                                                    subProjectId:
+                                                                        data.subProjectId,
+                                                                    subProjectTitle:
+                                                                        data.subProjectTitle,
+                                                                    confirm: this
+                                                                        .resetSubProjectToken,
+                                                                }
+                                                            ),
+                                                        });
+                                                        return closeModal({
+                                                            id:
+                                                                data.subProjectModalId,
+                                                        });
+                                                    }}
+                                                    disabled={
+                                                        subProjectResetToken.requesting
+                                                    }
+                                                    autoFocus={true}
+                                                >
+                                                    {!subProjectResetToken.requesting && (
+                                                        <>
+                                                            <span>
+                                                                Reset API Key
+                                                            </span>
+                                                            <span className="delete-btn__keycode">
+                                                                <span className="keycode__icon keycode__icon--enter" />
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                    {subProjectResetToken.requesting && (
+                                                        <FormLoader />
+                                                    )}
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            </ClickOutside>
                         </div>
                     </div>
                 </div>

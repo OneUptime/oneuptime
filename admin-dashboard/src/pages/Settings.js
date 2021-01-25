@@ -8,6 +8,7 @@ import Sso from '../components/settings/sso';
 import SsoDefaultRoles from '../components/settings/ssoDefaultRoles';
 import AuditLog from '../components/settings/auditLog';
 import EmailLog from '../components/settings/emailLog';
+import CallLog from '../components/settings/callLog';
 import SmsLog from '../components/settings/smsLog';
 
 // eslint-disable-next-line react/display-name
@@ -26,6 +27,8 @@ const getChild = key => {
             );
         case '/admin/settings/audit-logs':
             return <AuditLog />;
+        case '/admin/settings/call-logs':
+            return <CallLog />;
         case '/admin/settings/email-logs':
             return <EmailLog />;
         case '/admin/settings/sms-logs':

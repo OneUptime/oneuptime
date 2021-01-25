@@ -86,6 +86,7 @@ describe('Enterprise Alert API', function() {
                         monitorId,
                         alertVia: 'email',
                         incidentId,
+                        eventType: 'identified',
                     })
                     .end(function(err, res) {
                         alertId = res.body._id;

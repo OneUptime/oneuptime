@@ -145,8 +145,6 @@ export class DashboardApp extends Component {
 
                 <DeleteProjectModal />
 
-                {/* <ClickOutside onClickOutside={this.closeModal} /> */}
-
                 <ClickOutside onClickOutside={this.hideProfileMenu}>
                     <ProfileMenu visible={this.props.profile.menuVisible} />
                 </ClickOutside>
@@ -195,7 +193,7 @@ export class DashboardApp extends Component {
                                         match={this.props.match}
                                     />
 
-                                    <div className="db-World-mainPane Box-root Margin-top--60 Padding-right--20">
+                                    <div className="db-World-mainPane Box-root Margin-top--60">
                                         <div className="db-World-contentPane Box-root Padding-bottom--48">
                                             <BreadCrumbs
                                                 styles="breadCrumbContainer Card-shadow--medium db-mb"

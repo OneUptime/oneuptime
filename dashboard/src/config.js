@@ -1050,6 +1050,228 @@ export const logLibraries = {
             },
         ];
     },
+    getQuickStarts() {
+        return [
+            {
+                id: 'js',
+                language: 'JavaScript',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: {
+                    installation: {
+                        package: 'NPM Install',
+                        command: '$ npm install fyipe',
+                    },
+                    usage: `// In a FrontEnd Environment
+import { ErrorTracker } from 'fyipe';
+                                
+// In a Backend Environment                    
+const { ErrorTracker } = require('fyipe');
+                                                    
+// in a Backend Environment with ES6                    
+import Fyipe from 'fyipe';                    
+const { ErrorTracker } = Fyipe;
+                                                    
+// set up tracking configurations                    
+const options = {                    
+    maxTimeline: 10,                    
+};
+                                                    
+// constructor                    
+const tracker = new ErrorTracker(                    
+    'https://fyipe.com/api'
+    'ERROR_TRACKER_ID',
+    'ERROR_TRACKER_KEY',
+    options // Optional Field
+);
+                                
+// capturing error exception 
+NonExistingMethodCall(); // this is automatically captured and sent to your fyipe dashboard
+                                
+// capturing error exception manually
+try {
+    // your code logic
+    NonExistingMethodCall();
+} catch (error) {
+    tracker.captureException(error);
+}
+                `,
+                },
+
+                logs: {
+                    installation: {
+                        package: 'NPM Install',
+                        command: '$ npm install fyipe',
+                    },
+                    usage: `
+// In a FrontEnd Environment
+import { Logger } from 'fyipe';
+                            
+// In a Backend Environment
+const { Logger } = require('fyipe');
+                            
+// in a Backend Environment with ES6
+import Fyipe from 'fyipe';
+const { Logger } = Fyipe;
+            
+// constructor
+const logger = new Logger(
+    'https://fyipe.com/api'
+    'APPLICATION_LOG_ID',
+    'APPLICATION_LOG_KEY'
+);
+                
+// Sending a JSON object log to the server    
+                
+const item = {
+    user: 'Test User',
+    page: {
+        title: 'Landing Page',
+        loadTime: '6s',
+    },
+};
+
+logger.log(item); // returns a promise
+            `,
+                },
+                old: 'No Docs available at the moment',
+            },
+            {
+                id: 'php',
+                language: 'PHP',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: {
+                    installation: {
+                        package: 'Composer Install',
+                        command: '$ composer require fyipe/sdk',
+                    },
+                    usage: `
+use Fyipe\\FyipeLogger;
+                
+// constructor
+$logger = new Fyipe\\FyipeLogger(                    
+    'https://fyipe.com/api'                    
+    'APPLICATION_LOG_ID',                    
+    'APPLICATION_LOG_KEY'
+);
+                
+// Sending an object log to the server
+$item = new stdClass();
+$item->user = 'Test User';
+$item->page = 'Landing Page';
+                
+$response = $logger->log($item);
+// response after logging a request
+var_dump($response);
+                `,
+                },
+            },
+            {
+                id: 'java',
+                language: 'Java',
+                errorTracking: 'No Docs available at the moment',
+                height: {
+                    install: '100px',
+                    usage: '300px',
+                },
+                logs: {
+                    installation: {
+                        package: 'Maven Install',
+                        command: `                        
+<dependency>
+    <groupId>io.hackerbay.fyipe</groupId>
+    <artifactId>java-sdk</artifactId>
+    <version>CURRENT_VERSION</version>
+</dependency>
+    `,
+                    },
+                    usage: `                        
+import com.google.gson.JsonObject;                        
+import io.hackerbay.fyipe.FyipeLogger;
+                                            
+// constructor                        
+FyipeLogger logger = new FyipeLogger(                        
+    "https://fyipe.com/api"                        
+    "APPLICATION_LOG_ID",                        
+    "APPLICATION_LOG_KEY"                    
+);
+                        
+// Logging any object of a class                        
+public void logACustomClassInformation(CustomClass customClass) {                        
+    String content = new Gson().toJson(customClass); // converts your custom class to a json object                        
+    JsonObject response = logger.log(content); // returns a JsonObject of response                        
+    System.out.println(response);                        
+}`,
+                },
+            },
+            {
+                id: 'python',
+                language: 'Python',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+            {
+                id: 'dotnet',
+                language: '.Net',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+            {
+                id: 'swift',
+                language: 'Swift',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+            {
+                id: 'rust',
+                language: 'Rust',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+            {
+                id: 'ruby',
+                language: 'Ruby',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+            {
+                id: 'go',
+                height: {
+                    install: '25px',
+                    usage: '500px',
+                },
+                language: 'Go',
+                errorTracking: 'No Docs available at the moment',
+                logs: 'No Docs available at the moment',
+            },
+        ];
+    },
 };
 
 export const incomingRequestVariables = [

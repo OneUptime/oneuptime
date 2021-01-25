@@ -24,7 +24,6 @@ import PropTypes from 'prop-types';
 import IncidentDeleteBox from '../components/incident/IncidentDeleteBox';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
-import IncidentTimelineBox from '../components/incident/IncidentTimelineBox';
 import { getMonitorLogs } from '../actions/monitor';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -178,7 +177,7 @@ class Incident extends React.Component {
         this.setState({
             tabIndex: index,
         });
-        if (index === 2) {
+        if (index === 2 || index === 0) {
             this.fetchAllIncidentData();
         }
     };
@@ -344,30 +343,45 @@ class Incident extends React.Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                    }
+                                >
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                    }
+                                >
                                     Monitor Logs
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                    }
+                                >
                                     Alert Logs
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
-                                    Incident Timeline
-                                </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                    }
+                                >
                                     Status Page Notes
                                 </Tab>
                                 <Tab
                                     id="tab-advance"
-                                    className={'custom-tab custom-tab-6'}
+                                    className={
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                    }
                                 >
                                     Advanced Options
                                 </Tab>
                                 <div
                                     id="tab-slider"
-                                    className="custom-tab-6"
+                                    className="custom-tab-6 bs-custom-incident-slider"
                                 ></div>
                             </TabList>
                         </div>
@@ -496,17 +510,6 @@ class Incident extends React.Component {
                                     previous={this.previousSubscribers}
                                     incident={this.props.incident}
                                 />
-                            </Fade>
-                        </TabPanel>
-                        <TabPanel>
-                            <Fade>
-                                <div className="Box-root Margin-bottom--12">
-                                    <IncidentTimelineBox
-                                        next={this.nextTimeline}
-                                        previous={this.previousTimeline}
-                                        incident={this.props.incidentTimeline}
-                                    />
-                                </div>
                             </Fade>
                         </TabPanel>
                         <TabPanel>

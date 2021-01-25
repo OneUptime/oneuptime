@@ -140,15 +140,6 @@ export class Component extends React.Component {
         await this.props.fetchSettings(settingsType);
     }
 
-    componentDidUpdate() {
-        const { settings } = this.props;
-        if (settings && settings.testSuccess) {
-            if (window.location.href.indexOf('localhost') <= -1) {
-                this.context.mixpanel.track('Sent SMTP settings');
-            }
-        }
-    }
-
     handleTestSmtp = e => {
         e.preventDefault();
         const { testSmtp, smtpForm } = this.props;

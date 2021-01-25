@@ -5,6 +5,7 @@ import { bindActionCreators } from 'redux';
 import { PropTypes } from 'prop-types';
 import Dropzone from 'react-dropzone';
 import PapaParse from 'papaparse';
+import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
 import {
@@ -54,12 +55,16 @@ class UploadFile extends Component {
         switch (e.key) {
             case 'Escape':
                 this.setState({ files: [], isFileLoaded: false });
-                return this.props.closeModal({
-                    id: this.props.uploadSubscriberModalId,
-                });
+                return this.handleCloseModal();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.uploadSubscriberModalId,
+        });
     };
 
     renderFormHeader = () => (
@@ -236,9 +241,13 @@ class UploadFile extends Component {
                     >
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--large">
-                                {this.renderFormHeader()}
-                                {this.renderFormBody()}
-                                {this.renderFormFooter()}
+                                <ClickOutside
+                                    onClickOutside={this.handleCloseModal}
+                                >
+                                    {this.renderFormHeader()}
+                                    {this.renderFormBody()}
+                                    {this.renderFormFooter()}
+                                </ClickOutside>
                             </div>
                         </div>
                     </div>

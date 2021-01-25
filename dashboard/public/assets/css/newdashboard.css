@@ -10165,13 +10165,14 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 }
 .db-World-topContent {
     height: 68px;
-    left: calc((50vw - 1390px / 2 + 278px) - 4px);
     right: 0;
     padding-left: 8px;
     padding-right: 8px;
     position: absolute;
     top: 0;
     z-index: 1;
+    padding-left: calc((50vw - 1390px / 2 + 278px));
+    padding-right: calc((50vw - 1390px / 2 ));
 }
 .db-World-topContent--left {
     left: 0;
@@ -10213,6 +10214,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     overflow-x: hidden;
     overflow-y: auto;
     padding-left: calc((50vw - 1390px / 2 + 278px));
+    padding-right: calc((50vw - 1390px / 2 ));
     position: absolute;
     right: 0;
     top: 0;
@@ -10301,6 +10303,10 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     }
     .db-World-mainPane {
         padding-left: 278px;
+        padding-right: 20px;
+    }
+    .margin-20 {
+        margin-right: 20px;
     }
 }
 @media only screen and (max-width: 1060px) {
@@ -10312,6 +10318,20 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     }
     .db-World-mainPane {
         padding-left: 244px;
+        padding-right: 20px;
+    }
+}
+@media only screen and (min-width: 1441px) {
+    .db-World-topContent {
+        height: 68px;
+        right: 0;
+        padding-left: 8px;
+        padding-right: 8px;
+        position: absolute;
+        top: 0;
+        z-index: 1;
+        padding-left: calc((50vw - 1390px / 278px));
+        padding-right: calc((50vw - 1390px / 2 ));
     }
 }
 @media only print {
@@ -11143,6 +11163,11 @@ table {
 .bs-Modal fieldset {
     padding: 10px 20px 0;
 }
+
+.projectNameClass{
+ padding-top:20px;
+}
+
 .Margin-bottom--20i {
     margin-bottom: 20px !important;
 }
@@ -11293,7 +11318,7 @@ table {
     display: flex;
     align-items: center;
 }
-.Navigator-Btn-Group > *:hover {
+.Navigator-Btn-Group > *:active {
     border: solid 2px #D8D1DE;
 }
 .Navigator-Oldest {
@@ -11329,8 +11354,8 @@ table {
 }
 .Tag-Content {
     border-radius: 0px 3px 3px 0px;
-    color: #295dd2;
-    cursor: pointer;
+    color: black;
+    font-weight: bold;
 }
 .SubHeader {
     font-size: 16px;

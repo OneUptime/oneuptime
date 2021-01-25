@@ -509,8 +509,10 @@ module.exports = {
                     status: 'acknowledged',
                 });
 
-                AlertService.sendAcknowledgedIncidentToSubscribers(incident);
-                AlertService.sendAcknowledgedIncidentMail(incident);
+                await AlertService.sendAcknowledgedIncidentToSubscribers(
+                    incident
+                );
+                await AlertService.sendAcknowledgedIncidentMail(incident);
 
                 WebHookService.sendIntegrationNotification(
                     incident.projectId,
@@ -638,7 +640,7 @@ module.exports = {
                 status: 'resolved',
             });
 
-            _this.sendIncidentResolvedNotification(incident, name);
+            await _this.sendIncidentResolvedNotification(incident, name);
             RealTimeService.incidentResolved(incident);
             ZapierService.pushToZapier('incident_resolve', incident);
 
@@ -753,8 +755,8 @@ module.exports = {
             );
 
             // send notificaton to subscribers
-            AlertService.sendResolvedIncidentToSubscribers(incident);
-            AlertService.sendResolveIncidentMail(incident);
+            await AlertService.sendResolvedIncidentToSubscribers(incident);
+            await AlertService.sendResolveIncidentMail(incident);
 
             const msg = `${
                 resolvedincident.monitorId.name

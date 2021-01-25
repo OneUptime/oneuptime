@@ -25,6 +25,7 @@ const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const subscriberAlertService = require('../services/subscriberAlertService');
 
 // Route
 // Description: Creating incident.
@@ -284,13 +285,49 @@ router.post(
     async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
+            const projectId = req.params.projectId;
             // Call the IncidentService
             const incident = await IncidentService.acknowledge(
                 req.params.incidentId,
                 userId,
                 req.user.name
             );
-            return sendItemResponse(req, res, incident);
+            let incidentMessages = await IncidentMessageService.findBy({
+                incidentId: incident._id,
+                type: 'internal',
+            });
+            const timeline = await IncidentTimelineService.findBy({
+                incidentId: incident._id,
+            });
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incident._id },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incident._id,
+                projectId,
+            });
+            const subAlerts = uniqByKeepFirst(
+                subscriberAlerts,
+                it => it.identification
+            );
+            incidentMessages = [
+                ...incidentMessages,
+                ...timeline,
+                ...alerts,
+                ...subAlerts,
+            ];
+            incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+            const filteredMsg = incidentMessages.filter(
+                a =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
+            );
+            const result = {
+                data: filteredMsg,
+                incident,
+                type: 'internal',
+            };
+            return sendItemResponse(req, res, result);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -309,13 +346,49 @@ router.post(
     async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
+            const projectId = req.params.projectId;
             // Call the IncidentService
             const incident = await IncidentService.resolve(
                 req.params.incidentId,
                 userId
             );
+            let incidentMessages = await IncidentMessageService.findBy({
+                incidentId: incident._id,
+                type: 'internal',
+            });
+            const timeline = await IncidentTimelineService.findBy({
+                incidentId: incident._id,
+            });
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incident._id },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incident._id,
+                projectId,
+            });
+            const subAlerts = uniqByKeepFirst(
+                subscriberAlerts,
+                it => it.identification
+            );
+            incidentMessages = [
+                ...incidentMessages,
+                ...timeline,
+                ...alerts,
+                ...subAlerts,
+            ];
+            incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+            const filteredMsg = incidentMessages.filter(
+                a =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
+            );
+            const result = {
+                data: filteredMsg,
+                incident,
+                type: 'internal',
+            };
 
-            return sendItemResponse(req, res, incident);
+            return sendItemResponse(req, res, result);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -530,10 +603,52 @@ router.post(
                     status,
                 });
 
-                incidentMessage = await IncidentMessageService.findOneBy({
-                    _id: incidentMessage._id,
-                    incidentId: incidentMessage.incidentId,
+                const alerts = await AlertService.findBy({
+                    query: { incidentId: incident._id },
                 });
+                const subscriberAlerts = await subscriberAlertService.findBy({
+                    incidentId: incident._id,
+                    projectId: req.params.projectId,
+                });
+
+                if (
+                    data.type === 'internal' ||
+                    (data.type === 'internal' &&
+                        data.incident_state === 'update')
+                ) {
+                    let incidentMessages = await IncidentMessageService.findBy({
+                        incidentId: incident._id,
+                        type: data.type,
+                    });
+                    const timeline = await IncidentTimelineService.findBy({
+                        incidentId: incident._id,
+                    });
+                    const subAlerts = uniqByKeepFirst(
+                        subscriberAlerts,
+                        it => it.identification
+                    );
+                    incidentMessages = [
+                        ...incidentMessages,
+                        ...timeline,
+                        ...alerts,
+                        ...subAlerts,
+                    ];
+                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+                    const filteredMsg = incidentMessages.filter(
+                        a =>
+                            a.status !== 'internal notes added' &&
+                            a.status !== 'internal notes updated'
+                    );
+                    incidentMessage = {
+                        type: data.type,
+                        data: filteredMsg,
+                    };
+                } else {
+                    incidentMessage = await IncidentMessageService.findOneBy({
+                        _id: incidentMessage._id,
+                        incidentId: incidentMessage.incidentId,
+                    });
+                }
             }
             return sendItemResponse(req, res, incidentMessage);
         } catch (error) {
@@ -571,7 +686,11 @@ router.delete(
     isAuthorized,
     async function(req, res) {
         try {
-            const { incidentId, incidentMessageId } = req.params;
+            const { incidentId, incidentMessageId, projectId } = req.params;
+            const checkMsg = await IncidentMessageService.findOneBy({
+                _id: incidentMessageId,
+            });
+            let result;
             const incidentMessage = await IncidentMessageService.deleteBy(
                 {
                     _id: incidentMessageId,
@@ -587,9 +706,47 @@ router.delete(
                     createdById: req.user.id,
                     status,
                 });
+                const alerts = await AlertService.findBy({
+                    query: { incidentId: incidentId },
+                });
+                const subscriberAlerts = await subscriberAlertService.findBy({
+                    incidentId: incidentId,
+                    projectId,
+                });
 
                 await RealTimeService.deleteIncidentNote(incidentMessage);
-                return sendItemResponse(req, res, incidentMessage);
+                if (checkMsg.type === 'investigation') {
+                    result = incidentMessage;
+                } else {
+                    let incidentMessages = await IncidentMessageService.findBy({
+                        incidentId,
+                        type: checkMsg.type,
+                    });
+                    const timeline = await IncidentTimelineService.findBy({
+                        incidentId,
+                    });
+                    const subAlerts = uniqByKeepFirst(
+                        subscriberAlerts,
+                        it => it.identification
+                    );
+                    incidentMessages = [
+                        ...incidentMessages,
+                        ...timeline,
+                        ...alerts,
+                        ...subAlerts,
+                    ];
+                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+                    const filteredMsg = incidentMessages.filter(
+                        a =>
+                            a.status !== 'internal notes added' &&
+                            a.status !== 'internal notes updated'
+                    );
+                    result = {
+                        type: checkMsg.type,
+                        data: filteredMsg,
+                    };
+                }
+                return sendItemResponse(req, res, result);
             } else {
                 return sendErrorResponse(req, res, {
                     code: 404,
@@ -611,17 +768,57 @@ router.get(
             type = 'internal';
         }
         try {
+            let incidentMessages, result;
             const incidentId = req.params.incidentId;
-            const incidentMessages = await IncidentMessageService.findBy(
-                { incidentId, type },
-                req.query.skip || 0,
-                req.query.limit || 10
-            );
+            const projectId = req.params.projectId;
+            if (type === 'investigation') {
+                incidentMessages = await IncidentMessageService.findBy(
+                    { incidentId, type },
+                    req.query.skip || 0,
+                    req.query.limit || 10
+                );
+            } else {
+                incidentMessages = await IncidentMessageService.findBy({
+                    incidentId,
+                    type,
+                });
+            }
+            const timeline = await IncidentTimelineService.findBy({
+                incidentId,
+            });
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incidentId },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incidentId,
+                projectId,
+            });
             const count = await IncidentMessageService.countBy({
                 incidentId,
                 type,
             });
-            return sendListResponse(req, res, incidentMessages, count);
+            if (type === 'investigation') {
+                result = incidentMessages;
+            } else {
+                const subAlerts = uniqByKeepFirst(
+                    subscriberAlerts,
+                    it => it.identification
+                );
+                incidentMessages = [
+                    ...incidentMessages,
+                    ...timeline,
+                    ...alerts,
+                    ...subAlerts,
+                ];
+                incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+                const filteredMsg = incidentMessages.filter(
+                    a =>
+                        a.status !== 'internal notes added' &&
+                        a.status !== 'internal notes updated'
+                );
+                result = filteredMsg;
+            }
+            return sendListResponse(req, res, result, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -708,5 +905,13 @@ router.get(
         }
     }
 );
+
+function uniqByKeepFirst(a, key) {
+    const seen = new Set();
+    return a.filter(item => {
+        const k = key(item);
+        return seen.has(k) ? false : seen.add(k);
+    });
+}
 
 module.exports = router;

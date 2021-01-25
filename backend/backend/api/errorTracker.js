@@ -285,13 +285,38 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
         // if it doesnt exist, create the issue and use its details
         if (!issue) {
             issue = await IssueService.create(data);
+        } else {
+            // issue exist but checked if it is resolved so to uresolve it
+            if (issue.resolved) {
+                const updateData = {
+                    resolved: false,
+                    resolvedAt: '',
+                    resolvedById: null,
+                };
+                const query = {
+                    _id: issue._id,
+                    errorTrackerId,
+                };
+                await IssueService.updateOneBy(query, updateData);
+            }
         }
-        // if it exist, use the issue details
+        // since it now exist, use the issue details
         data.issueId = issue._id;
         data.fingerprintHash = issue.fingerprintHash;
 
+        // create the error event
         const errorEvent = await ErrorEventService.create(data);
-        await RealTimeService.sendErrorEventCreated(errorEvent);
+
+        // get the issue in the format that the fronnted will want for the real time update
+        const errorTrackerIssue = await ErrorEventService.findDistinct(
+            { _id: data.issueId, errorTrackerId: data.errorTrackerId },
+            1,
+            0
+        );
+
+        issue = errorTrackerIssue.totalErrorEvents[0];
+
+        await RealTimeService.sendErrorEventCreated({ errorEvent, issue });
         return sendItemResponse(req, res, errorEvent);
     } catch (error) {
         return sendErrorResponse(req, res, error);

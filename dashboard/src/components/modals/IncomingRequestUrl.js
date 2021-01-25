@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import copyToClipboard from '../../utils/copyToClipboard';
 
@@ -19,17 +20,19 @@ export class IncomingRequestUrl extends React.Component {
     }
 
     handleKeyBoard = e => {
-        const { closeModal, currentProject } = this.props;
-
         switch (e.key) {
             case 'Escape':
             case 'Enter':
-                return closeModal({
-                    id: currentProject._id,
-                });
+                return this.handleCloseModal();
             default:
                 return false;
         }
+    };
+
+    handleCloseModal = () => {
+        this.props.closeModal({
+            id: this.props.currentProject._id,
+        });
     };
 
     copyHandler = text => {
@@ -48,75 +51,83 @@ export class IncomingRequestUrl extends React.Component {
                     style={{ marginTop: 40 }}
                 >
                     <div className="bs-Modal bs-Modal--medium">
-                        <div className="bs-Modal-header">
-                            <div
-                                className="bs-Modal-header-copy"
-                                style={{
-                                    marginBottom: '10px',
-                                    marginTop: '10px',
-                                }}
-                            >
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Incoming Request URL</span>
+                        <ClickOutside onClickOutside={this.handleCloseModal}>
+                            <div className="bs-Modal-header">
+                                <div
+                                    className="bs-Modal-header-copy"
+                                    style={{
+                                        marginBottom: '10px',
+                                        marginTop: '10px',
+                                    }}
+                                >
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>Incoming Request URL</span>
+                                    </span>
+                                    <br />
+                                    <span>
+                                        This personalised url will be used in
+                                        your external service to trigger
+                                        incident creation and/or resolution
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="bs-Modal-content">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    Please copy and paste the url below, in your
+                                    external service to integrate it with Fyipe
                                 </span>
                                 <br />
+                                <br />
                                 <span>
-                                    This personalised url will be used in your
-                                    external service to trigger incident
-                                    creation and/or resolution
+                                    <input
+                                        type="url"
+                                        value={incomingRequest.url}
+                                        style={{
+                                            width: '100%',
+                                            padding: '5px 10px',
+                                            fontWeight: 600,
+                                        }}
+                                    />
                                 </span>
                             </div>
-                        </div>
-                        <div className="bs-Modal-content">
-                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                Please copy and paste the url below, in your
-                                external service to integrate it with Fyipe
-                            </span>
-                            <br />
-                            <br />
-                            <span>
-                                <input
-                                    type="url"
-                                    value={incomingRequest.url}
-                                    style={{
-                                        width: '100%',
-                                        padding: '5px 10px',
-                                        fontWeight: 600,
-                                    }}
-                                />
-                            </span>
-                        </div>
-                        <div className="bs-Modal-footer">
-                            <div className="bs-Modal-footer-actions">
-                                <button
-                                    className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                    type="button"
-                                    onClick={() =>
-                                        this.copyHandler(incomingRequest.url)
-                                    }
-                                    disabled={this.state.copied}
-                                >
-                                    {this.state.copied ? (
-                                        <span>Copied</span>
-                                    ) : (
-                                        <span>Copy to clipboard</span>
-                                    )}
-                                </button>
-                                <button
-                                    className="bs-Button btn__modal"
-                                    type="button"
-                                    onClick={() =>
-                                        closeModal({ id: currentProject._id })
-                                    }
-                                    autoFocus={true}
-                                >
-                                    <span>OK</span>
-                                    <span className="cancel-btn__keycode">
-                                        Esc
-                                    </span>
-                                </button>
+                            <div className="bs-Modal-footer">
+                                <div className="bs-Modal-footer-actions">
+                                    <button
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        type="button"
+                                        onClick={() =>
+                                            this.copyHandler(
+                                                incomingRequest.url
+                                            )
+                                        }
+                                        disabled={this.state.copied}
+                                        id="copyToClipboardBtn"
+                                    >
+                                        {this.state.copied ? (
+                                            <span>Copied</span>
+                                        ) : (
+                                            <span>Copy to clipboard</span>
+                                        )}
+                                    </button>
+                                    <button
+                                        className="bs-Button btn__modal"
+                                        type="button"
+                                        onClick={() =>
+                                            closeModal({
+                                                id: currentProject._id,
+                                            })
+                                        }
+                                        autoFocus={true}
+                                        id="requestOkBtn"
+                                    >
+                                        <span>OK</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        </ClickOutside>
                     </div>
                 </div>
             </div>

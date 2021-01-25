@@ -16,8 +16,8 @@ const schema = new Schema({
     template: String,
     status: String,
     content: String,
+    error: String,
     deleted: { type: Boolean, default: false },
-
     deletedAt: {
         type: Date,
     },

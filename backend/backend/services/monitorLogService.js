@@ -2,12 +2,26 @@ module.exports = {
     create: async function(data) {
         try {
             const Log = new MonitorLogModel();
-
+            let responseBody = '';
+            if (data.resp && data.resp.body) {
+                if (typeof data.resp.body === 'object') {
+                    responseBody = JSON.stringify(data.resp.body);
+                } else {
+                    responseBody = data.resp.body;
+                }
+            } else {
+                responseBody = '';
+            }
             Log.monitorId = data.monitorId;
             Log.probeId = data.probeId;
             Log.status = data.status;
             Log.responseTime = data.responseTime;
             Log.responseStatus = data.responseStatus;
+            Log.responseBody = responseBody;
+            Log.responseHeader =
+                data.rawResp && data.rawResp.headers
+                    ? data.rawResp.headers
+                    : {};
             Log.cpuLoad = data.cpuLoad;
             Log.avgCpuLoad = data.avgCpuLoad;
             Log.cpuCores = data.cpuCores;

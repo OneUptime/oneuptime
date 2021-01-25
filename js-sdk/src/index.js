@@ -1,4 +1,4 @@
-import FyipeLogger from './logger.js';
-import FyipeTracker from './tracker.js';
+import Logger from './logger.js';
+import ErrorTracker from './tracker.js';
 
-export default { FyipeLogger, FyipeTracker };
+export default { Logger, ErrorTracker };

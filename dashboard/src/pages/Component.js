@@ -25,6 +25,7 @@ import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
+import { fetchComponents } from '../actions/component';
 
 class DashboardView extends Component {
     componentDidMount() {
@@ -42,6 +43,7 @@ class DashboardView extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
+        this.props.fetchComponents(projectId);
         this.props.getSmtpConfig(projectId);
         this.props.fetchMonitors(projectId).then(() => {
             this.props.monitor.monitorsList.monitors.forEach(subProject => {
@@ -93,7 +95,8 @@ class DashboardView extends Component {
             subProjects.map((subProject, i) => {
                 const subProjectComponent = this.props.component.componentList.components.find(
                     subProjectComponent =>
-                        subProjectComponent._id === subProject._id
+                        String(subProjectComponent._id) ===
+                        String(subProject._id)
                 );
                 allComponents = IsUserInSubProject(subProject)
                     ? allComponents
@@ -132,7 +135,8 @@ class DashboardView extends Component {
 
         // Add Project Components to Components List
         let projectComponent = this.props.component.componentList.components.find(
-            subProjectComponent => subProjectComponent._id === currentProjectId
+            subProjectComponent =>
+                String(subProjectComponent._id) === String(currentProjectId)
         );
         allComponents = IsUserInSubProject(currentProject)
             ? allComponents
@@ -349,6 +353,7 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorsIncidents,
             fetchMonitorLogs,
             getSmtpConfig,
+            fetchComponents,
         },
         dispatch
     );
@@ -432,6 +437,7 @@ DashboardView.propTypes = {
     monitors: PropTypes.array,
     tutorialStat: PropTypes.object,
     getSmtpConfig: PropTypes.func.isRequired,
+    fetchComponents: PropTypes.func,
 };
 
 DashboardView.displayName = 'DashboardView';

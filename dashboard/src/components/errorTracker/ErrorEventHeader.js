@@ -3,9 +3,8 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import moment from 'moment';
-import { ListLoader } from '../basic/Loader';
+import { FormLoader, ListLoader } from '../basic/Loader';
 import TooltipMini from '../basic/TooltipMini';
-import AlertPanel from '../basic/AlertPanel';
 
 class ErrorEventHeader extends Component {
     navigate = currentId => {
@@ -31,8 +30,14 @@ class ErrorEventHeader extends Component {
         }
     };
     render() {
-        const { errorEvent, errorTrackerIssue } = this.props;
+        const {
+            errorEvent,
+            errorTrackerIssue,
+            errorTrackerStatus,
+        } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
+        const canPrev = errorEvent.previous;
+        const canNext = errorEvent.next;
         return (
             <div>
                 <ShouldRender if={errorEvent.requesting}>
@@ -54,9 +59,18 @@ class ErrorEventHeader extends Component {
                                             id="application-content-header"
                                             className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            <span id={`application-log-title-`}>
+                                            <span id={`error-event-title-`}>
                                                 {errorTrackerIssue &&
-                                                    errorTrackerIssue.name}
+                                                errorTrackerIssue.description
+                                                    ? errorTrackerIssue
+                                                          .description.length >
+                                                      100
+                                                        ? `${errorTrackerIssue.description.substring(
+                                                              0,
+                                                              100
+                                                          )} ...`
+                                                        : errorTrackerIssue.description
+                                                    : ''}
                                             </span>
                                         </span>
                                         <div className="Flex-flex Flex-alignItems--center">
@@ -73,16 +87,7 @@ class ErrorEventHeader extends Component {
                                             ></div>{' '}
                                             <span className="Text-fontSize--12 Margin-left--4">
                                                 {errorTrackerIssue &&
-                                                errorTrackerIssue.description
-                                                    ? errorTrackerIssue
-                                                          .description.length >
-                                                      100
-                                                        ? `${errorTrackerIssue.description.substring(
-                                                              0,
-                                                              100
-                                                          )} ...`
-                                                        : errorTrackerIssue.description
-                                                    : ''}
+                                                    errorTrackerIssue.name}
                                             </span>
                                         </div>
                                     </div>
@@ -107,7 +112,17 @@ class ErrorEventHeader extends Component {
                                         }
                                         content={
                                             <button
-                                                className="bs-Button bs-Button--icon bs-Button--check"
+                                                className={`bs-Button ${
+                                                    errorTrackerStatus &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ].requestingResolve
+                                                        ? 'bs-Button--blue'
+                                                        : 'bs-Button--icon bs-Button--check'
+                                                }  `}
                                                 type="button"
                                                 onClick={() =>
                                                     this.handleResolveButton(
@@ -121,7 +136,35 @@ class ErrorEventHeader extends Component {
                                                         !errorTrackerIssue.resolved
                                                     }
                                                 >
-                                                    <span>Resolve</span>
+                                                    {errorTrackerStatus &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ].requestingResolve ? (
+                                                        <FormLoader />
+                                                    ) : (
+                                                        <span>Resolve</span>
+                                                    )}
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={
+                                                        errorTrackerIssue &&
+                                                        errorTrackerIssue.resolved
+                                                    }
+                                                >
+                                                    {errorTrackerStatus &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ].requestingResolve ? (
+                                                        <FormLoader />
+                                                    ) : (
+                                                        <span>Unresolve</span>
+                                                    )}
                                                 </ShouldRender>
                                             </button>
                                         }
@@ -135,7 +178,17 @@ class ErrorEventHeader extends Component {
                                         }
                                         content={
                                             <button
-                                                className="bs-Button bs-Button--icon bs-Button--block"
+                                                className={`bs-Button ${
+                                                    errorTrackerStatus &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ].requestingIgnore
+                                                        ? 'bs-Button--blue'
+                                                        : 'bs-Button--icon bs-Button--block'
+                                                }  `}
                                                 type="button"
                                                 onClick={() =>
                                                     this.handleIgnoreButton(
@@ -149,42 +202,22 @@ class ErrorEventHeader extends Component {
                                                         !errorTrackerIssue.ignored
                                                     }
                                                 >
-                                                    <span>Ignore</span>
+                                                    {errorTrackerStatus &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
+                                                        errorTrackerIssue._id
+                                                    ].requestingIgnore ? (
+                                                        <FormLoader />
+                                                    ) : (
+                                                        <span>Ignore</span>
+                                                    )}
                                                 </ShouldRender>
                                             </button>
                                         }
                                     />
-
-                                    {/* <button
-                                        className="bs-Button"
-                                        type="button"
-                                        disabled={true}
-                                    >
-                                        <span>Merge</span>
-                                    </button> */}
                                 </div>
-                                <ShouldRender if={errorTrackerIssue.ignored}>
-                                    <AlertPanel
-                                        backgroundClass="Box-background--red4"
-                                        message={
-                                            <span>
-                                                This issue has been marked as
-                                                ignored.
-                                            </span>
-                                        }
-                                    />
-                                </ShouldRender>
-                                <ShouldRender if={errorTrackerIssue.resolved}>
-                                    <AlertPanel
-                                        backgroundClass="Box-background--green"
-                                        message={
-                                            <span>
-                                                This issue has been marked as
-                                                resolved.
-                                            </span>
-                                        }
-                                    />
-                                </ShouldRender>
                             </div>
                         </div>
                         <div className="Flex-flex Flex-justifyContent--spaceBetween Navigator-Wrapper">
@@ -206,90 +239,132 @@ class ErrorEventHeader extends Component {
                                         ).format('MMMM Do YYYY, h:mm:ss a')}
                                 </span>
                             </div>
-                            <div className="Navigator-Btn-Group Text-fontWeight--bold Text-fontSize--12">
-                                <div
-                                    className={`${
-                                        errorEvent.previous
-                                            ? 'Navigator-Oldest'
-                                            : 'Navigator-Oldest Navigator-Disable'
-                                    }`}
-                                    onClick={() =>
-                                        this.navigate(
-                                            errorEvent.previous
-                                                ? errorEvent.previous.oldest
-                                                : null
-                                        )
-                                    }
-                                >
-                                    <img
-                                        src={`/dashboard/assets/img/previous${
-                                            errorEvent.previous
-                                                ? ''
-                                                : '-disable'
-                                        }.svg`}
-                                        alt=""
-                                        style={{
-                                            height: '12px',
-                                            width: '12px',
-                                        }}
-                                    />
-                                </div>
-                                <div
-                                    onClick={() =>
-                                        this.navigate(
-                                            errorEvent.previous
-                                                ? errorEvent.previous._id
-                                                : null
-                                        )
-                                    }
-                                    className={`${
-                                        errorEvent.previous
-                                            ? ''
-                                            : 'Navigator-Disable'
-                                    }`}
-                                >
-                                    Older
-                                </div>
-                                <div
-                                    onClick={() =>
-                                        this.navigate(
-                                            errorEvent.next
-                                                ? errorEvent.next._id
-                                                : null
-                                        )
-                                    }
-                                    className={`${
-                                        errorEvent.next
-                                            ? ''
-                                            : 'Navigator-Disable'
-                                    }`}
-                                >
-                                    Newer
-                                </div>
-                                <div
-                                    onClick={() =>
-                                        this.navigate(
-                                            errorEvent.next
-                                                ? errorEvent.next.latest
-                                                : null
-                                        )
-                                    }
-                                    className={`${
-                                        errorEvent.next
-                                            ? 'Navigator-Newest'
-                                            : 'Navigator-Newest Navigator-Disable'
-                                    }`}
-                                >
-                                    <img
-                                        src={`/dashboard/assets/img/next${
-                                            errorEvent.next ? '' : '-disable'
-                                        }.svg`}
-                                        alt=""
-                                        style={{
-                                            height: '12px',
-                                            width: '12px',
-                                        }}
-                                    />
+                            <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                    <div className="Box-root Margin-right--8">
+                                        <button
+                                            id="btnPrevOldest"
+                                            className={
+                                                'Button bs-ButtonLegacy' +
+                                                (canPrev ? '' : 'Is--disabled')
+                                            }
+                                            disabled={!canPrev}
+                                            onClick={() =>
+                                                this.navigate(
+                                                    errorEvent.previous
+                                                        ? errorEvent.previous
+                                                              .oldest
+                                                        : null
+                                                )
+                                            }
+                                            data-db-analytics-name="list_view.pagination.previous"
+                                            type="button"
+                                        >
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <img
+                                                        src={`/dashboard/assets/img/previous${
+                                                            errorEvent.previous
+                                                                ? ''
+                                                                : '-disable'
+                                                        }.svg`}
+                                                        alt=""
+                                                        style={{
+                                                            height: '12px',
+                                                            width: '12px',
+                                                        }}
+                                                    />
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div className="Box-root Margin-right--8">
+                                        <button
+                                            id="btnPrev"
+                                            className={
+                                                'Button bs-ButtonLegacy' +
+                                                (canPrev ? '' : 'Is--disabled')
+                                            }
+                                            onClick={() =>
+                                                this.navigate(
+                                                    errorEvent.previous
+                                                        ? errorEvent.previous
+                                                              ._id
+                                                        : null
+                                                )
+                                            }
+                                            disabled={!canPrev}
+                                            data-db-analytics-name="list_view.pagination.previous"
+                                            type="button"
+                                        >
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <span>Previous</span>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div className="Box-root Margin-right--8">
+                                        <button
+                                            id="btnNext"
+                                            className={
+                                                'Button bs-ButtonLegacy' +
+                                                (canNext ? '' : 'Is--disabled')
+                                            }
+                                            disabled={!canNext}
+                                            onClick={() =>
+                                                this.navigate(
+                                                    errorEvent.next
+                                                        ? errorEvent.next._id
+                                                        : null
+                                                )
+                                            }
+                                            data-db-analytics-name="list_view.pagination.next"
+                                            type="button"
+                                        >
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <span>Next</span>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div className="Box-root">
+                                        <button
+                                            id="btnNextLatest"
+                                            className={
+                                                'Button bs-ButtonLegacy' +
+                                                (canNext ? '' : 'Is--disabled')
+                                            }
+                                            onClick={() =>
+                                                this.navigate(
+                                                    errorEvent.next
+                                                        ? errorEvent.next.latest
+                                                        : null
+                                                )
+                                            }
+                                            disabled={!canNext}
+                                            data-db-analytics-name="list_view.pagination.next"
+                                            type="button"
+                                        >
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <img
+                                                        src={`/dashboard/assets/img/next${
+                                                            errorEvent.next
+                                                                ? ''
+                                                                : '-disable'
+                                                        }.svg`}
+                                                        alt=""
+                                                        style={{
+                                                            height: '12px',
+                                                            width: '12px',
+                                                        }}
+                                                    />
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -306,6 +381,7 @@ ErrorEventHeader.propTypes = {
     ignoreErrorEvent: PropTypes.func,
     unresolveErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.func,
+    errorTrackerStatus: PropTypes.object,
 };
 ErrorEventHeader.displayName = 'ErrorEventHeader';
 export default ErrorEventHeader;

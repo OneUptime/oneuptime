@@ -15,6 +15,7 @@ import sortByName from '../utils/sortByName';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
+import LibraryList from '../components/application/LibraryList';
 
 class ErrorTracking extends Component {
     componentDidMount() {
@@ -104,6 +105,10 @@ class ErrorTracking extends Component {
                                         />
                                     </ShouldRender>
                                 </div>
+                                <LibraryList
+                                    title="Error Tracking"
+                                    type="errorTracking"
+                                />
                                 {errorTrackersList}
                                 <NewErrorTracker
                                     componentId={this.props.componentId}

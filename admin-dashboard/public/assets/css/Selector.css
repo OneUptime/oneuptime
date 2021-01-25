@@ -139,14 +139,14 @@
     text-align: center;
     color: #565656;
     display: inline-block;
-    margin-left: 10px;
+    margin-left: 10px !important;
 }
 
 .cancel-btn__keycode {
     width: 30px;
     height: 20px;
     line-height: 15px;
-    padding: 2px;
+    padding: 2px !important;
     text-transform: lowercase;
 }
 

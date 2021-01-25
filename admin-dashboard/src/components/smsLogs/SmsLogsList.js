@@ -8,6 +8,9 @@ import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import SmsLogsContentViewModal from './SmsLogsContentViewModal';
+import SmsLogsErrorViewModal from './SmsLogsErrorViewModal';
+
+import { history } from '../../store';
 
 export class SmsLogsList extends Component {
     constructor(props) {
@@ -79,6 +82,16 @@ export class SmsLogsList extends Component {
                                     style={{ height: '1px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Status</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Project name</span>
                                         </span>
@@ -90,7 +103,7 @@ export class SmsLogsList extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>User name</span>
+                                            <span>Users</span>
                                         </span>
                                     </div>
                                 </td>
@@ -147,16 +160,66 @@ export class SmsLogsList extends Component {
                                             className="Table-row db-ListViewItem bs-ActionsParent"
                                         >
                                             <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                style={{
+                                                    height: '1px',
+                                                }}
+                                            >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <div className="Box-root Margin-right--16">
+                                                            <div
+                                                                className={`Badge Badge--color--${
+                                                                    smsLog.status ===
+                                                                    'Success'
+                                                                        ? 'green'
+                                                                        : 'red'
+                                                                } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                            >
+                                                                <span
+                                                                    className={`Badge-text Text-color--${
+                                                                        smsLog.status ===
+                                                                        'Success'
+                                                                            ? 'green'
+                                                                            : 'red'
+                                                                    } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                >
+                                                                    <span>
+                                                                        {smsLog.status
+                                                                            ? smsLog.status
+                                                                            : 'N/A'}
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
+                                                style={{
+                                                    height: '1px',
+                                                    cursor: 'pointer',
+                                                    textDecoration: smsLog.projectId
+                                                        ? 'underline'
+                                                        : null,
+                                                }}
+                                                onClick={() => {
+                                                    history.push(
+                                                        '/admin/projects/' +
+                                                            smsLog.projectId._id
+                                                    );
+                                                }}
                                             >
                                                 <div className="db-ListViewItem-link">
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root">
                                                                 <span>
                                                                     {smsLog.projectId
-                                                                        ? smsLog.projectId
+                                                                        ? smsLog
+                                                                              .projectId
+                                                                              .name
                                                                         : 'N/A'}
                                                                 </span>
                                                             </div>
@@ -166,14 +229,31 @@ export class SmsLogsList extends Component {
                                             </td>
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                style={{ height: '1px' }}
+                                                style={{
+                                                    height: '1px',
+                                                    cursor: 'pointer',
+                                                    textDecoration: smsLog.userId
+                                                        ? 'underline'
+                                                        : null,
+                                                }}
+                                                onClick={() => {
+                                                    if (smsLog.userId) {
+                                                        history.push(
+                                                            '/admin/users/' +
+                                                                smsLog.userId
+                                                                    ._id
+                                                        );
+                                                    }
+                                                }}
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root Margin-right--16">
                                                             <span>
                                                                 {smsLog.userId
-                                                                    ? smsLog.userId
+                                                                    ? smsLog
+                                                                          .userId
+                                                                          .name
                                                                     : 'N/A'}
                                                             </span>
                                                         </div>
@@ -182,7 +262,9 @@ export class SmsLogsList extends Component {
                                             </td>
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
+                                                style={{
+                                                    height: '1px',
+                                                }}
                                             >
                                                 <div className="db-ListViewItem-link">
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -234,6 +316,35 @@ export class SmsLogsList extends Component {
                                                                             Content
                                                                         </span>
                                                                     </button>
+                                                                    {smsLog.error ? (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                this.props.openModal(
+                                                                                    {
+                                                                                        id: uuid.v4(),
+                                                                                        onConfirm: () => {
+                                                                                            return Promise.resolve();
+                                                                                        },
+                                                                                        content: props => (
+                                                                                            <SmsLogsErrorViewModal
+                                                                                                {...props}
+                                                                                                content={
+                                                                                                    smsLog.error
+                                                                                                }
+                                                                                            />
+                                                                                        ),
+                                                                                    }
+                                                                                );
+                                                                            }}
+                                                                            id="view"
+                                                                            className="bs-Button"
+                                                                        >
+                                                                            <span>
+                                                                                View
+                                                                                Error
+                                                                            </span>
+                                                                        </button>
+                                                                    ) : null}
                                                                 </span>
                                                             </div>
                                                         </span>
