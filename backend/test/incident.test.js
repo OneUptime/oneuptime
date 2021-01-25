@@ -31,6 +31,9 @@ const ComponentModel = require('../backend/models/component');
 const moment = require('moment');
 const SubscriberService = require('../backend/services/subscriberService');
 const AlertVia = require('../backend/config/alertType');
+const {
+    markIncidentAsResolved
+} = require('./test-utils');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
@@ -307,18 +310,26 @@ describe('Incident API', function() {
 
     it('should resolve an incident and send email to users', async function() {
         const authorization = `Basic ${token}`;
-        const res = await request
-            .post(`/incident/${projectId}/resolve/${incidentId}`)
-            .set('Authorization', authorization)
-            .send({});
+        // const res = await request
+        //     .post(`/incident/${projectId}/resolve/${incidentId}`)
+        //     .set('Authorization', authorization)
+        //     .send({});
         const date = moment().subtract(1, 'minutes');
         const emailStatus = await EmailStatusService.findBy({
             template: 'incident_resolved',
             createdAt: { $gt: date },
         });
-        expect(res).to.have.status(200);
-        expect(res.body).to.be.an('object');
-        expect(res.body.resolved).to.be.equal(true);
+        const incidentResolved = await markIncidentAsResolved({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+
+        expect(incidentResolved).to.have.status(200);
+        // expect(res).to.have.status(200);
+        // expect(res.body).to.be.an('object');
+        // expect(res.body.resolved).to.be.equal(true);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
