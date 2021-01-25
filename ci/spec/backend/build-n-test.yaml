@@ -1,8 +1,8 @@
-build_n_test_backend:
+test_backend:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_backend backend init-script probe http-test-server`
+        - export next_stage=`./ci/scripts/checkhash.sh test_backend backend init-script probe http-test-server`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
@@ -25,7 +25,7 @@ build_n_test_backend:
         - ENCRYPTION_KEY=$ENCRYPTION_KEY TEST_EMAIL_SMTP_PORT=$TEST_EMAIL_SMTP_PORT TEST_EMAIL_SMTP_SERVER=$TEST_EMAIL_SMTP_SERVER TEST_EMAIL=$TEST_EMAIL TEST_EMAIL_NAME=$TEST_EMAIL TEST_EMAIL_PASSWORD=$TEST_EMAIL_PASSWORD IS_SAAS_SERVICE=true IS_TESTING=true DOCKER_UNMASKED_USERNAME=$DOCKER_UNMASKED_USERNAME DOCKER_UNMASKED_PASSWORD=$DOCKER_UNMASKED_PASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_UNMASKED_USERNAME=$GITHUB_UNMASKED_USERNAME GITHUB_UNMASKED_PASSWORD=$GITHUB_UNMASKED_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_backend backend init-script probe http-test-server
+        - ./ci/scripts/storehash.sh test_backend backend init-script probe http-test-server
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:
@@ -33,11 +33,11 @@ build_n_test_backend:
             - hotfix-master
             - hotfix-release
 
-build_n_test_enterprise_backend:
+test_enterprise_backend:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_enterprise_backend backend`
+        - export next_stage=`./ci/scripts/checkhash.sh test_enterprise_backend backend`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
@@ -52,7 +52,7 @@ build_n_test_enterprise_backend:
         - npm run enterprise-test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_enterprise_backend backend
+        - ./ci/scripts/storehash.sh test_enterprise_backend backend
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:
