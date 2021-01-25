@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-// import moment from 'moment';
+import moment from 'moment';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
+import { Spinner } from '../basic/Loader';
 
-function ComponentSummary({ stats }) {
-    const [startDate, setStartDate] = useState(Date.now());
-    const [endDate, setEndDate] = useState(Date.now());
+function ComponentSummary({
+    projectId,
+    componentId,
+    fetchSummary,
+    summary,
+    loading,
+}) {
+    const [startDate, setStartDate] = useState(moment().subtract(30, 'd'));
+    const [endDate, setEndDate] = useState(moment());
 
     useEffect(() => {
-        //
-    }, [startDate, endDate]);
+        if (projectId && componentId) {
+            fetchSummary(projectId, componentId, startDate, endDate);
+        }
+    }, [projectId, componentId, startDate, endDate, fetchSummary]);
+
+    const avgMonitorUptime = summary.length
+        ? summary.reduce((a, b) => a.monitorUptime + b.monitorUptime) /
+          summary.length
+        : 100;
 
     return (
         <div className="Box-root Card-shadow--medium" tabIndex="0">
@@ -32,25 +46,55 @@ function ComponentSummary({ stats }) {
                                 startDate,
                                 endDate,
                             }}
-                            handleStartDateTimeChange={val => setStartDate(val)}
-                            handleEndDateTimeChange={val => setEndDate(val)}
+                            handleStartDateTimeChange={val =>
+                                setStartDate(moment(val))
+                            }
+                            handleEndDateTimeChange={val =>
+                                setEndDate(moment(val))
+                            }
                             formId={`componentSummaryDateTime`}
                             displayOnlyDate={true}
                         />
                     </div>
                 </div>
             </div>
-            {stats.map((type, i) => (
-                <div key={i} className="db-Trends-content">
+            {loading ? (
+                <div className="db-Trends-content">
+                    <div className="db-TrendsRows">
+                        <div className="db-Trend">
+                            <div className="block-chart-side line-chart Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                <Spinner
+                                    style={{
+                                        stroke: '#8898aa',
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="db-Trends-content">
                     <div className="db-TrendsRows">
                         <div className="db-Trend">
                             <div className="block-chart-side line-chart">
                                 <div className="db-TrendRow">
-                                    <div className="db-Trend-colInformation Flex-justifyContent--center">
+                                    <div className="db-Trend-colInformation">
+                                        <div className="db-Trend-rowTitle">
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Monitors
+                                                </span>
+                                            </div>
+                                        </div>
                                         <div className="db-Trend-row">
-                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                {type.name}
-                                            </span>
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {summary.length}
+                                                    </span>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="db-Trend-colInformation">
@@ -66,26 +110,14 @@ function ComponentSummary({ stats }) {
                                                 <span>
                                                     {' '}
                                                     <span className="chart-font">
-                                                        0 %
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="db-Trend-colInformation">
-                                        <div className="db-Trend-rowTitle">
-                                            <div className="db-Trend-title">
-                                                <span className="chart-font">
-                                                    Avg. Response Time
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
-                                                    <span className="chart-font">
-                                                        0 ms
+                                                        {avgMonitorUptime ===
+                                                            0 ||
+                                                        avgMonitorUptime === 100
+                                                            ? avgMonitorUptime
+                                                            : avgMonitorUptime.toFixed(
+                                                                  3
+                                                              )}{' '}
+                                                        %
                                                     </span>
                                                 </span>
                                             </div>
@@ -96,7 +128,7 @@ function ComponentSummary({ stats }) {
                         </div>
                     </div>
                 </div>
-            ))}
+            )}
         </div>
     );
 }
@@ -104,7 +136,11 @@ function ComponentSummary({ stats }) {
 ComponentSummary.displayName = 'ComponentSummary';
 
 ComponentSummary.propTypes = {
-    stats: PropTypes.array,
+    projectId: PropTypes.string,
+    componentId: PropTypes.string,
+    fetchSummary: PropTypes.func,
+    summary: PropTypes.array,
+    loading: PropTypes.bool,
 };
 
 export default ComponentSummary;
