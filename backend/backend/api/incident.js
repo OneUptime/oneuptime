@@ -819,12 +819,9 @@ router.get(
                         a.status !== 'internal notes added' &&
                         a.status !== 'internal notes updated'
                 );
-                result = {
-                    filteredMsg: filteredMsg,
-                    returnedIncidentMessages:returnedIncidentMessages
-                };
+                result ={filteredMsg,  returnedIncidentMessages, count} ;
             }
-            return sendListResponse(req, res, result, count);
+            return sendItemResponse(req, res, result,);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
