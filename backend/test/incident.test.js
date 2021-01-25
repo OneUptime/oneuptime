@@ -293,7 +293,7 @@ describe('Incident API', function() {
 
     it('should acknowledge an incident and send email to users', async function() {
         const authorization = `Basic ${token}`;
-        const incidentAcknowledged = await markIncidentAsAcknowledged({
+        const res = await markIncidentAsAcknowledged({
             request,
             authorization,
             projectId,
@@ -304,7 +304,8 @@ describe('Incident API', function() {
             template: 'incident_acknowledged',
             createdAt: { $gt: date },
         });
-        expect(incidentAcknowledged).to.have.status(200);
+        console.log("Incident Acknowled: ", res)
+        expect(res).to.have.status(200);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
@@ -315,13 +316,14 @@ describe('Incident API', function() {
             template: 'incident_resolved',
             createdAt: { $gt: date },
         });
-        const incidentResolved = await markIncidentAsResolved({
+        const res = await markIncidentAsResolved({
             request,
             authorization,
             projectId,
             incidentId,
         });
-        expect(incidentResolved).to.have.status(200);
+        console.log("Incident Resolved: ", res)
+        expect(res).to.have.status(200);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
@@ -497,7 +499,6 @@ describe('Incident API', function() {
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
             .set('Authorization', authorization);
-            console.log("Response Body: ",res.body)
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
