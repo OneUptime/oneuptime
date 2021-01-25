@@ -25,6 +25,7 @@ import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
+import { fetchComponents } from '../actions/component';
 
 class DashboardView extends Component {
     componentDidMount() {
@@ -42,6 +43,7 @@ class DashboardView extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
+        this.props.fetchComponents(projectId);
         this.props.getSmtpConfig(projectId);
         this.props.fetchMonitors(projectId).then(() => {
             this.props.monitor.monitorsList.monitors.forEach(subProject => {
@@ -351,6 +353,7 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorsIncidents,
             fetchMonitorLogs,
             getSmtpConfig,
+            fetchComponents,
         },
         dispatch
     );
@@ -434,6 +437,7 @@ DashboardView.propTypes = {
     monitors: PropTypes.array,
     tutorialStat: PropTypes.object,
     getSmtpConfig: PropTypes.func.isRequired,
+    fetchComponents: PropTypes.func,
 };
 
 DashboardView.displayName = 'DashboardView';
