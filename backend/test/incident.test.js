@@ -401,7 +401,7 @@ describe('Incident API', function() {
                 type: 'investigation',
                 incident_state: 'investigation',
             });
-            console.log("Incident Id: ",incidentId)
+            console.log("Investigation Incident Id: ",incidentId)
             console.log("Investigation : ",res.body)
         investigationMessageId = res.body._id;
         expect(res).to.have.status(200);
@@ -420,8 +420,8 @@ describe('Incident API', function() {
                 type: 'internal',
                 incident_state: 'just test',
             });
-            console.log("Incident Id: ",incidentId)
-            console.log("Response body: ",res.body)
+            console.log(" Internal Incident Id: ",incidentId)
+            console.log("Internal Response body: ",res.body)
         internalMessageId = res.body._id;
         expect(res).to.have.status(200);
         expect(res.body.incidentId._id).to.be.equal(incidentId);
