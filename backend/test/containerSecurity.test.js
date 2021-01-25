@@ -200,7 +200,7 @@ describe('Container Security API', function() {
             }, function(err){ if (err) throw err });
     });
 
-    it('should throw error if scanning with an invalid docker credentials or invalid image path', function(done) {
+    it('should throw error if scanning with an invalid docker credentials or invalid image path', function() {
         this.timeout(500000);
         const authorization = `Basic ${token}`;
         const data = {
@@ -214,7 +214,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(res) {
+            .then(function(res) {
                 const containerSecurityId = res.body._id;
                 request
                     .post(
