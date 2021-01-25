@@ -574,7 +574,7 @@ module.exports = {
         const projectId = incident.projectId;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-            date = moment(date)
+            date = moment(incident.createdAt)
                 .tz(user.timezone)
                 .format();
         }
