@@ -214,7 +214,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function(res) {
                 const containerSecurityId = res.body._id;
                 request
                     .post(
@@ -228,7 +228,7 @@ describe('Container Security API', function() {
                         );
                     
                     },function(err){if (err) throw err});
-            });
+            }, function(err){if (err) throw err });
     });
 
     it('should not create a container security if name already exist in the component', function(done) {
