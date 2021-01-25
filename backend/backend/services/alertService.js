@@ -2290,6 +2290,10 @@ module.exports = {
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
+                let length = getIncidentLength(
+                    incident.createdAt,
+                    incident.acknowledgedAt
+                );
 
                 let alertStatus = null;
                 try {
@@ -2309,7 +2313,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    length
                                 );
 
                                 alertStatus = 'Sent';
@@ -2327,7 +2332,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    length
                                 );
 
                                 alertStatus = 'Sent';
@@ -2338,6 +2344,10 @@ module.exports = {
                     } else if (
                         templateType === 'Subscriber Incident Resolved'
                     ) {
+                        length = getIncidentLength(
+                            incident.createdAt,
+                            incident.resolvedAt
+                        );
                         if (project.sendResolvedIncidentNotificationEmail) {
                             if (statusPage) {
                                 await MailService.sendIncidentResolvedMailToSubscriber(
@@ -2353,7 +2363,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    length
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2370,7 +2381,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    length
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -3065,4 +3077,7 @@ const {
     INCIDENT_ACKNOWLEDGED,
 } = require('../constants/incidentEvents');
 const componentService = require('./componentService');
-const { calculateHumanReadableDownTime } = require('../utils/incident');
+const {
+    calculateHumanReadableDownTime,
+    getIncidentLength,
+} = require('../utils/incident');
