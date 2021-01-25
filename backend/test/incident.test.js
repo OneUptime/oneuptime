@@ -454,7 +454,7 @@ describe('Incident API', function() {
                 id: internalMessageId,
                 incident_state: 'update',
             });
-            console.log("Response Body: ",res.body)
+            
         expect(res).to.have.status(200);
         expect(res.body._id).to.be.equal(internalMessageId);
         expect(res.body.type).to.be.equal('internal');
@@ -497,6 +497,7 @@ describe('Incident API', function() {
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
             .set('Authorization', authorization);
+            console.log("Response Body: ",res.body)
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
