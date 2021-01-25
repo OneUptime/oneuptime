@@ -39,6 +39,10 @@ module.exports = {
                 { $set: { deleted: true, deletedAt: Date.now() } },
                 { new: true }
             );
+            if(sso){
+                const {_id} = sso;
+                await SsoDefaultRolesService.deleteBy({domain:_id})    
+            }
             return sso;
         } catch (error) {
             ErrorService.log('ssoService.deleteBy', error);
@@ -147,4 +151,5 @@ module.exports = {
 };
 
 const SsoModel = require('../models/sso');
+const SsoDefaultRolesService = require('./ssoDefaultRolesService');
 const ErrorService = require('./errorService');
