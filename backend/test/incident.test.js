@@ -418,12 +418,12 @@ describe('Incident API', function() {
                 type: 'internal',
                 incident_state: 'just test',
             });
-            console.log("Response Body: ",res.body)
-        internalMessageId = res.body._id;
+            
+        internalMessageId = res.body.returnedIncidentMessages._id;
         expect(res).to.have.status(200);
-        expect(res.body.incidentId._id).to.be.equal(incidentId);
-        expect(res.body.type).to.be.equal('internal');
-        expect(res.body.incident_state).to.be.equal('just test');
+        expect(res.body.returnedIncidentMessages.incidentId._id).to.be.equal(incidentId);
+        expect(res.body.returnedIncidentMessages.type).to.be.equal('internal');
+        expect(res.body.returnedIncidentMessages.incident_state).to.be.equal('just test');
     });
 
     it('should update an investigation incident message', async function() {
@@ -454,6 +454,7 @@ describe('Incident API', function() {
                 id: internalMessageId,
                 incident_state: 'update',
             });
+            console.log("Response Body: ",res.body)
         expect(res).to.have.status(200);
         expect(res.body._id).to.be.equal(internalMessageId);
         expect(res.body.type).to.be.equal('internal');
