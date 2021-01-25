@@ -148,34 +148,35 @@ module.exports = {
                 delete query.createdAt;
             }
             query.deleted = false;
+            const { domain, project, role } = data;
 
-            if (!data.domain) {
+            if (!domain) {
                 const error = new Error('Domain must be defined.');
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.create', error);
                 throw error;
             }
-            if (!mongoose.Types.ObjectId.isValid(data.domain)) {
+            if (!mongoose.Types.ObjectId.isValid(domain)) {
                 const error = new Error("Domain id isn't valid.");
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateBy', error);
                 throw error;
             }
 
-            if (!data.project) {
+            if (!project) {
                 const error = new Error('Project  must be defined.');
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateBy', error);
                 throw error;
             }
-            if (!mongoose.Types.ObjectId.isValid(data.domain)) {
-                const error = new Error("Domain id isn't valid.");
+            if (!mongoose.Types.ObjectId.isValid(project)) {
+                const error = new Error("Project id isn't valid.");
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateBy', error);
                 throw error;
             }
 
-            if (!data.role) {
+            if (!role) {
                 const error = new Error('Role must be defined.');
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateBy', error);
@@ -183,7 +184,7 @@ module.exports = {
             }
             if (
                 !['Owner', 'Administrator', 'Member', 'Viewer'].includes(
-                    data.role
+                    role
                 )
             ) {
                 const error = new Error('Invalid role.');
@@ -192,9 +193,8 @@ module.exports = {
                 throw error;
             }
 
-            const { domain, project } = data;
-            const searchQuery = { domain, project };
-            const search = await this.findBy(searchQuery);
+            const payload = { domain, project, role };
+            const search = await this.findBy(payload);
 
             if (search.length) {
                 const error = new Error('Domain has a default role.');
@@ -204,7 +204,7 @@ module.exports = {
             }
 
             await ssoDefaultRolesModel.updateMany(query, {
-                $set: data,
+                $set: payload,
             });
             const sso = await this.findBy(query);
             return sso;
