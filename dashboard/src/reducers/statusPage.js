@@ -74,6 +74,7 @@ import {
     RESET_STATUSPAGE_EMBEDDED_CSS_REQUEST,
     RESET_STATUSPAGE_EMBEDDED_CSS_SUCCESS,
     RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE,
+    DUPLICATE_STATUSPAGE,
 } from '../constants/statusPage';
 
 import {
@@ -99,6 +100,7 @@ import {
 
 const INITIAL_STATE = {
     addMoreDomain: false,
+    duplicateStatusPage: false,
     setting: {
         error: null,
         requesting: false,
@@ -1148,6 +1150,11 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: action.payload,
                     success: false,
                 },
+            });
+
+        case DUPLICATE_STATUSPAGE:
+            return Object.assign({}, state, {
+                duplicateStatusPage: action.payload,
             });
 
         default:

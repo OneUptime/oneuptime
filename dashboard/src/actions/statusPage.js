@@ -972,3 +972,10 @@ export function switchStatusPage(statusPage) {
         payload: statusPage,
     };
 }
+
+export const duplicateStatusPage = function(obj) {
+    return {
+        type: types.DUPLICATE_STATUSPAGE,
+        payload: obj,
+    };
+};

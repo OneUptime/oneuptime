@@ -8,6 +8,7 @@ import {
     updatePrivateStatusPageSuccess,
     updatePrivateStatusPageError,
     fetchProjectStatusPage,
+    duplicateStatusPage,
 } from '../../actions/statusPage';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -20,7 +21,6 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import { RenderField } from '../basic/RenderField';
-
 export class PrivateStatusPage extends Component {
     constructor(props) {
         super(props);
@@ -66,10 +66,12 @@ export class PrivateStatusPage extends Component {
         }
     };
 
-    showMoreOptionsToggle = () =>
+    showMoreOptionsToggle = () => {
         this.setState(prevState => ({
             showMoreOptions: !prevState.showMoreOptions,
         }));
+        this.props.duplicateStatusPage(!this.state.showMoreOptions);
+    };
 
     renderIpWhitelist = ({ fields }) => {
         const { formValues } = this.props;
@@ -793,6 +795,7 @@ PrivateStatusPage.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
     formValues: PropTypes.object,
+    duplicateStatusPage: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -804,6 +807,7 @@ const mapDispatchToProps = dispatch =>
             updatePrivateStatusPageError,
             fetchProjectStatusPage,
             openModal,
+            duplicateStatusPage,
         },
         dispatch
     );
