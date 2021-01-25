@@ -1,8 +1,8 @@
-build_n_test_admin-dashboard:
+test_admin-dashboard:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_admin-dashboard admin-dashboard`
+        - export next_stage=`./ci/scripts/checkhash.sh test_admin-dashboard admin-dashboard`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - cd admin-dashboard
@@ -12,7 +12,7 @@ build_n_test_admin-dashboard:
         - echo "No test implemented"
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_admin-dashboard admin-dashboard
+        - ./ci/scripts/storehash.sh test_admin-dashboard admin-dashboard
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:
@@ -20,11 +20,11 @@ build_n_test_admin-dashboard:
             - hotfix-master
             - hotfix-release
 
-build_n_test_enterprise_admin-dashboard:
+test_enterprise_admin-dashboard:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_enterprise_admin-dashboard backend accounts licensing admin-dashboard`
+        - export next_stage=`./ci/scripts/checkhash.sh test_enterprise_admin-dashboard backend accounts licensing admin-dashboard`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
@@ -56,7 +56,7 @@ build_n_test_enterprise_admin-dashboard:
         - TEST_EMAIL_SMTP_PORT=$TEST_EMAIL_SMTP_PORT TEST_EMAIL_SMTP_SERVER=$TEST_EMAIL_SMTP_SERVER TEST_EMAIL=$TEST_EMAIL TEST_EMAIL_PASSWORD=$TEST_EMAIL_PASSWORD npm run enterprise-test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_enterprise_admin-dashboard admin-dashboard backend accounts licensing
+        - ./ci/scripts/storehash.sh test_enterprise_admin-dashboard admin-dashboard backend accounts licensing
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:

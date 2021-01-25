@@ -1,8 +1,8 @@
-build_n_test_server-monitor:
+test_server-monitor:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_server-monitor server-monitor backend`
+        - export next_stage=`./ci/scripts/checkhash.sh test_server-monitor server-monitor backend`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
@@ -20,7 +20,7 @@ build_n_test_server-monitor:
         - npm run test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_server-monitor server-monitor backend
+        - ./ci/scripts/storehash.sh test_server-monitor server-monitor backend
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:
