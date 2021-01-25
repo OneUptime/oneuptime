@@ -199,6 +199,16 @@ module.exports = {
             .set('Authorization', authorization)
             .send(payload);
     },
+    markIncidentAsAcknowledged: async ({
+        request,
+        authorization,
+        projectId,
+        incidentId,
+    }) => {
+        return await request
+            .post(`/incident/${projectId}/acknowledge/${incidentId}`)
+            .set('Authorization', authorization);
+    },
     markIncidentAsResolved: async ({
         request,
         authorization,

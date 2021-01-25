@@ -295,6 +295,7 @@ router.post(
                 userId,
                 req.user.name
             );
+            console.log("Acknowledge Incident: ",incident)
             let incidentMessages = await IncidentMessageService.findBy({
                 incidentId: incident._id,
                 type: 'internal',

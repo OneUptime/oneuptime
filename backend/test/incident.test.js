@@ -32,7 +32,7 @@ const moment = require('moment');
 const SubscriberService = require('../backend/services/subscriberService');
 const AlertVia = require('../backend/config/alertType');
 const {
-    markIncidentAsResolved
+    markIncidentAsResolved, markIncidentAsAcknowledged
 } = require('./test-utils');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -290,30 +290,31 @@ describe('Incident API', function() {
 
     it('should acknowledge an incident and send email to users', async function() {
         const authorization = `Basic ${token}`;
-        const res = await request
-            .post(`/incident/${projectId}/acknowledge/${incidentId}`)
-            .set('Authorization', authorization)
-            .send({});
+        // const res = await request
+        //     .post(`/incident/${projectId}/acknowledge/${incidentId}`)
+        //     .set('Authorization', authorization)
+        //     .send({});
+        const incidentAcknowledged = await markIncidentAsAcknowledged({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
+        console.log("IncidentResolved: ",incidentAcknowledged)
         const date = moment().subtract(1, 'minutes');
         const emailStatus = await EmailStatusService.findBy({
             template: 'incident_acknowledged',
             createdAt: { $gt: date },
         });
-        console.log("Response: ",res.body);
-        console.log("Email Status: ",emailStatus);
-      console.log("Email Status Length: ",emailStatus.length);
-        expect(res).to.have.status(200);
-        expect(res.body).to.be.an('object');
-        expect(res.body.acknowledged).to.be.equal(true);
+       
+        // expect(res).to.have.status(200);
+        // expect(res.body).to.be.an('object');
+        // expect(res.body.acknowledged).to.be.equal(true);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
     it('should resolve an incident and send email to users', async function() {
         const authorization = `Basic ${token}`;
-        // const res = await request
-        //     .post(`/incident/${projectId}/resolve/${incidentId}`)
-        //     .set('Authorization', authorization)
-        //     .send({});
         const date = moment().subtract(1, 'minutes');
         const emailStatus = await EmailStatusService.findBy({
             template: 'incident_resolved',
@@ -325,7 +326,7 @@ describe('Incident API', function() {
             projectId,
             incidentId,
         });
-
+        console.log("IncidentResolved: ",incidentResolved)
         expect(incidentResolved).to.have.status(200);
         // expect(res).to.have.status(200);
         // expect(res.body).to.be.an('object');

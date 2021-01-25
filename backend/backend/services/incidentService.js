@@ -446,7 +446,7 @@ module.exports = {
                 acknowledged: false,
             });
             console.log("The received Incident is : ", incident);
-            console.log("The received Incident is : ", _id);
+           
             if (incident) {
                 incident = await _this.updateOneBy(
                     {
@@ -460,7 +460,7 @@ module.exports = {
                         acknowledgedByIncomingHttpRequest: httpRequest._id,
                     }
                 );
-
+                console.log("The Acknowledged Incident is : ", incident); 
                 _this.refreshInterval(incidentId);
 
                 // automatically create acknowledgement incident note
