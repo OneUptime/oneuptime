@@ -300,7 +300,7 @@ describe('Incident API', function() {
             projectId,
             incidentId,
         });
-        console.log("IncidentResolved: ",incidentAcknowledged)
+        console.log("Incident Acknowledged: ",incidentAcknowledged)
         const date = moment().subtract(1, 'minutes');
         const emailStatus = await EmailStatusService.findBy({
             template: 'incident_acknowledged',
@@ -326,7 +326,7 @@ describe('Incident API', function() {
             projectId,
             incidentId,
         });
-        console.log("IncidentResolved: ",incidentResolved)
+        console.log("Incident Resolved: ",incidentResolved)
         expect(incidentResolved).to.have.status(200);
         // expect(res).to.have.status(200);
         // expect(res.body).to.be.an('object');
