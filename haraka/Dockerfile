@@ -1,12 +1,15 @@
 FROM node:15.0.1-alpine3.12
 
+ARG PORT=25
+
 #set language enviroments
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
     TIMEZONE="America/New_York" \
-    SMTP_PORT=25 \
     LOGLEVEL=warn \
     DATADIR=/data \
-    HEADER="Haraka Server at Your Service" 
+    HEADER="Haraka Server at Your Service" \
+    SMTP_PORT=${PORT}
+
 
 # install dependence
 RUN apk upgrade --update && \
@@ -31,6 +34,6 @@ RUN apk add bash
 COPY haraka.sh /
 RUN chmod 755 /haraka.sh
 
-EXPOSE 25
+EXPOSE $SMTP_PORT
 
 CMD ["/haraka.sh"]
