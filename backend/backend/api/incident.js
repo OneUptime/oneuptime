@@ -783,8 +783,8 @@ router.get(
                     incidentId,
                     type,
                 });
-                console.log("Returned Incident Messages: ",returnedIncidentMessages);
                 returnedIncidentMessages = incidentMessages;
+                console.log("Returned Incident Messages: ",returnedIncidentMessages);
             }
             const timeline = await IncidentTimelineService.findBy({
                 incidentId,
