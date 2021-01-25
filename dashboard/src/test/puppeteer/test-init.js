@@ -353,7 +353,8 @@ module.exports = {
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await this.selectByText('#type', 'device', page);
+        await page.click('[data-testId=show_all_monitors]');
+        await page.click('input[data-testId=type_device]');
         await page.waitForSelector('#deviceId');
         await page.click('#deviceId');
         await page.type('#deviceId', utils.generateRandomString());
@@ -361,6 +362,101 @@ module.exports = {
         await page.waitForSelector(`#monitor-title-${monitorName}`, {
             visible: true,
         });
+    },
+    /**
+     *  adds an api monitor with js expressions for up and degraded events
+     * @param {*} page a page instance of puppeteer
+     * @param {string} monitorName the name of the new monitor
+     */
+    addAPIMonitorWithJSExpression: async function(page, monitorName) {
+        await page.waitForSelector('#form-new-monitor');
+        await page.click('input[id=name]');
+        await page.type('input[id=name]', monitorName);
+        await page.click('input[data-testId=type_api]');
+        await this.selectByText('#method', 'get', page);
+        await page.waitForSelector('#url');
+        await page.click('#url');
+        await page.type('#url', utils.HTTP_TEST_SERVER_URL);
+        await page.waitForSelector('#advanceOptions');
+        await page.click('#advanceOptions');
+
+        // online criteria
+        await page.waitForSelector('[data-testId=add_criterion_up]');
+        await page.$$eval(
+            '[data-testId=add_criterion_up]',
+            addCriterionButtons => {
+                const lastAddCriterionButton =
+                    addCriterionButtons[addCriterionButtons.length - 1];
+                lastAddCriterionButton.click();
+            }
+        );
+        await page.waitForSelector(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #responseType'
+        );
+        await this.selectByText(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #responseType',
+            'responseBody',
+            page
+        );
+        await page.waitForSelector(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #filter'
+        );
+        await this.selectByText(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #filter',
+            'evaluateResponse',
+            page
+        );
+        await page.waitForSelector(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #value'
+        );
+        await page.click(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #value'
+        );
+        await page.type(
+            'ul[data-testId=up_criteria_list]> li:last-of-type #value',
+            "response.body.status === 'ok';"
+        );
+
+        // degraded criteria
+        await page.$$eval(
+            '[data-testId=add_criterion_degraded]',
+            addCriterionButtons => {
+                const lastAddCriterionButton =
+                    addCriterionButtons[addCriterionButtons.length - 1];
+                lastAddCriterionButton.click();
+            }
+        );
+        await page.waitForSelector(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #responseType'
+        );
+        await this.selectByText(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #responseType',
+            'responseBody',
+            page
+        );
+        await page.waitForSelector(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #filter'
+        );
+        await this.selectByText(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #filter',
+            'evaluateResponse',
+            page
+        );
+        await page.waitForSelector(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value'
+        );
+        await page.click(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value'
+        );
+        await page.type(
+            'ul[data-testId=degraded_criteria_list] > li:last-of-type #value',
+            "response.body.message === 'draining';"
+        );
+
+        await Promise.all([
+            page.click('button[type=submit]'),
+            page.waitForNavigation(),
+        ]);
     },
     addMonitorToSubProject: async function(
         monitorName,

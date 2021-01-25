@@ -165,6 +165,7 @@ export class RenderOption extends Component {
             level,
             type,
             change,
+            criterionType,
         } = this.props;
 
         const filterval =
@@ -1002,6 +1003,7 @@ export class RenderOption extends Component {
                                         borderRadius: '50%',
                                         padding: '0px 6px',
                                     }}
+                                    data-testId={`add_criterion_${criterionType}`}
                                 >
                                     <img
                                         src="/dashboard/assets/img/plus.svg"
@@ -1105,6 +1107,7 @@ RenderOption.propTypes = {
     fieldnameprop: PropTypes.string,
     type: PropTypes.string,
     change: PropTypes.func.isRequired,
+    criterionType: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>

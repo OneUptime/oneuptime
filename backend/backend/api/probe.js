@@ -211,7 +211,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             if (type === 'script') {
                 const {
                     stat: validUp,
-                    reasons: upSuccessReasons,
+                    successReasons: upSuccessReasons,
+                    failedReasons: upFailedReasons,
                     matchedCriterion: matchedUpCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.up
                     ? ProbeService.scriptConditions(
@@ -223,7 +224,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
                 const {
                     stat: validDegraded,
-                    reasons: degradedSuccessReasons,
+                    successReasons: degradedSuccessReasons,
+                    failedReasons: degradedFailedReasons,
                     matchedUpCriterion: matchedDegradedCriterion,
                 } = await (monitor &&
                 monitor.criteria &&
@@ -237,7 +239,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
                 const {
                     stat: validDown,
-                    reasons: downSuccessReasons,
+                    successReasons: downSuccessReasons,
+                    failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
                 } = await (monitor && monitor.criteria && monitor.criteria.down
                     ? ProbeService.scriptConditions(res, resp, [

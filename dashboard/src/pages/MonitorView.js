@@ -836,7 +836,8 @@ const mapStateToProps = (state, props) => {
             monitor.type === 'url' ||
             monitor.type === 'api' ||
             monitor.type === 'server-monitor' ||
-            monitor.type === 'incomingHttpRequest'
+            monitor.type === 'incomingHttpRequest' ||
+            monitor.type === 'script'
         ) {
             // collect all criteria
             if (monitor.criteria) {

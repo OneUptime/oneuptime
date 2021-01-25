@@ -15,7 +15,11 @@
             "request": "launch",
             "name": "Debug Mocha Tests",
             "program": "${workspaceRoot}/node_modules/mocha/bin/mocha",
-            "args": ["test/incidentAlerts.test"],
+            "args": [
+                "test/incidentAlerts.test",
+                "-g",
+                "should notify the team set for a schedule, which is associated with a monitor criteria \\(incomingHttp monitor\\)"
+            ],
             "internalConsoleOptions": "openOnSessionStart"
         }
     ]

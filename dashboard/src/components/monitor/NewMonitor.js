@@ -56,8 +56,6 @@ import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../../actions/monitorSla';
 import { UploadFile } from '../basic/UploadFile';
 import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
-import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
-import Fade from 'react-reveal/Fade';
 import ScheduleInput from '../schedule/ScheduleInput';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
@@ -67,7 +65,12 @@ class NewMonitor extends Component {
         super(props);
         this.state = {
             advance: false,
-            script: '',
+            script:
+                (props.editMonitorProp &&
+                    props.editMonitorProp.data &&
+                    props.editMonitorProp.data.script) ||
+                '',
+
             showAllMonitors: false,
             type: props.edit ? props.editMonitorProp.type : props.type,
             httpRequestLink: `${API_URL}/incomingHttpRequest/${uuid.v4()}`,
@@ -76,7 +79,6 @@ class NewMonitor extends Component {
                 ? props.editMonitorProp.authentication
                 : props.authentication,
             criteria: props.currentMonitorCriteria || [],
-            criteriaTabIndex: 0,
             tabValidity: {
                 up: true,
                 degraded: true,
@@ -132,18 +134,22 @@ class NewMonitor extends Component {
                 this.addCriterionFieldsToReduxForm(defaultDownCriterion);
                 criteria.push(defaultDownCriterion);
 
-                Object.values(CRITERIA_TYPES).forEach(criterion => {
-                    const id = uuid.v4();
+                [CRITERIA_TYPES.UP, CRITERIA_TYPES.DEGRADED].forEach(
+                    criterion => {
+                        const id = uuid.v4();
 
-                    const newCriterion = {
-                        id,
-                        type: criterion.type,
-                        name: CRITERIA_TYPES[criterion.type.toUpperCase()].name,
-                    };
-                    criteria.push(newCriterion);
+                        const newCriterion = {
+                            id,
+                            type: criterion.type,
+                            name:
+                                CRITERIA_TYPES[criterion.type.toUpperCase()]
+                                    .name,
+                        };
+                        criteria.push(newCriterion);
 
-                    this.addCriterionFieldsToReduxForm(newCriterion);
-                });
+                        this.addCriterionFieldsToReduxForm(newCriterion);
+                    }
+                );
 
                 // eslint-disable-next-line react/no-did-update-set-state
                 this.setState({ ...this.state, criteria });
@@ -599,7 +605,6 @@ class NewMonitor extends Component {
 
     openAdvance = () => {
         this.setState({ advance: !this.state.advance });
-        this.setState({ criteriaTabIndex: 0 });
     };
 
     changeBox = (e, value) => {
@@ -696,26 +701,6 @@ class NewMonitor extends Component {
             count = project.users.length;
         }
         return count;
-    };
-
-    criteriaTabSelected = index => {
-        const currentTabIsInvalid = this.props.isValid;
-        const activeTab =
-            this.state.criteriaTabIndex === 0
-                ? 'up'
-                : this.state.criteriaTabIndex === 1
-                ? 'degraded'
-                : 'down';
-        const newTabValidity = {
-            ...this.state.tabValidity,
-            [activeTab]: currentTabIsInvalid,
-        };
-
-        this.setState({
-            ...this.state,
-            criteriaTabIndex: index,
-            tabValidity: newTabValidity,
-        });
     };
 
     renderMonitorConfiguration = name => {
@@ -1064,6 +1049,7 @@ class NewMonitor extends Component {
                                                                             <button
                                                                                 className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--moreMonitorTypes"
                                                                                 type="button"
+                                                                                data-testId="show_all_monitors"
                                                                                 onClick={() => {
                                                                                     this.setState(
                                                                                         {
@@ -2255,6 +2241,7 @@ class NewMonitor extends Component {
                                                         <div className="bs-Fieldset-fields">
                                                             <button
                                                                 id="advanceOptions"
+                                                                type="button"
                                                                 className="button-as-anchor"
                                                                 onClick={() =>
                                                                     this.openAdvance()
@@ -2342,6 +2329,11 @@ class NewMonitor extends Component {
                                                                                             .props
                                                                                             .schedules
                                                                                     }
+                                                                                    edit={
+                                                                                        this
+                                                                                            .props
+                                                                                            .edit
+                                                                                    }
                                                                                 />
                                                                             );
                                                                         }
@@ -2350,12 +2342,21 @@ class NewMonitor extends Component {
 
                                                                 {criteria.length ===
                                                                     0 && (
-                                                                    <div className="Flex-flex Flex-direction--column Margin-all--32 Flex-alignItems--center">
+                                                                    <div
+                                                                        className="bs-ContentSection Card-root Card-shadow--clear Padding-all--16 Margin-vertical--16"
+                                                                        style={{
+                                                                            borderRadius:
+                                                                                '0',
+                                                                            boxShadow:
+                                                                                'none',
+                                                                        }}
+                                                                    >
                                                                         <div className="Margin-bottom--16">
-                                                                            <span>
+                                                                            <span className="Text-fontSize--15">
                                                                                 There
                                                                                 are
                                                                                 no
+                                                                                {` ${criterionType.type.toLowerCase()} `}
                                                                                 criteria
                                                                                 specified
                                                                                 for
@@ -2367,7 +2368,6 @@ class NewMonitor extends Component {
                                                                         <button
                                                                             className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
                                                                             type="button"
-                                                                            // onClick={this.addValue}
                                                                             onClick={() =>
                                                                                 this.addCriterion(
                                                                                     {
@@ -2380,7 +2380,11 @@ class NewMonitor extends Component {
                                                                         >
                                                                             <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                                                                                 <span>
-                                                                                    {`Add ${criterionType.type.toUpperCase()} Criteria`}
+                                                                                    {`Add ${criterionType.type[0].toUpperCase()}${criterionType.type
+                                                                                        .substr(
+                                                                                            1
+                                                                                        )
+                                                                                        .toLocaleLowerCase()} Criteria`}
                                                                                 </span>
                                                                             </span>
                                                                         </button>
