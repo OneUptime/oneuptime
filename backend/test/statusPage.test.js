@@ -1035,19 +1035,12 @@ describe('StatusPage API with Sub-Projects', function() {
 
     it('should not get private status page for authorized user that is not in project', function() {
         const authorization = `Basic ${newUserToken}`;
-      return new Promise((resolve,reject)=>{
         request
-        .get(`/statusPage/${privateStatusPageId}`)
-        .set('Authorization', authorization)
-        .end(function(err,res){
-            if(err){
-                reject (err)
-            }else{
-                const result = expect(res).to.have.status(400);
-                resolve(result)
-            }
-        })
-      }) 
+            .get(`/statusPage/${privateStatusPageId}`)
+            .set('Authorization', authorization)
+            .then(function(res) {
+                expect(res).to.have.status(400);
+            },function(err){if(err) throw err})
     });
 
     it('should not create a statusPage for user that is not `admin` in sub-project.', function(done) {
