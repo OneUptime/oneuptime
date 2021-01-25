@@ -98,7 +98,7 @@ describe('Enterprise Monitor SubProject API', () => {
 
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(data.subProjectMonitorName);
+                expect(spanElement).toBe(data.subProjectMonitorName);
             });
 
             cluster.queue({
