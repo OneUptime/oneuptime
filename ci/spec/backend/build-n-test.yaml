@@ -5,7 +5,6 @@ build_n_test_backend:
         - export next_stage=`./ci/scripts/checkhash.sh build_n_test_backend backend init-script probe http-test-server`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
-        - sudo dpkg --configure -a
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
