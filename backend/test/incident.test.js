@@ -753,6 +753,7 @@ describe('Incident API with Sub-Projects', function() {
             .set('Authorization', authorization)
             .send(incidentData);
         subProjectIncidentId = res.body._id;
+        console.log("SubprojectId: ",subProjectId)
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
     });
@@ -788,7 +789,7 @@ describe('Incident API with Sub-Projects', function() {
         const subProjectIncidentAcknowledged = await markSubprojectIncidentAsAcknowledged({
             request,
             authorization,
-            projectId,
+            subProjectId,
             incidentId,
         });
         expect(subProjectIncidentAcknowledged).to.have.status(200);
@@ -799,7 +800,7 @@ describe('Incident API with Sub-Projects', function() {
         const subProjectIncidentResolved = await markSubprojectIncidentAsResolved({
             request,
             authorization,
-            projectId,
+            subProjectId,
             incidentId,
         });
         expect(subProjectIncidentResolved).to.have.status(200);
