@@ -1089,6 +1089,15 @@ describe('API Monitor API', () => {
 
                 const newMonitorName = utils.generateRandomString();
                 await init.addAPIMonitorWithJSExpression(page, newMonitorName);
+
+                const firstIncidentElement = await page.waitForSelector(
+                    `#incident_${newMonitorName}_0`
+                );
+                await Promise.all([
+                    firstIncidentElement.click(),
+                    page.waitForNavigation(),
+                ]);
+
                 let monitorIncidentReportElement = await page.waitForSelector(
                     `#${newMonitorName}_IncidentReport_0`
                 );

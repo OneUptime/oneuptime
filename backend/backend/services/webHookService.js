@@ -131,6 +131,9 @@ module.exports = {
                 note && incidentState && statusNoteStatus;
             let notificationTitle = '';
             let notificationText = '';
+            const criterionCauseName = incident.criterionCause
+                ? incident.criterionCause.name
+                : 'Unnamed Criterion';
 
             // set title and text for status note notifications
             if (isStatusPageNoteNotification) {
@@ -160,6 +163,7 @@ module.exports = {
                             title_link: uri,
                             incidentId: incident._id,
                             text: notificationText,
+                            criterionCauseName,
                         },
                     ],
                 };
@@ -183,6 +187,7 @@ module.exports = {
                             title_link: uri,
                             incidentId: incident._id,
                             text: notificationText,
+                            criterionCauseName,
                         },
                     ],
                 };
@@ -269,6 +274,10 @@ module.exports = {
                                             : 'Offline',
                                     short: true,
                                 },
+                                {
+                                    title: 'According to Criterion:',
+                                    value: criterionCauseName,
+                                },
                             ],
                         },
                     ],
@@ -289,6 +298,7 @@ module.exports = {
                     : 'Fyipe',
                 incidentStatus: incident.incidentType,
                 monitorStatus,
+                criterionCauseName,
             };
             if (incident.acknowledged) {
                 data.acknowledgedBy = incident.acknowledgedBy.name;
