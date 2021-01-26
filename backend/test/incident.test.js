@@ -507,7 +507,7 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
         expect(res.body.count).to.be.equal(1);
-        expect(res.body.data[2].type).to.be.equal(type);
+        expect(res.body.data[2].type).to.be.equal(type); // Backend-Fixing
     });
 
     it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function() {
