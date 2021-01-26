@@ -304,25 +304,25 @@ describe('Incident API', function() {
             template: 'incident_acknowledged',
             createdAt: { $gt: date },
         });
-        console.log("Incident Acknowled: ", res)
+        console.log("Incident Acknowled: ", res.body)
         expect(res).to.have.status(200);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
     it('should resolve an incident and send email to users', async function() {
         const authorization = `Basic ${token}`;
-        const date = moment().subtract(1, 'minutes');
-        const emailStatus = await EmailStatusService.findBy({
-            template: 'incident_resolved',
-            createdAt: { $gt: date },
-        });
         const res = await markIncidentAsResolved({
             request,
             authorization,
             projectId,
             incidentId,
         });
-        console.log("Incident Resolved: ", res)
+        const date = moment().subtract(1, 'minutes');
+        const emailStatus = await EmailStatusService.findBy({
+            template: 'incident_resolved',
+            createdAt: { $gt: date },
+        });   
+        console.log("Incident Resolved: ", res.body)
         expect(res).to.have.status(200);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
@@ -473,6 +473,7 @@ describe('Incident API', function() {
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
             .set('Authorization', authorization);
+            console.log("Response Body: ", res.body)
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');

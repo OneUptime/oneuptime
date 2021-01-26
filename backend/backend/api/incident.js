@@ -821,7 +821,7 @@ router.get(
                 );
                 result ={data: filteredMsg,  returnedIncidentMessages, count} ;
             }
-            return sendItemResponse(req, res, result,);
+            return sendItemResponse(req, res, result);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
