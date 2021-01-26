@@ -52,8 +52,6 @@ module.exports = {
     },
 
     create: async function(data) {
-        const ssoDefaultRole = new ssoDefaultRolesModel();
-
         if (!data.domain) {
             const error = new Error('Domain must be defined.');
             error.code = 400;
@@ -97,6 +95,23 @@ module.exports = {
 
         const { domain, project } = data;
         const query = { domain, project };
+
+        const sso = await SsoService.findOneBy({_id:domain})
+        if(!sso){
+            const error = new Error('Domain doesn\'t exist.');
+            error.code = 400;
+            ErrorService.log('ssoDefaultRolesService.create', error);
+            throw error;
+        }
+
+        const projectObj = await ProjectService.findOneBy({_id:project});
+        if(!projectObj){
+            const error = new Error('Project doesn\'t exist.');
+            error.code = 400;
+            ErrorService.log('ssoDefaultRolesService.create', error);
+            throw error;
+        }
+
         const search = await this.findBy(query);
 
         if (search.length) {
@@ -106,12 +121,36 @@ module.exports = {
             throw error;
         }
 
+        const ssoDefaultRole = new ssoDefaultRolesModel();
         ssoDefaultRole.domain = data.domain;
         ssoDefaultRole.project = data.project;
         ssoDefaultRole.role = data.role;
 
         try {
             const savedSso = await ssoDefaultRole.save();
+            //Add existing users to the project.
+            const { _id: ssoId } = sso;
+            console.log('sso:', sso)
+            console.log('ssoId:', ssoId)
+            const existingSsoUsers = await UserService.findBy({sso:ssoId});
+
+            console.log('existingSsoUsers : ',existingSsoUsers)
+            for(const ssoUser of existingSsoUsers){
+                const {users, _id:projectId} = projectObj;
+                if( users.some(user => String(user.userId) === String(ssoUser._id)) ){
+                    console.log('User already member of the project!')
+                    continue;
+                }
+                users.push({
+                    userId: ssoUser._id,
+                    role:ssoDefaultRole.role
+                })
+                console.log('added new user to the list')
+                await ProjectService.updateOneBy(
+                    {_id:projectId},
+                    {users}
+                );
+            }
             return savedSso;
         } catch (error) {
             ErrorService.log('ssoDefaultRolesService.create', error);
@@ -247,7 +286,7 @@ module.exports = {
             if(!projectObj)
                 continue;
 
-            const {users}= projectObj;
+            const { users }= projectObj;
             users.push({
                 userId,
                 role
@@ -273,3 +312,5 @@ const ssoDefaultRolesModel = require('../models/ssoDefaultRoles');
 const mongoose = require('mongoose');
 const ErrorService = require('./errorService');
 const ProjectService = require('./projectService');
+const SsoService = require('./ssoService');
+const UserService = require('./userService');
