@@ -14,9 +14,11 @@
             "request": "launch",
             "runtimeArgs": [
                 "--inspect-brk",
-                "${workspaceRoot}/node_modules/.bin/jest",
+                "${workspaceRoot}/node_modules/jest/bin/jest.js",
                 "--runInBand",
-                "./src/test/puppeteer/MonitorDetail.test.js" ///change this to any other file you like to debug.
+                "./src/test/puppeteer/Monitor.test.js", ///change this to any other file you like to debug.
+                "-t",
+                "should show specific property, button and modal for evaluate response"
             ],
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",

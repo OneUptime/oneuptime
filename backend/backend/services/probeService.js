@@ -218,6 +218,8 @@ module.exports = {
                 await MonitorService.updateMonitorPingTime(data.monitorId);
             }
 
+            const { matchedCriterion } = data;
+
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
@@ -227,17 +229,13 @@ module.exports = {
                     if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
 
-                    const monitor = await MonitorService.findOneBy({
-                        _id: data.monitorId,
-                    });
-
                     const autoAcknowledge =
                         lastStatus && lastStatus === 'degraded'
-                            ? monitor.criteria.degraded.autoAcknowledge
+                            ? matchedCriterion.autoAcknowledge
                             : lastStatus === 'offline' && true; // automatically acknowledge offline monitors
                     const autoResolve =
                         lastStatus === 'degraded'
-                            ? monitor.criteria.degraded.autoResolve
+                            ? matchedCriterion.autoResolve
                             : lastStatus === 'offline' && true; // automatically resolve offline monitors
                     await _this.incidentResolveOrAcknowledge(
                         data,
@@ -316,14 +314,14 @@ module.exports = {
                 resolved: false,
                 manuallyCreated: false,
             });
+            const { matchedCriterion } = data;
             let incidentIds = [];
 
             if (
                 data.status === 'online' &&
                 monitor &&
-                monitor.criteria &&
-                monitor.criteria.up &&
-                monitor.criteria.up.createAlert
+                matchedCriterion &&
+                matchedCriterion.createAlert
             ) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
@@ -352,7 +350,7 @@ module.exports = {
                 } else {
                     if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
-                    incidentIds = await [
+                    incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
                             monitorId: data.monitorId,
@@ -361,15 +359,17 @@ module.exports = {
                             probeId: data.probeId,
                             reason: data.reason,
                             response: data.response,
+                            ...(matchedCriterion && {
+                                matchedCriterion,
+                            }),
                         }),
                     ];
                 }
             } else if (
                 data.status === 'degraded' &&
                 monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded &&
-                monitor.criteria.degraded.createAlert
+                matchedCriterion &&
+                matchedCriterion.createAlert
             ) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
@@ -398,7 +398,7 @@ module.exports = {
                 } else {
                     if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
-                    incidentIds = await [
+                    incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
                             monitorId: data.monitorId,
@@ -407,10 +407,18 @@ module.exports = {
                             probeId: data.probeId,
                             reason: data.reason,
                             response: data.response,
+                            ...(matchedCriterion && {
+                                matchedCriterion,
+                            }),
                         }),
                     ];
                 }
-            } else if (data.status === 'offline') {
+            } else if (
+                data.status === 'offline' &&
+                monitor &&
+                matchedCriterion &&
+                matchedCriterion.createAlert
+            ) {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
                         const newIncident = await IncidentService.updateOneBy(
@@ -438,7 +446,7 @@ module.exports = {
                 } else {
                     if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
-                    incidentIds = await [
+                    incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
                             monitorId: data.monitorId,
@@ -447,6 +455,9 @@ module.exports = {
                             probeId: data.probeId,
                             reason: data.reason,
                             response: data.response,
+                            ...(matchedCriterion && {
+                                matchedCriterion,
+                            }),
                         }),
                     ];
                 }
@@ -586,8 +597,7 @@ module.exports = {
         }
     },
 
-    scriptConditions: async (payload, resp, con) => {
-        let stat = true;
+    scriptConditions: (payload, resp, con) => {
         const status = resp
             ? resp.status
                 ? resp.status
@@ -596,24 +606,51 @@ module.exports = {
                 : null
             : null;
         const body = resp && resp.body ? resp.body : null;
-        const reasons = [];
+        const successReasons = [];
+        const failedReasons = [];
 
-        if (con && con.and && con.and.length) {
-            stat = await checkScriptAnd(
-                payload,
-                con.and,
-                status,
-                body,
-                reasons
-            );
-        } else if (con && con.or && con.or.length) {
-            stat = await checkScriptOr(payload, con.or, status, body, reasons);
+        let eventOccurred = false;
+        let matchedCriterion;
+        if (con && con.length) {
+            eventOccurred = con.some(condition => {
+                let stat = true;
+                if (condition && condition.and && condition.and.length) {
+                    stat = checkScriptAnd(
+                        payload,
+                        condition.and,
+                        status,
+                        body,
+                        successReasons,
+                        failedReasons
+                    );
+                } else if (condition && condition.or && condition.or.length) {
+                    stat = checkScriptOr(
+                        payload,
+                        condition.or,
+                        status,
+                        body,
+                        successReasons,
+                        failedReasons
+                    );
+                }
+                if (stat) {
+                    matchedCriterion = condition;
+                    return true;
+                }
+
+                return false;
+            });
         }
-        return { stat, reasons };
+
+        return {
+            stat: eventOccurred,
+            successReasons,
+            failedReasons,
+            matchedCriterion,
+        };
     },
 
     conditions: async (monitorType, con, payload, resp, response) => {
-        let stat = true;
         const status = resp
             ? resp.status
                 ? resp.status
@@ -627,32 +664,52 @@ module.exports = {
         const successReasons = [];
         const failedReasons = [];
 
-        if (con && con.and && con.and.length) {
-            stat = await checkAnd(
-                payload,
-                con.and,
-                status,
-                body,
-                sslCertificate,
-                response,
-                successReasons,
-                failedReasons,
-                monitorType
-            );
-        } else if (con && con.or && con.or.length) {
-            stat = await checkOr(
-                payload,
-                con.or,
-                status,
-                body,
-                sslCertificate,
-                response,
-                successReasons,
-                failedReasons,
-                monitorType
-            );
+        let eventOccurred = false;
+        let matchedCriterion;
+
+        if (con && con.length) {
+            eventOccurred = await some(con, async condition => {
+                let stat = true;
+                if (condition && condition.and && condition.and.length) {
+                    stat = await checkAnd(
+                        payload,
+                        condition.and,
+                        status,
+                        body,
+                        sslCertificate,
+                        response,
+                        successReasons,
+                        failedReasons,
+                        monitorType
+                    );
+                } else if (condition && condition.or && condition.or.length) {
+                    stat = await checkOr(
+                        payload,
+                        condition.or,
+                        status,
+                        body,
+                        sslCertificate,
+                        response,
+                        successReasons,
+                        failedReasons,
+                        monitorType
+                    );
+                }
+                if (stat) {
+                    matchedCriterion = condition;
+                    return true;
+                }
+
+                return false;
+            });
         }
-        return { stat, successReasons, failedReasons };
+
+        return {
+            stat: eventOccurred,
+            successReasons,
+            failedReasons,
+            matchedCriterion,
+        };
     },
 
     scanApplicationSecurity: async security => {
@@ -1028,34 +1085,47 @@ module.exports = {
         }
     },
 
-    incomingCondition: async (payload, condition) => {
-        let response = false;
-        let respAnd = false,
-            respOr = false,
-            countAnd = 0,
-            countOr = 0;
-        if (condition && condition.and && condition.and.length) {
-            respAnd = await incomingCheckAnd(payload, condition.and);
-            countAnd++;
+    incomingCondition: async (payload, conditions) => {
+        let eventOccurred = false;
+        let matchedCriterion;
+        if (conditions && conditions.length) {
+            eventOccurred = await some(conditions, async condition => {
+                let response = false;
+                let respAnd = false,
+                    respOr = false,
+                    countAnd = 0,
+                    countOr = 0;
+
+                if (condition && condition.and && condition.and.length) {
+                    respAnd = await incomingCheckAnd(payload, condition.and);
+                    countAnd++;
+                }
+                if (condition && condition.or && condition.or.length) {
+                    respOr = await incomingCheckOr(payload, condition.or);
+                    countOr++;
+                }
+                if (countAnd > 0 && countOr > 0) {
+                    if (respAnd && respOr) {
+                        response = true;
+                    }
+                } else if (countAnd > 0 && countOr <= 0) {
+                    if (respAnd) {
+                        response = true;
+                    }
+                } else if (countOr > 0 && countAnd <= 0) {
+                    if (respOr) {
+                        response = true;
+                    }
+                }
+                if (response) {
+                    matchedCriterion = condition;
+                    return true;
+                }
+
+                return false;
+            });
         }
-        if (condition && condition.or && condition.or.length) {
-            respOr = await incomingCheckOr(payload, condition.or);
-            countOr++;
-        }
-        if (countAnd > 0 && countOr > 0) {
-            if (respAnd && respOr) {
-                response = true;
-            }
-        } else if (countAnd > 0 && countOr <= 0) {
-            if (respAnd) {
-                response = true;
-            }
-        } else if (countOr > 0 && countAnd <= 0) {
-            if (respOr) {
-                response = true;
-            }
-        }
-        return response;
+        return { eventOccurred, matchedCriterion };
     },
 
     processHttpRequest: async function(data) {
@@ -1063,12 +1133,14 @@ module.exports = {
             const _this = this;
             const { monitor, body } = data;
             let status, reason;
+            let matchedCriterion;
             const lastPingTime = monitor.lastPingTime;
             const payload = moment().diff(moment(lastPingTime), 'minutes');
             const {
                 stat: validUp,
                 successReasons: upSuccessReasons,
                 failedReasons: upFailedReasons,
+                matchedCriterion: matchedUpCriterion,
             } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? _this.conditions(monitor.type, monitor.criteria.up, payload, {
                       body,
@@ -1078,6 +1150,7 @@ module.exports = {
                 stat: validDegraded,
                 successReasons: degradedSuccessReasons,
                 failedReasons: degradedFailedReasons,
+                matchedCriterion: matchedDegradedCriterion,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? _this.conditions(
                       monitor.type,
@@ -1090,6 +1163,7 @@ module.exports = {
                 stat: validDown,
                 successReasons: downSuccessReasons,
                 failedReasons: downFailedReasons,
+                matchedCriterion: matchedDownCriterion,
             } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? _this.conditions(
                       monitor.type,
@@ -1102,9 +1176,11 @@ module.exports = {
             if (validUp) {
                 status = 'online';
                 reason = upSuccessReasons;
+                matchedCriterion = matchedUpCriterion;
             } else if (validDegraded) {
                 status = 'degraded';
                 reason = [...degradedSuccessReasons, ...upFailedReasons];
+                matchedCriterion = matchedDegradedCriterion;
             } else if (validDown) {
                 status = 'offline';
                 reason = [
@@ -1112,6 +1188,7 @@ module.exports = {
                     ...degradedFailedReasons,
                     ...upFailedReasons,
                 ];
+                matchedCriterion = matchedDownCriterion;
             } else {
                 status = 'offline';
                 reason = [
@@ -1119,6 +1196,11 @@ module.exports = {
                     ...degradedFailedReasons,
                     ...upFailedReasons,
                 ];
+                if (monitor.criteria.down) {
+                    matchedCriterion = monitor.criteria.down.find(
+                        criterion => criterion.default === true
+                    );
+                }
             }
             const index = reason.indexOf('Request Timed out');
             if (index > -1) {
@@ -1146,6 +1228,16 @@ module.exports = {
             logData.retryCount = 3;
             logData.reason = reason;
             logData.response = null;
+            logData.matchedCriterion = matchedCriterion;
+            // update monitor to save the last matched criterion
+            await MonitorService.updateOneBy(
+                {
+                    _id: monitor._id,
+                },
+                {
+                    lastMatchedCriterion: matchedCriterion,
+                }
+            );
             const log = await _this.saveMonitorLog(logData);
             await MonitorService.updateMonitorPingTime(monitor._id);
             return log;
@@ -1159,22 +1251,33 @@ module.exports = {
         try {
             const _this = this;
             let status, reason;
+            let matchedCriterion;
             const lastPingTime = monitor.lastPingTime;
             const payload = moment().diff(moment(lastPingTime), 'minutes');
-            const validUp = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
+
+            const {
+                eventOccurred: validUp,
+                matchedCriterion: matchedUpCriterion,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? _this.incomingCondition(payload, monitor.criteria.up)
                 : false);
-            const validDegraded = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.degraded
+
+            const {
+                eventOccurred: validDegraded,
+                matchedCriterion: matchedDegradedCriterion,
+            } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? _this.incomingCondition(payload, monitor.criteria.degraded)
                 : false);
-            const validDown = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
-                ? _this.incomingCondition(payload, monitor.criteria.down)
+
+            const {
+                eventOccurred: validDown,
+                matchedCriterion: matchedDownCriterion,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
+                ? _this.incomingCondition(payload, [
+                      ...monitor.criteria.down.filter(
+                          criterion => criterion.default !== true
+                      ),
+                  ])
                 : false);
             let timeHours = 0;
             let timeMinutes = payload;
@@ -1188,15 +1291,23 @@ module.exports = {
             if (validDown) {
                 status = 'offline';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+                matchedCriterion = matchedDownCriterion;
             } else if (validDegraded) {
                 status = 'degraded';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+                matchedCriterion = matchedDegradedCriterion;
             } else if (validUp) {
                 status = 'online';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+                matchedCriterion = matchedUpCriterion;
             } else {
                 status = 'offline';
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+                if (monitor.criteria.down) {
+                    matchedCriterion = monitor.criteria.down.find(
+                        criterion => criterion.default === true
+                    );
+                }
             }
             const logData = {};
             logData.responseTime = 0;
@@ -1216,6 +1327,16 @@ module.exports = {
             logData.reason = reason;
             logData.response = null;
             logData.stopPingTimeUpdate = true;
+            logData.matchedCriterion = matchedCriterion;
+            // update monitor to save the last matched criterion
+            await MonitorService.updateOneBy(
+                {
+                    _id: monitor._id,
+                },
+                {
+                    lastMatchedCriterion: matchedCriterion,
+                }
+            );
             const log = await _this.saveMonitorLog(logData);
             return log;
         } catch (error) {
@@ -4950,209 +5071,180 @@ const checkOr = async (
     return validity;
 };
 
-const checkScriptAnd = async (payload, con, statusCode, body, reasons) => {
-    let validity = true;
-    for (let i = 0; i < con.length; i++) {
-        if (
-            con[i] &&
-            con[i].responseType &&
-            con[i].responseType === 'executes'
-        ) {
-            if (con[i] && con[i].filter && con[i].filter === 'executesIn') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload > con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    reasons.push(
-                        `Script did not execute in ${con[i].field1} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'doesNotExecuteIn'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload < con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    reasons.push(`Script executed in ${con[i].field1} ms`);
-                }
+/**
+ * verifies if a specific script condition satisfies
+ * @param {'and' | 'or'} conditionLogic
+ * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
+ */
+const checkScriptCondition = (condition, payload, body) => {
+    if (!condition || !condition.responseType) {
+        return;
+    }
+    /**
+     * @type { {valid : boolean, reason : string}}
+     */
+    const validity = {};
+
+    if (condition.responseType === 'executes') {
+        if (!condition.filter || !condition.field1 || !payload) {
+            return;
+        }
+
+        if (condition.filter === 'executesIn') {
+            if (payload <= condition.field1) {
+                validity.valid = true;
+                validity.reason = `Script executed in ${condition.field1} ms`;
+            } else {
+                validity.valid = false;
+                validity.reason = `Script did not execute in ${condition.field1} ms`;
             }
-        } else if (con[i] && con[i].responseType === 'error') {
-            if (con[i] && con[i].filter && con[i].filter === 'throwsError') {
-                if (!(con[i] && con[i].filter && body && !body.error)) {
-                    validity = false;
-                    reasons.push(
-                        `Script did not throw error \`${body.error}\``
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'doesNotThrowError'
-            ) {
-                if (!(con[i] && con[i].filter && body && body.error)) {
-                    validity = false;
-                    reasons.push(`Script threw error \`${body.error}\``);
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'javascriptExpression') {
-            if (con[i] && con[i].filter && con[i].filter !== body) {
-                validity = false;
-                reasons.push(`Script did not have Javascript expression`);
+        } else if (condition.filter === 'doesNotExecuteIn') {
+            if (payload > condition.field1) {
+                validity.valid = true;
+                validity.reason = `Script did not execute in ${condition.field1} ms`;
+            } else {
+                validity.valid = false;
+                validity.reason = `Script executed in ${condition.field1} ms`;
             }
         }
-        if (
-            con[i] &&
-            con[i].collection &&
-            con[i].collection.and &&
-            con[i].collection.and.length
-        ) {
-            const temp = await checkScriptAnd(
-                payload,
-                con[i].collection.and,
-                statusCode,
-                body,
-                reasons
-            );
-            if (!temp) {
-                validity = temp;
+    } else if (condition.responseType === 'error') {
+        if (!condition.filter || !body) {
+            return;
+        }
+
+        if (condition.filter === 'throwsError') {
+            if (body.error) {
+                validity.valid = true;
+                validity.reason = `Script threw error ${body.error}`;
+            } else {
+                validity.valid = false;
+                validity.reason = `Script did not throw error`;
             }
-        } else if (
-            con[i] &&
-            con[i].collection &&
-            con[i].collection.or &&
-            con[i].collection.or.length
-        ) {
-            const temp1 = await checkScriptOr(
-                payload,
-                con[i].collection.or,
-                statusCode,
-                body,
-                reasons
-            );
-            if (!temp1) {
-                validity = temp1;
+        } else if (condition.filter === 'doesNotThrowError') {
+            if (body.error) {
+                validity.valid = false;
+                validity.reason = `Script threw error ${body.error}`;
+            } else {
+                validity.valid = true;
+                validity.reason = `Script did not throw error`;
             }
+        }
+    } else if (condition.responseType === 'javascriptExpression') {
+        if (condition.filter === body) {
+            validity.valid = true;
+            validity.reason = `Script has matching Javascript expression`;
+        } else {
+            validity.valid = false;
+            validity.reason = `Script did not have Javascript expression`;
         }
     }
+
     return validity;
 };
 
-const checkScriptOr = async (payload, con, statusCode, body, reasons) => {
-    let validity = false;
-    for (let i = 0; i < con.length; i++) {
-        if (con[i] && con[i].responseType === 'executes') {
-            if (con[i] && con[i].filter && con[i].filter === 'executesIn') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload > con[i].field1
-                ) {
-                    validity = true;
-                } else {
-                    if (con[i].field1) {
-                        reasons.push(
-                            `Script did not execute in ${con[i].field1} ms`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'doesNotExecuteIn'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload < con[i].field1
-                ) {
-                    validity = true;
-                } else {
-                    if (con[i].field1) {
-                        reasons.push(`Script executed in ${con[i].field1} ms`);
-                    }
+const checkScriptAnd = (
+    payload,
+    con,
+    statusCode,
+    body,
+    successReasons,
+    failedReasons
+) => {
+    let valid = true;
+
+    con.forEach(condition => {
+        if (condition.collection) {
+            if (condition.collection.and && condition.collection.and.length) {
+                const subConditionValid = checkScriptAnd(
+                    payload,
+                    condition.collection.and,
+                    statusCode,
+                    body,
+                    successReasons,
+                    failedReasons
+                );
+                if (!subConditionValid) {
+                    valid = false;
                 }
             }
-        } else if (con[i] && con[i].responseType === 'error') {
-            if (con[i] && con[i].filter && con[i].filter === 'throwsError') {
-                if (con[i] && con[i].filter && body && !body.error) {
-                    validity = true;
-                } else {
-                    if (body && body.error) {
-                        reasons.push(
-                            `Script did not throw error \`${body.error}\``
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'doesNotThrowError'
-            ) {
-                if (con[i] && con[i].filter && body && body.error) {
-                    validity = true;
-                } else {
-                    if (body && body.error) {
-                        reasons.push(`Script threw error \`${body.error}\``);
-                    }
+            if (condition.collection.or && condition.collection.or.length) {
+                const subConditionValid = checkScriptOr(
+                    payload,
+                    condition.collection.or,
+                    statusCode,
+                    body,
+                    successReasons,
+                    failedReasons
+                );
+                if (!subConditionValid) {
+                    valid = false;
                 }
             }
-        } else if (con[i] && con[i].responseType === 'javascriptExpression') {
-            if (con[i] && con[i].filter && con[i].filter !== body) {
-                validity = true;
-            } else {
-                reasons.push(`Script did not have Javascript expression`);
+        } else {
+            const validity = checkScriptCondition(condition, payload, body);
+            if (validity) {
+                if (validity.valid) {
+                    successReasons.push(validity.reason);
+                } else {
+                    valid = false;
+                    failedReasons.push(validity.reason);
+                }
             }
         }
-        if (
-            con[i] &&
-            con[i].collection &&
-            con[i].collection.and &&
-            con[i].collection.and.length
-        ) {
-            const temp = await checkScriptAnd(
-                payload,
-                con[i].collection.and,
-                statusCode,
-                body,
-                reasons
-            );
-            if (temp) {
-                validity = temp;
+    });
+    return valid;
+};
+
+const checkScriptOr = (
+    payload,
+    con,
+    statusCode,
+    body,
+    successReasons,
+    failedReasons
+) => {
+    let valid = false;
+    con.forEach(condition => {
+        if (condition.collection) {
+            if (condition.collection.and && condition.collection.and.length) {
+                const subConditionValid = checkScriptAnd(
+                    payload,
+                    condition.collection.and,
+                    statusCode,
+                    body,
+                    successReasons,
+                    failedReasons
+                );
+                if (subConditionValid) {
+                    valid = true;
+                }
             }
-        } else if (
-            con[i] &&
-            con[i].collection &&
-            con[i].collection.or &&
-            con[i].collection.or.length
-        ) {
-            const temp1 = await checkScriptOr(
-                payload,
-                con[i].collection.or,
-                statusCode,
-                body,
-                reasons
-            );
-            if (temp1) {
-                validity = temp1;
+            if (condition.collection.or && condition.collection.or.length) {
+                const subConditionValid = checkScriptOr(
+                    payload,
+                    condition.collection.or,
+                    statusCode,
+                    body,
+                    successReasons,
+                    failedReasons
+                );
+                if (subConditionValid) {
+                    valid = true;
+                }
+            }
+        } else {
+            const validity = checkScriptCondition(condition, payload, body);
+            if (validity) {
+                if (validity.valid) {
+                    valid = true;
+                    successReasons.push(validity.reason);
+                } else {
+                    failedReasons.push(validity.reason);
+                }
             }
         }
-    }
-    return validity;
+    });
+    return valid;
 };
 
 const criteriaStrings = {
@@ -5316,3 +5408,4 @@ const { promisify } = require('util');
 const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
+const { some } = require('p-iteration');

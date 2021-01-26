@@ -15,7 +15,7 @@ export class ResponseParent extends Component {
         super(props);
     }
     render() {
-        const { fields, bodyfield, level, type } = this.props;
+        const { fields, bodyfield, level, type, criterionType } = this.props;
         if ((!fields || !fields.length) && level > 1) {
             fields.push({
                 match: '',
@@ -27,7 +27,7 @@ export class ResponseParent extends Component {
             });
         }
         return (
-            <ul id={fields.name}>
+            <ul id={fields.name} data-testId={`${criterionType}_criteria_list`}>
                 {bodyfield && bodyfield.length
                     ? fields.map((newval, j) => {
                           return (
@@ -112,6 +112,7 @@ export class ResponseParent extends Component {
                                       }
                                       fieldnameprop={newval}
                                       type={type}
+                                      criterionType={criterionType}
                                   />
                                   {level < 3 &&
                                   bodyfield[j] &&
@@ -142,6 +143,7 @@ ResponseParent.propTypes = {
     bodyfield: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
     level: PropTypes.number,
     type: PropTypes.string,
+    criterionType: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);

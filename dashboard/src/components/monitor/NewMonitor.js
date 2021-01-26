@@ -1,9 +1,17 @@
-import React, { Component } from 'react';
+import React, { Component, createRef } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import { isEqual } from 'lodash';
 import uuid from 'uuid';
-import { reduxForm, Field, formValueSelector } from 'redux-form';
+import {
+    reduxForm,
+    Field,
+    formValueSelector,
+    change,
+    isValid,
+    FieldArray,
+} from 'redux-form';
 import {
     createMonitor,
     createMonitorSuccess,
@@ -42,11 +50,13 @@ import 'ace-builds/src-noconflict/theme-github';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
+import PricingPlan from '../basic/PricingPlan';
+import { history } from '../../store';
 import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../../actions/monitorSla';
 import { UploadFile } from '../basic/UploadFile';
-import { history } from '../../store';
-import PricingPlan from '../basic/PricingPlan';
+import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
+import ScheduleInput from '../schedule/ScheduleInput';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
 
@@ -55,7 +65,12 @@ class NewMonitor extends Component {
         super(props);
         this.state = {
             advance: false,
-            script: '',
+            script:
+                (props.editMonitorProp &&
+                    props.editMonitorProp.data &&
+                    props.editMonitorProp.data.script) ||
+                '',
+
             showAllMonitors: false,
             type: props.edit ? props.editMonitorProp.type : props.type,
             httpRequestLink: `${API_URL}/incomingHttpRequest/${uuid.v4()}`,
@@ -63,7 +78,15 @@ class NewMonitor extends Component {
             authentication: props.edit
                 ? props.editMonitorProp.authentication
                 : props.authentication,
+            criteria: props.currentMonitorCriteria || [],
+            tabValidity: {
+                up: true,
+                degraded: true,
+                down: true,
+            },
         };
+
+        this.tabIndexRef = createRef();
     }
 
     componentDidMount() {
@@ -81,7 +104,7 @@ class NewMonitor extends Component {
         this.props.setFileInputKey(new Date());
     }
 
-    componentDidUpdate() {
+    componentDidUpdate(prevProps) {
         const { monitor } = this.props;
         if (
             monitor.newMonitor.error ===
@@ -89,11 +112,230 @@ class NewMonitor extends Component {
         ) {
             this.props.showUpgradeForm();
         }
+
+        if (!this.props.edit) {
+            // setup criteria for up, down, and degraded events
+            // update automatically when monitor type is changed
+
+            const areCriterionInitialValuesEqual = isEqual(
+                prevProps.initialValues,
+                this.props.initialValues
+            );
+
+            if (!areCriterionInitialValuesEqual) {
+                const criteria = [];
+
+                // add a default criterion as a down criterion
+                const defaultDownCriterion = {
+                    type: CRITERIA_TYPES.DOWN.type,
+                    id: uuid.v4(),
+                    default: true,
+                };
+                this.addCriterionFieldsToReduxForm(defaultDownCriterion);
+                criteria.push(defaultDownCriterion);
+
+                [CRITERIA_TYPES.UP, CRITERIA_TYPES.DEGRADED].forEach(
+                    criterion => {
+                        const id = uuid.v4();
+
+                        const newCriterion = {
+                            id,
+                            type: criterion.type,
+                            name:
+                                CRITERIA_TYPES[criterion.type.toUpperCase()]
+                                    .name,
+                        };
+                        criteria.push(newCriterion);
+
+                        this.addCriterionFieldsToReduxForm(newCriterion);
+                    }
+                );
+
+                // eslint-disable-next-line react/no-did-update-set-state
+                this.setState({ ...this.state, criteria });
+            }
+        }
+    }
+
+    /**
+     * adds all necessary criterion fields to redux form
+     *
+     * @param { {id : string, type: string}} criterion criterion to add fields for
+     * @memberof NewMonitor
+     */
+    addCriterionFieldsToReduxForm(criterion) {
+        if (!criterion.id || !criterion.type) {
+            return;
+        }
+
+        const { change } = this.props;
+
+        /** @type {{bodyField:Object[] | undefined, createAlert:boolean, autoAcknowledge: boolean, autoResolve:boolean}} */
+        let criterionValues;
+        const criterionFieldName = `${criterion.type}_${criterion.id}`;
+        // add filter criteria if the criterion is not default
+
+        if (criterion.default) {
+            criterionValues = {
+                createAlert: false,
+                autoAcknowledge: false,
+                autoResolve: false,
+            };
+        } else {
+            criterionValues = this.getCriterionInitialValue(criterion.type);
+            change(criterionFieldName, criterionValues.bodyField);
+        }
+
+        change(`name_${criterionFieldName}`, criterion.name);
+        change(
+            `createAlert_${criterionFieldName}`,
+            criterionValues.createAlert
+        );
+        change(
+            `autoAcknowledge_${criterionFieldName}`,
+            criterionValues.autoAcknowledge
+        );
+        change(
+            `autoResolve_${criterionFieldName}`,
+            criterionValues.autoResolve
+        );
+    }
+
+    /**
+     * gets a criterion's initial value depending on its type
+     *
+     * @param {string} criterionType type of criterion, up, down or degraded
+     * @returns {{bodyField: object, createAlert: boolean, autoAcknowledge: boolean, autoResolve: boolean} | {}} initial values for a criterion
+     * @memberof NewMonitor
+     */
+    getCriterionInitialValue(criterionType) {
+        let { initialValues } = this.props;
+        const { edit, monitor, editMonitorProp } = this.props;
+
+        if (edit) {
+            initialValues = monitor.monitorCriteria
+                ? monitor.monitorCriteria.criteria[editMonitorProp.type]
+                : {};
+        }
+
+        try {
+            const initialCriterionValue = {};
+
+            switch (criterionType) {
+                case CRITERIA_TYPES.UP.type:
+                    initialCriterionValue.bodyField = initialValues.up_1000;
+                    initialCriterionValue.createAlert =
+                        initialValues.up_1000_createAlert;
+                    initialCriterionValue.autoAcknowledge =
+                        initialValues.up_1000_autoAcknowledge;
+                    initialCriterionValue.autoResolve =
+                        initialValues.up_1000_autoResolve;
+                    break;
+                case CRITERIA_TYPES.DOWN.type:
+                    initialCriterionValue.bodyField = initialValues.down_1000;
+                    initialCriterionValue.createAlert =
+                        initialValues.down_1000_createAlert;
+                    initialCriterionValue.autoAcknowledge =
+                        initialValues.down_1000_autoAcknowledge;
+                    initialCriterionValue.autoResolve =
+                        initialValues.down_1000_autoResolve;
+                    break;
+
+                case CRITERIA_TYPES.DEGRADED.type:
+                    initialCriterionValue.bodyField =
+                        initialValues.degraded_1000;
+                    initialCriterionValue.createAlert =
+                        initialValues.degraded_1000_createAlert;
+                    initialCriterionValue.autoAcknowledge =
+                        initialValues.degraded_1000_autoAcknowledge;
+                    initialCriterionValue.autoResolve =
+                        initialValues.degraded_1000_autoResolve;
+                    break;
+            }
+            return initialCriterionValue;
+        } catch (error) {
+            return {};
+        }
+    }
+
+    /**
+     * removes a criterion
+     *
+     * @param {*} id id of the criterion to remove
+     * @memberof NewMonitor
+     */
+    removeCriterion(id) {
+        const indexOfTargetCriterion = this.state.criteria.findIndex(
+            criterion => criterion.id === id
+        );
+        if (indexOfTargetCriterion !== -1) {
+            const newCriteria = [
+                ...this.state.criteria.slice(0, indexOfTargetCriterion),
+                ...this.state.criteria.slice(
+                    indexOfTargetCriterion + 1,
+                    this.state.criteria.length
+                ),
+            ];
+            this.setState({ ...this.state, criteria: newCriteria });
+        }
+    }
+
+    /**
+     *
+     * @param {criterion} criterion
+     * @returns {string} name computed name
+     */
+    getDefaultCriterionName(criterion) {
+        const criteriaWithSameType = this.state.criteria.reduce(
+            (acc, criterionItem) => {
+                return (
+                    acc +
+                    (criterion.id !== criterionItem.id &&
+                    !criterionItem.default &&
+                    criterion.type === criterionItem.type
+                        ? 1
+                        : 0)
+                );
+            },
+            0
+        );
+        const defaultCriterionName =
+            CRITERIA_TYPES[criterion.type.toUpperCase()].name;
+        const name =
+            criteriaWithSameType === 0
+                ? defaultCriterionName
+                : `${defaultCriterionName} ${criteriaWithSameType + 1}`;
+        return name;
+    }
+
+    /**
+     *
+     * adds a criteria to the state
+     * @param {{ type:string, id:string}} [criterion={}] data of the new criteria
+     * @memberof NewMonitor
+     */
+    addCriterion(criterion = {}) {
+        if (!criterion.id || !criterion.type) {
+            return;
+        }
+
+        const newCriterion = {
+            ...criterion,
+            name: this.getDefaultCriterionName(criterion),
+        };
+
+        this.addCriterionFieldsToReduxForm(newCriterion);
+
+        this.setState({
+            ...this.state,
+            criteria: [...this.state.criteria, newCriterion],
+        });
     }
 
     submitForm = values => {
         const thisObj = this;
         const postObj = { data: {}, criteria: {} };
+
         postObj.componentId = thisObj.props.componentId;
         postObj.projectId = this.props.projectId;
         postObj.incidentCommunicationSla = values.incidentCommunicationSla;
@@ -106,7 +348,17 @@ class NewMonitor extends Component {
             : this.props.type;
         postObj.resourceCategory =
             values[`resourceCategory_${this.props.index}`];
-        postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
+        const callSchedules = values[`callSchedules_${this.props.index}`];
+        let monitorSchedules = [];
+        if (callSchedules && callSchedules.length) {
+            monitorSchedules = callSchedules
+                .filter(schedule => Object.values(schedule)[0] === true)
+                .map(schedule => {
+                    return Object.keys(schedule)[0];
+                });
+        }
+
+        postObj.callScheduleIds = monitorSchedules;
         if (postObj.type === 'manual')
             postObj.data.description =
                 values[`description_${this.props.index}`] || null;
@@ -151,49 +403,61 @@ class NewMonitor extends Component {
             postObj.type === 'script' ||
             postObj.type === 'incomingHttpRequest'
         ) {
-            if (
-                values &&
-                values[`up_${this.props.index}`] &&
-                values[`up_${this.props.index}`].length
-            ) {
-                postObj.criteria.up = makeCriteria(
-                    values[`up_${this.props.index}`]
-                );
-                postObj.criteria.up.createAlert =
-                    values && values[`up_${this.props.index}_createAlert`]
-                        ? true
-                        : false;
-                postObj.criteria.up.autoAcknowledge =
-                    values && values[`up_${this.props.index}_autoAcknowledge`]
-                        ? true
-                        : false;
-                postObj.criteria.up.autoResolve =
-                    values && values[`up_${this.props.index}_autoResolve`]
-                        ? true
-                        : false;
-            }
-            if (
-                values &&
-                values[`degraded_${this.props.index}`] &&
-                values[`degraded_${this.props.index}`].length
-            ) {
-                postObj.criteria.degraded = makeCriteria(
-                    values[`degraded_${this.props.index}`]
-                );
-                postObj.criteria.degraded.createAlert =
-                    values && values[`degraded_${this.props.index}_createAlert`]
-                        ? true
-                        : false;
-                postObj.criteria.degraded.autoAcknowledge =
-                    values &&
-                    values[`degraded_${this.props.index}_autoAcknowledge`]
-                        ? true
-                        : false;
-                postObj.criteria.degraded.autoResolve =
-                    values && values[`degraded_${this.props.index}_autoResolve`]
-                        ? true
-                        : false;
-            }
+            // collect and organize all criteria data
+            const criteria = { up: [], down: [], degraded: [] };
+            this.state.criteria.forEach(criterion => {
+                const criterionData = {};
+
+                const criterionFieldName = `${criterion.type}_${criterion.id}`;
+
+                // add conditions only if the criterion isn't a default one
+                if (criterion.default) {
+                    criterionData.default = true;
+                } else {
+                    const conditions = makeCriteria(
+                        values[`${criterionFieldName}`]
+                    );
+
+                    // pass the criterion if no 'and' and 'or' conditions are set
+                    if (
+                        conditions.and.length === 0 &&
+                        conditions.or.length === 0
+                    ) {
+                        return;
+                    }
+
+                    criterionData.and = conditions.and;
+                    criterionData.or = conditions.or;
+                }
+
+                const criterionSchedules =
+                    values[`criterion_${criterion.id}_schedules`];
+                const schedules = criterionSchedules
+                    ? criterionSchedules
+                          .filter(scheduleObject => {
+                              return Object.values(scheduleObject)[0] === true;
+                          })
+                          .map(scheduleObject => Object.keys(scheduleObject)[0])
+                    : [];
+
+                criterionData.scheduleIds = schedules;
+                criterionData.name = values[`name_${criterionFieldName}`];
+                criterionData.createAlert =
+                    values[`createAlert_${criterionFieldName}`];
+                criterionData.autoAcknowledge =
+                    values[`autoAcknowledge_${criterionFieldName}`];
+                criterionData.autoResolve =
+                    values[`autoResolve_${criterionFieldName}`];
+                criterionData.title =
+                    values[`incidentTitle_${criterionFieldName}`];
+                criterionData.description =
+                    values[`incidentDescription_${criterionFieldName}`];
+
+                if (Array.isArray(criteria[criterion.type])) {
+                    criteria[criterion.type].push(criterionData);
+                }
+            });
+            postObj.criteria = criteria;
         }
         if (postObj.type === 'api') {
             if (
@@ -349,7 +613,7 @@ class NewMonitor extends Component {
             this.props.name,
             this.props.category,
             this.props.subProject,
-            this.props.schedule,
+            this.props.monitorSchedules,
             this.props.monitorSla,
             this.props.incidentCommunicationSla,
             value
@@ -693,9 +957,7 @@ class NewMonitor extends Component {
                                                                                     key={
                                                                                         el.value
                                                                                     }
-                                                                                    htmlFor={
-                                                                                        el.value
-                                                                                    }
+                                                                                    htmlFor={`type_${el.value}`}
                                                                                     style={{
                                                                                         cursor:
                                                                                             'pointer',
@@ -721,9 +983,8 @@ class NewMonitor extends Component {
                                                                                                 }
                                                                                                 component="input"
                                                                                                 type="radio"
-                                                                                                id={
-                                                                                                    el.value
-                                                                                                }
+                                                                                                data-testId={`type_${el.value}`}
+                                                                                                id={`type_${el.value}`}
                                                                                                 name={`type_${this.props.index}`}
                                                                                                 className="Margin-left--4 Margin-top--4"
                                                                                                 validate={
@@ -788,6 +1049,7 @@ class NewMonitor extends Component {
                                                                             <button
                                                                                 className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--moreMonitorTypes"
                                                                                 type="button"
+                                                                                data-testId="show_all_monitors"
                                                                                 id="showMoreMonitors"
                                                                                 onClick={() => {
                                                                                     this.setState(
@@ -1590,7 +1852,7 @@ class NewMonitor extends Component {
                                                                     Call Duties
                                                                 </span>
                                                             </span>
-                                                            <p>
+                                                            <p className="Flex-flex Flex-alignItems--center">
                                                                 <span>
                                                                     Set the
                                                                     configuration
@@ -1598,55 +1860,7 @@ class NewMonitor extends Component {
                                                                     Monitor&apos;s
                                                                     Call duties.
                                                                 </span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="nm-Fieldset-row">
-                                                        <label className="bs-Fieldset-label" />
-                                                        <label className="new-monitor-label">
-                                                            Call Schedule
-                                                        </label>
-                                                    </div>
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label" />
-                                                        <div className="bs-Fieldset-fields">
-                                                            <span className="flex">
-                                                                <Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name={`callSchedule_${this.props.index}`}
-                                                                    id="callSchedule"
-                                                                    placeholder="Call Duty"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    style={{
-                                                                        height:
-                                                                            '28px',
-                                                                    }}
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select call schedule',
-                                                                        },
-                                                                        ...(schedules &&
-                                                                        schedules.length >
-                                                                            0
-                                                                            ? schedules.map(
-                                                                                  schedule => ({
-                                                                                      value:
-                                                                                          schedule._id,
-                                                                                      label:
-                                                                                          schedule.name,
-                                                                                  })
-                                                                              )
-                                                                            : []),
-                                                                    ]}
-                                                                />
+
                                                                 <Tooltip title="Call Schedule">
                                                                     <div>
                                                                         <p>
@@ -1681,6 +1895,40 @@ class NewMonitor extends Component {
                                                                         </p>
                                                                     </div>
                                                                 </Tooltip>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label"></label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <FieldArray
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        ScheduleInput
+                                                                    }
+                                                                    name={`callSchedules_${this.props.index}`}
+                                                                    id={`callSchedules_${this.props.index}`}
+                                                                    placeholder="Call Duty"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    style={{
+                                                                        height:
+                                                                            '28px',
+                                                                    }}
+                                                                    schedules={
+                                                                        this
+                                                                            .props
+                                                                            .schedules
+                                                                    }
+                                                                    currentProject={
+                                                                        this
+                                                                            .props
+                                                                            .currentProject
+                                                                    }
+                                                                />
                                                             </span>
                                                         </div>
                                                     </div>
@@ -1994,6 +2242,7 @@ class NewMonitor extends Component {
                                                         <div className="bs-Fieldset-fields">
                                                             <button
                                                                 id="advanceOptions"
+                                                                type="button"
                                                                 className="button-as-anchor"
                                                                 onClick={() =>
                                                                     this.openAdvance()
@@ -2030,27 +2279,121 @@ class NewMonitor extends Component {
                                                             }
                                                         />
                                                     </ShouldRender>
-                                                    <ResponseComponent
-                                                        head="Monitor up criteria"
-                                                        tagline="This is where you describe when your monitor is considered up"
-                                                        fieldname={`up_${this.props.index}`}
-                                                        index={this.props.index}
-                                                        type={this.state.type}
-                                                    />
-                                                    <ResponseComponent
-                                                        head="Monitor degraded criteria"
-                                                        tagline="This is where you describe when your monitor is considered degraded"
-                                                        fieldname={`degraded_${this.props.index}`}
-                                                        index={this.props.index}
-                                                        type={this.state.type}
-                                                    />
-                                                    <ResponseComponent
-                                                        head="Monitor down criteria"
-                                                        tagline="This is where you describe when your monitor is considered down"
-                                                        fieldname={`down_${this.props.index}`}
-                                                        index={this.props.index}
-                                                        type={this.state.type}
-                                                    />
+
+                                                    {Object.values(
+                                                        CRITERIA_TYPES
+                                                    ).map(criterionType => {
+                                                        const criteria = [
+                                                            ...this.state.criteria.filter(
+                                                                criterion =>
+                                                                    criterion.type ===
+                                                                    criterionType.type
+                                                            ),
+                                                        ];
+                                                        return (
+                                                            <div
+                                                                key={
+                                                                    criterionType.type
+                                                                }
+                                                            >
+                                                                {[
+                                                                    criteria.map(
+                                                                        (
+                                                                            criterion,
+                                                                            index
+                                                                        ) => {
+                                                                            return (
+                                                                                <ResponseComponent
+                                                                                    key={
+                                                                                        index
+                                                                                    }
+                                                                                    type={
+                                                                                        this
+                                                                                            .state
+                                                                                            .type
+                                                                                    }
+                                                                                    addCriterion={data =>
+                                                                                        this.addCriterion(
+                                                                                            data
+                                                                                        )
+                                                                                    }
+                                                                                    removeCriterion={id =>
+                                                                                        this.removeCriterion(
+                                                                                            id
+                                                                                        )
+                                                                                    }
+                                                                                    criterion={
+                                                                                        criterion
+                                                                                    }
+                                                                                    schedules={
+                                                                                        this
+                                                                                            .props
+                                                                                            .schedules
+                                                                                    }
+                                                                                    edit={
+                                                                                        this
+                                                                                            .props
+                                                                                            .edit
+                                                                                    }
+                                                                                />
+                                                                            );
+                                                                        }
+                                                                    ),
+                                                                ]}
+
+                                                                {criteria.length ===
+                                                                    0 && (
+                                                                    <div
+                                                                        className="bs-ContentSection Card-root Card-shadow--clear Padding-all--16 Margin-vertical--16"
+                                                                        style={{
+                                                                            borderRadius:
+                                                                                '0',
+                                                                            boxShadow:
+                                                                                'none',
+                                                                        }}
+                                                                    >
+                                                                        <div className="Margin-bottom--16">
+                                                                            <span className="Text-fontSize--15">
+                                                                                There
+                                                                                are
+                                                                                no
+                                                                                {` ${criterionType.type.toLowerCase()} `}
+                                                                                criteria
+                                                                                specified
+                                                                                for
+                                                                                this
+                                                                                monitor
+                                                                                event
+                                                                            </span>
+                                                                        </div>
+                                                                        <button
+                                                                            className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                this.addCriterion(
+                                                                                    {
+                                                                                        type:
+                                                                                            criterionType.type,
+                                                                                        id: uuid.v4(),
+                                                                                    }
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                <span>
+                                                                                    {`Add ${criterionType.type[0].toUpperCase()}${criterionType.type
+                                                                                        .substr(
+                                                                                            1
+                                                                                        )
+                                                                                        .toLocaleLowerCase()} Criteria`}
+                                                                                </span>
+                                                                            </span>
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </ShouldRender>
                                             </div>
                                         </fieldset>
@@ -2179,6 +2522,7 @@ const mapDispatchToProps = dispatch =>
             toggleEdit,
             fetchCommunicationSlas,
             fetchMonitorSlas,
+            change,
         },
         dispatch
     );
@@ -2189,12 +2533,13 @@ const mapStateToProps = (state, ownProps) => {
     const mode = selector(state, 'mode_1000');
     const authentication = selector(state, 'authentication_1000');
     const category = selector(state, 'resourceCategory_1000');
-    const schedule = selector(state, 'callSchedule_1000');
+    const monitorSchedules = selector(state, 'callSchedules_1000');
     const monitorSla = selector(state, 'monitorSla');
     const incidentCommunicationSla = selector(
         state,
         'incidentCommunicationSla'
     );
+
     let projectId = null;
 
     for (const project of state.component.componentList.components) {
@@ -2231,7 +2576,7 @@ const mapStateToProps = (state, ownProps) => {
             category,
             identityFile: state.monitor.file,
             uploadingIdentityFile: state.monitor.uploadFileRequest,
-            schedule,
+            monitorSchedules,
             monitorSla,
             incidentCommunicationSla,
             subProjects: state.subProject.subProjects.subProjects,
@@ -2253,6 +2598,7 @@ const mapStateToProps = (state, ownProps) => {
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
             fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
+            isValid: isValid('NewMonitor')(state),
         };
     } else {
         return {
@@ -2266,7 +2612,7 @@ const mapStateToProps = (state, ownProps) => {
             category,
             identityFile: state.monitor.file,
             uploadingIdentityFile: state.monitor.uploadFileRequest,
-            schedule,
+            monitorSchedules,
             monitorSla,
             incidentCommunicationSla,
             resourceCategoryList:
@@ -2287,6 +2633,7 @@ const mapStateToProps = (state, ownProps) => {
             monitorSlas: state.monitorSla.monitorSlas.slas,
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
             fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
+            isValid: isValid('NewMonitor')(state),
         };
     }
 };
@@ -2313,7 +2660,7 @@ NewMonitor.propTypes = {
     authentication: PropTypes.string,
     category: PropTypes.string,
     subProject: PropTypes.string,
-    schedule: PropTypes.string,
+    monitorSchedules: PropTypes.array,
     monitorSla: PropTypes.string,
     incidentCommunicationSla: PropTypes.string,
     resourceCategoryList: PropTypes.array,
@@ -2341,6 +2688,12 @@ NewMonitor.propTypes = {
     fetchMonitorSlas: PropTypes.func,
     monitorSlas: PropTypes.array,
     requestingMonitorSla: PropTypes.bool,
+    change: PropTypes.func,
+    initialValues: PropTypes.objectOf(PropTypes.any),
+    currentMonitorCriteria: PropTypes.arrayOf(
+        PropTypes.objectOf(PropTypes.any)
+    ),
+    isValid: PropTypes.bool.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);
