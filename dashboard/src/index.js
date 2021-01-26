@@ -5,11 +5,11 @@ import ReactGA from 'react-ga';
 import { ThroughProvider } from 'react-through';
 import ErrorBoundary from './components/basic/ErrorBoundary';
 import { render } from 'react-dom';
-import * as serviceWorker from './serviceWorker';
+// import * as serviceWorker from './serviceWorker';
 import store, { history, isServer } from './store';
 import App from './App';
 import './index.css';
-import registerWorker from './useNotification.js'
+import * as sw from './useNotification.js'
 
 if (!isServer) {
     ReactGA.initialize('UA-115085157-1');
@@ -32,4 +32,4 @@ render(
 
 // this will enable the app to work offline and load faster
 // serviceWorker.register();
-registerWorker();
+sw.registerServiceWorker();
