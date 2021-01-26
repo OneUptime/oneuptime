@@ -20,7 +20,7 @@ const ContainerSecurityService = require('../backend/services/containerSecurityS
 const ContainerSecurityLogService = require('../backend/services/containerSecurityLogService');
 const AirtableService = require('../backend/services/airtableService');
 
-describe('Container Security API', function() {
+describe('Container Security API', function () {
     const timeout = 30000;
     let projectId,
         componentId,
@@ -30,9 +30,9 @@ describe('Container Security API', function() {
         credentialId;
 
     this.timeout(timeout);
-    before(function(done) {
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+    before(function (done) {
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(request, userData.user, function (err, res) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -40,8 +40,8 @@ describe('Container Security API', function() {
                 UserService.updateOneBy(
                     { _id: userId },
                     { role: 'master-admin' }
-                ).then(function() {
-                    VerificationTokenModel.findOne({ userId }, function(
+                ).then(function () {
+                    VerificationTokenModel.findOne({ userId }, function (
                         err,
                         verificationToken
                     ) {
@@ -50,14 +50,14 @@ describe('Container Security API', function() {
                                 `/user/confirmation/${verificationToken.token}`
                             )
                             .redirects(0)
-                            .end(function() {
+                            .end(function () {
                                 request
                                     .post('/user/login')
                                     .send({
                                         email: userData.user.email,
                                         password: userData.user.password,
                                     })
-                                    .end(function(err, res) {
+                                    .end(function (err, res) {
                                         token = res.body.tokens.jwtAccessToken;
                                         const authorization = `Basic ${token}`;
 
@@ -65,7 +65,7 @@ describe('Container Security API', function() {
                                             .post(`/component/${projectId}`)
                                             .set('Authorization', authorization)
                                             .send({ name: 'Test Component' })
-                                            .end(function(err, res) {
+                                            .end(function (err, res) {
                                                 componentId = res.body._id;
                                                 done();
                                             });
@@ -77,7 +77,7 @@ describe('Container Security API', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -90,7 +90,7 @@ describe('Container Security API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create a container security', function(done) {
+    it('should create a container security', function (done) {
         const authorization = `Basic ${token}`;
 
         DockerCredentialService.create({
@@ -98,7 +98,7 @@ describe('Container Security API', function() {
             dockerPassword: dockerCredential.dockerPassword,
             dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
             projectId,
-        }).then(function(credential) {
+        }).then(function (credential) {
             credentialId = credential._id;
             const data = {
                 name: 'Test Container',
@@ -111,7 +111,7 @@ describe('Container Security API', function() {
                 .post(`/security/${projectId}/${componentId}/container`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function(err, res) {
+                .end(function (err, res) {
                     containerSecurityId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body.componentId).to.be.equal(componentId);
@@ -123,7 +123,7 @@ describe('Container Security API', function() {
         });
     });
 
-    it('should update a container security', function(done) {
+    it('should update a container security', function (done) {
         const authorization = `Basic ${token}`;
         const update = { name: 'Container Test' };
 
@@ -133,14 +133,14 @@ describe('Container Security API', function() {
             )
             .set('Authorization', authorization)
             .send(update)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(update.name);
                 done();
             });
     });
 
-    it('should get a particular container security in a component', function(done) {
+    it('should get a particular container security in a component', function (done) {
         const authorization = `Basic ${token}`;
 
         request
@@ -148,7 +148,7 @@ describe('Container Security API', function() {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(String(res.body._id)).to.be.equal(
                     String(containerSecurityId)
@@ -160,49 +160,46 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should get all the container security in a component', function(done) {
+    it('should get all the container security in a component', function (done) {
         const authorization = `Basic ${token}`;
 
         request
             .get(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
             });
     });
 
-    it('should get all the container security with a particular credential', function(done) {
+    it('should get all the container security with a particular credential', function (done) {
         const authorization = `Basic ${token}`;
 
         request
             .get(`/security/${projectId}/container/${credentialId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
             });
     });
 
-    it('should scan a container security', function(done) {
+    it('should scan a container security', async function () {
         this.timeout(300000);
         const authorization = `Basic ${token}`;
 
-        request
+        const res = await request
             .post(
                 `/security/${projectId}/container/scan/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                done();
-            });
+        expect(res).to.have.status(200);
 
     });
 
-    it('should throw error if scanning with an invalid docker credentials or invalid image path', function(done) {
+    it('should throw error if scanning with an invalid docker credentials or invalid image path', async function () {
         this.timeout(500000);
         const authorization = `Basic ${token}`;
         const data = {
@@ -212,29 +209,29 @@ describe('Container Security API', function() {
             imageTags: dockerCredential.imageTags,
         };
 
-        request
+       await request
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 const containerSecurityId = res.body._id;
-                request
+                const res = await request
                     .post(
                         `/security/${projectId}/container/scan/${containerSecurityId}`
                     )
                     .set('Authorization', authorization)
-                    .end(function(err, res) {
-                        expect(res).to.have.status(400);
-                        expect(res.body.message).to.be.equal(
-                            'Scanning failed please check your docker credential or image path/tag'
-                        );
-                        done();
-                    });
+
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Scanning failed please check your docker credential or image path/tag'
+                );
+
+
             });
 
     });
 
-    it('should not create a container security if name already exist in the component', function(done) {
+    it('should not create a container security if name already exist in the component', function (done) {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Container Test',
@@ -247,7 +244,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container security with this name already exist in this component'
@@ -256,7 +253,7 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not create a container security if image path already exist in the component', function(done) {
+    it('should not create a container security if image path already exist in the component', function (done) {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -269,7 +266,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container security with this image path already exist in this component'
@@ -278,7 +275,7 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not create a container security if name is missing or undefined in the request body', function(done) {
+    it('should not create a container security if name is missing or undefined in the request body', function (done) {
         const authorization = `Basic ${token}`;
         const data = {
             dockerCredential: credentialId,
@@ -290,7 +287,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container Security Name is required'
@@ -299,7 +296,7 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not create a container security if image path is missing or undefined in the request body', function(done) {
+    it('should not create a container security if image path is missing or undefined in the request body', function (done) {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -311,14 +308,14 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Image Path is required');
                 done();
             });
     });
 
-    it('should not create a container security if dockerCredential is missing or undefined in the request body', function(done) {
+    it('should not create a container security if dockerCredential is missing or undefined in the request body', function (done) {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -330,7 +327,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Docker Credential is required'
@@ -339,7 +336,7 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should delete a particular container security', function(done) {
+    it('should delete a particular container security', function (done) {
         const authorization = `Basic ${token}`;
 
         request
@@ -347,14 +344,14 @@ describe('Container Security API', function() {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.deleted).to.be.true;
                 done();
             });
     });
 
-    it('should not scan a container security if it does not exist', function(done) {
+    it('should not scan a container security if it does not exist', function (done) {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
@@ -363,7 +360,7 @@ describe('Container Security API', function() {
                 `/security/${projectId}/container/scan/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container Security not found or does not exist'
@@ -372,7 +369,7 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not delete a non-existing container security', function(done) {
+    it('should not delete a non-existing container security', function (done) {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
@@ -381,7 +378,7 @@ describe('Container Security API', function() {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container Security not found or does not exist'
@@ -390,7 +387,7 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not get a non-existing container security', function(done) {
+    it('should not get a non-existing container security', function (done) {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
@@ -399,7 +396,7 @@ describe('Container Security API', function() {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container security not found or does not exist'
@@ -408,7 +405,7 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not create a container security if dockerCredential does not exist', function(done) {
+    it('should not create a container security if dockerCredential does not exist', function (done) {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -421,7 +418,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Docker Credential not found or does not exist'

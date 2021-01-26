@@ -422,7 +422,6 @@ describe('Incident API', function() {
                 type: 'internal',
                 incident_state: 'just test',
             });
-            console.log("Response Internal Body: ",res.body);
         internalMessageId = res.body.data[0]._id;
         expect(res).to.have.status(200);
         expect(res.body.data[0].incidentId._id.toString()).to.be.equal(incidentId);
@@ -502,11 +501,15 @@ describe('Incident API', function() {
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
             .set('Authorization', authorization);
-        console.log("Fetching List of Internal Messages", res.body);
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
         expect(res.body.count).to.be.equal(1);
+        let sameType;
+        res.body.data.filter(function(e){
+            sameType = e.type
+        })
+        console.log("The Same Type is: ", sameType)
         expect(res.body.data[2].type).to.be.equal(type); 
     });
 
