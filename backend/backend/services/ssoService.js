@@ -40,8 +40,12 @@ module.exports = {
                 { new: true }
             );
             if(sso){
-                const {_id} = sso;
-                await SsoDefaultRolesService.deleteBy({domain:_id})    
+                const {_id:domain} = sso;
+                const ssoDefaultRoles = await SsoDefaultRolesService.findBy({domain});
+                for ( const ssoDefaultRole of ssoDefaultRoles ) {
+                    const {_id}= ssoDefaultRole;
+                    await SsoDefaultRolesService.deleteBy({_id});
+                }
             }
             return sso;
         } catch (error) {
