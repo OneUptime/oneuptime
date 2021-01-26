@@ -70,7 +70,6 @@ export class PrivateStatusPage extends Component {
         this.setState(prevState => ({
             showMoreOptions: !prevState.showMoreOptions,
         }));
-        this.props.showDuplicateStatusPage(!this.state.showMoreOptions);
     };
 
     renderIpWhitelist = ({ fields }) => {
@@ -143,6 +142,7 @@ export class PrivateStatusPage extends Component {
     render() {
         const { handleSubmit, formValues } = this.props;
         const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
+        this.props.showDuplicateStatusPage(this.state.showMoreOptions);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
