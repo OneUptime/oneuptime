@@ -304,8 +304,9 @@ describe('Incident API', function() {
             template: 'incident_acknowledged',
             createdAt: { $gt: date },
         });
-        console.log("Incident Acknowled: ", res.body)
         expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.incident.acknowledged).to.be.equal(true);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
@@ -322,8 +323,9 @@ describe('Incident API', function() {
             template: 'incident_resolved',
             createdAt: { $gt: date },
         });   
-        console.log("Incident Resolved: ", res.body)
         expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.incident.resolved).to.be.equal(true);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
@@ -473,7 +475,7 @@ describe('Incident API', function() {
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
             .set('Authorization', authorization);
-            console.log("Response Body: ", res.body)
+            console.log("Response Investigation Body: ", res.body)
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
@@ -500,6 +502,7 @@ describe('Incident API', function() {
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
             .set('Authorization', authorization);
+            console.log("Response Internal Body: ", res.body)
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
@@ -790,23 +793,25 @@ describe('Incident API with Sub-Projects', function() {
 
     it('should acknowledge subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
-        const subProjectIncidentAcknowledged = await markSubprojectIncidentAsAcknowledged({
+        const res = await markSubprojectIncidentAsAcknowledged({
             request,
             authorization,
             subProjectId,
             incidentId,
         });
+        console.log("Incident Acknowledge: ", res.body)
         expect(subProjectIncidentAcknowledged).to.have.status(200);
     });
 
     it('should resolve subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
-        const subProjectIncidentResolved = await markSubprojectIncidentAsResolved({
+        const res = await markSubprojectIncidentAsResolved({
             request,
             authorization,
             subProjectId,
             incidentId,
         });
+        console.log("Incident Resolved: ", res.body)
         expect(subProjectIncidentResolved).to.have.status(200);
     });
 });

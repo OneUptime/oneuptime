@@ -784,7 +784,7 @@ router.get(
                     type,
                 });
                 returnedIncidentMessages = incidentMessages;
-                console.log("Returned Incident Messages: ",returnedIncidentMessages);
+                  console.log("Returned Incident Messages: ",returnedIncidentMessages);
             }
             const timeline = await IncidentTimelineService.findBy({
                 incidentId,
@@ -819,9 +819,9 @@ router.get(
                         a.status !== 'internal notes added' &&
                         a.status !== 'internal notes updated'
                 );
-                result ={data: filteredMsg,  returnedIncidentMessages, count} ;
+                result = filteredMsg;
             }
-            return sendItemResponse(req, res, result);
+            return sendListResponse(req, res, result, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
