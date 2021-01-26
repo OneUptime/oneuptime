@@ -31,11 +31,16 @@ class ProfileBilling extends Component {
         return (
             <Dashboard>
                 <Fade>
-                    <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
-                    <BreadCrumbItem route={pathname} name="Billing" />
-                    <div id="profileBilling" className="Margin-vertical--12">
-                        <Invoice />
-                        <PaymentCard />
+                    <div className="Profile-Pages--view">
+                        <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
+                        <BreadCrumbItem route={pathname} name="Billing" />
+                        <div
+                            id="profileBilling"
+                            className="Margin-vertical--12"
+                        >
+                            <Invoice />
+                            <PaymentCard />
+                        </div>
                     </div>
                 </Fade>
             </Dashboard>
