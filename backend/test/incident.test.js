@@ -507,7 +507,7 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
         expect(res.body.count).to.be.equal(1);
-        expect(res.body.returnedIncidentMessages[0].type).to.be.equal(type);
+        expect(res.body.data[0].type).to.be.equal(type);
     });
 
     it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function() {
@@ -799,8 +799,11 @@ describe('Incident API with Sub-Projects', function() {
             subProjectId,
             incidentId,
         });
-        console.log("Incident Acknowledge: ", res.body)
-        expect(subProjectIncidentAcknowledged).to.have.status(200);
+        
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.incident.acknowledged).to.be.equal(true);
+
     });
 
     it('should resolve subproject incident', async function() {
@@ -811,7 +814,10 @@ describe('Incident API with Sub-Projects', function() {
             subProjectId,
             incidentId,
         });
-        console.log("Incident Resolved: ", res.body)
-        expect(subProjectIncidentResolved).to.have.status(200);
+        
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.incident.resolved).to.be.equal(true);
+
     });
 });
