@@ -242,6 +242,15 @@ class NewMonitor extends Component {
                     initialCriterionValue.autoResolve =
                         initialValues.degraded_1000_autoResolve;
                     break;
+                default:
+                    initialCriterionValue.bodyField = initialValues.up_1000;
+                    initialCriterionValue.createAlert =
+                        initialValues.up_1000_createAlert;
+                    initialCriterionValue.autoAcknowledge =
+                        initialValues.up_1000_autoAcknowledge;
+                    initialCriterionValue.autoResolve =
+                        initialValues.up_1000_autoResolve;
+                    break;
             }
             return initialCriterionValue;
         } catch (error) {
