@@ -1,39 +1,44 @@
 const publicVapidKey =
     "BFAPbOTTU14VbTe_dnoYlVnOPLKUNm8GYmC50n3i4Ps64sk1Xqx8e894Clrscn1L2PsQ8-l4SsJVw7NRg4cx69Y";
 
-
-async function askUserPermission() {
+// Adk for permission
+export async function askUserPermission() {
     return await Notification.requestPermission();
 }
-askUserPermission().then(consent => {
-    console.log('consent', consent)
-})
 
 // Check for service worker
-export default function registerServiceWorker() {
+export function registerServiceWorker() {
     if ("serviceWorker" in navigator) {
-        console.log('sending this asap')
-        send().catch(err => console.log('BIG ERROR', err));
+        // console.log('sending this asap')
+        // send().catch(err => console.log('BIG ERROR', err));
     }
 }
 
-// Register SW, Register Push, Send Push
-async function send() {
+export async function getTheSubscription() {
     // Register Service Worker
-    console.log("Registering service worker...");
+    // console.log("Registering service worker...");
     const register = await navigator.serviceWorker.register(`${process.env.PUBLIC_URL}/sw.js`, { scope: `${process.env.PUBLIC_URL}/` });
-    console.log("Service Worker Registered...");
+    // console.log("Service Worker Registered...");
     await navigator.serviceWorker.ready;
     // Register Push
-    console.log("Registering Push...");
+    // console.log("Registering Push...");
     const subscription = await register.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
     });
-    console.log("Push Registered...");
+    // console.log("Push Registered...");
+    // console.log('Sending Push...2222', subscription)
+    return subscription;
+}
+
+// getTheSubscription()
+
+// Register SW, Register Push, Send Push
+async function send() {
+    const subscription = await getTheSubscription()
 
     // Send Push Notification
-    console.log("Sending Push...");
+    console.log("Sending Push...", subscription);
     await fetch("http://localhost:3002/subscribe", {
         method: "POST",
         body: JSON.stringify(subscription),
@@ -41,7 +46,7 @@ async function send() {
             "content-type": "application/json"
         }
     });
-    console.log("Push Sent...", subscription);
+    // console.log("Push Sent...", subscription);
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -58,7 +63,3 @@ function urlBase64ToUint8Array(base64String) {
     }
     return outputArray;
 }
-
-// export default function registerServiceWorker() {
-//     return navigator.serviceWorker.register(`${process.env.PUBLIC_URL}/sw.js`, { scope: `${process.env.PUBLIC_URL}/`});
-// }
