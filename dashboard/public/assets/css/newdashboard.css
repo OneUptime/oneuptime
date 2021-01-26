@@ -10333,6 +10333,11 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
         padding-left: calc((50vw - 1390px / 278px));
         padding-right: calc((50vw - 1390px / 2 ));
     }
+    .db-World-contentPane {
+        padding-top: 18px;
+        position: relative;
+        padding-right: calc((50vw - 1390px / 2 - 12px ));
+    }
 }
 @media only print {
     html.db-NewChrome,
