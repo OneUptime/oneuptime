@@ -2196,6 +2196,11 @@ module.exports = {
                     });
                 }
             }
+
+            let length = getIncidentLength(
+                incident.createdAt,
+                incident.acknowledgedAt
+            );
             if (
                 !webhookNotificationSent ||
                 subscriber.alertVia === AlertType.Email
@@ -2290,10 +2295,6 @@ module.exports = {
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
-                let length = getIncidentLength(
-                    incident.createdAt,
-                    incident.acknowledgedAt
-                );
 
                 let alertStatus = null;
                 try {
@@ -2679,7 +2680,8 @@ module.exports = {
                                         incident.projectId,
                                         component.name,
                                         statusPageUrl,
-                                        customFields
+                                        customFields,
+                                        length
                                     );
                                     alertStatus = 'Success';
                                 } else {
@@ -2693,7 +2695,8 @@ module.exports = {
                                         incident.projectId,
                                         component.name,
                                         statusPageUrl,
-                                        customFields
+                                        customFields,
+                                        length
                                     );
                                     alertStatus = 'Success';
                                 }
@@ -2703,6 +2706,10 @@ module.exports = {
                         } else if (
                             templateType === 'Subscriber Incident Resolved'
                         ) {
+                            length = getIncidentLength(
+                                incident.createdAt,
+                                incident.resolvedAt
+                            );
                             if (project.sendResolvedIncidentNotificationSms) {
                                 if (statusPage) {
                                     sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
@@ -2715,7 +2722,8 @@ module.exports = {
                                         incident.projectId,
                                         component.name,
                                         statusPageUrl,
-                                        customFields
+                                        customFields,
+                                        length
                                     );
                                     alertStatus = 'Success';
                                 } else {
@@ -2729,7 +2737,8 @@ module.exports = {
                                         incident.projectId,
                                         component.name,
                                         statusPageUrl,
-                                        customFields
+                                        customFields,
+                                        length
                                     );
                                     alertStatus = 'Success';
                                 }
