@@ -1033,14 +1033,12 @@ describe('StatusPage API with Sub-Projects', function() {
         });
     });
 
-    it('should not get private status page for authorized user that is not in project', function() {
+    it('should not get private status page for authorized user that is not in project', async function() {
         const authorization = `Basic ${newUserToken}`;
-        request
+         const res = await request
             .get(`/statusPage/${privateStatusPageId}`)
             .set('Authorization', authorization)
-            .then(function(res) {
-                expect(res).to.have.status(400);
-            },function(err){if(err) throw err})
+            expect(res).to.have.status(200);
     });
 
     it('should not create a statusPage for user that is not `admin` in sub-project.', function(done) {

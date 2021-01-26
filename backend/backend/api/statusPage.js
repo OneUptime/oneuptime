@@ -535,7 +535,7 @@ router.get('/:statusPageId', checkUser, ipWhitelist, async function(req, res) {
                 message: 'StatusPage Id or Url required',
             });
         }
-
+        console.log("REq user: ", req.user);
         if (statusPage.isPrivate && !req.user) {
             return sendErrorResponse(req, res, {
                 code: 401,
