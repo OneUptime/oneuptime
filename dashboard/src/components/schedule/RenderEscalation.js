@@ -11,11 +11,11 @@ let RenderEscalation = ({
     subProjectId,
     form,
 }) => {
-    console.log('form', form)
+        
     return (
         <ul>
             {fields.map((policy, i) => {
-                const { email, sms, call, rotateBy, rotationInterval } = form[
+                const { email, sms, call, push, rotateBy, rotationInterval } = form[
                     i
                 ];
 
@@ -24,6 +24,7 @@ let RenderEscalation = ({
                         call={call}
                         email={email}
                         sms={sms}
+                        push={push}
                         rotateBy={rotateBy}
                         rotationInterval={rotationInterval}
                         policy={policy}

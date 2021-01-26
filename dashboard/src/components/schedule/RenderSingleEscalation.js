@@ -10,11 +10,13 @@ import { RenderTeams } from './RenderTeams';
 import { RenderField } from '../basic/RenderField';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
+import { askUserPermission } from '../../useNotification';
 
 const RenderSingleEscalation = ({
     policy,
     email,
     sms,
+    push,
     call,
     rotateBy,
     subProjectId,
@@ -29,7 +31,6 @@ const RenderSingleEscalation = ({
     const manageRotationVisibility = visibilityVal => {
         setRotationFreqVisibility(visibilityVal);
     };
-    console.log('policy', policy)
 
     return (
         <li key={policyIndex} style={{ margin: '5px 0px' }}>
@@ -163,6 +164,7 @@ const RenderSingleEscalation = ({
                                             <Field
                                                 component="input"
                                                 type="checkbox"
+                                                onChange={() => askUserPermission()}
                                                 name={`${policy}.push`}
                                                 data-test="RetrySettings-failedPaymentsCheckbox"
                                                 className="Checkbox-source"
@@ -293,6 +295,47 @@ const RenderSingleEscalation = ({
                                                                 do you want your
                                                                 team to be
                                                                 alerted by Email
+                                                                if they do not
+                                                                respond. After X
+                                                                reminders Fyipe
+                                                                will escalates
+                                                                this incident to
+                                                                another team.{' '}
+                                                            </p>
+                                                        </div>
+                                                    </Tooltip>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {push && (
+                                        <div className="bs-Fieldset-row">
+                                            <label className="bs-Fieldset-label">
+                                                Number of Push notification Reminders
+                                            </label>
+                                            <div className="bs-Fieldset-fields">
+                                                <span className="flex">
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        name={`${policy}.pushReminders`}
+                                                        component={RenderField}
+                                                        style={{
+                                                            width: '250px',
+                                                        }}
+                                                        defaultValue="3"
+                                                        subProjectId={
+                                                            subProjectId
+                                                        }
+                                                    />
+                                                    <Tooltip title="Push notification Reminders">
+                                                        <div>
+                                                            <p>
+                                                                {' '}
+                                                                How many times
+                                                                do you want your
+                                                                team to be
+                                                                alerted by Push notification
                                                                 if they do not
                                                                 respond. After X
                                                                 reminders Fyipe
@@ -812,6 +855,7 @@ RenderSingleEscalation.propTypes = {
     call: PropTypes.bool.isRequired,
     sms: PropTypes.bool.isRequired,
     email: PropTypes.bool.isRequired,
+    push: PropTypes.bool.isRequired,
     policy: PropTypes.string.isRequired,
     policyIndex: PropTypes.number.isRequired,
     rotateBy: PropTypes.string,

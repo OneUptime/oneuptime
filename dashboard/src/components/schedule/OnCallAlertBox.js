@@ -66,6 +66,21 @@ function validate(values) {
                         'This should be greater than 0';
                     alertArrayErrors[i] = repeatErrors;
                 }
+
+                if (values.OnCallAlertBox[i].pushReminders === '') {
+                    repeatErrors.pushReminders =
+                        'Please enter how many reminders to send.';
+                    alertArrayErrors[i] = repeatErrors;
+                } else if (
+                    !Validate.number(values.OnCallAlertBox[i].pushReminders)
+                ) {
+                    repeatErrors.pushReminders = 'This should be a number.';
+                    alertArrayErrors[i] = repeatErrors;
+                } else if (values.OnCallAlertBox[i].pushReminders <= 0) {
+                    repeatErrors.pushReminders =
+                        'This should be greater than 0';
+                    alertArrayErrors[i] = repeatErrors;
+                }
             }
             values.OnCallAlertBox[i] &&
                 values.OnCallAlertBox[i].teams &&
