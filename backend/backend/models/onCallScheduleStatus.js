@@ -20,6 +20,7 @@ const schema = new Schema({
             callRemindersSent: { type: Number, default: 0 },
             smsRemindersSent: { type: Number, default: 0 },
             emailRemindersSent: { type: Number, default: 0 },
+            pushRemindersSent: { type: Number, default: 0 },
         },
     ],
 
