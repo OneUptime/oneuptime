@@ -28,6 +28,7 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
+const moment = require('moment');
 
 // Route
 // Description: Adding / Updating a new component to the project.
@@ -182,6 +183,103 @@ router.get(
 
             const component = await ComponentService.findOneBy(query);
             return sendItemResponse(req, res, component);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// fetch component summary in date range
+router.post(
+    '/:projectId/summary/:componentId',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function(req, res) {
+        try {
+            const { startDate, endDate } = req.body;
+            const componentId = req.params.componentId;
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map(project => project._id)
+                : null;
+
+            // Get that component
+            const component = await ComponentService.findOneBy({
+                _id: componentId,
+                projectId: { $in: subProjectIds },
+            });
+            if (!component) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Component not Found',
+                });
+            }
+
+            // fetch monitors
+            let monitors = await MonitorService.findBy({
+                componentId: componentId,
+            });
+
+            if (monitors && monitors.length) {
+                monitors = await Promise.all(
+                    monitors.map(async monitor => {
+                        const stat = {
+                            _id: monitor._id,
+                            name: monitor.name,
+                            monitorUptime: 100,
+                        };
+
+                        const monitorStatus = await MonitorService.getMonitorStatuses(
+                            monitor._id,
+                            startDate,
+                            endDate
+                        );
+
+                        if (monitorStatus && monitorStatus.length) {
+                            const uptimePercents = await Promise.all(
+                                monitorStatus.map(async probe => {
+                                    const {
+                                        uptimePercent,
+                                    } = await MonitorService.calculateTime(
+                                        probe.statuses,
+                                        startDate,
+                                        moment(endDate).diff(
+                                            moment(startDate),
+                                            'days'
+                                        )
+                                    );
+
+                                    return uptimePercent;
+                                })
+                            );
+
+                            const monitorUptime =
+                                uptimePercents.reduce(
+                                    (a, b) =>
+                                        parseFloat(a || 100) +
+                                        parseFloat(b || 100)
+                                ) / uptimePercents.length;
+
+                            return {
+                                ...stat,
+                                monitorUptime: parseFloat(
+                                    monitorUptime.toFixed(3)
+                                ),
+                            };
+                        }
+
+                        return stat;
+                    })
+                );
+
+                // return response
+                return sendListResponse(req, res, monitors);
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Monitors not Found',
+                });
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

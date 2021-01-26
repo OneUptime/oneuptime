@@ -1,8 +1,8 @@
-build_n_test_licensing:
+test_licensing:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_licensing licensing`
+        - export next_stage=`./ci/scripts/checkhash.sh test_licensing licensing`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
@@ -11,7 +11,7 @@ build_n_test_licensing:
         - sudo docker ps
         - sudo docker run --env-file ./licensing/.env --net=host fyipeproject/licensing:3.0.$CI_PIPELINE_IID npm test
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_licensing licensing
+        - ./ci/scripts/storehash.sh test_licensing licensing
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:

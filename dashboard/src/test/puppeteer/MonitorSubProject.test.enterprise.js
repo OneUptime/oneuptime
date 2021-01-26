@@ -50,8 +50,6 @@ describe('Enterprise Monitor SubProject API', () => {
     test(
         'Should create a monitor in sub-project for valid `admin`',
         async done => {
-            expect.assertions(1);
-
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -87,10 +85,8 @@ describe('Enterprise Monitor SubProject API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', data.subProjectMonitorName);
-                await init.selectByText('#type', 'url', page);
-                await page.waitForSelector('#url');
                 await page.click('#url');
-                await page.type('#url', 'https://google.com');
+                await page.type('input[name=url_1000]', 'https://google.com');
                 await page.click('button[type=submit]');
                 await page.waitFor(5000);
 
