@@ -13,7 +13,7 @@ import ProjectUnblockBox from '../components/project/ProjectUnblockBox';
 import ProjectUsers from '../components/project/ProjectUsers';
 import ProjectUpgrade from '../components/project/ProjectUpgrade';
 import AdminNotes from '../components/adminNote/AdminNotes';
-import { addProjectNote, fetchProject } from '../actions/project';
+import { addProjectNote, fetchProject, paginate } from '../actions/project';
 import { IS_SAAS_SERVICE } from '../config';
 import { fetchProjectTeam } from '../actions/project';
 
@@ -31,6 +31,7 @@ class Project extends Component {
     };
 
     render() {
+        console.log(this.props.projectUsers.page, 'sdfsdsd page');
         return (
             <Dashboard ready={this.ready}>
                 <div className="Box-root Margin-vertical--12">
@@ -62,6 +63,9 @@ class Project extends Component {
                                             </div>
                                             <div className="Box-root Margin-bottom--12">
                                                 <ProjectUsers
+                                                    paginate={
+                                                        this.props.paginate
+                                                    }
                                                     users={
                                                         this.props
                                                             .projectUsers &&
@@ -71,6 +75,43 @@ class Project extends Component {
                                                     projectId={
                                                         this.props.match.params
                                                             .projectId
+                                                    }
+                                                    pages={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .page
+                                                    }
+                                                    membersPerPage={5}
+                                                    count={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .team &&
+                                                        this.props.projectUsers
+                                                            .team.count
+                                                    }
+                                                    canPaginateBackward={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .page > 1
+                                                            ? true
+                                                            : false
+                                                    }
+                                                    canPaginateForward={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .team &&
+                                                        this.props.projectUsers
+                                                            .team.count >
+                                                            this.props
+                                                                .projectUsers
+                                                                .page *
+                                                                5
+                                                            ? true
+                                                            : false
                                                     }
                                                 />
                                             </div>
@@ -158,7 +199,7 @@ class Project extends Component {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { addProjectNote, fetchProject, fetchProjectTeam },
+        { addProjectNote, fetchProject, fetchProjectTeam, paginate },
         dispatch
     );
 };
@@ -186,6 +227,7 @@ Project.propTypes = {
     project: PropTypes.object.isRequired,
     fetchProjectTeam: PropTypes.func.isRequired,
     projectUsers: PropTypes.object.isRequired,
+    paginate: PropTypes.func.isRequired,
 };
 
 Project.displayName = 'Project';

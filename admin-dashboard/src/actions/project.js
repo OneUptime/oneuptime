@@ -227,6 +227,26 @@ export function userUpdateRole(projectId, values) {
     };
 }
 
+//userlist pagination
+export function paginateNext() {
+    return {
+        type: types.PAGINATE_USERS_NEXT,
+    };
+}
+
+export function paginatePrev() {
+    return {
+        type: types.PAGINATE_USERS_PREV,
+    };
+}
+
+
+export function paginate(type) {
+    return function(dispatch) {
+        type === 'next' && dispatch(paginateNext());
+        type === 'prev' && dispatch(paginatePrev());
+    };
+}
 // Calls the API to delete user from project
 export function teamDelete(projectId, teamMemberId) {
     return function(dispatch) {

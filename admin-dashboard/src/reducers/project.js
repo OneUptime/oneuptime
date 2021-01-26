@@ -52,6 +52,8 @@ import {
     USER_UPDATE_ROLE_REQUEST,
     USER_UPDATE_ROLE_SUCCESS,
     USER_UPDATE_ROLE_FAILURE,
+    PAGINATE_USERS_NEXT,
+    PAGINATE_USERS_PREV,
 } from '../constants/project';
 
 const INITIAL_STATE = {
@@ -119,6 +121,7 @@ const INITIAL_STATE = {
         error: null,
         success: false,
         team: [],
+        pages: 1,
     },
     teamdelete: {
         error: null,
@@ -215,6 +218,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
+                    page: 1,
                 },
             });
         case FETCH_PROJECT_TEAM_SUCCESS:
@@ -223,6 +227,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
+                    page: 1,
                     team: action.payload,
                 },
             });
@@ -254,7 +259,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: false,
-                    updating: []
+                    updating: [],
                 },
                 projectTeam: {
                     ...state.projectTeam,
@@ -275,6 +280,24 @@ export default function project(state = INITIAL_STATE, action) {
                     deleting: [],
                 },
             };
+        //users pagination
+        case PAGINATE_USERS_NEXT:
+            return Object.assign({}, state, {
+                projectTeam: {
+                    ...state.projectTeam,
+                    page: state.projectTeam.page + 1,
+                },
+            });
+        case PAGINATE_USERS_PREV:
+            return Object.assign({}, state, {
+                projectTeam: {
+                    ...state.projectTeam,
+                    page:
+                        state.projectTeam.page > 1
+                            ? state.projectTeam.page - 1
+                            : 1,
+                },
+            });
         //delete users
         case TEAM_DELETE_REQUEST:
             return {
