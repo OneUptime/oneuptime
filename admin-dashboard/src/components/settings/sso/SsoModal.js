@@ -298,6 +298,7 @@ export const SsoAddModal = connect(
             {
                 onSubmit: addSso,
                 fetchSsos,
+                fetchSsoDefaultRoles,
             },
             dispatch
         );

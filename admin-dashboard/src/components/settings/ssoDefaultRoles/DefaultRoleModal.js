@@ -68,7 +68,6 @@ const Form = ({
         ssos.map(sso => ({ value: sso._id, label: sso.domain })),
         projects.map(project => ({ value: project._id, label: project.name })),
         [
-            { value: 'Owner', label: 'Owner' },
             { value: 'Administrator', label: 'Administrator' },
             { value: 'Member', label: 'Member' },
             { value: 'Viewer', label: 'Viewer' },

@@ -55,12 +55,7 @@ router.put('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const id = req.params.id;
         const data = req.body;
-        if (!id) {
-            const error = new Error('Id must be present.');
-            error.code = 400;
-            throw error;
-        }
-        const ssoDefaultRole = await SsoDefaultRolesService.updateBy(
+        const ssoDefaultRole = await SsoDefaultRolesService.updateById(
             { _id: id },
             data
         );
