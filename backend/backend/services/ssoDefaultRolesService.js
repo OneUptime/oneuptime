@@ -87,7 +87,7 @@ module.exports = {
             throw error;
         }
         if (
-            !['Owner', 'Administrator', 'Member', 'Viewer'].includes(data.role)
+            !['Administrator', 'Member', 'Viewer'].includes(data.role)
         ) {
             const error = new Error('Invalid role.');
             error.code = 400;
@@ -100,7 +100,7 @@ module.exports = {
         const search = await this.findBy(query);
 
         if (search.length) {
-            const error = new Error('Domain has a default role.');
+            const error = new Error('[Domain-Project] are already associated to a default role.');
             error.code = 400;
             ErrorService.log('ssoDefaultRolesService.create', error);
             throw error;
@@ -139,10 +139,16 @@ module.exports = {
         }
     },
 
-    updateBy: async function(query, data) {
+    updateById: async function(query, data) {
         try {
             if (!query) {
                 query = {};
+            }
+            if (!query._id){
+                const error = new Error('Id must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.updateById', error);
+                throw error;                
             }
             if (query.createdAt !== undefined) {
                 delete query.createdAt;
@@ -153,53 +159,58 @@ module.exports = {
             if (!domain) {
                 const error = new Error('Domain must be defined.');
                 error.code = 400;
-                ErrorService.log('ssoDefaultRolesService.create', error);
+                ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
             if (!mongoose.Types.ObjectId.isValid(domain)) {
                 const error = new Error("Domain id isn't valid.");
                 error.code = 400;
-                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
 
             if (!project) {
                 const error = new Error('Project  must be defined.');
                 error.code = 400;
-                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
             if (!mongoose.Types.ObjectId.isValid(project)) {
                 const error = new Error("Project id isn't valid.");
                 error.code = 400;
-                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
 
             if (!role) {
                 const error = new Error('Role must be defined.');
                 error.code = 400;
-                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
             if (
-                !['Owner', 'Administrator', 'Member', 'Viewer'].includes(
+                !['Administrator', 'Member', 'Viewer'].includes(
                     role
                 )
             ) {
                 const error = new Error('Invalid role.');
                 error.code = 400;
-                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
 
-            const payload = { domain, project, role };
-            const search = await this.findBy(payload);
-
-            if (search.length) {
+            const payload = { domain };
+            const search = await this.findOneBy(payload);
+            if(!search){
+                const error = new Error('Record doesn\'t exist.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.updateById', error);
+                throw error;
+            }
+            if (String(search._id) !== query._id) {
                 const error = new Error('Domain has a default role.');
                 error.code = 400;
-                ErrorService.log('ssoDefaultRolesService.updateBy', error);
+                ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
 
@@ -209,7 +220,7 @@ module.exports = {
             const sso = await this.findBy(query);
             return sso;
         } catch (error) {
-            ErrorService.log('ssoDefaultRolesService.updateBy', error);
+            ErrorService.log('ssoDefaultRolesService.updateById', error);
             throw error;
         }
     },
@@ -224,7 +235,29 @@ module.exports = {
         const count = await ssoDefaultRolesModel.countDocuments(query);
         return count;
     },
+    addUserToDefaultProjects : async function ({domain, userId}){
+        const ssoDefaultRoles = await this.findBy({domain});
+        if(!ssoDefaultRoles.length)
+            return;
 
+        for(const ssoDefaultRole of ssoDefaultRoles){
+            const {project,role}= ssoDefaultRole;
+            const {_id:projectId}=project;
+            const projectObj = await ProjectService.findOneBy({_id:projectId});
+            if(!projectObj)
+                continue;
+
+            const {users}= projectObj;
+            users.push({
+                userId,
+                role
+            })
+            await ProjectService.updateOneBy(
+                {_id:projectId},
+                {users}
+            )
+        }
+    },
     hardDeleteBy: async function(query) {
         try {
             await ssoDefaultRolesModel.deleteMany(query);
@@ -239,3 +272,4 @@ module.exports = {
 const ssoDefaultRolesModel = require('../models/ssoDefaultRoles');
 const mongoose = require('mongoose');
 const ErrorService = require('./errorService');
+const ProjectService = require('./projectService');
