@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { destroy } from 'redux-form';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
+import ComponentSummary from '../components/component/ComponentSummary';
 import NewMonitor from '../components/monitor/NewMonitor';
 import MonitorList from '../components/monitor/MonitorList';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -19,6 +20,7 @@ import {
     fetchMonitorStatuses,
     fetchLighthouseLogs,
 } from '../actions/monitor';
+import { fetchComponentSummary } from '../actions/component';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import { getProbes } from '../actions/probe';
@@ -147,6 +149,8 @@ class DashboardView extends Component {
             currentProject,
             location: { pathname },
             component,
+            fetchComponentSummary,
+            componentSummaryObj,
         } = this.props;
 
         if (this.props.currentProject) {
@@ -333,6 +337,33 @@ class DashboardView extends Component {
                                                             {incidentslist}
                                                         </div>
 
+                                                        <ShouldRender
+                                                            if={
+                                                                monitors &&
+                                                                monitors.length &&
+                                                                monitors[0] !==
+                                                                    false
+                                                            }
+                                                        >
+                                                            <ComponentSummary
+                                                                projectId={
+                                                                    currentProjectId
+                                                                }
+                                                                componentId={
+                                                                    componentId
+                                                                }
+                                                                fetchSummary={
+                                                                    fetchComponentSummary
+                                                                }
+                                                                summary={
+                                                                    componentSummaryObj.data
+                                                                }
+                                                                loading={
+                                                                    componentSummaryObj.requesting
+                                                                }
+                                                            />
+                                                        </ShouldRender>
+
                                                         {monitors}
 
                                                         <RenderIfSubProjectAdmin>
@@ -457,6 +488,7 @@ const mapDispatchToProps = dispatch => {
             loadPage,
             fetchTutorial,
             getProbes,
+            fetchComponentSummary,
         },
         dispatch
     );
@@ -517,6 +549,7 @@ const mapStateToProps = (state, props) => {
         endDate: state.monitor.monitorsList.endDate,
         component,
         tutorialStat,
+        componentSummaryObj: state.component.componentSummary,
     };
 };
 
@@ -559,6 +592,8 @@ DashboardView.propTypes = {
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     tutorialStat: PropTypes.object,
+    fetchComponentSummary: PropTypes.func,
+    componentSummaryObj: PropTypes.object,
 };
 
 DashboardView.displayName = 'DashboardView';

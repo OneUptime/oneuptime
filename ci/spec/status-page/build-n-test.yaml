@@ -1,8 +1,8 @@
-build_n_test_statuspage:
+test_statuspage:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh build_n_test_statuspage status-page backend accounts`
+        - export next_stage=`./ci/scripts/checkhash.sh test_statuspage status-page backend accounts`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - curl -sSL https://get.docker.com/ | sh # Install docker.
         - sudo apt-get update
@@ -35,7 +35,7 @@ build_n_test_statuspage:
         - npm run test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh build_n_test_statuspage status-page backend accounts
+        - ./ci/scripts/storehash.sh test_statuspage status-page backend accounts
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:

@@ -306,10 +306,7 @@ router.post(
                 incidentId: incident._id,
                 projectId,
             });
-            const subAlerts = uniqByKeepFirst(
-                subscriberAlerts,
-                it => it.identification
-            );
+            const subAlerts = deduplicate(subscriberAlerts);
             incidentMessages = [
                 ...incidentMessages,
                 ...timeline,
@@ -366,10 +363,7 @@ router.post(
                 incidentId: incident._id,
                 projectId,
             });
-            const subAlerts = uniqByKeepFirst(
-                subscriberAlerts,
-                it => it.identification
-            );
+            const subAlerts = deduplicate(subscriberAlerts);
             incidentMessages = [
                 ...incidentMessages,
                 ...timeline,
@@ -623,10 +617,7 @@ router.post(
                     const timeline = await IncidentTimelineService.findBy({
                         incidentId: incident._id,
                     });
-                    const subAlerts = uniqByKeepFirst(
-                        subscriberAlerts,
-                        it => it.identification
-                    );
+                    const subAlerts = deduplicate(subscriberAlerts);
                     incidentMessages = [
                         ...incidentMessages,
                         ...timeline,
@@ -725,10 +716,7 @@ router.delete(
                     const timeline = await IncidentTimelineService.findBy({
                         incidentId,
                     });
-                    const subAlerts = uniqByKeepFirst(
-                        subscriberAlerts,
-                        it => it.identification
-                    );
+                    const subAlerts = deduplicate(subscriberAlerts);
                     incidentMessages = [
                         ...incidentMessages,
                         ...timeline,
@@ -800,10 +788,7 @@ router.get(
             if (type === 'investigation') {
                 result = incidentMessages;
             } else {
-                const subAlerts = uniqByKeepFirst(
-                    subscriberAlerts,
-                    it => it.identification
-                );
+                const subAlerts = deduplicate(subscriberAlerts);
                 incidentMessages = [
                     ...incidentMessages,
                     ...timeline,
@@ -906,12 +891,24 @@ router.get(
     }
 );
 
-function uniqByKeepFirst(a, key) {
-    const seen = new Set();
-    return a.filter(item => {
-        const k = key(item);
-        return seen.has(k) ? false : seen.add(k);
-    });
+function deduplicate(arr = []) {
+    const map = {};
+
+    let curr;
+
+    for (let i = 0; i < arr.length; i++) {
+        curr = arr[i];
+
+        if (!map[curr.identification]) {
+            map[curr.identification] = curr;
+        } else {
+            if (curr.error && !map[curr.identification].error) {
+                map[curr.identification].error = true;
+            }
+        }
+    }
+
+    return Object.values(map);
 }
 
 module.exports = router;

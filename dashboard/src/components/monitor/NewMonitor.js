@@ -1041,6 +1041,7 @@ class NewMonitor extends Component {
                                                                                 className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--moreMonitorTypes"
                                                                                 type="button"
                                                                                 data-testId="show_all_monitors"
+                                                                                id="showMoreMonitors"
                                                                                 onClick={() => {
                                                                                     this.setState(
                                                                                         {
@@ -2668,7 +2669,7 @@ NewMonitor.propTypes = {
     logFile: PropTypes.func,
     resetFile: PropTypes.func,
     identityFile: PropTypes.string,
-    uploadingIdentityFile: PropTypes.string,
+    uploadingIdentityFile: PropTypes.bool,
     setFileInputKey: PropTypes.func,
     fileInputKey: PropTypes.string,
     uploadIdentityFile: PropTypes.func,

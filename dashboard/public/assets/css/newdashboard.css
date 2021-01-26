@@ -11428,6 +11428,10 @@ table {
     display: block;
 }
 
+.Profile-Pages--view {
+    padding-right: calc((50vw - 1390px / 2 - 20px ));
+}
+
 @media (max-width: 1335px) 
 {
     .threeCardClass

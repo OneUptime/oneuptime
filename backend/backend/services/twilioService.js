@@ -449,7 +449,8 @@ const _this = {
         projectId,
         componentName,
         statusPageUrl,
-        customFields
+        customFields,
+        length
     ) {
         let smsBody;
         try {
@@ -466,6 +467,7 @@ const _this = {
                 componentName,
                 statusPageUrl,
                 ...customFields,
+                length,
             };
             template = template(data);
             smsBody = template;
@@ -576,7 +578,8 @@ const _this = {
         projectId,
         componentName,
         statusPageUrl,
-        customFields
+        customFields,
+        length
     ) {
         let smsBody;
         try {
@@ -593,6 +596,7 @@ const _this = {
                 componentName,
                 statusPageUrl,
                 ...customFields,
+                length,
             };
             template = template(data);
             smsBody = template;
