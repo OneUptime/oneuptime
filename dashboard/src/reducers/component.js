@@ -25,6 +25,10 @@ import {
     FETCH_COMPONENT_RESOURCES_REQUEST,
     FETCH_COMPONENT_RESOURCES_RESET,
     FETCH_COMPONENT_RESOURCES_SUCCESS,
+    FETCH_COMPONENT_SUMMARY_REQUEST,
+    FETCH_COMPONENT_SUMMARY_SUCCESS,
+    FETCH_COMPONENT_SUMMARY_FAILURE,
+    FETCH_COMPONENT_SUMMARY_RESET,
     SHOW_DELETE_MODAL,
     HIDE_DELETE_MODAL,
 } from '../constants/component';
@@ -57,6 +61,12 @@ const INITIAL_STATE = {
     componentResourceList: [],
     showDeleteModal: false,
     componentIssueList: [],
+    componentSummary: {
+        data: [],
+        error: null,
+        requesting: false,
+        success: false,
+    },
 };
 
 export default function component(state = INITIAL_STATE, action) {
@@ -472,6 +482,46 @@ export default function component(state = INITIAL_STATE, action) {
             };
             return Object.assign({}, state, {
                 componentResourceList: requestComponentResourceList,
+            });
+
+        case FETCH_COMPONENT_SUMMARY_SUCCESS:
+            return Object.assign({}, state, {
+                componentSummary: {
+                    data: action.payload.data,
+                    error: null,
+                    requesting: false,
+                    success: true,
+                },
+            });
+
+        case FETCH_COMPONENT_SUMMARY_FAILURE:
+            return Object.assign({}, state, {
+                componentSummary: {
+                    data: [],
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                },
+            });
+
+        case FETCH_COMPONENT_SUMMARY_RESET:
+            return Object.assign({}, state, {
+                componentSummary: {
+                    data: [],
+                    error: null,
+                    requesting: false,
+                    success: false,
+                },
+            });
+
+        case FETCH_COMPONENT_SUMMARY_REQUEST:
+            return Object.assign({}, state, {
+                componentSummary: {
+                    data: [],
+                    error: null,
+                    requesting: true,
+                    success: false,
+                },
             });
 
         default:

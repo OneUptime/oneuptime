@@ -1,8 +1,8 @@
 test_probe:
-  stage: BuildAndTest
-  script:
-    - echo "No test implemented"
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+    stage: BuildAndTest
+    script:
+        - echo "No test implemented"
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release

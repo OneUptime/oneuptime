@@ -2331,7 +2331,7 @@ NewMonitor.propTypes = {
     logFile: PropTypes.func,
     resetFile: PropTypes.func,
     identityFile: PropTypes.string,
-    uploadingIdentityFile: PropTypes.string,
+    uploadingIdentityFile: PropTypes.bool,
     setFileInputKey: PropTypes.func,
     fileInputKey: PropTypes.string,
     uploadIdentityFile: PropTypes.func,

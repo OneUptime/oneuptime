@@ -107,6 +107,7 @@ module.exports = {
 const pingfetch = async url => {
     const now = new Date().getTime();
     let resp = null;
+    let rawResp = null;
     let res = null;
     let rawResp = null;
     try {

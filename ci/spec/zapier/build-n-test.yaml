@@ -1,9 +1,8 @@
-
 test_zapier:
-  stage: BuildAndTest
-  script:
-    - echo "No test implemented"
-  except:
-    refs:
-      - hotfix-master
-      - hotfix-release
+    stage: BuildAndTest
+    script:
+        - echo "No test implemented"
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release
