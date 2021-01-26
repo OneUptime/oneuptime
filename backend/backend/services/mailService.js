@@ -1243,6 +1243,7 @@ const _this = {
         accessToken,
         incidentType,
         projectName,
+        criterionName,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1288,6 +1289,7 @@ const _this = {
                     incidentType,
                     projectName,
                     dashboardURL: global.dashboardHost,
+                    criterionName,
                 },
             };
             EmailBody = await _this.getEmailBody(mailOptions);
@@ -1468,6 +1470,7 @@ const _this = {
         projectName,
         acknowledgeTime,
         length,
+        criterionName,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1498,6 +1501,7 @@ const _this = {
                     incidentType,
                     projectName,
                     dashboardURL: global.dashboardHost,
+                    criterionName,
                 },
             };
             const mailer = await _this.createMailer(accountMail);
@@ -1558,6 +1562,7 @@ const _this = {
         projectName,
         resolveTime,
         length,
+        criterionName,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1587,6 +1592,7 @@ const _this = {
                     incidentType,
                     projectName,
                     dashboardURL: global.dashboardHost,
+                    criterionName,
                 },
             };
             const mailer = await _this.createMailer(accountMail);
