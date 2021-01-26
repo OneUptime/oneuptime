@@ -2693,7 +2693,6 @@ NewMonitor.propTypes = {
     currentMonitorCriteria: PropTypes.arrayOf(
         PropTypes.objectOf(PropTypes.any)
     ),
-    isValid: PropTypes.bool.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

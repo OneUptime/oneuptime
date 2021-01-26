@@ -22,7 +22,7 @@ function ComponentSummary({
 
     let totalUptime = 0;
 
-    for (var item of summary) {
+    for (const item of summary) {
         totalUptime += item.monitorUptime;
     }
 
@@ -80,54 +80,53 @@ function ComponentSummary({
                     </div>
                 </div>
             ) : (
-                    <div className="db-Trends-content">
-                        <div className="db-TrendsRows">
-                            <div className="db-Trend">
-                                <div className="block-chart-side line-chart">
-                                    <div className="db-TrendRow">
-                                        <div className="db-Trend-colInformation">
-                                            <div className="db-Trend-rowTitle">
-                                                <div className="db-Trend-title">
-                                                    <span className="chart-font">
-                                                        Monitors
+                <div className="db-Trends-content">
+                    <div className="db-TrendsRows">
+                        <div className="db-Trend">
+                            <div className="block-chart-side line-chart">
+                                <div className="db-TrendRow">
+                                    <div className="db-Trend-colInformation">
+                                        <div className="db-Trend-rowTitle">
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Monitors
                                                 </span>
-                                                </div>
-                                            </div>
-                                            <div className="db-Trend-row">
-                                                <div className="db-Trend-col db-Trend-colValue">
-                                                    <span>
-                                                        {' '}
-                                                        <span className="chart-font">
-                                                            {summary.length}
-                                                        </span>
-                                                    </span>
-                                                </div>
                                             </div>
                                         </div>
-                                        <div className="db-Trend-colInformation">
-                                            <div className="db-Trend-rowTitle">
-                                                <div className="db-Trend-title">
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
                                                     <span className="chart-font">
-                                                        Avg. Uptime Stats
+                                                        {summary.length}
+                                                    </span>
                                                 </span>
-                                                </div>
                                             </div>
-                                            <div className="db-Trend-row">
-                                                <div className="db-Trend-col db-Trend-colValue">
-                                                    <span>
-                                                        {' '}
-                                                        <span className="chart-font">
-                                                            {avgMonitorUptime ===
-                                                                0 ||
-                                                                avgMonitorUptime === 100
-                                                                ? avgMonitorUptime
-                                                                : avgMonitorUptime.toFixed(
-                                                                    3
-                                                                )}{' '}
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div className="db-Trend-rowTitle">
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Avg. Uptime Stats
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {avgMonitorUptime ===
+                                                            0 ||
+                                                        avgMonitorUptime === 100
+                                                            ? avgMonitorUptime
+                                                            : avgMonitorUptime.toFixed(
+                                                                  3
+                                                              )}{' '}
                                                         %
                                                     </span>
-                                                    </span>
-                                                </div>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -135,7 +134,8 @@ function ComponentSummary({
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
+            )}
         </div>
     );
 }
