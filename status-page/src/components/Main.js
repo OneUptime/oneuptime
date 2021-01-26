@@ -337,17 +337,15 @@ class Main extends Component {
                 backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`,
             };
 
-            if(colors.disabled){
+            if (colors.disabled) {
                 disabledColor = {
                     backgroundColor: `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b})`,
                 };
-            }else{
+            } else {
                 disabledColor = {
                     backgroundColor: `rgba(201, 201, 201)`,
                 };
             }
-
-            
 
             if (serviceStatus === 'all') {
                 statusBackground = uptimeColor;
