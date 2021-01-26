@@ -257,6 +257,8 @@ describe('Sub-Project API', () => {
                 await page.click('button[id=confirmResetKey]');
                 await page.waitForSelector('button[title=apiKey]');
                 await page.click('button[title=apiKey]');
+                await page.waitForSelector('button[id=sub_project_api_key_0]');
+                await page.click('button[id=sub_project_api_key_0]');
                 await page.waitForSelector('span#apiKey');
                 await page.click('span#apiKey');
                 let newApiKey = await page.$('span#apiKey');

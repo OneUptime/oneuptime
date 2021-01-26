@@ -14,9 +14,9 @@ const DeleteAccountPage = props => {
     return (
         <Dashboard>
             <Fade>
-                <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
-                <BreadCrumbItem route={pathname} name="Advanced" />
-                <div>
+                <div className="Profile-Pages--view">
+                    <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
+                    <BreadCrumbItem route={pathname} name="Advanced" />
                     <div>
                         <div className="db-BackboneViewContainer">
                             <div className="react-settings-view react-view">

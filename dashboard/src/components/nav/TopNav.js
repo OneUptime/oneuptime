@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import FeedBackModal from '../FeedbackModal';
-import { showProfileMenu } from '../../actions/profile';
+import { showProfileMenu, updateProfileSetting } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
 import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
 import { userSettings } from '../../actions/profile';
@@ -28,6 +28,7 @@ class TopContent extends Component {
             getVersion,
             currentProject,
             fetchSubProjectOngoingScheduledEvents,
+            user,
         } = this.props;
         userSettings();
         getVersion();
@@ -40,6 +41,13 @@ class TopContent extends Component {
                 this.props.currentProjectId,
                 this.props.user.id
             );
+        }
+        if (Object.keys(user).length > 0) {
+            const userData = {
+                ...user,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            };
+            this.props.updateProfileSetting(userData);
         }
     }
 
@@ -562,6 +570,7 @@ const mapDispatchToProps = dispatch =>
             openSideNav,
             fetchSubProjectOngoingScheduledEvents,
             openModal,
+            updateProfileSetting,
         },
         dispatch
     );
@@ -596,6 +605,7 @@ TopContent.propTypes = {
     userScheduleRequest: PropTypes.func,
     user: PropTypes.object.isRequired,
     currentProjectId: PropTypes.string.isRequired,
+    updateProfileSetting: PropTypes.func.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);
