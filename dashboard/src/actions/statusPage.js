@@ -778,6 +778,64 @@ export function deleteStatusPage(projectId, statusPageId) {
     };
 }
 
+//Duplicate statuspage
+export function duplicateStatusPageRequest() {
+    return {
+        type: types.DUPLICATE_STATUSPAGE_REQUEST,
+    };
+}
+
+export function duplicateStatusPageReset() {
+    return {
+        type: types.DUPLICATE_STATUSPAGE_RESET,
+    };
+}
+
+export function duplicateStatusPageSuccess(statusPage) {
+    return {
+        type: types.DUPLICATE_STATUSPAGE_SUCCESS,
+        payload: statusPage,
+    };
+}
+
+export function duplicateStatusPageError(error) {
+    return {
+        type: types.DUPLICATE_STATUSPAGE_FAILED,
+        payload: error,
+    };
+}
+
+// Calls the API for duplicate status page.
+export function duplicateStatusPage(projectId, statusPageId) {
+    return function(dispatch) {
+        const promise = postApi(
+            `statusPage/${projectId}/${statusPageId}`,
+            null
+        );
+        dispatch(duplicateStatusPageRequest());
+        promise.then(
+            function(response) {
+                const data = response.data;
+                dispatch(duplicateStatusPageSuccess(data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(duplicateStatusPageError(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+
 //Update status page embedded css
 
 export function updateStatusPageEmbeddedCssRequest() {
@@ -973,9 +1031,9 @@ export function switchStatusPage(statusPage) {
     };
 }
 
-export const duplicateStatusPage = function(obj) {
+export const showDuplicateStatusPage = function(obj) {
     return {
-        type: types.DUPLICATE_STATUSPAGE,
+        type: types.SHOW_DUPLICATE_STATUSPAGE,
         payload: obj,
     };
 };

@@ -74,7 +74,11 @@ import {
     RESET_STATUSPAGE_EMBEDDED_CSS_REQUEST,
     RESET_STATUSPAGE_EMBEDDED_CSS_SUCCESS,
     RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE,
-    DUPLICATE_STATUSPAGE,
+    SHOW_DUPLICATE_STATUSPAGE,
+    DUPLICATE_STATUSPAGE_REQUEST,
+    DUPLICATE_STATUSPAGE_SUCCESS,
+    DUPLICATE_STATUSPAGE_FAILED,
+    DUPLICATE_STATUSPAGE_RESET,
 } from '../constants/statusPage';
 
 import {
@@ -100,7 +104,7 @@ import {
 
 const INITIAL_STATE = {
     addMoreDomain: false,
-    duplicateStatusPage: false,
+    showDuplicateStatusPage: false,
     setting: {
         error: null,
         requesting: false,
@@ -153,6 +157,11 @@ const INITIAL_STATE = {
         data: null,
     },
     deleteStatusPage: {
+        success: false,
+        requesting: false,
+        error: null,
+    },
+    duplicateStatusPage: {
         success: false,
         requesting: false,
         error: null,
@@ -994,6 +1003,53 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 },
             });
 
+        case DUPLICATE_STATUSPAGE_SUCCESS:
+            return Object.assign({}, state, {
+                duplicateStatusPage: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                // statusPages: state.statusPages.filter(
+                //     ({ _id }) => _id !== action.payload._id
+                // ),
+                // subProjectStatusPages: state.subProjectStatusPages.map(
+                //     subProjectStatusPage => {
+                //         subProjectStatusPage.statusPages = subProjectStatusPage.statusPages.filter(
+                //             ({ _id }) => _id !== action.payload._id
+                //         );
+                //         return subProjectStatusPage;
+                //     }
+                // ),
+            });
+
+        case DUPLICATE_STATUSPAGE_REQUEST:
+            return Object.assign({}, state, {
+                duplicateStatusPage: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case DUPLICATE_STATUSPAGE_FAILED:
+            return Object.assign({}, state, {
+                duplicateStatusPage: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case DUPLICATE_STATUSPAGE_RESET:
+            return Object.assign({}, state, {
+                duplicateStatusPage: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            });
+
         case LOGO_CACHE_INSERT:
             return Object.assign({}, state, {
                 logocache: {
@@ -1152,9 +1208,9 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 },
             });
 
-        case DUPLICATE_STATUSPAGE:
+        case SHOW_DUPLICATE_STATUSPAGE:
             return Object.assign({}, state, {
-                duplicateStatusPage: action.payload,
+                showDuplicateStatusPage: action.payload,
             });
 
         default:
