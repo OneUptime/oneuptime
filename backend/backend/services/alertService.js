@@ -183,7 +183,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncident: async function (incident) {
+    sendCreatedIncident: async function (incident, subscription) {
         try {
             if (incident) {
                 const _this = this;
@@ -209,6 +209,7 @@ module.exports = {
                     _this.sendAlertsToTeamMembersInSchedule({
                         schedule,
                         incident,
+                        subscription
                     });
                 }
             }
@@ -218,7 +219,7 @@ module.exports = {
         }
     },
 
-    sendAlertsToTeamMembersInSchedule: async function ({ schedule, incident }) {
+    sendAlertsToTeamMembersInSchedule: async function ({ schedule, incident, subscription }) {
         const _this = this;
         const monitorId = incident.monitorId._id
             ? incident.monitorId._id
@@ -257,6 +258,7 @@ module.exports = {
                 callRemindersSent: 0,
                 emailRemindersSent: 0,
                 smsRemindersSent: 0,
+                pushRemindersSent: 0
             };
 
             //create new onCallScheduleStatus
@@ -280,6 +282,7 @@ module.exports = {
         let shouldSendSMSReminder = false;
         let shouldSendCallReminder = false;
         let shouldSendEmailReminder = false;
+        let shouldSendPushReminder = false;
 
         //No escalation found in the database skip.
         const escalation = await EscalationService.findOneBy({
@@ -298,13 +301,17 @@ module.exports = {
         shouldSendEmailReminder =
             escalation.emailReminders >
             currentEscalationStatus.emailRemindersSent;
+        shouldSendPushReminder =
+            escalation.pushReminders >
+            currentEscalationStatus.pushRemindersSent;
 
         if (
             !shouldSendSMSReminder &&
             !shouldSendEmailReminder &&
-            !shouldSendCallReminder
+            !shouldSendCallReminder &&
+            !shouldSendPushReminder
         ) {
-            _this.escalate({ schedule, incident });
+            _this.escalate({ schedule, incident, subscription });
         } else {
             _this.sendAlertsToTeamMembersInEscalationPolicy({
                 escalation,
@@ -312,6 +319,7 @@ module.exports = {
                 incident,
                 schedule,
                 onCallScheduleStatus,
+                subscription
             });
         }
     },
@@ -383,6 +391,7 @@ module.exports = {
             incident,
             schedule,
             onCallScheduleStatus: callScheduleStatus,
+            subscription
         });
     },
 
@@ -392,6 +401,7 @@ module.exports = {
         monitor,
         schedule,
         onCallScheduleStatus,
+        subscription
     }) {
         const _this = this;
         const monitorId = monitor._id;
@@ -417,6 +427,9 @@ module.exports = {
         const shouldSendEmailReminder =
             escalation.emailReminders >
             currentEscalationStatus.emailRemindersSent;
+        const shouldSendPushReminder =
+            escalation.pushReminders >
+            currentEscalationStatus.pushRemindersSent;
 
         if (shouldSendCallReminder) {
             currentEscalationStatus.callRemindersSent++;
@@ -428,6 +441,10 @@ module.exports = {
 
         if (shouldSendSMSReminder) {
             currentEscalationStatus.smsRemindersSent++;
+        }
+
+        if (shouldSendPushReminder) {
+            currentEscalationStatus.pushRemindersSent++;
         }
 
         if (!activeTeam.teamMembers || activeTeam.teamMembers.length === 0) {
@@ -496,6 +513,20 @@ module.exports = {
                         eventType: 'identified',
                     });
                 }
+                if (escalation.sms && shouldSendSMSReminder) {
+                    await _this.create({
+                        projectId: incident.projectId,
+                        monitorId,
+                        alertVia: AlertType.Push,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        schedule: schedule,
+                        escalation: escalation,
+                        onCallScheduleStatus: onCallScheduleStatus,
+                        alertStatus: 'Not on Duty',
+                        eventType: 'identified',
+                    });
+                }
 
                 continue;
             } else {
@@ -543,8 +574,48 @@ module.exports = {
                         eventType: 'identified',
                     });
                 }
+
+                if (escalation.push && shouldSendPushReminder) {
+                    await _this.sendPushAlert({
+                        incident,
+                        user,
+                        project,
+                        monitor,
+                        schedule,
+                        escalation,
+                        onCallScheduleStatus,
+                        eventType: 'identified',
+                        subscription
+                    });
+                }
             }
         }
+    },
+
+    sendPushAlert: async function ({
+        incident,
+        user,
+        project,
+        monitor,
+        schedule,
+        escalation,
+        onCallScheduleStatus,
+        eventType,
+        subscription
+    }) {
+        const vapidKeys = {
+            privateKey: "8aXTsH48-cegK-xBApLxxOezCOZIjaWpg81Dny2zbio",
+            publicKey: "BFAPbOTTU14VbTe_dnoYlVnOPLKUNm8GYmC50n3i4Ps64sk1Xqx8e894Clrscn1L2PsQ8-l4SsJVw7NRg4cx69Y"
+        };
+
+        webpush.setVapidDetails("mailto:augustine.igwe@hackerbay.io", vapidKeys.publicKey, vapidKeys.privateKey);
+        // Create payload
+        const payload = JSON.stringify({ title: "Push Test" });
+
+        // Pass object into sendNotification
+        webpush
+            .sendNotification(subscription, payload)
+            .catch(err => console.error(err));
     },
 
     sendEmailAlert: async function ({
@@ -3043,3 +3114,4 @@ const {
 } = require('../constants/incidentEvents');
 const componentService = require('./componentService');
 const { calculateHumanReadableDownTime } = require('../utils/incident');
+const webpush = require("web-push");
