@@ -5,7 +5,7 @@ import ReactGA from 'react-ga';
 import { ThroughProvider } from 'react-through';
 import ErrorBoundary from './components/basic/ErrorBoundary';
 import { render } from 'react-dom';
-import * as serviceWorker from './serviceWorker';
+// import * as serviceWorker from './serviceWorker';
 import store, { history, isServer } from './store';
 import App from './App';
 import './index.css';
@@ -30,4 +30,4 @@ render(
 );
 
 // this will enable the app to work offline and load faster
-serviceWorker.register();
+// serviceWorker.register();

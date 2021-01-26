@@ -20,10 +20,17 @@ function ComponentSummary({
         }
     }, [projectId, componentId, startDate, endDate, fetchSummary]);
 
-    const avgMonitorUptime = summary.length
-        ? summary.reduce((a, b) => a.monitorUptime + b.monitorUptime) /
-          summary.length
-        : 100;
+    let totalUptime = 0;
+
+    for (var item of summary) {
+        totalUptime += item.monitorUptime;
+    }
+
+    let avgMonitorUptime = 100;
+
+    if (summary.length > 0) {
+        avgMonitorUptime = totalUptime / summary.length;
+    }
 
     return (
         <div className="Box-root Card-shadow--medium" tabIndex="0">
@@ -73,53 +80,54 @@ function ComponentSummary({
                     </div>
                 </div>
             ) : (
-                <div className="db-Trends-content">
-                    <div className="db-TrendsRows">
-                        <div className="db-Trend">
-                            <div className="block-chart-side line-chart">
-                                <div className="db-TrendRow">
-                                    <div className="db-Trend-colInformation">
-                                        <div className="db-Trend-rowTitle">
-                                            <div className="db-Trend-title">
-                                                <span className="chart-font">
-                                                    Monitors
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
+                    <div className="db-Trends-content">
+                        <div className="db-TrendsRows">
+                            <div className="db-Trend">
+                                <div className="block-chart-side line-chart">
+                                    <div className="db-TrendRow">
+                                        <div className="db-Trend-colInformation">
+                                            <div className="db-Trend-rowTitle">
+                                                <div className="db-Trend-title">
                                                     <span className="chart-font">
-                                                        {summary.length}
+                                                        Monitors
+                                                </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            {summary.length}
+                                                        </span>
                                                     </span>
-                                                </span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="db-Trend-colInformation">
-                                        <div className="db-Trend-rowTitle">
-                                            <div className="db-Trend-title">
-                                                <span className="chart-font">
-                                                    Avg. Uptime Stats
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
+                                        <div className="db-Trend-colInformation">
+                                            <div className="db-Trend-rowTitle">
+                                                <div className="db-Trend-title">
                                                     <span className="chart-font">
-                                                        {avgMonitorUptime ===
-                                                            0 ||
-                                                        avgMonitorUptime === 100
-                                                            ? avgMonitorUptime
-                                                            : avgMonitorUptime.toFixed(
-                                                                  3
-                                                              )}{' '}
+                                                        Avg. Uptime Stats
+                                                </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue">
+                                                    <span>
+                                                        {' '}
+                                                        <span className="chart-font">
+                                                            {avgMonitorUptime ===
+                                                                0 ||
+                                                                avgMonitorUptime === 100
+                                                                ? avgMonitorUptime
+                                                                : avgMonitorUptime.toFixed(
+                                                                    3
+                                                                )}{' '}
                                                         %
                                                     </span>
-                                                </span>
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -127,8 +135,7 @@ function ComponentSummary({
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
         </div>
     );
 }
