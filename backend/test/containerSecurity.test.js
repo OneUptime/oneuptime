@@ -199,7 +199,7 @@ describe('Container Security API', function () {
 
     });
 
-    it('should throw error if scanning with an invalid docker credentials or invalid image path', async function () {
+    it('should throw error if scanning with an invalid docker credentials or invalid image path', function (done) {
         this.timeout(500000);
         const authorization = `Basic ${token}`;
         const data = {
@@ -209,24 +209,24 @@ describe('Container Security API', function () {
             imageTags: dockerCredential.imageTags,
         };
 
-       await request
+        request
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
             .end(function (err, res) {
                 const containerSecurityId = res.body._id;
-                const res = await request
+                request
                     .post(
                         `/security/${projectId}/container/scan/${containerSecurityId}`
                     )
                     .set('Authorization', authorization)
-
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal(
-                    'Scanning failed please check your docker credential or image path/tag'
-                );
-
-
+                    .end(function (err, res) {
+                        expect(res).to.have.status(400);
+                        expect(res.body.message).to.be.equal(
+                            'Scanning failed please check your docker credential or image path/tag'
+                        );
+                        done();
+                    });
             });
 
     });
