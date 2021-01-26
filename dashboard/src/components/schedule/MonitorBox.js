@@ -13,6 +13,7 @@ import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import Tooltip from '../basic/Tooltip';
 
 function submitMonitorForm(values, dispatch, props) {
     const { subProjectId, scheduleId } = props.match.params;
@@ -44,7 +45,7 @@ function submitMonitorForm(values, dispatch, props) {
 }
 
 export function MonitorBox(props) {
-    const { currentProject, subProjects, subProjectId } = props;
+    const { currentProject, subProjects, subProjectId, schedule } = props;
     const currentProjectId = currentProject ? currentProject._id : null;
     let subProject =
         currentProjectId === subProjectId || currentProjectId === subProjectId
@@ -121,6 +122,32 @@ export function MonitorBox(props) {
                                                             Schedule Monitors
                                                         </span>
                                                     </label>
+                                                    <Tooltip title="Moniors and Criteria Using Schedule">
+                                                        <div>
+                                                            <p>
+                                                                These are the
+                                                                list of monitors
+                                                                and criteria in
+                                                                a monitor using
+                                                                the schedule.
+                                                                Note that if an
+                                                                incident matches
+                                                                a criterion, the
+                                                                schedules
+                                                                associated with
+                                                                that criterion
+                                                                will be
+                                                                executed. If the
+                                                                criterion has no
+                                                                schedules
+                                                                associated, the
+                                                                monitor&apos;s
+                                                                schedules will
+                                                                be used.
+                                                            </p>
+                                                        </div>
+                                                    </Tooltip>
+
                                                     <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                         <div
                                                             className="Box-root"
@@ -137,6 +164,9 @@ export function MonitorBox(props) {
                                                                     }
                                                                     subProject={
                                                                         currentProject
+                                                                    }
+                                                                    schedule={
+                                                                        schedule
                                                                     }
                                                                 />
                                                             ) : (
@@ -374,6 +404,7 @@ MonitorBox.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     subProjects: PropTypes.array.isRequired,
+    schedule: PropTypes.objectOf(PropTypes.any),
 };
 
 export default withRouter(
