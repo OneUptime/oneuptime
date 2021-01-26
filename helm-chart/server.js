@@ -1,27 +1,28 @@
-const express = require('express');
-const app = express();
-const path = require('path');
-const version = require('./api/version');
-const cors = require('cors');
-
 process.on('exit', () => {
     /* eslint-disable no-console */
-    console.log('Server Shutting Shutdown');
+    console.log('Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
     /* eslint-disable no-console */
-    console.error('Unhandled rejection in server process occurred');
+    console.error('Unhandled rejection in process occurred');
     /* eslint-disable no-console */
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
     /* eslint-disable no-console */
-    console.error('Uncaught exception in server process occurred');
+    console.error('Uncaught exception in process occurred');
     /* eslint-disable no-console */
     console.error(err);
 });
+
+const express = require('express');
+const app = express();
+const path = require('path');
+const version = require('./api/version');
+const cors = require('cors');
+
 
 app.use(cors());
 
