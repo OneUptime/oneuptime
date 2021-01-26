@@ -422,12 +422,12 @@ describe('Incident API', function() {
                 type: 'internal',
                 incident_state: 'just test',
             });
-            console.log("Response Body: ",res.body)
-        internalMessageId = res.body.returnedIncidentMessages._id;
+            console.log("Response Internal Body: ",res.body);
+        internalMessageId = res.body.data[0]._id;
         expect(res).to.have.status(200);
-        expect(res.body.returnedIncidentMessages.incidentId._id).to.be.equal(incidentId);
-        expect(res.body.returnedIncidentMessages.type).to.be.equal('internal');
-        expect(res.body.returnedIncidentMessages.incident_state).to.be.equal('just test');
+        expect(res.body.data[0].incidentId.toString()._id).to.be.equal(incidentId);
+        expect(res.body.type).to.be.equal('internal');
+        expect(res.body.data[0].incident_state).to.be.equal('just test');
     });
 
     it('should update an investigation incident message', async function() {
@@ -502,7 +502,7 @@ describe('Incident API', function() {
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
             .set('Authorization', authorization);
-
+        console.log("Fetching List of Internal Messages", res.body);
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
