@@ -24,6 +24,7 @@ module.exports = [
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
+            '{{length}} : Length of the incident',
         ],
         smsType: 'Subscriber Incident Acknowldeged',
         body:
@@ -39,6 +40,7 @@ module.exports = [
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
+            '{{length}} : Length of the incident',
         ],
         smsType: 'Subscriber Incident Resolved',
         body:

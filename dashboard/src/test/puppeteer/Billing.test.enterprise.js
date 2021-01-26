@@ -50,8 +50,6 @@ describe('Enterprise Disabled Billing API', () => {
     test(
         'Should not display project billing page after login',
         async done => {
-            expect.assertions(1);
-
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,
@@ -88,8 +86,6 @@ describe('Enterprise Disabled Billing API', () => {
     test(
         'Should not display profile billing on profile menu',
         async done => {
-            expect.assertions(1);
-
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,

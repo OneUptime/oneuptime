@@ -912,9 +912,9 @@ export class IncidentMessageThread extends Component {
                                                                 <div className="bs-note-display-flex bs-mob-block">
                                                                     <div>
                                                                         {incidentMessage.eventType ===
-                                                                            'status page note created' ||
+                                                                            'Investigation note created' ||
                                                                         incidentMessage.eventType ===
-                                                                            'status page note updated'
+                                                                            'Investigation note updated'
                                                                             ? 'Action'
                                                                             : 'Incident'}
                                                                     </div>
@@ -960,25 +960,23 @@ export class IncidentMessageThread extends Component {
                                                                         </div>
                                                                     </div>
                                                                     <div>
-                                                                        Alert{' '}
-                                                                        {incidentMessage.error
-                                                                            ? 'does not send'
-                                                                            : 'sent'}{' '}
-                                                                        to{' '}
-                                                                        <span
-                                                                            style={{
-                                                                                fontWeight:
-                                                                                    '600',
-                                                                            }}
-                                                                        >
-                                                                            {
-                                                                                incidentMessage.totalSubscribers
-                                                                            }
-                                                                        </span>{' '}
-                                                                        {incidentMessage.totalSubscribers >
-                                                                        1
-                                                                            ? 'subscribers'
-                                                                            : 'subscriber'}
+                                                                        {!incidentMessage.error
+                                                                            ? `Alert sent to ${
+                                                                                  incidentMessage.totalSubscribers
+                                                                              } ${
+                                                                                  incidentMessage.totalSubscribers >
+                                                                                  1
+                                                                                      ? 'subscribers'
+                                                                                      : 'subscriber'
+                                                                              }`
+                                                                            : `Alert sent to ${
+                                                                                  incidentMessage.totalSubscribers
+                                                                              } ${
+                                                                                  incidentMessage.totalSubscribers >
+                                                                                  1
+                                                                                      ? 'subscribers'
+                                                                                      : 'subscriber'
+                                                                              } while some failed`}
                                                                     </div>
                                                                     <div>
                                                                         <span className="db-ListViewItem-link">
@@ -1131,15 +1129,21 @@ export class IncidentMessageThread extends Component {
                                                                         </span>
                                                                     </div>
                                                                     <div>
-                                                                        got{' '}
+                                                                        is
+                                                                        notified
+                                                                        by{' '}
                                                                         {incidentMessage.alertVia ===
                                                                         'email'
                                                                             ? 'an'
                                                                             : 'a'}{' '}
                                                                         <span
                                                                             style={{
+                                                                                fontSize:
+                                                                                    '13px',
                                                                                 fontWeight:
                                                                                     '600',
+                                                                                textTransform:
+                                                                                    'uppercase',
                                                                             }}
                                                                         >
                                                                             {

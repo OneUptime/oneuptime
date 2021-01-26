@@ -557,6 +557,7 @@ span.st-Delink.st-Delink--footer a {
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
+            '{{length}} : Length of the incident',
         ],
         emailType: 'Subscriber Incident Acknowldeged',
         subject:
@@ -1661,6 +1662,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
+            '{{length}} : Length of the incident',
         ],
         emailType: 'Subscriber Incident Resolved',
         subject:

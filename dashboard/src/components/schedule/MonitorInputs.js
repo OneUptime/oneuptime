@@ -5,10 +5,46 @@ import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 
-function MonitorInputs({ monitors, subProject, currentProject }) {
+function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
     const monitorItems =
         currentProject._id === subProject._id
             ? monitors.map((monitor, index) => {
+                  // calculate how many up criteria, degraded criteria and down criteria
+                  // are using the schedule
+
+                  const criteriaUsingSchedule = [];
+
+                  if (schedule && monitor.criteria) {
+                      [
+                          ...monitor.criteria.up,
+                          ...monitor.criteria.degraded,
+                          ...monitor.criteria.down,
+                      ].forEach((criterion, index) => {
+                          const monitorUpCriteriaCount =
+                              monitor.criteria.up.length;
+                          const monitorDegradedCriteriaCount =
+                              monitor.criteria.degraded.length;
+                          const type =
+                              index < monitorUpCriteriaCount
+                                  ? 'Up'
+                                  : index <
+                                    monitorUpCriteriaCount +
+                                        monitorDegradedCriteriaCount
+                                  ? 'Degraded'
+                                  : 'Down';
+
+                          if (criterion.scheduleIds.includes(schedule._id)) {
+                              criteriaUsingSchedule.push({
+                                  id: criterion.id,
+                                  name: criterion.default
+                                      ? 'Default Criterion'
+                                      : `${criterion.name ||
+                                            'Unnamed Criterion'} (${type})`,
+                              });
+                          }
+                      });
+                  }
+
                   return (
                       <div className="Box-root Margin-bottom--12" key={index}>
                           <div
@@ -54,6 +90,21 @@ function MonitorInputs({ monitors, subProject, currentProject }) {
                                       </div>
                                   </div>
                               </div>
+                          </div>
+                          <div className="Box-root Margin-left--32">
+                              <ul>
+                                  {criteriaUsingSchedule.map(
+                                      (criterion, index) => {
+                                          return (
+                                              <li key={index}>
+                                                  <span className="bs-Fieldset-explanation">
+                                                      {criterion.name}
+                                                  </span>
+                                              </li>
+                                          );
+                                      }
+                                  )}
+                              </ul>
                           </div>
                       </div>
                   );

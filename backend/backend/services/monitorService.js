@@ -420,8 +420,29 @@ module.exports = {
                         limit,
                         skip
                     );
+
+                    const monitorsWithSchedules = await Promise.all(
+                        monitors.map(async monitor => {
+                            const monitorSchedules = await ScheduleService.findBy(
+                                {
+                                    monitorIds: monitor._id,
+                                }
+                            );
+                            return {
+                                ...monitor.toObject(),
+                                schedules: monitorSchedules,
+                            };
+                        })
+                    );
+
                     const count = await _this.countBy({ projectId: id });
-                    return { monitors, count, _id: id, skip, limit };
+                    return {
+                        monitors: monitorsWithSchedules,
+                        count,
+                        _id: id,
+                        skip,
+                        limit,
+                    };
                 })
             );
             return subProjectMonitors;
