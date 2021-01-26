@@ -5,6 +5,7 @@ import { reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import moment from 'moment';
+import { history } from '../../store';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import {
@@ -13,6 +14,7 @@ import {
     changeUserProjectRole,
     userUpdateRole,
 } from '../../actions/project';
+import { User } from '../../config';
 import ProjectUserAddModal from './ProjectUserAddModal';
 import ProjectRemoveUserModal from './ProjectRemoveUserModal';
 import ShouldRender from '../basic/ShouldRender';
@@ -33,7 +35,10 @@ class ProjectUser extends Component {
         this.props.openModal({
             id: addUserId,
             onConfirm: () => true,
-            content: ProjectUserAddModal,
+            content: DataPathHoC(ProjectUserAddModal, {
+                projectId: this.props.projectId,
+                projectName: this.props.projectName,
+            }),
         });
     };
     updateTeamMemberRole = (values, to) => {
@@ -69,263 +74,239 @@ class ProjectUser extends Component {
         const { handleSubmit, updateUsers, pages, membersPerPage } = this.props;
         return (
             this.props.users &&
+            this.props.users.teamMembers &&
             this.props.users.teamMembers.map((user, i) => {
                 if (
                     i >= pages * membersPerPage - membersPerPage &&
                     i < pages * membersPerPage
                 ) {
                     return (
-                        <tr
-                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-                            key={user._id}
-                        >
-                            <td
-                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                style={{
-                                    height: '1px',
-                                    minWidth: '270px',
+                        <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => {
+                                    history.push(
+                                        '/dashboard/profile/' + user.userId
+                                    );
                                 }}
                             >
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                        <div className="Box-root Margin-right--16">
-                                            <span>{user && user.email}</span>
-                                        </div>
+                                <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
+                                    {user.name ? (
+                                        <span>
+                                            <span>
+                                                {user.name ? user.name : ''}
+                                            </span>
+                                        </span>
+                                    ) : (
+                                        ''
+                                    )}
+                                    {!user.name && user.email ? (
+                                        <span>
+                                            <span>
+                                                {user.email ? user.email : ''}
+                                            </span>
+                                        </span>
+                                    ) : (
+                                        ''
+                                    )}
+                                </div>
+                            </div>
+                            <div className="bs-ObjectList-cell bs-u-v-middle">
+                                <div
+                                    id={`${user.role}_${
+                                        user.email.split('@')[0]
+                                    }`}
+                                    className="bs-ObjectList-cell-row"
+                                >
+                                    {user.role}
+                                </div>
+                            </div>
+                            <div className="bs-ObjectList-cell bs-u-v-middle">
+                                <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                        <span>
+                                            {user && user.name
+                                                ? 'Online ' +
+                                                  moment(
+                                                      user.userId &&
+                                                          user.userId.lastActive
+                                                  ).fromNow()
+                                                : 'Invitation Sent'}
+                                        </span>
                                     </span>
                                 </div>
-                            </td>
-                            <td
-                                className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                style={{ height: '1px' }}
-                            >
-                                <div className="db-ListViewItem-link">
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            <div className="Box-root">
-                                                <span>{user.role}</span>
-                                            </div>
-                                        </span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td
-                                className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                style={{ height: '1px' }}
-                            >
-                                <div className="db-ListViewItem-link">
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            <div className="Box-root">
-                                                {user && user.deleted ? (
-                                                    <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                            <span>Deleted</span>
-                                                        </span>
-                                                    </div>
-                                                ) : user && user.isBlocked ? (
-                                                    <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                        <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                            <span>Blocked</span>
-                                                        </span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                            <span>
-                                                                {user &&
-                                                                user.name
-                                                                    ? 'Online ' +
-                                                                      moment(
-                                                                          user.userId &&
-                                                                              user
-                                                                                  .userId
-                                                                                  .lastActive
-                                                                      ).fromNow()
-                                                                    : 'Invitation Sent'}
-                                                            </span>
-                                                        </span>
-                                                    </div>
+                            </div>
+                            <div className="bs-ObjectList-cell bs-u-v-middle"></div>
+                            <div className="bs-ObjectList-cell bs-u-right bs-u-shrink bs-u-v-middle Flex-alignContent--spaceBetween">
+                                <div>
+                                    <ShouldRender
+                                        if={
+                                            !(
+                                                User.getUserId() ===
+                                                    user.userId &&
+                                                user.role === 'Owner'
+                                            )
+                                        }
+                                    >
+                                        <div className="Flex-flex Flex-alignContent--spaceBetween">
+                                            <Dropdown
+                                                disabled={
+                                                    updateUsers.requesting &&
+                                                    updateUsers.updating.includes(
+                                                        user.userId
+                                                    )
+                                                }
+                                            >
+                                                {!(
+                                                    updateUsers.requesting &&
+                                                    updateUsers.updating.includes(
+                                                        user.userId
+                                                    )
+                                                ) && (
+                                                    <Dropdown.Toggle
+                                                        id={`changeRole_${
+                                                            user.email.split(
+                                                                '@'
+                                                            )[0]
+                                                        }`}
+                                                        title="Change Role"
+                                                        className="bs-Button bs-DeprecatedButton"
+                                                    />
                                                 )}
-                                            </div>
-                                        </span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td></td>
-                            <td
-                                className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                style={{ height: '1px' }}
-                            >
-                                <div className="db-ListViewItem-link">
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            <div className="Box-root Flex-flex Flex-justifyContent--flexEnd">
-                                                <ShouldRender
-                                                    if={user.role !== 'Owner'}
-                                                >
-                                                    <div className="Flex-flex Flex-alignContent--spaceBetween">
-                                                        <Dropdown
-                                                            disabled={false}
-                                                        >
-                                                            {!(
+                                                {updateUsers.requesting &&
+                                                    updateUsers.updating.includes(
+                                                        user.userId
+                                                    ) && (
+                                                        <button
+                                                            disabled={
                                                                 updateUsers.requesting &&
                                                                 updateUsers.updating.includes(
                                                                     user.userId
                                                                 )
-                                                            ) && (
-                                                                <Dropdown.Toggle
-                                                                    id={`changeRole_${
-                                                                        user.email.split(
-                                                                            '@'
-                                                                        )[0]
-                                                                    }`}
-                                                                    title="Change Role"
-                                                                    className="bs-Button bs-DeprecatedButton"
-                                                                />
-                                                            )}
-                                                            {updateUsers.requesting &&
-                                                                updateUsers.updating.includes(
-                                                                    user.userId
-                                                                ) && (
-                                                                    <button
-                                                                        disabled={
-                                                                            false
-                                                                        }
-                                                                        className="bs-Button bs-DeprecatedButton Margin-left--8"
-                                                                        type="button"
-                                                                    >
-                                                                        <TeamListLoader />
-                                                                    </button>
-                                                                )}
-
-                                                            <Dropdown.Menu>
-                                                                <MenuItem
-                                                                    title="Owner"
-                                                                    onClick={handleSubmit(
-                                                                        values =>
-                                                                            this.updateTeamMemberRole(
-                                                                                {
-                                                                                    ...values,
-                                                                                    role:
-                                                                                        user.role,
-                                                                                    userId:
-                                                                                        user.userId,
-                                                                                },
-                                                                                'Owner'
-                                                                            )
-                                                                    )}
-                                                                >
-                                                                    Owner
-                                                                </MenuItem>
-                                                                <MenuItem
-                                                                    title="Administrator"
-                                                                    onClick={handleSubmit(
-                                                                        values =>
-                                                                            this.updateTeamMemberRole(
-                                                                                {
-                                                                                    ...values,
-                                                                                    role:
-                                                                                        user.role,
-                                                                                    userId:
-                                                                                        user.userId,
-                                                                                },
-                                                                                'Administrator'
-                                                                            )
-                                                                    )}
-                                                                >
-                                                                    Administrator
-                                                                </MenuItem>
-                                                                <MenuItem
-                                                                    title="Member"
-                                                                    onClick={handleSubmit(
-                                                                        values =>
-                                                                            this.updateTeamMemberRole(
-                                                                                {
-                                                                                    ...values,
-                                                                                    role:
-                                                                                        user.role,
-                                                                                    userId:
-                                                                                        user.userId,
-                                                                                },
-                                                                                'Member'
-                                                                            )
-                                                                    )}
-                                                                >
-                                                                    Member
-                                                                </MenuItem>
-                                                                <MenuItem
-                                                                    title="Viewer"
-                                                                    onClick={handleSubmit(
-                                                                        values =>
-                                                                            this.updateTeamMemberRole(
-                                                                                {
-                                                                                    ...values,
-                                                                                    role:
-                                                                                        user.role,
-                                                                                    userId:
-                                                                                        user.userId,
-                                                                                },
-                                                                                'Viewer'
-                                                                            )
-                                                                    )}
-                                                                >
-                                                                    Viewer
-                                                                </MenuItem>
-                                                            </Dropdown.Menu>
-                                                        </Dropdown>
-                                                        <button
-                                                            id={`removeMember__${
-                                                                user.email.split(
-                                                                    '@'
-                                                                )[0]
-                                                            }`}
-                                                            title="delete"
-                                                            disabled={false}
+                                                            }
                                                             className="bs-Button bs-DeprecatedButton Margin-left--8"
                                                             type="button"
-                                                            onClick={handleSubmit(
-                                                                values =>
-                                                                    this.props.openModal(
-                                                                        {
-                                                                            id: this
-                                                                                .state
-                                                                                .removeUserModalId,
-                                                                            content: DataPathHoC(
-                                                                                ProjectRemoveUserModal,
-                                                                                {
-                                                                                    removeUserModalId: this
-                                                                                        .state
-                                                                                        .removeUserModalId,
-                                                                                    values: {
-                                                                                        ...values,
-                                                                                        userId:
-                                                                                            user.userId,
-                                                                                    },
-                                                                                    displayName:
-                                                                                        user.name ||
-                                                                                        user.email,
-                                                                                    removeTeamMember: this
-                                                                                        .removeTeamMember,
-                                                                                }
-                                                                            ),
-                                                                        }
-                                                                    )
-                                                            )}
                                                         >
-                                                            {!false && (
-                                                                <span>
-                                                                    Remove
-                                                                </span>
-                                                            )}
+                                                            <TeamListLoader />
                                                         </button>
-                                                    </div>
-                                                </ShouldRender>
-                                            </div>
-                                        </span>
-                                    </div>
+                                                    )}
+
+                                                <Dropdown.Menu>
+                                                    <MenuItem
+                                                        title="Owner"
+                                                        onClick={handleSubmit(
+                                                            values =>
+                                                                this.updateTeamMemberRole(
+                                                                    {
+                                                                        ...values,
+                                                                        role:
+                                                                            user.role,
+                                                                        userId:
+                                                                            user.userId,
+                                                                    },
+                                                                    'Owner'
+                                                                )
+                                                        )}
+                                                    >
+                                                        Owner
+                                                    </MenuItem>
+                                                    <MenuItem
+                                                        title="Administrator"
+                                                        onClick={handleSubmit(
+                                                            values =>
+                                                                this.updateTeamMemberRole(
+                                                                    {
+                                                                        ...values,
+                                                                        role:
+                                                                            user.role,
+                                                                        userId:
+                                                                            user.userId,
+                                                                    },
+                                                                    'Administrator'
+                                                                )
+                                                        )}
+                                                    >
+                                                        Administrator
+                                                    </MenuItem>
+                                                    <MenuItem
+                                                        title="Member"
+                                                        onClick={handleSubmit(
+                                                            values =>
+                                                                this.updateTeamMemberRole(
+                                                                    {
+                                                                        ...values,
+                                                                        role:
+                                                                            user.role,
+                                                                        userId:
+                                                                            user.userId,
+                                                                    },
+                                                                    'Member'
+                                                                )
+                                                        )}
+                                                    >
+                                                        Member
+                                                    </MenuItem>
+                                                    <MenuItem
+                                                        title="Viewer"
+                                                        onClick={handleSubmit(
+                                                            values =>
+                                                                this.updateTeamMemberRole(
+                                                                    {
+                                                                        ...values,
+                                                                        role:
+                                                                            user.role,
+                                                                        userId:
+                                                                            user.userId,
+                                                                    },
+                                                                    'Viewer'
+                                                                )
+                                                        )}
+                                                    >
+                                                        Viewer
+                                                    </MenuItem>
+                                                </Dropdown.Menu>
+                                            </Dropdown>
+                                            <button
+                                                id={`removeMember__${
+                                                    user.email.split('@')[0]
+                                                }`}
+                                                title="delete"
+                                                disabled={false}
+                                                className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                type="button"
+                                                onClick={handleSubmit(values =>
+                                                    this.props.openModal({
+                                                        id: this.state
+                                                            .removeUserModalId,
+                                                        content: DataPathHoC(
+                                                            ProjectRemoveUserModal,
+                                                            {
+                                                                removeUserModalId: this
+                                                                    .state
+                                                                    .removeUserModalId,
+                                                                values: {
+                                                                    ...values,
+                                                                    userId:
+                                                                        user.userId,
+                                                                },
+                                                                displayName:
+                                                                    user.name ||
+                                                                    user.email,
+                                                                removeTeamMember: this
+                                                                    .removeTeamMember,
+                                                            }
+                                                        ),
+                                                    })
+                                                )}
+                                            >
+                                                {!false && <span>Remove</span>}
+                                            </button>
+                                        </div>
+                                    </ShouldRender>
                                 </div>
-                            </td>
-                        </tr>
+                            </div>
+                        </div>
                     );
                 } else {
                     return null;
@@ -340,107 +321,85 @@ class ProjectUser extends Component {
             deleteError,
             canPaginateBackward,
             canPaginateForward,
-            paginate
+            paginate,
         } = this.props;
         return (
-            <div className="Box-root Margin-bottom--12">
-                <div className="bs-ContentSection Card-root Card-shadow--medium">
-                    <div className="Box-root">
-                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+            <div className="Box-root">
+                <div className="ContentHeader Box-root Card-shadow--medium Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span
+                                    id={`project_${this.props.projectName}`}
+                                    style={{ textTransform: 'capitalize' }}
+                                >
+                                    Project Users Members
+                                </span>
+                            </span>
+                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                <span>
+                                    Here are all the members who belong to{' '}
+                                    <span
+                                        style={{ textTransform: 'lowercase' }}
+                                    >
+                                        {this.props.projectName}
+                                    </span>
+                                </span>
+                            </span>
+                        </div>
+                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <div className="Box-root">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Project Users</span>
-                                </span>
-                            </div>
-                            <div
-                                className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4"
-                                onClick={this.handleClick}
-                            >
-                                <div className="Box-root Margin-right--8">
-                                    <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                </div>
+                                <button
+                                    id={`btn_${this.props.projectName}`}
+                                    onClick={this.handleClick}
+                                    className="Button bs-ButtonLegacy ActionIconParent"
+                                    type="button"
+                                >
+                                    <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <div className="Box-root Margin-right--8">
+                                            <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
+                                        </div>
 
-                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                                    <span>Add User to Project</span>
-                                    <span className="new-btn__keycode">N</span>
-                                </span>
+                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                                            <span>Invite Team Member</span>
+                                            <span className="new-btn__keycode">
+                                                N
+                                            </span>
+                                        </span>
+                                    </div>
+                                </button>
                             </div>
                         </div>
-                        <div>
-                            <div
-                                style={{
-                                    overflow: 'hidden',
-                                    overflowX: 'auto',
-                                }}
-                            >
-                                <table className="Table">
-                                    <thead className="Table-body">
-                                        <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                    </div>
+                    <div>
+                        <div className="bs-ContentSection-content Box-root">
+                            <div className="bs-ObjectList db-UserList">
+                                <div>
+                                    <div className="bs-ObjectList-rows">
+                                        <header className="bs-ObjectList-row bs-ObjectList-row--header">
+                                            <div className="bs-ObjectList-cell">
+                                                Team Member
+                                            </div>
+                                            <div className="bs-ObjectList-cell">
+                                                Role
+                                            </div>
+                                            <div className="bs-ObjectList-cell">
+                                                Status
+                                            </div>
+                                            <div className="bs-ObjectList-cell"></div>
+                                            <div
+                                                className="bs-ObjectList-cell"
                                                 style={{
-                                                    height: '1px',
-                                                    minWidth: '270px',
+                                                    float: 'right',
+                                                    marginRight: '10px',
                                                 }}
                                             >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                        <span>User</span>
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td
-                                                className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                        <span>Role</span>
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                        <span>Status</span>
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td
-                                                id="placeholder-right"
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{
-                                                    height: '1px',
-                                                    maxWidth: '48px',
-                                                    minWidth: '48px',
-                                                    width: '48px',
-                                                }}
-                                            >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                                </div>
-                                            </td>
-                                            <td
-                                                id="overflow"
-                                                type="action"
-                                                className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                        Actions
-                                                    </span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="Table-body">
+                                                Action
+                                            </div>
+                                        </header>
                                         {this.renderTable()}
-                                    </tbody>
-                                </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -585,6 +544,7 @@ ProjectUser.propTypes = {
     canPaginateBackward: PropTypes.bool.isRequired,
     canPaginateForward: PropTypes.bool.isRequired,
     paginate: PropTypes.func.isRequired,
+    projectName: PropTypes.string,
 };
 
 function mapStateToProps(state) {

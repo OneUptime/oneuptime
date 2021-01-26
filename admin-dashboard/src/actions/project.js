@@ -100,6 +100,59 @@ export const fetchProject = projectId => async dispatch => {
     }
 };
 
+// Team create
+export function userCreateRequest() {
+    return {
+        type: types.USER_CREATE_REQUEST,
+    };
+}
+
+export function userCreateSuccess(team) {
+    return {
+        type: types.USER_CREATE_SUCCESS,
+        payload: team,
+    };
+}
+
+export function userCreateError(error) {
+    return {
+        type: types.USER_CREATE_FAILURE,
+        payload: error,
+    };
+}
+
+// Calls the API to add users to project.
+export function userCreate(projectId, values) {
+    return function(dispatch) {
+        const promise = postApi(`team/${projectId}`, values);
+        dispatch(userCreateRequest());
+        promise.then(
+            function(response) {
+                const data = response.data;
+                const projectUsers = data.filter(
+                    team => team._id === projectId
+                )[0];
+                dispatch(userCreateSuccess(projectUsers));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(userCreateError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
 export const fetchUserProjectsRequest = () => {
     return {
         type: types.FETCH_USER_PROJECTS_REQUEST,
@@ -239,7 +292,6 @@ export function paginatePrev() {
         type: types.PAGINATE_USERS_PREV,
     };
 }
-
 
 export function paginate(type) {
     return function(dispatch) {

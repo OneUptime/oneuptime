@@ -183,6 +183,18 @@ export const Validate = {
     isValidBusinessEmail(email) {
         return emaildomains.test(email);
     },
+    isValidBusinessEmails(emails) {
+        let valid = true;
+        if (emails && emails.length > 0) {
+            for (let i = 0; i < emails.length; i++) {
+                if (!emaildomains.test(emails[i])) {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+        return valid;
+    },
 
     compare(text1, text2) {
         return text1 === text2;

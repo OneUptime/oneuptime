@@ -49,6 +49,9 @@ import {
     TEAM_DELETE_SUCCESS,
     TEAM_DELETE_FAILURE,
     TEAM_DELETE_RESET,
+    USER_CREATE_REQUEST,
+    USER_CREATE_SUCCESS,
+    USER_CREATE_FAILURE,
     USER_UPDATE_ROLE_REQUEST,
     USER_UPDATE_ROLE_SUCCESS,
     USER_UPDATE_ROLE_FAILURE,
@@ -134,6 +137,11 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         updating: [],
+    },
+    createUser: {
+        error: null,
+        requesting: false,
+        success: false,
     },
 };
 
@@ -234,6 +242,35 @@ export default function project(state = INITIAL_STATE, action) {
         case FETCH_PROJECT_TEAM_ERROR:
             return Object.assign({}, state, {
                 projectTeam: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+        //create user
+        case USER_CREATE_REQUEST:
+            return Object.assign({}, state, {
+                createUser: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case USER_CREATE_SUCCESS:
+            return Object.assign({}, state, {
+                createUser:{
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                projectTeam: {
+                    ...state.projectTeam,
+                    team: action.payload,
+                },
+            })
+        case USER_CREATE_FAILURE:
+            return Object.assign({}, state, {
+                createUser: {
                     requesting: false,
                     error: action.payload,
                     success: false,

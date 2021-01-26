@@ -31,7 +31,6 @@ class Project extends Component {
     };
 
     render() {
-        console.log(this.props.projectUsers.page, 'sdfsdsd page');
         return (
             <Dashboard ready={this.ready}>
                 <div className="Box-root Margin-vertical--12">
@@ -65,6 +64,10 @@ class Project extends Component {
                                                 <ProjectUsers
                                                     paginate={
                                                         this.props.paginate
+                                                    }
+                                                    projectName={
+                                                        this.props.project &&
+                                                        this.props.project.name
                                                     }
                                                     users={
                                                         this.props

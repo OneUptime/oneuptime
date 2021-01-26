@@ -3,36 +3,41 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Field, reduxForm } from 'redux-form';
 import ClickOutside from 'react-click-outside';
-// import {
-//     teamCreate,
-//     teamCreateRequest,
-//     teamCreateSuccess,
-//     teamCreateError,
-// } from '../../actions/team';
+import uuid from 'uuid';
+import {
+    userCreate,
+    userCreateRequest,
+    userCreateSuccess,
+    userCreateError,
+} from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-// import projectTeamMemberNotification from './projectTeamMemberNotification.js';
-// import { logEvent } from '../../analytics';
-// import { SHOULD_LOG_ANALYTICS, Validate } from '../../config';
-// import DataPathHoC from '../DataPathHoC';
-// import MessageBox from './MessageBox';
-// import formatEmails from '../../utils/formatEmails';
+import { Validate } from '../../config';
+import DataPathHoC from '../DataPathHoC';
+import MessageBox from '../modals/MessageBox';
+import formatEmails from '../../utils/formatEmails';
 
 function validate(values) {
     const errors = {};
     // remove white spaces
     values.emails = values.emails ? values.emails.replace(/\s/g, '') : '';
     const emails = values.emails ? values.emails.split(',') : [];
-    // if (!Validate.isValidBusinessEmails(emails)) {
-    //     errors.emails = 'Please enter business emails of the members.';
-    // }
+    if (!Validate.isValidBusinessEmails(emails)) {
+        errors.emails = 'Please enter business emails of the members.';
+    }
 
     return errors;
 }
 
 export class FormModal extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            messageModalId: uuid.v4(),
+        };
+    }
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -42,99 +47,62 @@ export class FormModal extends Component {
     }
 
     submitForm = values => {
-        // values.emails = formatEmails(values.emails);
-        // const {
-        //     teamCreate,
-        //     closeThisDialog,
-        //     data,
-        //     closeModal,
-        //     subProjects,
-        //     currentProject,
-        //     openModal,
-        // } = this.props;
-        // const { notificationModalId } = this.state;
-        // values.projectId = data.subProjectId;
+        values.emails = formatEmails(values.emails);
+        const { userCreate, closeThisDialog, data } = this.props;
+        values.projectId = data.projectId;
 
-        // const { role, emails } = values;
-        // const emailArray = emails ? emails.split(',') : [];
+        const { role, emails } = values;
+        const emailArray = emails ? emails.split(',') : [];
 
-        // if (role !== 'Viewer' && emailArray.length > 100) {
-        //     this.showMessageBox();
-        // }
-
-        // if (
-        //     subProjects &&
-        //     subProjects.length >= 1 &&
-        //     data.subProjectId === currentProject._id
-        // ) {
-        //     openModal({
-        //         id: this.state.notificationModalId,
-        //         onClose: () => closeModal({ id: notificationModalId }),
-        //         onConfirm: () =>
-        //             teamCreate(data.subProjectId, values).then(
-        //                 function() {
-        //                     closeThisDialog();
-        //                     closeModal({ id: notificationModalId });
-        //                 },
-        //                 function() {
-        //                     //do nothing.
-        //                 }
-        //             ),
-        //         content: projectTeamMemberNotification,
-        //     });
-        // } else {
-        //     teamCreate(data.subProjectId, values).then(
-        //         function() {
-        //             closeThisDialog();
-        //         },
-        //         function() {
-        //             //do nothing.
-        //         }
-        //     );
-        // }
-        // if (SHOULD_LOG_ANALYTICS) {
-        //     logEvent(
-        //         'EVENT: DASHBOARD > PROJECT > TEAM MEMBER > INVITED',
-        //         values
-        //     );
-        // }
+        if (role !== 'Viewer' && emailArray.length > 100) {
+            this.showMessageBox();
+        }
+        userCreate(data.projectId, values).then(
+            function() {
+                closeThisDialog();
+            },
+            function() {
+                //do nothing.
+            }
+        );
     };
 
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                // this.props.closeModal({ id: this.state.notificationModalId });
-                // this.props.closeThisDialog();
+                this.props.closeThisDialog();
                 return true;
             case 'Enter':
-                return document.getElementById(`btn_modal`).click();
+                return document
+                    .getElementById(`btn_modal_${this.props.data.projectName}`)
+                    .click();
             default:
                 return false;
         }
     };
 
-    // showMessageBox = () =>
-    //     this.props.openModal({
-    //         id: this.state.messageModalId,
-    //         content: DataPathHoC(MessageBox, {
-    //             message: (
-    //                 <span>
-    //                     Please{' '}
-    //                     <a
-    //                         href="mailto: sales@fyipe.com"
-    //                         target="_blank"
-    //                         rel="noopener noreferrer"
-    //                         style={{ textDecoration: 'underline' }}
-    //                     >
-    //                         contact sales
-    //                     </a>{' '}
-    //                     if you wish to add more than 100 members to the project
-    //                 </span>
-    //             ),
-    //             title: 'You cannot add more than 100 members',
-    //             messageBoxId: this.state.messageModalId,
-    //         }),
-    //     });
+    showMessageBox = () =>
+        this.props.openModal({
+            id: this.state.messageModalId,
+            content: DataPathHoC(MessageBox, {
+                message: (
+                    <span>
+                        Please{' '}
+                        <a
+                            href="mailto: sales@fyipe.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ textDecoration: 'underline' }}
+                        >
+                            contact sales
+                        </a>{' '}
+                        if you wish to add more than 100 members to the project
+                    </span>
+                ),
+                title: 'You cannot add more than 100 members',
+                messageBoxId: this.state.messageModalId,
+            }),
+        });
 
     render() {
         const { handleSubmit, closeThisDialog, data } = this.props;
@@ -148,7 +116,7 @@ export class FormModal extends Component {
                     <div className="bs-Modal bs-Modal--large project-user-modal">
                         <ClickOutside onClickOutside={closeThisDialog}>
                             <form
-                                id={`frm_`}
+                                id={`frm_${data.projectName}`}
                                 lpformnum="2"
                                 onSubmit={handleSubmit(this.submitForm)}
                             >
@@ -203,7 +171,7 @@ export class FormModal extends Component {
                                                                                 className="public-DraftStyleDefault-block public-DraftStyleDefault-ltr"
                                                                                 type="text"
                                                                                 name="emails"
-                                                                                id={`emails_`}
+                                                                                id={`emails_${data.projectName}`}
                                                                                 placeholder="bob@example.com, alice@example.com, etc."
                                                                                 component={
                                                                                     RenderField
@@ -236,10 +204,10 @@ export class FormModal extends Component {
                                             <div className="db-RoleRadioList-row">
                                                 <label
                                                     className="bs-Radio"
-                                                    htmlFor={`Viewer_`}
+                                                    htmlFor={`Viewer_${data.projectName}`}
                                                 >
                                                     <Field
-                                                        id={`Viewer_`}
+                                                        id={`Viewer_${data.projectName}`}
                                                         className="bs-Radio-source"
                                                         name="role"
                                                         component="input"
@@ -283,10 +251,10 @@ export class FormModal extends Component {
                                             <div className="db-RoleRadioList-row">
                                                 <label
                                                     className="bs-Radio"
-                                                    htmlFor={`Member_`}
+                                                    htmlFor={`Member_${data.projectName}`}
                                                 >
                                                     <Field
-                                                        id={`Member_`}
+                                                        id={`Member_${data.projectName}`}
                                                         className="bs-Radio-source"
                                                         name="role"
                                                         component="input"
@@ -326,10 +294,10 @@ export class FormModal extends Component {
                                             <div className="db-RoleRadioList-row">
                                                 <label
                                                     className="bs-Radio"
-                                                    htmlFor={`Administrator_`}
+                                                    htmlFor={`Administrator_${data.projectName}`}
                                                 >
                                                     <Field
-                                                        id={`Administrator_`}
+                                                        id={`Administrator_${data.projectName}`}
                                                         className="bs-Radio-source"
                                                         name="role"
                                                         component="input"
@@ -370,75 +338,73 @@ export class FormModal extends Component {
                                                     </span>
                                                 </label>
                                             </div>
-                                            <ShouldRender if={true}>
-                                                <div className="db-RoleRadioList-row">
-                                                    <label
-                                                        className="bs-Radio"
-                                                        htmlFor={`Owner_`}
-                                                    >
-                                                        <Field
-                                                            id={`Owner_`}
-                                                            className="bs-Radio-source"
-                                                            name="role"
-                                                            component="input"
-                                                            type="radio"
-                                                            value="Owner"
-                                                        />
-                                                        <span className="bs-Radio-button"></span>
-                                                        <span className="bs-Radio-label">
-                                                            <div className="db-RoleRadioListLabel">
-                                                                <div className="db-RoleRadioListLabel-name">
-                                                                    <span>
-                                                                        Owner
-                                                                    </span>
-                                                                </div>
-                                                                <div className="db-RoleRadioListLabel-description">
-                                                                    <span>
-                                                                        Owners
-                                                                        have
-                                                                        complete
-                                                                        control
-                                                                        over
-                                                                        this
-                                                                        Fyipe
-                                                                        project
-                                                                        including
-                                                                        all the
-                                                                        sub-projects.
-                                                                        Owners
-                                                                        can
-                                                                        create
-                                                                        and
-                                                                        delete
-                                                                        sub-projects
-                                                                        and
-                                                                        manage
-                                                                        everything
-                                                                        in
-                                                                        Fyipe.{' '}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="db-RoleRadioListLabel-info">
-                                                                    <div className="Box-root Flex-inlineFlex">
-                                                                        <div className="Box-root Flex-flex">
-                                                                            <div className="Box-root Flex-flex"></div>
-                                                                        </div>
+
+                                            <div className="db-RoleRadioList-row">
+                                                <label
+                                                    className="bs-Radio"
+                                                    htmlFor={`Owner_${data.projectName}`}
+                                                >
+                                                    <Field
+                                                        id={`Owner_${data.projectName}`}
+                                                        className="bs-Radio-source"
+                                                        name="role"
+                                                        component="input"
+                                                        type="radio"
+                                                        value="Owner"
+                                                    />
+                                                    <span className="bs-Radio-button"></span>
+                                                    <span className="bs-Radio-label">
+                                                        <div className="db-RoleRadioListLabel">
+                                                            <div className="db-RoleRadioListLabel-name">
+                                                                <span>
+                                                                    Owner
+                                                                </span>
+                                                            </div>
+                                                            <div className="db-RoleRadioListLabel-description">
+                                                                <span>
+                                                                    Owners have
+                                                                    complete
+                                                                    control over
+                                                                    this Fyipe
+                                                                    project
+                                                                    including
+                                                                    all the
+                                                                    sub-projects.
+                                                                    Owners can
+                                                                    create and
+                                                                    delete
+                                                                    sub-projects
+                                                                    and manage
+                                                                    everything
+                                                                    in Fyipe.{' '}
+                                                                </span>
+                                                            </div>
+                                                            <div className="db-RoleRadioListLabel-info">
+                                                                <div className="Box-root Flex-inlineFlex">
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <div className="Box-root Flex-flex"></div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                            </ShouldRender>
+                                                        </div>
+                                                    </span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="bs-Modal-footer">
-                                    <div className="bs-Modal-footer-actions">
+                                <div
+                                    className="bs-Modal-footer"
+                                    style={{
+                                        flexDirection: 'column',
+                                    }}
+                                >
+                                    <div
+                                        className="bs-Modal-footer-actions"
+                                        style={{ width: '100%' }}
+                                    >
                                         <ShouldRender
-                                            if={
-                                                false
-                                            }
+                                            if={this.props.createUser.error}
                                         >
                                             <div className="bs-Tail-copy">
                                                 <div
@@ -456,40 +422,54 @@ export class FormModal extends Component {
                                                                 color: 'red',
                                                             }}
                                                         >
-                                                            kola wole
+                                                            {
+                                                                this.props
+                                                                    .createUser
+                                                                    .error
+                                                            }
                                                         </span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </ShouldRender>
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton btn__modal"
-                                            type="button"
-                                            onClick={closeThisDialog}
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'flex-end',
+                                            }}
                                         >
-                                            <span>Cancel</span>
-                                            <span className="cancel-btn__keycode">
-                                                Esc
-                                            </span>
-                                        </button>
-                                        <button
-                                            id={`btn_modal_`}
-                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                            disabled={
-                                               false
-                                            }
-                                            type="submit"
-                                        >
-                                            {false && (
-                                                <>
-                                                    <span>Invite</span>
-                                                    <span className="create-btn__keycode">
-                                                        <span className="keycode__icon keycode__icon--enter" />
-                                                    </span>
-                                                </>
-                                            )}
-                                            Click this
-                                        </button>
+                                            <button
+                                                className="bs-Button bs-DeprecatedButton btn__modal"
+                                                type="button"
+                                                onClick={closeThisDialog}
+                                            >
+                                                <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
+                                            </button>
+                                            <button
+                                                id={`btn_modal_${data.projectName}`}
+                                                className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                                disabled={
+                                                    this.props.createUser
+                                                        .requesting
+                                                }
+                                                type="submit"
+                                            >
+                                                {this.props.createUser
+                                                    .requesting ? (
+                                                    <FormLoader />
+                                                ) : (
+                                                    <>
+                                                        <span>Add User</span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </form>
@@ -503,40 +483,34 @@ export class FormModal extends Component {
 
 FormModal.displayName = 'InviteMemberFormModal';
 
-const InviteTeamMemberForm = reduxForm({
-    form: 'InviteTeamMember', // a unique identifier for this form
+const ProjectUserAddModal = reduxForm({
+    form: 'ProjectUserAddModal', // a unique identifier for this form
     validate,
 })(FormModal);
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        {
-        },
+        { userCreate, userCreateRequest, userCreateSuccess, userCreateError },
         dispatch
     );
 };
 
 function mapStateToProps(state) {
-    // return {
-    //     team: state.team,
-    //     currentProject: state.project.currentProject,
-    //     subProjects: state.subProject.subProjects.subProjects,
-    // };
+    return {
+        createUser: state.project.createUser,
+    };
 }
 
 FormModal.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
-    team: PropTypes.object.isRequired,
-    teamCreate: PropTypes.oneOfType([PropTypes.func]).isRequired,
+    createUser: PropTypes.object.isRequired,
+    userCreate: PropTypes.oneOfType([PropTypes.func]).isRequired,
     closeThisDialog: PropTypes.func.isRequired,
     data: PropTypes.object.isRequired,
-    currentProject: PropTypes.object.isRequired,
     openModal: PropTypes.func.isRequired,
-    closeModal: PropTypes.func.isRequired,
-    subProjects: PropTypes.array.isRequired,
 };
 
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(InviteTeamMemberForm);
+)(ProjectUserAddModal);
