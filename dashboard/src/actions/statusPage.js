@@ -785,12 +785,6 @@ export function duplicateStatusPageRequest() {
     };
 }
 
-export function duplicateStatusPageReset() {
-    return {
-        type: types.DUPLICATE_STATUSPAGE_RESET,
-    };
-}
-
 export function duplicateStatusPageSuccess(statusPage) {
     return {
         type: types.DUPLICATE_STATUSPAGE_SUCCESS,
@@ -800,23 +794,20 @@ export function duplicateStatusPageSuccess(statusPage) {
 
 export function duplicateStatusPageError(error) {
     return {
-        type: types.DUPLICATE_STATUSPAGE_FAILED,
+        type: types.DUPLICATE_STATUSPAGE_FAILURE,
         payload: error,
     };
 }
 
-// Calls the API for duplicate status page.
-export function duplicateStatusPage(projectId, statusPageId) {
+// Calls the API to duplicate statuspage.
+export function duplicateStatusPage(projectId, data) {
     return function(dispatch) {
-        const promise = postApi(
-            `statusPage/${projectId}/${statusPageId}`,
-            null
-        );
+        const promise = postApi(`statusPage/${projectId}`, data);
         dispatch(duplicateStatusPageRequest());
         promise.then(
             function(response) {
-                const data = response.data;
-                dispatch(duplicateStatusPageSuccess(data));
+                const statusPage = response.data;
+                dispatch(duplicateStatusPageSuccess(statusPage));
             },
             function(error) {
                 if (error && error.response && error.response.data)

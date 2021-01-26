@@ -7,7 +7,7 @@ import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { duplicateStatusPage } from '../../actions/statusPage';
-import DuplicateStatusPageModal from './DuplicateStatusPageModal';
+import DuplicateStatusPageForm from './DuplicateStatusPageForm';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
@@ -43,7 +43,7 @@ export class DuplicateStatusPageBox extends Component {
                     }
                 );
             },
-            content: DuplicateStatusPageModal,
+            content: DuplicateStatusPageForm,
         });
     };
 
