@@ -14,9 +14,9 @@ const Profile = props => {
     return (
         <Dashboard>
             <Fade>
-                <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
-                <BreadCrumbItem route={pathname} name="Profile Settings" />
-                <div>
+                <div className="Profile-Pages--view">
+                    <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
+                    <BreadCrumbItem route={pathname} name="Profile Settings" />
                     <div>
                         <div className="db-RadarRulesLists-page bs-ContentSection">
                             <div className="react-settings-view react-view">

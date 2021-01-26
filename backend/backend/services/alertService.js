@@ -5,7 +5,52 @@
  */
 
 module.exports = {
-    doesPhoneNumberComplyWithHighRiskConfig: async function (
+    /**
+     * gets the schedules to use for alerts
+     * @param {Object} incident the current incident
+     * @returns {Object[]} list of schedules
+     */
+    getSchedulesForAlerts: async function(incident) {
+        try {
+            const monitorId = incident.monitorId._id || incident.monitorId;
+            const projectId = incident.projectId._id || incident.projectId;
+
+            const {
+                lastMatchedCriterion: matchedCriterion,
+            } = await MonitorService.findOneBy({
+                _id: monitorId,
+            });
+            let schedules = [];
+
+            // first, try to find schedules associated with the matched criterion of the monitor
+            if (
+                matchedCriterion.scheduleIds &&
+                matchedCriterion.scheduleIds.length
+            ) {
+                schedules = await ScheduleService.findBy({
+                    _id: { $in: matchedCriterion.scheduleIds },
+                });
+            } else {
+                // then, try to find schedules in the monitor
+                schedules = await ScheduleService.findBy({
+                    monitorIds: monitorId,
+                });
+                // lastly, find default schedules for the project
+                if (schedules.length === 0) {
+                    schedules = await ScheduleService.findBy({
+                        isDefault: true,
+                        projectId,
+                    });
+                }
+            }
+            return schedules;
+        } catch (error) {
+            ErrorService.log('AlertService.getSchedulesForAlerts', error);
+            return [];
+        }
+    },
+
+    doesPhoneNumberComplyWithHighRiskConfig: async function(
         projectId,
         alertPhoneNumber
     ) {
@@ -24,7 +69,7 @@ module.exports = {
         }
         return false;
     },
-    findBy: async function ({ query, skip, limit, sort }) {
+    findBy: async function({ query, skip, limit, sort }) {
         try {
             if (!skip) skip = 0;
 
@@ -59,7 +104,7 @@ module.exports = {
         }
     },
 
-    create: async function ({
+    create: async function({
         projectId,
         monitorId,
         alertVia,
@@ -100,7 +145,7 @@ module.exports = {
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -115,7 +160,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -138,7 +183,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -156,7 +201,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query, userId) {
+    deleteBy: async function(query, userId) {
         try {
             if (!query) {
                 query = {};
@@ -188,22 +233,7 @@ module.exports = {
             if (incident) {
                 const _this = this;
 
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
-
-                let schedules = await ScheduleService.findBy({
-                    monitorIds: monitorId,
-                });
-
-                if (schedules.length === 0) {
-                    const projectId =
-                        incident.projectId._id || incident.projectId;
-                    schedules = await ScheduleService.findBy({
-                        isDefault: true,
-                        projectId,
-                    });
-                }
+                const schedules = await this.getSchedulesForAlerts(incident);
 
                 for (const schedule of schedules) {
                     _this.sendAlertsToTeamMembersInSchedule({
@@ -274,7 +304,7 @@ module.exports = {
             onCallScheduleStatus = callScheduleStatuses[0];
             currentEscalationStatus =
                 onCallScheduleStatus.escalations[
-                onCallScheduleStatus.escalations.length - 1
+                    onCallScheduleStatus.escalations.length - 1
                 ];
             escalationId = currentEscalationStatus.escalation._id;
         }
@@ -324,7 +354,7 @@ module.exports = {
         }
     },
 
-    escalate: async function ({ schedule, incident }) {
+    escalate: async function({ schedule, incident }) {
         const _this = this;
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
@@ -368,7 +398,7 @@ module.exports = {
         if (
             !nextEscalationPolicy ||
             nextEscalationPolicy._id.toString() !==
-            activeEscalation._id.toString()
+                activeEscalation._id.toString()
         ) {
             callScheduleStatus.alertedEveryone = true;
             await callScheduleStatus.save();
@@ -395,7 +425,7 @@ module.exports = {
         });
     },
 
-    sendAlertsToTeamMembersInEscalationPolicy: async function ({
+    sendAlertsToTeamMembersInEscalationPolicy: async function({
         escalation,
         incident,
         monitor,
@@ -416,7 +446,7 @@ module.exports = {
         const activeTeam = escalation.activeTeam;
         const currentEscalationStatus =
             onCallScheduleStatus.escalations[
-            onCallScheduleStatus.escalations.length - 1
+                onCallScheduleStatus.escalations.length - 1
             ];
 
         const shouldSendSMSReminder =
@@ -645,9 +675,9 @@ module.exports = {
         const projectId = incident.projectId;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-            date = moment(date)
+            date = moment(incident.createdAt)
                 .tz(user.timezone)
-                .format();
+                .format('LLLL');
         }
 
         try {
@@ -656,8 +686,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                    hasGlobalSmtpSettings.value &&
-                    hasGlobalSmtpSettings.value['email-enabled']
+                hasGlobalSmtpSettings.value &&
+                hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -668,12 +698,14 @@ module.exports = {
                 !hasCustomSmtpSettings
             ) {
                 let errorMessageText;
-                if (!hasGlobalSmtpSettings &&
-                    !hasCustomSmtpSettings) {
-                    errorMessageText = 'SMTP Settings not found on Admin Dashboard'
-                } else if (hasGlobalSmtpSettings &&
-                    !areEmailAlertsEnabledInGlobalSettings) {
-                    errorMessageText = 'Alert Disabled on Admin Dashboard'
+                if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
+                    errorMessageText =
+                        'SMTP Settings not found on Admin Dashboard';
+                } else if (
+                    hasGlobalSmtpSettings &&
+                    !areEmailAlertsEnabledInGlobalSettings
+                ) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard';
                 }
                 return await _this.create({
                     projectId: incident.projectId,
@@ -687,7 +719,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage: errorMessageText
+                    errorMessage: errorMessageText,
                 });
             }
             const incidentcreatedBy =
@@ -748,12 +780,12 @@ module.exports = {
                 eventType,
                 alertStatus: 'Cannot Send',
                 error: true,
-                errorMessage: e.message
+                errorMessage: e.message,
             });
         }
     },
 
-    sendSlaEmailToTeamMembers: async function (
+    sendSlaEmailToTeamMembers: async function(
         { projectId, monitor, incidentCommunicationSla, incident, alertTime },
         breached = false
     ) {
@@ -770,8 +802,8 @@ module.exports = {
                 );
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
-                        hasGlobalSmtpSettings.value &&
-                        hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -839,7 +871,7 @@ module.exports = {
         }
     },
 
-    sendCallAlert: async function ({
+    sendCallAlert: async function({
         incident,
         user,
         project,
@@ -879,8 +911,8 @@ module.exports = {
         });
         const areAlertsEnabledGlobally =
             hasGlobalTwilioSettings &&
-                hasGlobalTwilioSettings.value &&
-                hasGlobalTwilioSettings.value['call-enabled']
+            hasGlobalTwilioSettings.value &&
+            hasGlobalTwilioSettings.value['call-enabled']
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
@@ -895,11 +927,12 @@ module.exports = {
         ) {
             let errorMessageText;
             if (!hasGlobalTwilioSettings) {
-                errorMessageText = 'Twilio Settings not found on Admin Dashboard'
+                errorMessageText =
+                    'Twilio Settings not found on Admin Dashboard';
             } else if (!areAlertsEnabledGlobally) {
-                errorMessageText = 'Alert Disabled on Admin Dashboard'
+                errorMessageText = 'Alert Disabled on Admin Dashboard';
             } else if (IS_SAAS_SERVICE && !project.alertEnable) {
-                errorMessageText = 'Alert Disabled for this project'
+                errorMessageText = 'Alert Disabled for this project';
             }
             return await _this.create({
                 projectId: incident.projectId,
@@ -913,7 +946,7 @@ module.exports = {
                 alertStatus: null,
                 error: true,
                 eventType,
-                errorMessage: errorMessageText
+                errorMessage: errorMessageText,
             });
         }
 
@@ -926,11 +959,14 @@ module.exports = {
                 const countryType = getCountryType(user.alertPhoneNumber);
                 let errorMessageText;
                 if (countryType === 'us') {
-                    errorMessageText = 'Calls for numbers inside US not enabled for this project'
+                    errorMessageText =
+                        'Calls for numbers inside US not enabled for this project';
                 } else if (countryType === 'non-us') {
-                    errorMessageText = 'Calls for numbers outside US not enabled for this project'
+                    errorMessageText =
+                        'Calls for numbers outside US not enabled for this project';
                 } else {
-                    errorMessageText = 'Calls to High Risk country not enabled for this project'
+                    errorMessageText =
+                        'Calls to High Risk country not enabled for this project';
                 }
                 return await _this.create({
                     projectId: incident.projectId,
@@ -944,7 +980,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage: errorMessageText
+                    errorMessage: errorMessageText,
                 });
             }
 
@@ -994,7 +1030,7 @@ module.exports = {
                 alertStatus: null,
                 error: true,
                 eventType,
-                errorMessage: 'Error',
+                errorMessage: alertStatus.message,
             });
         } else if (alertStatus) {
             alert = await _this.create({
@@ -1032,7 +1068,7 @@ module.exports = {
         }
     },
 
-    sendSMSAlert: async function ({
+    sendSMSAlert: async function({
         incident,
         user,
         project,
@@ -1069,8 +1105,8 @@ module.exports = {
         });
         const areAlertsEnabledGlobally =
             hasGlobalTwilioSettings &&
-                hasGlobalTwilioSettings.value &&
-                hasGlobalTwilioSettings.value['sms-enabled']
+            hasGlobalTwilioSettings.value &&
+            hasGlobalTwilioSettings.value['sms-enabled']
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
@@ -1085,13 +1121,14 @@ module.exports = {
         ) {
             let errorMessageText;
             if (!hasGlobalTwilioSettings) {
-                errorMessageText = 'Twilio Settings not found on Admin Dashboard'
+                errorMessageText =
+                    'Twilio Settings not found on Admin Dashboard';
             } else if (!areAlertsEnabledGlobally) {
-                errorMessageText = 'Alert Disabled on Admin Dashboard'
+                errorMessageText = 'Alert Disabled on Admin Dashboard';
             } else if (IS_SAAS_SERVICE && !project.alertEnable) {
-                errorMessageText = 'Alert Disabled for this project'
+                errorMessageText = 'Alert Disabled for this project';
             } else {
-                errorMessageText = 'Error'
+                errorMessageText = 'Error';
             }
             return await _this.create({
                 projectId: incident.projectId,
@@ -1105,7 +1142,7 @@ module.exports = {
                 alertStatus: null,
                 error: true,
                 eventType,
-                errorMessage: errorMessageText
+                errorMessage: errorMessageText,
             });
         }
 
@@ -1118,11 +1155,14 @@ module.exports = {
                 const countryType = getCountryType(user.alertPhoneNumber);
                 let errorMessageText;
                 if (countryType === 'us') {
-                    errorMessageText = 'SMS for numbers inside US not enabled for this project'
+                    errorMessageText =
+                        'SMS for numbers inside US not enabled for this project';
                 } else if (countryType === 'non-us') {
-                    errorMessageText = 'SMS for numbers outside US not enabled for this project'
+                    errorMessageText =
+                        'SMS for numbers outside US not enabled for this project';
                 } else {
-                    errorMessageText = 'SMS to High Risk country not enabled for this project'
+                    errorMessageText =
+                        'SMS to High Risk country not enabled for this project';
                 }
                 return await _this.create({
                     projectId: incident.projectId,
@@ -1136,7 +1176,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage: errorMessageText
+                    errorMessage: errorMessageText,
                 });
             }
 
@@ -1207,27 +1247,13 @@ module.exports = {
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 // calculate charge per 160 chars
-                // numSegments is the number of segments the sms will be divided into
-                // numSegments is provided by twilio
-                const segments = Number(sendResult.numSegments);
-                console.log(
-                    '****** segments from twilio 2 *********',
-                    segments
-                );
-                console.log(
-                    '******** send result from twilio 2 **********',
-                    sendResult
-                );
+                const segments = calcSmsSegments(sendResult.body);
                 const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
                     user._id,
                     project,
                     AlertType.SMS,
                     user.alertPhoneNumber,
                     segments
-                );
-                console.log(
-                    '******* balance status 2 *********',
-                    balanceStatus
                 );
 
                 if (!balanceStatus.error) {
@@ -1245,7 +1271,7 @@ module.exports = {
         }
     },
 
-    sendStausPageNoteNotificationToProjectWebhooks: async function (
+    sendStausPageNoteNotificationToProjectWebhooks: async function(
         projectId,
         incident,
         statusPageNoteData
@@ -1297,7 +1323,7 @@ module.exports = {
         }
     },
 
-    sendInvestigationNoteToSubscribers: async function (
+    sendInvestigationNoteToSubscribers: async function(
         incident,
         data,
         statusNoteStatus
@@ -1346,7 +1372,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncidentToSubscribers: async function (incident, component) {
+    sendCreatedIncidentToSubscribers: async function(incident, component) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -1401,7 +1427,7 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentMail: async function (incident) {
+    sendAcknowledgedIncidentMail: async function(incident) {
         try {
             const _this = this;
             if (incident) {
@@ -1413,17 +1439,8 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
-                let schedules = await ScheduleService.findBy({
-                    monitorIds: monitorId,
-                });
-                if (schedules.length === 0) {
-                    const projectId =
-                        incident.projectId._id || incident.projectId;
-                    schedules = await ScheduleService.findBy({
-                        isDefault: true,
-                        projectId,
-                    });
-                }
+                const schedules = await this.getSchedulesForAlerts(incident);
+
                 const monitor = await MonitorService.findOneBy({
                     _id: monitorId,
                 });
@@ -1554,7 +1571,7 @@ module.exports = {
         }
     },
 
-    sendAcknowledgeEmailAlert: async function ({
+    sendAcknowledgeEmailAlert: async function({
         incident,
         user,
         project,
@@ -1590,8 +1607,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                    hasGlobalSmtpSettings.value &&
-                    hasGlobalSmtpSettings.value['email-enabled']
+                hasGlobalSmtpSettings.value &&
+                hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -1602,12 +1619,14 @@ module.exports = {
                 !hasCustomSmtpSettings
             ) {
                 let errorMessageText;
-                if (!hasGlobalSmtpSettings &&
-                    !hasCustomSmtpSettings) {
-                    errorMessageText = 'SMTP Settings not found on Admin Dashboard'
-                } else if (hasGlobalSmtpSettings &&
-                    !areEmailAlertsEnabledInGlobalSettings) {
-                    errorMessageText = 'Alert Disabled on Admin Dashboard'
+                if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
+                    errorMessageText =
+                        'SMTP Settings not found on Admin Dashboard';
+                } else if (
+                    hasGlobalSmtpSettings &&
+                    !areEmailAlertsEnabledInGlobalSettings
+                ) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard';
                 }
                 return await _this.create({
                     projectId: incident.projectId,
@@ -1621,7 +1640,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage: errorMessageText
+                    errorMessage: errorMessageText,
                 });
             }
             const incidentcreatedBy =
@@ -1701,12 +1720,12 @@ module.exports = {
                 eventType,
                 alertStatus: 'Cannot Send',
                 error: true,
-                errorMessage: e.message
+                errorMessage: e.message,
             });
         }
     },
 
-    sendResolveIncidentMail: async function (incident) {
+    sendResolveIncidentMail: async function(incident) {
         try {
             const _this = this;
             if (incident) {
@@ -1718,17 +1737,8 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
-                let schedules = await ScheduleService.findBy({
-                    monitorIds: monitorId,
-                });
-                if (schedules.length === 0) {
-                    const projectId =
-                        incident.projectId._id || incident.projectId;
-                    schedules = await ScheduleService.findBy({
-                        isDefault: true,
-                        projectId,
-                    });
-                }
+                const schedules = await this.getSchedulesForAlerts(incident);
+
                 const monitor = await MonitorService.findOneBy({
                     _id: monitorId,
                 });
@@ -1856,7 +1866,7 @@ module.exports = {
         }
     },
 
-    sendResolveEmailAlert: async function ({
+    sendResolveEmailAlert: async function({
         incident,
         user,
         project,
@@ -1891,8 +1901,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                    hasGlobalSmtpSettings.value &&
-                    hasGlobalSmtpSettings.value['email-enabled']
+                hasGlobalSmtpSettings.value &&
+                hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -1903,12 +1913,14 @@ module.exports = {
                 !hasCustomSmtpSettings
             ) {
                 let errorMessageText;
-                if (!hasGlobalSmtpSettings &&
-                    !hasCustomSmtpSettings) {
-                    errorMessageText = 'SMTP Settings not found on Admin Dashboard'
-                } else if (hasGlobalSmtpSettings &&
-                    !areEmailAlertsEnabledInGlobalSettings) {
-                    errorMessageText = 'Alert Disabled on Admin Dashboard'
+                if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
+                    errorMessageText =
+                        'SMTP Settings not found on Admin Dashboard';
+                } else if (
+                    hasGlobalSmtpSettings &&
+                    !areEmailAlertsEnabledInGlobalSettings
+                ) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard';
                 }
                 return await _this.create({
                     projectId: incident.projectId,
@@ -1922,7 +1934,7 @@ module.exports = {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage: errorMessageText
+                    errorMessage: errorMessageText,
                 });
             }
             const incidentcreatedBy =
@@ -2001,12 +2013,12 @@ module.exports = {
                 eventType,
                 alertStatus: 'Cannot Send',
                 error: true,
-                errorMessage: e.message
+                errorMessage: e.message,
             });
         }
     },
 
-    sendAcknowledgedIncidentToSubscribers: async function (incident) {
+    sendAcknowledgedIncidentToSubscribers: async function(incident) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -2060,7 +2072,7 @@ module.exports = {
         }
     },
 
-    sendResolvedIncidentToSubscribers: async function (incident) {
+    sendResolvedIncidentToSubscribers: async function(incident) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -2114,7 +2126,7 @@ module.exports = {
         }
     },
 
-    sendSubscriberAlert: async function (
+    sendSubscriberAlert: async function(
         subscriber,
         incident,
         templateType = 'Subscriber Incident Created',
@@ -2128,7 +2140,7 @@ module.exports = {
             const date = new Date();
             const isStatusPageNoteAlert =
                 note && incidentState && statusNoteStatus;
-            const statusPageNoteAlertEventType = `status page note ${statusNoteStatus}`;
+            const statusPageNoteAlertEventType = `Investigation note ${statusNoteStatus}`;
 
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId,
@@ -2187,17 +2199,20 @@ module.exports = {
                     isStatusPageNoteAlert &&
                     !project.enableInvestigationNoteNotificationWebhook;
 
+                let eventType;
                 if (investigationNoteNotificationWebhookDisabled) {
-                    let eventType;
                     if (isStatusPageNoteAlert) {
-                        eventType = statusPageNoteAlertEventType
-                    } else if (templateType ===
-                        'Subscriber Incident Acknowldeged') {
-                        eventType = 'acknowledged'
-                    } else if (templateType === 'Subscriber Incident Resolved') {
-                        eventType = 'resolved'
+                        eventType = statusPageNoteAlertEventType;
+                    } else if (
+                        templateType === 'Subscriber Incident Acknowldeged'
+                    ) {
+                        eventType = 'acknowledged';
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        eventType = 'resolved';
                     } else {
-                        eventType = 'identified'
+                        eventType = 'identified';
                     }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
@@ -2210,7 +2225,7 @@ module.exports = {
                         errorMessage:
                             'Investigation Note Webhook Notification Disabled',
                         totalSubscribers,
-                        id
+                        id,
                     });
                 }
                 const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
@@ -2235,14 +2250,17 @@ module.exports = {
                     throw error;
                 } finally {
                     if (isStatusPageNoteAlert) {
-                        eventType = statusPageNoteAlertEventType
-                    } else if (templateType ===
-                        'Subscriber Incident Acknowldeged') {
-                        eventType = 'acknowledged'
-                    } else if (templateType === 'Subscriber Incident Resolved') {
-                        eventType = 'resolved'
+                        eventType = statusPageNoteAlertEventType;
+                    } else if (
+                        templateType === 'Subscriber Incident Acknowldeged'
+                    ) {
+                        eventType = 'acknowledged';
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        eventType = 'resolved';
                     } else {
-                        eventType = 'identified'
+                        eventType = 'identified';
                     }
                     SubscriberAlertService.create({
                         projectId: incident.projectId,
@@ -2252,7 +2270,7 @@ module.exports = {
                         alertStatus: alertStatus,
                         eventType: eventType,
                         totalSubscribers,
-                        id
+                        id,
                     }).catch(error => {
                         ErrorService.log(
                             'AlertService.sendSubscriberAlert',
@@ -2261,6 +2279,11 @@ module.exports = {
                     });
                 }
             }
+
+            let length = getIncidentLength(
+                incident.createdAt,
+                incident.acknowledgedAt
+            );
             if (
                 !webhookNotificationSent ||
                 subscriber.alertVia === AlertType.Email
@@ -2272,8 +2295,8 @@ module.exports = {
                 );
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
-                        hasGlobalSmtpSettings.value &&
-                        hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -2284,30 +2307,36 @@ module.exports = {
                     isStatusPageNoteAlert &&
                     !project.enableInvestigationNoteNotificationEmail;
 
+                let errorMessageText, eventType;
                 if (
                     (!areEmailAlertsEnabledInGlobalSettings &&
                         !hasCustomSmtpSettings) ||
                     investigationNoteNotificationEmailDisabled
                 ) {
-                    let errorMessageText, eventType;
-                    if (!hasGlobalSmtpSettings &&
-                        !hasCustomSmtpSettings) {
-                        errorMessageText = 'SMTP Settings not found on Admin Dashboard'
-                    } else if (hasGlobalSmtpSettings &&
-                        !areEmailAlertsEnabledInGlobalSettings) {
-                        errorMessageText = 'Alert Disabled on Admin Dashboard'
+                    if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
+                        errorMessageText =
+                            'SMTP Settings not found on Admin Dashboard';
+                    } else if (
+                        hasGlobalSmtpSettings &&
+                        !areEmailAlertsEnabledInGlobalSettings
+                    ) {
+                        errorMessageText = 'Alert Disabled on Admin Dashboard';
                     } else if (investigationNoteNotificationEmailDisabled) {
-                        errorMessageText = 'Investigation Note Email Notification Disabled'
+                        errorMessageText =
+                            'Investigation Note Email Notification Disabled';
                     }
                     if (isStatusPageNoteAlert) {
-                        eventType = statusPageNoteAlertEventType
-                    } else if (templateType ===
-                        'Subscriber Incident Acknowldeged') {
-                        eventType = 'acknowledged'
-                    } else if (templateType === 'Subscriber Incident Resolved') {
-                        eventType = 'resolved'
+                        eventType = statusPageNoteAlertEventType;
+                    } else if (
+                        templateType === 'Subscriber Incident Acknowldeged'
+                    ) {
+                        eventType = 'acknowledged';
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        eventType = 'resolved';
                     } else {
-                        eventType = 'identified'
+                        eventType = 'identified';
                     }
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
@@ -2319,7 +2348,7 @@ module.exports = {
                         error: true,
                         errorMessage: errorMessageText,
                         totalSubscribers,
-                        id
+                        id,
                     });
                 }
                 const emailTemplate = await EmailTemplateService.findOneBy({
@@ -2327,14 +2356,15 @@ module.exports = {
                     emailType: templateType,
                 });
                 if (isStatusPageNoteAlert) {
-                    eventType = statusPageNoteAlertEventType
-                } else if (templateType ===
-                    'Subscriber Incident Acknowldeged') {
-                    eventType = 'acknowledged'
+                    eventType = statusPageNoteAlertEventType;
+                } else if (
+                    templateType === 'Subscriber Incident Acknowldeged'
+                ) {
+                    eventType = 'acknowledged';
                 } else if (templateType === 'Subscriber Incident Resolved') {
-                    eventType = 'resolved'
+                    eventType = 'resolved';
                 } else {
-                    eventType = 'identified'
+                    eventType = 'identified';
                 }
                 const subscriberAlert = await SubscriberAlertService.create({
                     projectId: incident.projectId,
@@ -2344,7 +2374,7 @@ module.exports = {
                     alertStatus: 'Pending',
                     eventType: eventType,
                     totalSubscribers,
-                    id
+                    id,
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
@@ -2367,7 +2397,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    length
                                 );
 
                                 alertStatus = 'Sent';
@@ -2385,7 +2416,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    length
                                 );
 
                                 alertStatus = 'Sent';
@@ -2396,6 +2428,10 @@ module.exports = {
                     } else if (
                         templateType === 'Subscriber Incident Resolved'
                     ) {
+                        length = getIncidentLength(
+                            incident.createdAt,
+                            incident.resolvedAt
+                        );
                         if (project.sendResolvedIncidentNotificationEmail) {
                             if (statusPage) {
                                 await MailService.sendIncidentResolvedMailToSubscriber(
@@ -2411,7 +2447,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    length
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -2428,7 +2465,8 @@ module.exports = {
                                     component.name,
                                     statusPageUrl,
                                     project.replyAddress,
-                                    customFields
+                                    customFields,
+                                    length
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -2507,104 +2545,64 @@ module.exports = {
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
-                let owner;
-                const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
-                    {
-                        name: 'twilio',
-                    }
-                );
-                const areAlertsEnabledGlobally =
-                    hasGlobalTwilioSettings &&
+                try {
+                    let owner;
+                    const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
+                        {
+                            name: 'twilio',
+                        }
+                    );
+                    const areAlertsEnabledGlobally =
+                        hasGlobalTwilioSettings &&
                         hasGlobalTwilioSettings.value &&
                         hasGlobalTwilioSettings.value['sms-enabled']
-                        ? true
-                        : false;
+                            ? true
+                            : false;
 
-                const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
-                    incident.projectId
-                );
-
-                const investigationNoteNotificationSMSDisabled =
-                    isStatusPageNoteAlert &&
-                    !project.enableInvestigationNoteNotificationSMS;
-                if (
-                    (!hasCustomTwilioSettings &&
-                        ((IS_SAAS_SERVICE &&
-                            (!project.alertEnable ||
-                                !areAlertsEnabledGlobally)) ||
-                            (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))) ||
-                    investigationNoteNotificationSMSDisabled
-                ) {
-                    let errorMessageText, eventType;
-                    if (!hasGlobalTwilioSettings) {
-                        errorMessageText = 'Twilio Settings not found on Admin Dashboard'
-                    } else if (!areAlertsEnabledGlobally) {
-                        errorMessageText = 'Alert Disabled on Admin Dashboard'
-                    } else if (IS_SAAS_SERVICE && !project.alertEnable) {
-                        errorMessageText = 'Alert Disabled for this project'
-                    } else if (investigationNoteNotificationSMSDisabled) {
-                        errorMessageText = 'Investigation Note SMS Notification Disabled'
-                    } else {
-                        errorMessageText = 'Error'
-                    }
-                    if (isStatusPageNoteAlert) {
-                        eventType = statusPageNoteAlertEventType
-                    } else if (templateType ===
-                        'Subscriber Incident Acknowldeged') {
-                        eventType = 'acknowledged'
-                    } else if (templateType === 'Subscriber Incident Resolved') {
-                        eventType = 'resolved'
-                    } else {
-                        eventType = 'identified'
-                    }
-                    return await SubscriberAlertService.create({
-                        projectId: incident.projectId,
-                        incidentId: incident._id,
-                        subscriberId: subscriber._id,
-                        alertVia: AlertType.SMS,
-                        alertStatus: null,
-                        error: true,
-                        errorMessage: errorMessageText,
-                        eventType: eventType,
-                        totalSubscribers,
-                        id
-                    });
-                }
-                const countryCode = await _this.mapCountryShortNameToCountryCode(
-                    subscriber.countryCode
-                );
-                let contactPhone = subscriber.contactPhone;
-                if (countryCode) {
-                    contactPhone = countryCode + contactPhone;
-                }
-
-                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    owner = project.users.filter(
-                        user => user.role === 'Owner'
-                    )[0];
-                    const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                        incident.projectId,
-                        contactPhone
+                    const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
+                        incident.projectId
                     );
-                    if (!doesPhoneNumberComplyWithHighRiskConfig) {
-                        const countryType = getCountryType(contactPhone);
+
+                    const investigationNoteNotificationSMSDisabled =
+                        isStatusPageNoteAlert &&
+                        !project.enableInvestigationNoteNotificationSMS;
+                    if (
+                        (!hasCustomTwilioSettings &&
+                            ((IS_SAAS_SERVICE &&
+                                (!project.alertEnable ||
+                                    !areAlertsEnabledGlobally)) ||
+                                (!IS_SAAS_SERVICE &&
+                                    !areAlertsEnabledGlobally))) ||
+                        investigationNoteNotificationSMSDisabled
+                    ) {
                         let errorMessageText, eventType;
-                        if (countryType === 'us') {
-                            errorMessageText = 'SMS for numbers inside US not enabled for this project'
-                        } else if (countryType === 'non-us') {
-                            errorMessageText = 'SMS for numbers outside US not enabled for this project'
+                        if (!hasGlobalTwilioSettings) {
+                            errorMessageText =
+                                'Twilio Settings not found on Admin Dashboard';
+                        } else if (!areAlertsEnabledGlobally) {
+                            errorMessageText =
+                                'Alert Disabled on Admin Dashboard';
+                        } else if (IS_SAAS_SERVICE && !project.alertEnable) {
+                            errorMessageText =
+                                'Alert Disabled for this project';
+                        } else if (investigationNoteNotificationSMSDisabled) {
+                            errorMessageText =
+                                'Investigation Note SMS Notification Disabled';
                         } else {
-                            errorMessageText = 'SMS to High Risk country not enabled for this project'
+                            errorMessageText = 'Error';
                         }
                         if (isStatusPageNoteAlert) {
-                            eventType = statusPageNoteAlertEventType
-                        } else if (templateType ===
-                            'Subscriber Incident Acknowldeged') {
-                            eventType = 'acknowledged'
-                        } else if (templateType === 'Subscriber Incident Resolved') {
-                            eventType = 'resolved'
+                            eventType = statusPageNoteAlertEventType;
+                        } else if (
+                            templateType === 'Subscriber Incident Acknowldeged'
+                        ) {
+                            eventType = 'acknowledged';
+                        } else if (
+                            templateType === 'Subscriber Incident Resolved'
+                        ) {
+                            eventType = 'resolved';
                         } else {
-                            eventType = 'identified'
+                            eventType = 'identified';
                         }
                         return await SubscriberAlertService.create({
                             projectId: incident.projectId,
@@ -2616,273 +2614,338 @@ module.exports = {
                             errorMessage: errorMessageText,
                             eventType: eventType,
                             totalSubscribers,
-                            id
+                            id,
                         });
                     }
-
-                    const status = await PaymentService.checkAndRechargeProjectBalance(
-                        project,
-                        owner.userId,
-                        contactPhone,
-                        AlertType.SMS
+                    const countryCode = await _this.mapCountryShortNameToCountryCode(
+                        subscriber.countryCode
                     );
-                    let eventType;
-                    if (isStatusPageNoteAlert) {
-                        eventType = statusPageNoteAlertEventType
-                    } else if (templateType ===
-                        'Subscriber Incident Acknowldeged') {
-                        eventType = 'acknowledged'
-                    } else if (templateType ===
-                        'Subscriber Incident Resolved') {
-                        eventType = 'resolved'
-                    } else {
-                        eventType = 'identified'
+                    let contactPhone = subscriber.contactPhone;
+                    if (countryCode) {
+                        contactPhone = countryCode + contactPhone;
                     }
 
-                    if (!status.success) {
-                        return await SubscriberAlertService.create({
+                    if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                        owner = project.users.filter(
+                            user => user.role === 'Owner'
+                        )[0];
+                        const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                            incident.projectId,
+                            contactPhone
+                        );
+                        if (!doesPhoneNumberComplyWithHighRiskConfig) {
+                            const countryType = getCountryType(contactPhone);
+                            let errorMessageText, eventType;
+                            if (countryType === 'us') {
+                                errorMessageText =
+                                    'SMS for numbers inside US not enabled for this project';
+                            } else if (countryType === 'non-us') {
+                                errorMessageText =
+                                    'SMS for numbers outside US not enabled for this project';
+                            } else {
+                                errorMessageText =
+                                    'SMS to High Risk country not enabled for this project';
+                            }
+                            if (isStatusPageNoteAlert) {
+                                eventType = statusPageNoteAlertEventType;
+                            } else if (
+                                templateType ===
+                                'Subscriber Incident Acknowldeged'
+                            ) {
+                                eventType = 'acknowledged';
+                            } else if (
+                                templateType === 'Subscriber Incident Resolved'
+                            ) {
+                                eventType = 'resolved';
+                            } else {
+                                eventType = 'identified';
+                            }
+                            return await SubscriberAlertService.create({
+                                projectId: incident.projectId,
+                                incidentId: incident._id,
+                                subscriberId: subscriber._id,
+                                alertVia: AlertType.SMS,
+                                alertStatus: null,
+                                error: true,
+                                errorMessage: errorMessageText,
+                                eventType: eventType,
+                                totalSubscribers,
+                                id,
+                            });
+                        }
+
+                        const status = await PaymentService.checkAndRechargeProjectBalance(
+                            project,
+                            owner.userId,
+                            contactPhone,
+                            AlertType.SMS
+                        );
+                        let eventType;
+                        if (isStatusPageNoteAlert) {
+                            eventType = statusPageNoteAlertEventType;
+                        } else if (
+                            templateType === 'Subscriber Incident Acknowldeged'
+                        ) {
+                            eventType = 'acknowledged';
+                        } else if (
+                            templateType === 'Subscriber Incident Resolved'
+                        ) {
+                            eventType = 'resolved';
+                        } else {
+                            eventType = 'identified';
+                        }
+
+                        if (!status.success) {
+                            return await SubscriberAlertService.create({
+                                projectId: incident.projectId,
+                                incidentId: incident._id,
+                                subscriberId: subscriber._id,
+                                alertVia: AlertType.SMS,
+                                alertStatus: null,
+                                error: true,
+                                errorMessage: status.message,
+                                eventType: eventType,
+                                totalSubscribers,
+                                id,
+                            });
+                        }
+                    }
+
+                    let sendResult;
+                    const smsTemplate = await SmsTemplateService.findOneBy({
+                        projectId: incident.projectId,
+                        smsType: templateType,
+                    });
+                    let eventType;
+                    if (isStatusPageNoteAlert) {
+                        eventType = statusPageNoteAlertEventType;
+                    } else if (
+                        templateType === 'Subscriber Incident Acknowldeged'
+                    ) {
+                        eventType = 'acknowledged';
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        eventType = 'resolved';
+                    } else {
+                        eventType = 'identified';
+                    }
+                    const subscriberAlert = await SubscriberAlertService.create(
+                        {
                             projectId: incident.projectId,
                             incidentId: incident._id,
                             subscriberId: subscriber._id,
                             alertVia: AlertType.SMS,
-                            alertStatus: null,
-                            error: true,
-                            errorMessage: status.message,
+                            alertStatus: 'Pending',
                             eventType: eventType,
                             totalSubscribers,
-                            id
-                        });
-                    }
-                }
-
-                let sendResult;
-                const smsTemplate = await SmsTemplateService.findOneBy({
-                    projectId: incident.projectId,
-                    smsType: templateType,
-                });
-                let eventType;
-                if (isStatusPageNoteAlert) {
-                    eventType = statusPageNoteAlertEventType
-                } else if (templateType ===
-                    'Subscriber Incident Acknowldeged') {
-                    eventType = 'acknowledged'
-                } else if (templateType ===
-                    'Subscriber Incident Resolved') {
-                    eventType = 'resolved'
-                } else {
-                    eventType = 'identified'
-                }
-                const subscriberAlert = await SubscriberAlertService.create({
-                    projectId: incident.projectId,
-                    incidentId: incident._id,
-                    subscriberId: subscriber._id,
-                    alertVia: AlertType.SMS,
-                    alertStatus: 'Pending',
-                    eventType: eventType,
-                    totalSubscribers,
-                    id
-                });
-                const alertId = subscriberAlert._id;
-
-                let alertStatus = null;
-                try {
-                    if (templateType === 'Subscriber Incident Acknowldeged') {
-                        if (project.sendAcknowledgedIncidentNotificationSms) {
-                            if (statusPage) {
-                                sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
-                                    date,
-                                    subscriber.monitorName,
-                                    contactPhone,
-                                    smsTemplate,
-                                    incident,
-                                    project.name,
-                                    incident.projectId,
-                                    component.name,
-                                    statusPageUrl,
-                                    customFields
-                                );
-                                alertStatus = 'Success';
-                            } else {
-                                sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
-                                    date,
-                                    subscriber.monitorName,
-                                    contactPhone,
-                                    smsTemplate,
-                                    incident,
-                                    project.name,
-                                    incident.projectId,
-                                    component.name,
-                                    statusPageUrl,
-                                    customFields
-                                );
-                                alertStatus = 'Success';
-                            }
-                        } else {
-                            alertStatus = 'Disabled';
+                            id,
                         }
-                    } else if (
-                        templateType === 'Subscriber Incident Resolved'
-                    ) {
-                        if (project.sendResolvedIncidentNotificationSms) {
-                            if (statusPage) {
-                                sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
-                                    date,
-                                    subscriber.monitorName,
-                                    contactPhone,
-                                    smsTemplate,
-                                    incident,
-                                    project.name,
-                                    incident.projectId,
-                                    component.name,
-                                    statusPageUrl,
-                                    customFields
-                                );
-                                alertStatus = 'Success';
-                            } else {
-                                sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
-                                    date,
-                                    subscriber.monitorName,
-                                    contactPhone,
-                                    smsTemplate,
-                                    incident,
-                                    project.name,
-                                    incident.projectId,
-                                    component.name,
-                                    statusPageUrl,
-                                    customFields
-                                );
-                                alertStatus = 'Success';
-                            }
-                        } else {
-                            alertStatus = 'Disabled';
-                        }
-                    } else if (
-                        templateType == 'Investigation note is created'
-                    ) {
-                        sendResult = await TwilioService.sendInvestigationNoteToSubscribers(
-                            date,
-                            subscriber.monitorName,
-                            contactPhone,
-                            smsTemplate,
-                            incident,
-                            project.name,
-                            incident.projectId,
-                            component.name,
-                            statusUrl,
-                            customFields
-                        );
-                        alertStatus = 'Success';
-                    } else {
-                        if (project.sendCreatedIncidentNotificationSms) {
-                            if (statusPage) {
-                                sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
-                                    date,
-                                    subscriber.monitorName,
-                                    contactPhone,
-                                    smsTemplate,
-                                    incident,
-                                    project.name,
-                                    incident.projectId,
-                                    component.name,
-                                    statusPageUrl,
-                                    customFields
-                                );
-                                alertStatus = 'Success';
-                            } else {
-                                sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
-                                    date,
-                                    subscriber.monitorName,
-                                    contactPhone,
-                                    smsTemplate,
-                                    incident,
-                                    project.name,
-                                    incident.projectId,
-                                    component.name,
-                                    statusPageUrl,
-                                    customFields
-                                );
-                                alertStatus = 'Success';
-                            }
-                        } else {
-                            alertStatus = 'Disabled';
-                        }
-                    }
+                    );
+                    const alertId = subscriberAlert._id;
 
-                    if (
-                        sendResult &&
-                        sendResult.code &&
-                        sendResult.code === 400
-                    ) {
+                    let alertStatus = null;
+                    try {
+                        if (
+                            templateType === 'Subscriber Incident Acknowldeged'
+                        ) {
+                            if (
+                                project.sendAcknowledgedIncidentNotificationSms
+                            ) {
+                                if (statusPage) {
+                                    sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
+                                        date,
+                                        subscriber.monitorName,
+                                        contactPhone,
+                                        smsTemplate,
+                                        incident,
+                                        project.name,
+                                        incident.projectId,
+                                        component.name,
+                                        statusPageUrl,
+                                        customFields,
+                                        length
+                                    );
+                                    alertStatus = 'Success';
+                                } else {
+                                    sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
+                                        date,
+                                        subscriber.monitorName,
+                                        contactPhone,
+                                        smsTemplate,
+                                        incident,
+                                        project.name,
+                                        incident.projectId,
+                                        component.name,
+                                        statusPageUrl,
+                                        customFields,
+                                        length
+                                    );
+                                    alertStatus = 'Success';
+                                }
+                            } else {
+                                alertStatus = 'Disabled';
+                            }
+                        } else if (
+                            templateType === 'Subscriber Incident Resolved'
+                        ) {
+                            length = getIncidentLength(
+                                incident.createdAt,
+                                incident.resolvedAt
+                            );
+                            if (project.sendResolvedIncidentNotificationSms) {
+                                if (statusPage) {
+                                    sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
+                                        date,
+                                        subscriber.monitorName,
+                                        contactPhone,
+                                        smsTemplate,
+                                        incident,
+                                        project.name,
+                                        incident.projectId,
+                                        component.name,
+                                        statusPageUrl,
+                                        customFields,
+                                        length
+                                    );
+                                    alertStatus = 'Success';
+                                } else {
+                                    sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
+                                        date,
+                                        subscriber.monitorName,
+                                        contactPhone,
+                                        smsTemplate,
+                                        incident,
+                                        project.name,
+                                        incident.projectId,
+                                        component.name,
+                                        statusPageUrl,
+                                        customFields,
+                                        length
+                                    );
+                                    alertStatus = 'Success';
+                                }
+                            } else {
+                                alertStatus = 'Disabled';
+                            }
+                        } else if (
+                            templateType == 'Investigation note is created'
+                        ) {
+                            sendResult = await TwilioService.sendInvestigationNoteToSubscribers(
+                                date,
+                                subscriber.monitorName,
+                                contactPhone,
+                                smsTemplate,
+                                incident,
+                                project.name,
+                                incident.projectId,
+                                component.name,
+                                statusUrl,
+                                customFields
+                            );
+                            alertStatus = 'Success';
+                        } else {
+                            if (project.sendCreatedIncidentNotificationSms) {
+                                if (statusPage) {
+                                    sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
+                                        date,
+                                        subscriber.monitorName,
+                                        contactPhone,
+                                        smsTemplate,
+                                        incident,
+                                        project.name,
+                                        incident.projectId,
+                                        component.name,
+                                        statusPageUrl,
+                                        customFields
+                                    );
+                                    alertStatus = 'Success';
+                                } else {
+                                    sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
+                                        date,
+                                        subscriber.monitorName,
+                                        contactPhone,
+                                        smsTemplate,
+                                        incident,
+                                        project.name,
+                                        incident.projectId,
+                                        component.name,
+                                        statusPageUrl,
+                                        customFields
+                                    );
+                                    alertStatus = 'Success';
+                                }
+                            } else {
+                                alertStatus = 'Disabled';
+                            }
+                        }
+
+                        if (
+                            sendResult &&
+                            sendResult.code &&
+                            sendResult.code === 400
+                        ) {
+                            await SubscriberAlertService.updateBy(
+                                { _id: alertId },
+                                {
+                                    alertStatus: null,
+                                    error: true,
+                                    errorMessage: sendResult.message,
+                                }
+                            );
+                        } else {
+                            await SubscriberAlertService.updateBy(
+                                { _id: alertId },
+                                {
+                                    alertStatus,
+                                }
+                            );
+                            if (
+                                alertStatus === 'Success' &&
+                                IS_SAAS_SERVICE &&
+                                !hasCustomTwilioSettings
+                            ) {
+                                // charge sms per 160 chars
+                                const segments = calcSmsSegments(
+                                    sendResult.body
+                                );
+                                const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
+                                    owner.userId,
+                                    project,
+                                    AlertType.SMS,
+                                    contactPhone,
+                                    segments
+                                );
+
+                                if (!balanceStatus.error) {
+                                    await AlertChargeService.create(
+                                        incident.projectId,
+                                        balanceStatus.chargeAmount,
+                                        balanceStatus.closingBalance,
+                                        null,
+                                        incident.monitorId._id
+                                            ? incident.monitorId._id
+                                            : incident.monitorId,
+                                        incident._id,
+                                        contactPhone,
+                                        alertId
+                                    );
+                                }
+                            }
+                        }
+                    } catch (error) {
                         await SubscriberAlertService.updateBy(
                             { _id: alertId },
                             {
                                 alertStatus: null,
                                 error: true,
-                                errorMessage: sendResult.message,
+                                errorMessage: error.message,
                             }
                         );
-                    } else {
-                        await SubscriberAlertService.updateBy(
-                            { _id: alertId },
-                            {
-                                alertStatus,
-                            }
-                        );
-                        if (
-                            alertStatus === 'Success' &&
-                            IS_SAAS_SERVICE &&
-                            !hasCustomTwilioSettings
-                        ) {
-                            // charge sms per 160 chars
-                            // numSegments is the number of segments an sms can be divided into
-                            // numSegments is provided by twilio
-                            const segments = Number(sendResult.numSegments);
-                            console.log(
-                                '****** segments from twilio 1 *********',
-                                segments
-                            );
-                            console.log(
-                                '******** send result from twilio 1 **********',
-                                sendResult
-                            );
-                            const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
-                                owner.userId,
-                                project,
-                                AlertType.SMS,
-                                contactPhone,
-                                segments
-                            );
-                            console.log(
-                                '********* balance status 1 ***********',
-                                balanceStatus
-                            );
-
-                            if (!balanceStatus.error) {
-                                await AlertChargeService.create(
-                                    incident.projectId,
-                                    balanceStatus.chargeAmount,
-                                    balanceStatus.closingBalance,
-                                    null,
-                                    incident.monitorId._id
-                                        ? incident.monitorId._id
-                                        : incident.monitorId,
-                                    incident._id,
-                                    contactPhone,
-                                    alertId
-                                );
-                            }
-                        }
+                        throw error;
                     }
                 } catch (error) {
-                    await SubscriberAlertService.updateBy(
-                        { _id: alertId },
-                        {
-                            alertStatus: null,
-                            error: true,
-                            errorMessage: 'Error',
-                        }
-                    );
-                    throw error;
+                    ErrorService.log('alertService.sendSubscriberAlert', error);
                 }
             }
         } catch (error) {
@@ -2928,7 +2991,7 @@ module.exports = {
         return false;
     },
 
-    getSubProjectAlerts: async function (subProjectIds) {
+    getSubProjectAlerts: async function(subProjectIds) {
         const _this = this;
         const subProjectAlerts = await Promise.all(
             subProjectIds.map(async id => {
@@ -2944,7 +3007,7 @@ module.exports = {
         return subProjectAlerts;
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await AlertModel.deleteMany(query);
             return 'Alert(s) removed successfully';
@@ -2954,7 +3017,7 @@ module.exports = {
         }
     },
 
-    restoreBy: async function (query) {
+    restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
         let alert = await _this.findBy({ query });
@@ -2996,7 +3059,7 @@ module.exports = {
     },
 
     //Return true, if the limit is not reached yet.
-    checkPhoneAlertsLimit: async function (projectId) {
+    checkPhoneAlertsLimit: async function(projectId) {
         const _this = this;
         const hasCustomSettings = await TwilioService.hasCustomSettings(
             projectId
@@ -3035,7 +3098,7 @@ module.exports = {
         }
     },
 
-    sendUnpaidSubscriptionEmail: async function (project, user) {
+    sendUnpaidSubscriptionEmail: async function(project, user) {
         try {
             const { name: userName, email: userEmail } = user;
             const { stripePlanId, _id: projectId, name: projectName } = project;
@@ -3055,7 +3118,7 @@ module.exports = {
         }
     },
 
-    sendProjectDeleteEmailForUnpaidSubscription: async function (project, user) {
+    sendProjectDeleteEmailForUnpaidSubscription: async function(project, user) {
         try {
             const { name: userName, email: userEmail } = user;
             const { stripePlanId, name: projectName } = project;
@@ -3074,6 +3137,17 @@ module.exports = {
         }
     },
 };
+
+/**
+ * @description calculates the number of segments an sms is divided into
+ * @param {string} sms the body of the sms sent
+ * @returns an interger
+ */
+function calcSmsSegments(sms) {
+    let smsLength = sms.length;
+    smsLength = Number(smsLength);
+    return Math.ceil(smsLength / 160);
+}
 
 const AlertModel = require('../models/alert');
 const ProjectService = require('./projectService');
@@ -3113,5 +3187,8 @@ const {
     INCIDENT_ACKNOWLEDGED,
 } = require('../constants/incidentEvents');
 const componentService = require('./componentService');
-const { calculateHumanReadableDownTime } = require('../utils/incident');
 const webpush = require("web-push");
+const {
+    calculateHumanReadableDownTime,
+    getIncidentLength,
+} = require('../utils/incident');

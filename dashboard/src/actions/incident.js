@@ -752,7 +752,7 @@ export function setInternalNote(projectId, incidentId, body) {
 
         promise.then(
             function(incidents) {
-                if(incidents.data.type === 'internal') {
+                if (incidents.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
                             incidentId,
@@ -940,7 +940,7 @@ export function deleteIncidentMessage(
 
         promise.then(
             function(incidentMessage) {
-                if(incidentMessage.data.type === 'internal') {
+                if (incidentMessage.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
                             incidentId,
@@ -950,7 +950,9 @@ export function deleteIncidentMessage(
                         })
                     );
                 } else {
-                    dispatch(deleteIncidentMessageSuccess(incidentMessage.data));
+                    dispatch(
+                        deleteIncidentMessageSuccess(incidentMessage.data)
+                    );
                 }
             },
             function(error) {

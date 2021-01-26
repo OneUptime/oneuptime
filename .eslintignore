@@ -25,4 +25,6 @@ api-docs/public/assets/*
 server-monitor/out/scripts/prettify/*
 js-sdk/dist/logger.js
 js-sdk/dist/logger.min.js
+js-sdk/dist/fyipe.js
+js-sdk/dist/fyipe.min.js
 _test/*

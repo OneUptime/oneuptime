@@ -38,6 +38,7 @@ deploy_staging_js-sdk:
 
 deploy_production_js-sdk:
     stage: Deploy
+    allow_failure: true
     retry: 2
     script:
         - sudo apt-get update

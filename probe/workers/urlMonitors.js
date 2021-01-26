@@ -21,12 +21,15 @@ module.exports = {
                     let retry = true;
                     let retryCount = 0;
                     while (retry) {
-                        const { res, resp } = await pingfetch(monitor.data.url);
+                        const { res, resp, rawResp } = await pingfetch(
+                            monitor.data.url
+                        );
 
                         const response = await ApiService.ping(monitor._id, {
                             monitor,
                             res,
                             resp,
+                            rawResp,
                             type: monitor.type,
                             retryCount,
                         });
@@ -104,9 +107,11 @@ module.exports = {
 const pingfetch = async url => {
     const now = new Date().getTime();
     let resp = null;
+    let rawResp = null;
     let res = null;
+
     try {
-        let sslCertificate, response, data, responseHeaders;
+        let sslCertificate, response, data;
         try {
             response = await fetch(url, {
                 timeout: 120000,
@@ -146,12 +151,18 @@ const pingfetch = async url => {
             body: data,
             sslCertificate,
         };
+        rawResp = {
+            headers:
+                response && response.headers && response.headers.raw()
+                    ? response.headers.raw()
+                    : null,
+        };
     } catch (error) {
         res = new Date().getTime() - now;
         resp = { status: 408, body: error };
     }
 
-    return { res, resp };
+    return { res, resp, rawResp };
 };
 
 const lighthouseFetch = (monitor, url) => {

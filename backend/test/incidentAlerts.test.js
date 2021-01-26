@@ -55,6 +55,11 @@ const GlobalConfigService = require('../backend/services/globalConfigService');
 const EmailSmtpService = require('../backend/services/emailSmtpService');
 const AlertChargeService = require('../backend/services/alertChargeService');
 const { formatBalance } = require('../backend/utils/number');
+const TeamMembers = require('./utils/teamMembers');
+const MonitorCriteriaService = require('../backend/services/monitorCriteriaService');
+const { generateRandomString } = require('./utils/string');
+const uuid = require('uuid');
+const axios = require('axios');
 
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -865,6 +870,472 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(alertsSentList.includes('sms')).to.equal(true);
             expect(alertsSentList.includes('call')).to.equal(true);
         });
+
+        /**
+         * Global twilio settings: set
+         * Custom twilio settings: not set
+         * Global twilio settings SMS enable : true
+         * Global twilio settings Call enable : false
+         * SMS/Call alerts enabled for the project (billing): true
+         */
+        it('should notify the team set for a schedule, which is associated with a monitor criteria', async function() {
+            /*
+             * run the probe server for this test
+             */
+
+            this.timeout(180 * 1000);
+            // first add a team member
+            const userData = {
+                email: `${generateRandomString()}@fyipe.com`,
+            };
+            const newUser = await UserService.create(userData);
+
+            const newUserId = newUser._id.toString();
+            await UserModel.updateOne(
+                { _id: newUserId },
+                { alertPhoneNumber: `+251921615223`, isVerified: true }
+            );
+
+            const members = [
+                {
+                    userId: newUserId,
+                    role: 'Member',
+                },
+            ];
+
+            let updatedProject = await TeamMembers.addTeamMembersToProject(
+                projectId,
+                members
+            );
+
+            // a user was added when creating the project, so we expect a total of 2 members
+            expect(updatedProject.users).to.have.lengthOf(2);
+
+            // create a new schedule
+            const newSchedule = await createSchedule({
+                request,
+                authorization,
+                projectId,
+                name: generateRandomString(),
+            });
+            expect(newSchedule).to.have.status(200);
+
+            const newScheduleId = newSchedule.body._id;
+
+            // add escalation for the new schedule, for the new member
+            const escalations = await addEscalation({
+                request,
+                authorization,
+                projectId,
+                scheduleId: newScheduleId,
+                payload: [
+                    {
+                        callReminders: '1',
+                        smsReminders: '1',
+                        emailReminders: '1',
+                        email: false,
+                        sms: true,
+                        call: true,
+                        teams: [
+                            {
+                                teamMembers: [
+                                    {
+                                        member: '',
+                                        timezone: '',
+                                        startTime: '',
+                                        endTime: '',
+                                        userId: newUserId,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            });
+            expect(escalations).to.have.status(200);
+
+            // create criteria, add a schedule to a down criterion
+            const criteria = MonitorCriteriaService.create('url');
+            const nonDefaultCriterionIndex = criteria.down.findIndex(
+                criterion => criterion.default !== true
+            );
+            expect(nonDefaultCriterionIndex).to.be.greaterThan(-1);
+            criteria.down[nonDefaultCriterionIndex].scheduleIds = [
+                newScheduleId,
+            ];
+            // create a new URL monitor, with a resource that will fail
+            const url = 'https://httpbin.org/status/500';
+            const newMonitor = await createMonitor({
+                request,
+                authorization,
+                projectId,
+                payload: {
+                    componentId,
+                    projectId,
+                    type: 'url',
+                    name: generateRandomString(10),
+                    data: { url },
+
+                    criteria,
+                },
+            });
+            expect(newMonitor).to.have.status(200);
+            const newMonitorId = newMonitor.body._id;
+
+            // let the probe server generate incident
+            await sleep(120 * 1000);
+
+            const { _id: lastIncidentId } = await IncidentService.findOneBy({
+                monitorId: newMonitorId,
+            });
+
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId: lastIncidentId,
+            });
+
+            expect(onCallAlerts).to.have.status(200);
+
+            // two call alerts are expected for the user, one call and one sms
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data).to.have.lengthOf(2);
+            onCallAlerts.body.data.forEach(alert => {
+                expect(alert.userId._id).to.equal(newUserId);
+                expect(alert.monitorId._id).to.equal(newMonitorId);
+            });
+
+            // remove the added team members
+            updatedProject = await TeamMembers.removeTeamMembersFromProject(
+                projectId,
+                updatedProject.users.filter(user => user.userId === newUserId)
+            );
+            expect(updatedProject.users).to.have.lengthOf(1);
+            // remove the monitor
+            const removedMonitor = await MonitorService.deleteBy(
+                {
+                    _id: newMonitorId,
+                },
+                newUserId
+            );
+            expect(removedMonitor.toJSON()).to.have.ownProperty('deleted').that
+                .is.true;
+        });
+        it('should notify the team set for a schedule, which is associated with a monitor criteria (incomingHttp monitor)', async function() {
+            /*
+             * run the probe server for this test
+             */
+
+            this.timeout(180 * 1000);
+            // first add a team member
+            const userData = {
+                email: `${generateRandomString()}@fyipe.com`,
+            };
+            const newUser = await UserService.create(userData);
+
+            const newUserId = newUser._id.toString();
+            await UserModel.updateOne(
+                { _id: newUserId },
+                { alertPhoneNumber: `+251921615223`, isVerified: true }
+            );
+
+            const members = [
+                {
+                    userId: newUserId,
+                    role: 'Member',
+                },
+            ];
+
+            let updatedProject = await TeamMembers.addTeamMembersToProject(
+                projectId,
+                members
+            );
+
+            // a user was added when creating the project, so we expect a total of 2 members
+            expect(updatedProject.users).to.have.lengthOf(2);
+
+            // create a new schedule
+            const newSchedule = await createSchedule({
+                request,
+                authorization,
+                projectId,
+                name: generateRandomString(),
+            });
+            expect(newSchedule).to.have.status(200);
+
+            const newScheduleId = newSchedule.body._id;
+
+            // add escalation for the new schedule, for the new member
+            const escalations = await addEscalation({
+                request,
+                authorization,
+                projectId,
+                scheduleId: newScheduleId,
+                payload: [
+                    {
+                        callReminders: '1',
+                        smsReminders: '1',
+                        emailReminders: '1',
+                        email: false,
+                        sms: true,
+                        call: true,
+                        teams: [
+                            {
+                                teamMembers: [
+                                    {
+                                        member: '',
+                                        timezone: '',
+                                        startTime: '',
+                                        endTime: '',
+                                        userId: newUserId,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            });
+            expect(escalations).to.have.status(200);
+
+            // create criteria, add a schedule to a down criterion
+            const criteria = MonitorCriteriaService.create(
+                'incomingHttpRequest'
+            );
+            const degradedCriterion = criteria.degraded[0];
+
+            degradedCriterion.scheduleIds = [newScheduleId];
+
+            const randomId = uuid.v4();
+
+            const link = `http://localhost:${process.env.PORT ||
+                3002}/api/incomingHttpRequest/${randomId}`;
+
+            // create a new incomingHttp monitor, with a resource that will fail
+            const newMonitor = await createMonitor({
+                request,
+                authorization,
+                projectId,
+                payload: {
+                    componentId,
+                    projectId,
+                    type: 'incomingHttpRequest',
+                    name: generateRandomString(10),
+                    criteria,
+                    data: {
+                        link,
+                    },
+                },
+            });
+            expect(newMonitor).to.have.status(200);
+
+            const newMonitorId = newMonitor.body._id;
+
+            // create a degraded incident by sending an http request with no body
+            const incomingHttpResponse = await axios.get(link);
+            expect(incomingHttpResponse)
+                .to.have.property('data')
+                .that.has.property('status')
+                .that.equals('degraded');
+
+            // wait for incident alerts
+            await sleep(30 * 1000);
+
+            const { _id: lastIncidentId } = await IncidentService.findOneBy({
+                monitorId: newMonitorId,
+            });
+
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId: lastIncidentId,
+            });
+
+            expect(onCallAlerts).to.have.status(200);
+
+            // two call alerts are expected for the user, one call and one sms
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data).to.have.lengthOf(2);
+            onCallAlerts.body.data.forEach(alert => {
+                expect(alert.userId._id).to.equal(newUserId);
+                expect(alert.monitorId._id).to.equal(newMonitorId);
+            });
+
+            // remove the added team members
+            updatedProject = await TeamMembers.removeTeamMembersFromProject(
+                projectId,
+                updatedProject.users.filter(user => user.userId === newUserId)
+            );
+            expect(updatedProject.users).to.have.lengthOf(1);
+            // remove the monitor
+            const removedMonitor = await MonitorService.deleteBy(
+                {
+                    _id: newMonitorId,
+                },
+                newUserId
+            );
+            expect(removedMonitor.toJSON()).to.have.ownProperty('deleted').that
+                .is.true;
+        });
+
+        /**
+         * Global twilio settings: set
+         * Custom twilio settings: not set
+         * Global twilio settings SMS enable : true
+         * Global twilio settings Call enable : false
+         * SMS/Call alerts enabled for the project (billing): true
+         */
+        it('should use default criterion if no criterion is matched for an incident', async function() {
+            /*
+             * run the probe server for this test
+             */
+            this.timeout(180 * 1000);
+            // first add a team member
+            const userData = {
+                email: `${generateRandomString}@fyipe.com`,
+            };
+            const newUser = await UserService.create(userData);
+
+            const newUserId = newUser._id.toString();
+            await UserModel.updateOne(
+                { _id: newUserId },
+                { alertPhoneNumber: `+251921615223`, isVerified: true }
+            );
+
+            const members = [
+                {
+                    userId: newUserId,
+                    role: 'Member',
+                },
+            ];
+
+            let updatedProject = await TeamMembers.addTeamMembersToProject(
+                projectId,
+                members
+            );
+
+            // a user was added when creating the project, so we expect a total of 2 members
+            expect(updatedProject.users).to.have.lengthOf(2);
+
+            // create a new schedule
+            const newSchedule = await createSchedule({
+                request,
+                authorization,
+                projectId,
+                name: generateRandomString(10),
+            });
+            expect(newSchedule).to.have.status(200);
+
+            const newScheduleId = newSchedule.body._id;
+
+            // add escalation for the new schedule, for the new member
+            const escalations = await addEscalation({
+                request,
+                authorization,
+                projectId,
+                scheduleId: newScheduleId,
+                payload: [
+                    {
+                        callReminders: '1',
+                        smsReminders: '1',
+                        emailReminders: '1',
+                        email: false,
+                        sms: true,
+                        call: true,
+                        teams: [
+                            {
+                                teamMembers: [
+                                    {
+                                        member: '',
+                                        timezone: '',
+                                        startTime: '',
+                                        endTime: '',
+                                        userId: newUserId,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            });
+            expect(escalations).to.have.status(200);
+
+            // create criteria, but remove the all other down criteria so we only have default criteria
+            const criteria = MonitorCriteriaService.create('url');
+            criteria.down = criteria.down.filter(
+                criterion => criterion.default === true
+            );
+            expect(criteria.down).to.have.lengthOf(1);
+            // add a schedule to the default criterion
+            criteria.down[0].scheduleIds = [newScheduleId];
+            // create a new URL monitor, with a resource that will fail
+            const url = 'https://httpbin.org/status/500';
+            const newMonitor = await createMonitor({
+                request,
+                authorization,
+                projectId,
+                payload: {
+                    componentId,
+                    projectId,
+                    type: 'url',
+                    name: generateRandomString(),
+                    data: { url },
+
+                    criteria,
+                },
+            });
+            expect(newMonitor).to.have.status(200);
+            const newMonitorId = newMonitor.body._id;
+
+            // let the probe server generate incident
+            await sleep(120 * 1000);
+
+            const { _id: lastIncidentId } = await IncidentService.findOneBy({
+                monitorId: newMonitorId,
+            });
+
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId: lastIncidentId,
+            });
+
+            expect(onCallAlerts).to.have.status(200);
+
+            // two call alerts are expected for the user, one call and one sms
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data).to.have.lengthOf(2);
+            onCallAlerts.body.data.forEach(alert => {
+                expect(alert.userId._id).to.equal(newUserId);
+                expect(alert.monitorId._id).to.equal(newMonitorId);
+            });
+
+            // remove the added team members
+            updatedProject = await TeamMembers.removeTeamMembersFromProject(
+                projectId,
+                updatedProject.users.filter(user => user.userId === newUserId)
+            );
+            expect(updatedProject.users).to.have.lengthOf(1);
+
+            // remove the monitor
+            const removedMonitor = await MonitorService.deleteBy(
+                {
+                    _id: newMonitorId,
+                },
+                newUserId
+            );
+            expect(removedMonitor.toJSON()).to.have.ownProperty('deleted').that
+                .is.true;
+        });
+
         /**
          * Global twilio settings: set
          * Custom twilio settings: not set
@@ -2306,8 +2777,14 @@ describe('Email Incident Alerts', function() {
         expect(onCallAlerts.body.data.length).to.equal(2);
 
         const eventTypesSentToTeamMembers = [];
-        for(let onCallAlert of onCallAlerts.body.data){
-            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+        for (const onCallAlert of onCallAlerts.body.data) {
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            } = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal(null);
@@ -2318,7 +2795,9 @@ describe('Email Incident Alerts', function() {
         }
 
         expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
-        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(
+            true
+        );
     });
 
     /**
@@ -2405,17 +2884,25 @@ describe('Email Incident Alerts', function() {
         expect(onCallAlerts.body.data.length).to.equal(2);
 
         const eventTypesSentToTeamMembers = [];
-        for(let onCallAlert of onCallAlerts.body.data){
-            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+        for (const onCallAlert of onCallAlerts.body.data) {
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            } = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal(null);
             expect(error).to.equal(true);
-            expect(errorMessage).equal('Alert Disabled on Admin Dashboard');    
+            expect(errorMessage).equal('Alert Disabled on Admin Dashboard');
         }
 
         expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
-        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(
+            true
+        );
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
     });
 
@@ -2496,8 +2983,14 @@ describe('Email Incident Alerts', function() {
         expect(onCallAlerts.body.data.length).to.equal(2);
 
         const eventTypesSentToTeamMembers = [];
-        for(let onCallAlert of onCallAlerts.body.data){
-            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+        for (const onCallAlert of onCallAlerts.body.data) {
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            } = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -2506,7 +2999,9 @@ describe('Email Incident Alerts', function() {
         }
 
         expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
-        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(
+            true
+        );
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
     });
 
@@ -2694,8 +3189,14 @@ describe('Email Incident Alerts', function() {
         expect(onCallAlerts.body.data.length).to.equal(2);
 
         const eventTypesSentToTeamMembers = [];
-        for(let onCallAlert of onCallAlerts.body.data){
-            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+        for (const onCallAlert of onCallAlerts.body.data) {
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            } = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -2704,7 +3205,9 @@ describe('Email Incident Alerts', function() {
         }
 
         expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
-        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(
+            true
+        );
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
         await EmailSmtpService.hardDeleteBy({ projectId });
     });
@@ -2784,8 +3287,14 @@ describe('Email Incident Alerts', function() {
         expect(onCallAlerts.body.data.length).to.equal(2);
 
         const eventTypesSentToTeamMembers = [];
-        for(let onCallAlert of onCallAlerts.body.data){
-            const { alertVia, eventType, alertStatus, error, errorMessage } = onCallAlert;
+        for (const onCallAlert of onCallAlerts.body.data) {
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            } = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -2794,7 +3303,9 @@ describe('Email Incident Alerts', function() {
         }
 
         expect(eventTypesSentToTeamMembers.includes('resolved')).to.equal(true);
-        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(true);
+        expect(eventTypesSentToTeamMembers.includes('identified')).to.equal(
+            true
+        );
         await EmailSmtpService.hardDeleteBy({ projectId });
     });
 });

@@ -344,7 +344,13 @@ class UpdateSchedule extends React.Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal" style={{ width: 600 }}>
-                        <ClickOutside onClickOutside={this.handleCloseModal}>
+                        <ClickOutside
+                            onClickOutside={e => {
+                                if (e.target.className === 'bs-BIM') {
+                                    this.handleCloseModal();
+                                }
+                            }}
+                        >
                             <div className="bs-Modal-header">
                                 <div
                                     className="bs-Modal-header-copy"

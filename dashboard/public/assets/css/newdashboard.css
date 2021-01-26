@@ -10321,6 +10321,19 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
         padding-right: 20px;
     }
 }
+@media only screen and (min-width: 1441px) {
+    .db-World-topContent {
+        height: 68px;
+        right: 0;
+        padding-left: 8px;
+        padding-right: 8px;
+        position: absolute;
+        top: 0;
+        z-index: 1;
+        padding-left: calc((50vw - 1390px / 278px));
+        padding-right: calc((50vw - 1390px / 2 ));
+    }
+}
 @media only print {
     html.db-NewChrome,
     html.db-NewChrome body {
@@ -11413,6 +11426,10 @@ table {
 
 .oneCardClass{
     display: block;
+}
+
+.Profile-Pages--view {
+    padding-right: calc((50vw - 1390px / 2 - 20px ));
 }
 
 @media (max-width: 1335px) 

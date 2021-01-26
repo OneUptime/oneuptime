@@ -17,8 +17,8 @@ const subscriberAlertSchema = new Schema({
             'identified',
             'acknowledged',
             'resolved',
-            'status page note created',
-            'status page note updated',
+            'Investigation note created',
+            'Investigation note updated',
         ],
         required: true,
     },
@@ -33,6 +33,6 @@ const subscriberAlertSchema = new Schema({
 
     deletedById: { type: String, ref: 'User' },
     totalSubscribers: { type: Number },
-    identification: { type: Number }
+    identification: { type: Number },
 });
 module.exports = mongoose.model('SubscriberAlert', subscriberAlertSchema);

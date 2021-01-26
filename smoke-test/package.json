@@ -15,9 +15,9 @@
         "chai": "^4.2.0",
         "chai-http": "^4.3.0",
         "faker": "^4.1.0",
-        "jest": "^24.9.0",
-        "puppeteer": "^2.1.1",
-        "puppeteer-cluster": "^0.19.0",
+        "jest": "^26.6.3",
+        "puppeteer": "^5.5.0",
+        "puppeteer-cluster": "^0.22.0",
         "should": "^13.2.3"
     },
     "jest": {
