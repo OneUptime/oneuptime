@@ -1,3 +1,12 @@
+# This script will run the saml server with the following configurations
+# domain: 'tests.hackerbay.io'
+# samlSsoUrl: 'http://localhost:9876/simplesaml/saml2/idp/SSOService.php'
+# remoteLogoutUrl: 'http://localhost:9876/logout'
+
+# The saml database will have the following records (from users.php)
+# email                       | id    | password
+# user1@tests.hackerbay.io    | user1 | user1pass
+# user2@tests.hackerbay.io    | user2 | user2pass
 docker run \
   --name=samlIdp \
   -p 9876:8080 \
