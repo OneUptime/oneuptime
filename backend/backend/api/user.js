@@ -25,6 +25,7 @@ const VerificationTokenModel = require('../models/verificationToken');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
+const SsoDefaultRolesService = require('../services/ssoDefaultRolesService');
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 router.post('/signup', async function(req, res) {
@@ -351,7 +352,19 @@ router.post('/sso/callback', async function(req, res) {
         if (!user) {
             // User is not create yet
             try {
-                user = await UserService.create({ email, sso: sso._id });
+                user = await UserService.create({ 
+                    email, 
+                    sso: sso._id
+                });
+                if(!user){
+                    return sendErrorResponse(req, res, {
+                        code: 401,
+                        message: 'USER creation failed.',
+                    });
+                }
+                const { _id: userId }= user;
+                const { _id: domain }= sso;
+                await SsoDefaultRolesService.addUserToDefaultProjects({domain,userId});
             } catch (error) {
                 return sendErrorResponse(req, res, {
                     code: 400,
