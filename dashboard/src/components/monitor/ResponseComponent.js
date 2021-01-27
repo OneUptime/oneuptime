@@ -114,6 +114,11 @@ export class ResponseComponent extends Component {
                 head = CRITERIA_TYPES.DOWN.head;
                 tagline = CRITERIA_TYPES.DOWN.tagline;
                 break;
+            default:
+                status.backgroundColor = 'rgb(117, 211, 128)'; // "green-status";
+                head = CRITERIA_TYPES.UP.head;
+                tagline = CRITERIA_TYPES.UP.tagline;
+                break;
         }
 
         return (
