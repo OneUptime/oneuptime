@@ -287,11 +287,6 @@ router.post(
             );
 
             global.io.emit(`securityLog_${containerSecurity._id}`, securityLog);
-            
-            console.log("Container Security Id: ",containerSecurityId);
-            console.log("Container Security Found: ",containerSecurity);
-            console.log("Security Log: ",securityLog);
-            
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
