@@ -510,8 +510,7 @@ describe('Incident API', function() {
             console.log("Variable Same Type: ",e.type)
             return e.type === 'internal'
         })
-        console.log("The Same Type is: ", sameType)
-        expect(res.body.data[2].type).to.be.equal(type); 
+        expect(sameType[0].type).to.be.equal(type); 
     });
 
     it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function() {
