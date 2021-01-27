@@ -126,7 +126,7 @@ const INITIAL_STATE = {
         team: [],
         pages: 1,
     },
-    teamdelete: {
+    teamDelete: {
         error: null,
         requesting: false,
         success: false,
@@ -309,8 +309,8 @@ export default function project(state = INITIAL_STATE, action) {
         case USER_UPDATE_ROLE_FAILURE:
             return {
                 ...state,
-                teamdelete: {
-                    ...state.teamdelete,
+                teamDelete: {
+                    ...state.teamDelete,
                     error: action.payload,
                     requesting: false,
                     success: false,
@@ -339,12 +339,12 @@ export default function project(state = INITIAL_STATE, action) {
         case TEAM_DELETE_REQUEST:
             return {
                 ...state,
-                teamdelete: {
-                    ...state.teamdelete,
+                teamDelete: {
+                    ...state.teamDelete,
                     error: null,
                     requesting: true,
                     success: false,
-                    deleting: state.teamdelete.deleting.concat([
+                    deleting: state.teamDelete.deleting.concat([
                         action.payload,
                     ]),
                 },
@@ -352,8 +352,8 @@ export default function project(state = INITIAL_STATE, action) {
         case TEAM_DELETE_SUCCESS:
             return {
                 ...state,
-                teamdelete: {
-                    ...state.teamdelete,
+                teamDelete: {
+                    ...state.teamDelete,
                     error: null,
                     requesting: false,
                     success: true,
@@ -371,8 +371,8 @@ export default function project(state = INITIAL_STATE, action) {
         case TEAM_DELETE_FAILURE:
             return {
                 ...state,
-                teamdelete: {
-                    ...state.teamdelete,
+                teamDelete: {
+                    ...state.teamDelete,
                     error: action.payload,
                     requesting: false,
                     success: false,
@@ -383,8 +383,8 @@ export default function project(state = INITIAL_STATE, action) {
         case TEAM_DELETE_RESET:
             return {
                 ...state,
-                teamdelete: {
-                    ...state.teamdelete,
+                teamDelete: {
+                    ...state.teamDelete,
                     error: null,
                     requesting: false,
                     success: false,

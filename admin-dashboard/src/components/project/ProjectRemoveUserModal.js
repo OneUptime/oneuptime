@@ -138,8 +138,8 @@ const mapStateToProps = (state, props) => {
             ? props.data.values.userId
             : null;
     return {
-        teamUserDelete: state.project.teamdelete,
-        deleting: state.project.teamdelete.deleting.some(id => id === userId),
+        teamUserDelete: state.project.teamDelete,
+        deleting: state.project.teamDelete.deleting.some(id => id === userId),
     };
 };
 

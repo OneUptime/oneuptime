@@ -550,7 +550,7 @@ ProjectUser.propTypes = {
 function mapStateToProps(state) {
     return {
         updateUsers: state.project.updateUser,
-        deleteError: state.project.teamdelete,
+        deleteError: state.project.teamDelete,
     };
 }
 
