@@ -1,6 +1,26 @@
+process.on('exit', () => {
+    /* eslint-disable no-console */
+    console.log('Shutting Shutdown');
+});
+
+process.on('unhandledRejection', err => {
+    /* eslint-disable no-console */
+    console.error('Unhandled rejection in process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
+process.on('uncaughtException', err => {
+    /* eslint-disable no-console */
+    console.error('Uncaught exception in process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
 const fs = require('fs');
 const util = require('./util/db');
 const scripts = require('./scripts');
+
 
 async function run() {
     const excludedScripts = ['index.js', 'start.js', 'end.js'];

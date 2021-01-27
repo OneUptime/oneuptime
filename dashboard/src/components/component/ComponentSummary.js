@@ -20,10 +20,17 @@ function ComponentSummary({
         }
     }, [projectId, componentId, startDate, endDate, fetchSummary]);
 
-    const avgMonitorUptime = summary.length
-        ? summary.reduce((a, b) => a.monitorUptime + b.monitorUptime) /
-          summary.length
-        : 100;
+    let totalUptime = 0;
+
+    for (const item of summary) {
+        totalUptime += item.monitorUptime;
+    }
+
+    let avgMonitorUptime = 100;
+
+    if (summary.length > 0) {
+        avgMonitorUptime = totalUptime / summary.length;
+    }
 
     return (
         <div className="Box-root Card-shadow--medium" tabIndex="0">

@@ -5,6 +5,52 @@
  */
 
 module.exports = {
+    /**
+     * gets the schedules to use for alerts
+     * @param {Object} incident the current incident
+     * @returns {Object[]} list of schedules
+     */
+    getSchedulesForAlerts: async function(incident) {
+        try {
+            const monitorId = incident.monitorId._id || incident.monitorId;
+            const projectId = incident.projectId._id || incident.projectId;
+
+            const {
+                lastMatchedCriterion: matchedCriterion,
+            } = await MonitorService.findOneBy({
+                _id: monitorId,
+            });
+            let schedules = [];
+
+            // first, try to find schedules associated with the matched criterion of the monitor
+            if (
+                !incident.manuallyCreated &&
+                matchedCriterion.scheduleIds &&
+                matchedCriterion.scheduleIds.length
+            ) {
+                schedules = await ScheduleService.findBy({
+                    _id: { $in: matchedCriterion.scheduleIds },
+                });
+            } else {
+                // then, try to find schedules in the monitor
+                schedules = await ScheduleService.findBy({
+                    monitorIds: monitorId,
+                });
+                // lastly, find default schedules for the project
+                if (schedules.length === 0) {
+                    schedules = await ScheduleService.findBy({
+                        isDefault: true,
+                        projectId,
+                    });
+                }
+            }
+            return schedules;
+        } catch (error) {
+            ErrorService.log('AlertService.getSchedulesForAlerts', error);
+            return [];
+        }
+    },
+
     doesPhoneNumberComplyWithHighRiskConfig: async function(
         projectId,
         alertPhoneNumber
@@ -188,22 +234,7 @@ module.exports = {
             if (incident) {
                 const _this = this;
 
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
-
-                let schedules = await ScheduleService.findBy({
-                    monitorIds: monitorId,
-                });
-
-                if (schedules.length === 0) {
-                    const projectId =
-                        incident.projectId._id || incident.projectId;
-                    schedules = await ScheduleService.findBy({
-                        isDefault: true,
-                        projectId,
-                    });
-                }
+                const schedules = await this.getSchedulesForAlerts(incident);
 
                 for (const schedule of schedules) {
                     _this.sendAlertsToTeamMembersInSchedule({
@@ -653,6 +684,10 @@ module.exports = {
                 accessToken,
                 incidentType: incident.incidentType,
                 projectName: project.name,
+                criterionName:
+                    !incident.manuallyCreated && incident.criterionCause
+                        ? incident.criterionCause.name
+                        : '',
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -1338,17 +1373,8 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
-                let schedules = await ScheduleService.findBy({
-                    monitorIds: monitorId,
-                });
-                if (schedules.length === 0) {
-                    const projectId =
-                        incident.projectId._id || incident.projectId;
-                    schedules = await ScheduleService.findBy({
-                        isDefault: true,
-                        projectId,
-                    });
-                }
+                const schedules = await this.getSchedulesForAlerts(incident);
+
                 const monitor = await MonitorService.findOneBy({
                     _id: monitorId,
                 });
@@ -1602,6 +1628,10 @@ module.exports = {
                 projectName: project.name,
                 acknowledgeTime: incident.acknowledgedAt,
                 length: downtimestring,
+                criterionName:
+                    !incident.manuallyCreated && incident.criterionCause
+                        ? incident.criterionCause.name
+                        : '',
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -1645,17 +1675,8 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
-                let schedules = await ScheduleService.findBy({
-                    monitorIds: monitorId,
-                });
-                if (schedules.length === 0) {
-                    const projectId =
-                        incident.projectId._id || incident.projectId;
-                    schedules = await ScheduleService.findBy({
-                        isDefault: true,
-                        projectId,
-                    });
-                }
+                const schedules = await this.getSchedulesForAlerts(incident);
+
                 const monitor = await MonitorService.findOneBy({
                     _id: monitorId,
                 });
@@ -1904,6 +1925,10 @@ module.exports = {
                 projectName: project.name,
                 resolveTime: incident.resolvedAt,
                 length: downtimestring,
+                criterionName:
+                    !incident.manuallyCreated && incident.criterionCause
+                        ? incident.criterionCause.name
+                        : '',
             });
             return await _this.create({
                 projectId: incident.projectId,

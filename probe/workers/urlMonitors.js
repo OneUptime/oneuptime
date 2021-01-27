@@ -109,7 +109,7 @@ const pingfetch = async url => {
     let resp = null;
     let rawResp = null;
     let res = null;
-    let rawResp = null;
+
     try {
         let sslCertificate, response, data;
         try {

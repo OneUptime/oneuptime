@@ -84,6 +84,9 @@ const monitorSchema = new Schema({
 
     notClosedBy: [{ type: String, ref: 'User' }],
     manuallyCreated: { type: Boolean, default: false },
+    criterionCause: {
+        name: String,
+    },
 
     deleted: { type: Boolean, default: false },
 
