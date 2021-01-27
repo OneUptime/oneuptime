@@ -414,7 +414,7 @@ const MonitorCriteriaService = {
                         ...downCriteria,
                         default: true,
                     };
-                    criteriaObj.down = [downCriteria, defaultCriterion];
+                    criteriaObj.down = [defaultCriterion];
                 }
             }
 

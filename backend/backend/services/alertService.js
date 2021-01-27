@@ -24,6 +24,7 @@ module.exports = {
 
             // first, try to find schedules associated with the matched criterion of the monitor
             if (
+                !incident.manuallyCreated &&
                 matchedCriterion.scheduleIds &&
                 matchedCriterion.scheduleIds.length
             ) {
@@ -683,6 +684,10 @@ module.exports = {
                 accessToken,
                 incidentType: incident.incidentType,
                 projectName: project.name,
+                criterionName:
+                    !incident.manuallyCreated && incident.criterionCause
+                        ? incident.criterionCause.name
+                        : '',
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -1623,6 +1628,10 @@ module.exports = {
                 projectName: project.name,
                 acknowledgeTime: incident.acknowledgedAt,
                 length: downtimestring,
+                criterionName:
+                    !incident.manuallyCreated && incident.criterionCause
+                        ? incident.criterionCause.name
+                        : '',
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -1916,6 +1925,10 @@ module.exports = {
                 projectName: project.name,
                 resolveTime: incident.resolvedAt,
                 length: downtimestring,
+                criterionName:
+                    !incident.manuallyCreated && incident.criterionCause
+                        ? incident.criterionCause.name
+                        : '',
             });
             return await _this.create({
                 projectId: incident.projectId,

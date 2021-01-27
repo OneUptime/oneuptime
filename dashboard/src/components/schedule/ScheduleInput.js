@@ -14,7 +14,7 @@ const ScheduleInput = ({ schedules = [], fields, currentProject = {} }) => {
                 });
             });
         }
-    }, []);
+    });
 
     return (
         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart ">

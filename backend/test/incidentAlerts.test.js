@@ -878,7 +878,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * Global twilio settings Call enable : false
          * SMS/Call alerts enabled for the project (billing): true
          */
-        it('should notify the team set for a schedule, which is associated with a monitor criteria', async function() {
+        it('should notify the team set for a schedule, which is associated with a monitor criteriad', async function() {
             /*
              * run the probe server for this test
              */
@@ -954,15 +954,16 @@ describe('SMS/Calls Incident Alerts', function() {
             });
             expect(escalations).to.have.status(200);
 
-            // create criteria, add a schedule to a down criterion
+            // create criteria, add a schedule to a new down criterion (non-default)
             const criteria = MonitorCriteriaService.create('url');
-            const nonDefaultCriterionIndex = criteria.down.findIndex(
-                criterion => criterion.default !== true
-            );
-            expect(nonDefaultCriterionIndex).to.be.greaterThan(-1);
-            criteria.down[nonDefaultCriterionIndex].scheduleIds = [
-                newScheduleId,
-            ];
+
+            criteria.down.push({
+                ...criteria.down[0],
+                default: false,
+                name: 'Offline',
+                scheduleIds: [newScheduleId],
+            });
+
             // create a new URL monitor, with a resource that will fail
             const url = 'https://httpbin.org/status/500';
             const newMonitor = await createMonitor({
@@ -1267,10 +1268,6 @@ describe('SMS/Calls Incident Alerts', function() {
 
             // create criteria, but remove the all other down criteria so we only have default criteria
             const criteria = MonitorCriteriaService.create('url');
-            criteria.down = criteria.down.filter(
-                criterion => criterion.default === true
-            );
-            expect(criteria.down).to.have.lengthOf(1);
             // add a schedule to the default criterion
             criteria.down[0].scheduleIds = [newScheduleId];
             // create a new URL monitor, with a resource that will fail

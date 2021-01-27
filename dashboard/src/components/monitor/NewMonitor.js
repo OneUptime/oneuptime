@@ -171,20 +171,11 @@ class NewMonitor extends Component {
         const { change } = this.props;
 
         /** @type {{bodyField:Object[] | undefined, createAlert:boolean, autoAcknowledge: boolean, autoResolve:boolean}} */
-        let criterionValues;
         const criterionFieldName = `${criterion.type}_${criterion.id}`;
         // add filter criteria if the criterion is not default
 
-        if (criterion.default) {
-            criterionValues = {
-                createAlert: false,
-                autoAcknowledge: false,
-                autoResolve: false,
-            };
-        } else {
-            criterionValues = this.getCriterionInitialValue(criterion.type);
-            change(criterionFieldName, criterionValues.bodyField);
-        }
+        const criterionValues = this.getCriterionInitialValue(criterion.type);
+        change(criterionFieldName, criterionValues.bodyField);
 
         change(`name_${criterionFieldName}`, criterion.name);
         change(
@@ -250,6 +241,15 @@ class NewMonitor extends Component {
                         initialValues.degraded_1000_autoAcknowledge;
                     initialCriterionValue.autoResolve =
                         initialValues.degraded_1000_autoResolve;
+                    break;
+                default:
+                    initialCriterionValue.bodyField = initialValues.up_1000;
+                    initialCriterionValue.createAlert =
+                        initialValues.up_1000_createAlert;
+                    initialCriterionValue.autoAcknowledge =
+                        initialValues.up_1000_autoAcknowledge;
+                    initialCriterionValue.autoResolve =
+                        initialValues.up_1000_autoResolve;
                     break;
             }
             return initialCriterionValue;

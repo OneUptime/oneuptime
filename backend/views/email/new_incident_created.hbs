@@ -346,7 +346,8 @@
                         <td class="st-Font st-Font--body"
                           style="color: #000000 !important; border:0;margin:0;padding:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;font-size:16px;line-height:24px">
 
-                          <h3><span style={{iconStyle}}></span>&nbsp;&nbsp;{{componentName}} / {{monitorName}} is {{incidentType}}.</h3>
+                          <h3><span style={{iconStyle}}></span>&nbsp;&nbsp;{{componentName}} / {{monitorName}} is
+                            {{incidentType}}.</h3>
 
                         </td>
                         <td class="st-Spacer st-Spacer--gutter"
@@ -405,7 +406,7 @@
                         </td>
                         <td class="st-Font st-Font--body"
                           style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
-                         A new incident has been created for {{projectName}}.
+                          A new incident has been created for {{projectName}}.
                         </td>
                         <td class="st-Spacer st-Spacer--gutter"
                           style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
@@ -469,21 +470,39 @@
                         <td width="720" align="center" valign="top" style="padding:0;Margin:0"></td>
                       </tr>
                       <tr style="border-collapse:collapse">
-                        <td align="left" style="padding:0;Margin:0;padding-top:0px;padding-left:40px;padding-right:40px;padding-bottom:30px;background-color:#f7f8fa;border-radius: 5px">
-                          <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;border-spacing:0px">
+                        <td align="left"
+                          style="padding:0;Margin:0;padding-top:0px;padding-left:40px;padding-right:40px;padding-bottom:30px;background-color:#f7f8fa;border-radius: 5px">
+                          <table cellpadding="0" cellspacing="0" width="100%"
+                            style="border-collapse:collapse;border-spacing:0px">
                             <tbody>
                               <tr style="border-collapse:collapse">
                                 <td width="720" align="center" valign="top" style="padding:0;Margin:0">
-                                  <table cellpadding="0" cellspacing="0" width="100%" role="presentation" style="border-collapse:collapse;border-spacing:0px">
+                                  <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                                    style="border-collapse:collapse;border-spacing:0px">
                                     <tbody>
                                       <tr style="border-collapse:collapse">
                                         <td align="left" style="padding:0;Margin:0;padding-top:30px">
-                                          <p style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761"><strong>Incident ID:</strong> <span><strong>{{incidentId}}</strong></span><br>
-                                          <p style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761"><strong>Monitor Name:</strong> <span>{{componentName}} / {{monitorName}}</span><br>
-                                          <p style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761"><strong>Project Name:</strong> <span>{{projectName}}</span><br>
-                                          {{#if monitorUrl}}<strong>Checked URL:</strong> <span><code>{{method}} <a href={{monitorUrl}} target="_blank"><u>{{monitorUrl}}</u></a></code></span><br>{{/if}}
-                                          <strong>Started at:</strong> <span><span style="white-space:nowrap">{{incidentTime}}</span></span><br>
-                                          <strong>Cause:</strong> <span>{{reason}}</span>
+                                          <p
+                                            style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                                            <strong>Incident ID:</strong>
+                                            <span><strong>{{incidentId}}</strong></span><br>
+                                          <p
+                                            style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                                            <strong>Monitor Name:</strong> <span>{{componentName}} /
+                                              {{monitorName}}</span><br>
+                                          <p
+                                            style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+                                            <strong>Project Name:</strong> <span>{{projectName}}</span><br>
+                                            {{#if monitorUrl}}<strong>Checked URL:</strong>
+                                            <span><code>{{method}} <a href={{monitorUrl}} target="_blank"><u>{{monitorUrl}}</u></a></code></span><br>{{/if}}
+                                            <strong>Started at:</strong> <span><span
+                                                style="white-space:nowrap">{{incidentTime}}</span></span><br>
+                                            <strong>Cause:</strong> <span>{{reason}}</span>
+                                            {{#if criterionName}}
+                                            <strong>Criterion Cause:</strong> <span> According to Criterion -
+                                              {{criterionName}}</span>
+                                            {{/if}}
+
                                         </td>
                                       </tr>
                                     </tbody>
