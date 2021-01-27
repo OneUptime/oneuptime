@@ -369,3 +369,67 @@ export function resetFetchComponentResources() {
         type: types.FETCH_COMPONENT_RESOURCES_RESET,
     };
 }
+
+// Component Summary
+export function fetchComponentSummary(
+    projectId,
+    componentId,
+    startDate,
+    endDate
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `component/${projectId}/summary/${componentId}`,
+            { startDate, endDate }
+        );
+        dispatch(fetchComponentSummaryRequest(componentId));
+
+        promise.then(
+            function(components) {
+                dispatch(fetchComponentSummarySuccess(components.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchComponentSummaryFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchComponentSummarySuccess(summary) {
+    return {
+        type: types.FETCH_COMPONENT_SUMMARY_SUCCESS,
+        payload: summary,
+    };
+}
+
+export function fetchComponentSummaryRequest(componentId) {
+    return {
+        type: types.FETCH_COMPONENT_SUMMARY_REQUEST,
+        payload: componentId,
+    };
+}
+
+export function fetchComponentSummaryFailure(error) {
+    return {
+        type: types.FETCH_COMPONENT_SUMMARY_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetFetchComponentSummary() {
+    return {
+        type: types.FETCH_COMPONENT_SUMMARY_RESET,
+    };
+}

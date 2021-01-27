@@ -49,10 +49,8 @@ describe('Monitor API', () => {
 
     const componentName = utils.generateRandomString();
     const monitorName = utils.generateRandomString();
-    const callScheduleMonitorName = utils.generateRandomString();
-
     test(
-        'Should create new monitor with correct details',
+        'Should create new monitor with default criteria settings',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Create Component first
@@ -62,7 +60,7 @@ describe('Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
@@ -78,6 +76,160 @@ describe('Monitor API', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Should create new monitor with edited criteria names',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Create Component first
+                // Redirects automatically component to details page
+                await init.addComponent(componentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', monitorName);
+                await page.click('input[data-testId=type_url]');
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', 'https://google.com');
+
+                // change up criterion's name
+                await page.click('#advanceOptions');
+                let criterionAdvancedOptions = await page.waitForSelector(
+                    '[data-testId=criterionAdvancedOptions_up]'
+                );
+                await criterionAdvancedOptions.click();
+                await page.waitForSelector('input[id^=name_up]');
+                await page.focus('input[id^=name_up]');
+                await page.keyboard.down('Control');
+                await page.keyboard.press('A');
+                await page.keyboard.up('Control');
+                await page.keyboard.press('Backspace');
+                const upCriterionName = 'Monitor Online';
+                await page.keyboard.type(upCriterionName);
+
+                await page.click('button[type=submit]');
+
+                let spanElement = await page.waitForSelector(
+                    `#monitor-title-${monitorName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(monitorName);
+
+                await page.click(`#edit_${monitorName}`);
+                await page.click('#advanceOptions');
+                criterionAdvancedOptions = await page.waitForSelector(
+                    '[data-testId=criterionAdvancedOptions_up]'
+                );
+                await criterionAdvancedOptions.click();
+                await page.waitForSelector('input[id^=name_up]');
+                const criterionName = await page.$eval(
+                    'input[id^=name_up]',
+                    el => el.value
+                );
+                expect(criterionName).toEqual(upCriterionName);
+            });
+        },
+        operationTimeOut
+    );
+
+    test('Should create new monitor with multiple criteria on each category', async () => {
+        return await cluster.execute(null, async ({ page }) => {
+            // Create Component first
+            // Redirects automatically component to details page
+            await init.addComponent(componentName, page);
+
+            await page.waitForSelector('#form-new-monitor');
+            await page.click('input[id=name]');
+            await page.type('input[id=name]', monitorName);
+            await page.click('input[data-testId=type_url]');
+            await page.waitForSelector('#url');
+            await page.click('#url');
+            await page.type('#url', 'https://google.com');
+
+            await page.click('#advanceOptions');
+
+            // add up criterion
+            expect(
+                (await page.$$('[data-testId^=single_criterion_up')).length
+            ).toEqual(1);
+
+            let criterionAdvancedOption = await page.waitForSelector(
+                '[data-testId=criterionAdvancedOptions_up]'
+            );
+            await criterionAdvancedOption.click();
+
+            await page.click('[data-testId=add_criteria_up]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_up')).length
+            ).toEqual(2);
+
+            // add degraded criterion
+            expect(
+                (await page.$$('[data-testId^=single_criterion_degraded]'))
+                    .length
+            ).toEqual(1);
+
+            criterionAdvancedOption = await page.$(
+                '[data-testId=criterionAdvancedOptions_degraded]'
+            );
+            await criterionAdvancedOption.click();
+
+            await page.click('[data-testId=add_criteria_degraded]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_degraded]'))
+                    .length
+            ).toEqual(2);
+
+            // add down criterion
+            criterionAdvancedOption = await page.$(
+                '[data-testId=criterionAdvancedOptions_down]'
+            );
+            await criterionAdvancedOption.click();
+
+            expect(
+                (await page.$$('[data-testId^=single_criterion_down]')).length
+            ).toEqual(1);
+
+            await page.click('[data-testId=add_criteria_down]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_down]')).length
+            ).toEqual(2);
+
+            // add the monitor and check if the criteria are persisted
+            await page.click('button[type=submit]');
+
+            let spanElement = await page.waitForSelector(
+                `#monitor-title-${monitorName}`
+            );
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            spanElement.should.be.exactly(monitorName);
+
+            await page.click(`#edit_${monitorName}`);
+            await page.click('#advanceOptions');
+            // for up criteria
+            await page.waitForSelector('[data-testId^=single_criterion_up]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_up')).length
+            ).toEqual(2);
+
+            // for degraded criteria
+            await page.waitForSelector(
+                '[data-testId^=single_criterion_degraded]'
+            );
+            expect(
+                (await page.$$('[data-testId^=single_criterion_degraded]'))
+                    .length
+            ).toEqual(2);
+            // for down criteria
+            await page.waitForSelector('[data-testId^=single_criterion_down]');
+            expect(
+                (await page.$$('[data-testId^=single_criterion_down]')).length
+            ).toEqual(2);
+        });
+    });
 
     test(
         'should display lighthouse scores',
@@ -181,28 +333,45 @@ describe('Monitor API', () => {
     );
 
     test(
-        'Should create new monitor with call schedule',
+        'Should create new monitor with call schedules',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Component details
-                await init.navigateToComponentDetails(componentName, page);
+                // Create Component first
+                // Redirects automatically component to details page
+                await init.addComponent(componentName, page);
 
                 await page.waitForSelector('#form-new-monitor');
-                await page.waitForSelector('#name');
                 await page.click('input[id=name]');
-                await page.type('input[id=name]', callScheduleMonitorName);
-                await init.selectByText('#type', 'url', page);
-                await init.selectByText('#callSchedule', callSchedule, page);
+                await page.type('input[id=name]', monitorName);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
+                await page.click('#url');
                 await page.type('#url', 'https://google.com');
+                // select multiple schedules
+                await page.$$eval('[data-testId^=callSchedules_]', schedules =>
+                    schedules.forEach(schedule => schedule.click())
+                );
+
                 await page.click('button[type=submit]');
 
                 let spanElement = await page.waitForSelector(
-                    `#monitor-title-${callScheduleMonitorName}`
+                    `#monitor-title-${monitorName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(callScheduleMonitorName);
+                spanElement.should.be.exactly(monitorName);
+
+                await page.click(`#edit_${monitorName}`);
+
+                const checkboxValues = await page.$$eval(
+                    '[data-testId^=callSchedules_]',
+                    schedules => schedules.map(schedule => schedule.checked)
+                );
+
+                const areAllChecked = checkboxValues.every(
+                    checked => checked === true
+                );
+                expect(areAllChecked).toEqual(true);
             });
         },
         operationTimeOut
@@ -213,15 +382,15 @@ describe('Monitor API', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
-                await init.navigateToComponentDetails(componentName, page);
 
-                // await page.waitForSelector('#monitors');
-                // await page.click('#monitors');
+                await init.addComponent(componentName, page);
+
                 await page.waitForSelector('#form-new-monitor');
-                await page.waitForSelector('#name');
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
+                await page.click('#url');
                 await page.type('#url', 'https://google.com');
+
                 await page.click('button[type=submit]');
 
                 let spanElement = await page.waitForSelector(
@@ -474,6 +643,10 @@ describe('API Monitor API', () => {
 
     let cluster;
 
+    const componentName = utils.generateRandomString();
+    const monitorName = utils.generateRandomString();
+    const testMonitorName = utils.generateRandomString();
+
     beforeAll(async () => {
         jest.setTimeout(500000);
 
@@ -525,13 +698,17 @@ describe('API Monitor API', () => {
 
         await cluster.execute(null, testServer);
 
-        return await cluster.execute(null, async ({ page }) => {
+        await cluster.execute(null, async ({ page }) => {
             const user = {
                 email: utils.generateRandomBusinessEmail(),
                 password,
             };
             await init.registerUser(user, page);
             await init.loginUser(user, page);
+        });
+
+        await cluster.execute(null, async ({ page }) => {
+            await init.addComponent(componentName, page);
         });
     });
 
@@ -541,26 +718,22 @@ describe('API Monitor API', () => {
         done();
     });
 
-    const componentName = utils.generateRandomString();
-    const monitorName = utils.generateRandomString();
-    const testMonitorName = utils.generateRandomString();
-
     test(
         'should not add API monitor with invalid url',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Create Component first
                 // Redirects automatically component to details page
-                await init.addComponent(componentName, page);
-
+                await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'api', page);
-                await init.selectByText('#method', 'get', page);
+                await page.click('input[data-testId=type_api]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
+                await init.selectByText('#method', 'get', page);
+
                 await page.click('button[type=submit]');
 
                 let spanElement = await page.waitForSelector(
@@ -586,14 +759,15 @@ describe('API Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'api', page);
-                await init.selectByText('#method', 'post', page);
+                await page.click('input[data-testId=type_api]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
                 await page.type(
                     '#url',
                     'https://fyipe.com/api/monitor/valid-project-id'
                 );
+                await init.selectByText('#method', 'post', page);
+
                 await page.click('button[type=submit]');
 
                 const spanElement = await page.waitForSelector(
@@ -615,7 +789,7 @@ describe('API Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'api', page);
+                await page.click('input[data-testId=type_api]');
                 await init.selectByText('#method', 'post', page);
                 await page.waitForSelector('#url');
                 await page.click('#url');
@@ -663,7 +837,7 @@ describe('API Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'api', page);
+                await page.click('input[data-testId=type_api]');
                 await init.selectByText('#method', 'get', page);
                 await page.waitForSelector('#url');
                 await page.click('#url');
@@ -689,113 +863,19 @@ describe('API Monitor API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitForSelector('#form-new-monitor');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', testMonitorName);
-                await init.selectByText('#type', 'api', page);
-                await init.selectByText('#method', 'get', page);
-                await page.waitForSelector('#url');
-                await page.click('#url');
-                await page.type('#url', utils.HTTP_TEST_SERVER_URL);
-                await page.waitForSelector('#advanceOptions');
-                await page.click('#advanceOptions');
-
-                // online criteria
-                await page.waitForSelector('#up_1000_addCriteria');
-                await page.click('#up_1000_addCriteria');
-                await page.waitForSelector(
-                    'ul#up_1000 > li:last-of-type #responseType'
-                );
-                await init.selectByText(
-                    'ul#up_1000 > li:last-of-type #responseType',
-                    'responseBody',
-                    page
-                );
-                await page.waitForSelector(
-                    'ul#up_1000 > li:last-of-type #filter'
-                );
-                await init.selectByText(
-                    'ul#up_1000 > li:last-of-type #filter',
-                    'evaluateResponse',
-                    page
-                );
-                await page.waitForSelector(
-                    'ul#up_1000 > li:last-of-type #value'
-                );
-                await page.click('ul#up_1000 > li:last-of-type #value');
-                await page.type(
-                    'ul#up_1000 > li:last-of-type #value',
-                    "response.body.status === 'ok';"
-                );
-
-                // degraded criteria
-                await page.waitForSelector('#degraded_1000_addCriteria');
-                await page.click('#degraded_1000_addCriteria');
-                await page.waitForSelector(
-                    'ul#degraded_1000 > li:last-of-type #responseType'
-                );
-                await init.selectByText(
-                    'ul#degraded_1000 > li:last-of-type #responseType',
-                    'responseBody',
-                    page
-                );
-                await page.waitForSelector(
-                    'ul#degraded_1000 > li:last-of-type #filter'
-                );
-                await init.selectByText(
-                    'ul#degraded_1000 > li:last-of-type #filter',
-                    'evaluateResponse',
-                    page
-                );
-                await page.waitForSelector(
-                    'ul#degraded_1000 > li:last-of-type #value'
-                );
-                await page.click('ul#degraded_1000 > li:last-of-type #value');
-                await page.type(
-                    'ul#degraded_1000 > li:last-of-type #value',
-                    "response.body.message === 'draining';"
-                );
-
-                // offline criteria
-                await page.waitForSelector('#down_1000_addCriteria');
-                await page.click('#down_1000_addCriteria');
-                await page.waitForSelector(
-                    'ul#down_1000 > li:last-of-type #responseType'
-                );
-                await init.selectByText(
-                    'ul#down_1000 > li:last-of-type #responseType',
-                    'responseBody',
-                    page
-                );
-                await page.waitForSelector(
-                    'ul#down_1000 > li:last-of-type #filter'
-                );
-                await init.selectByText(
-                    'ul#down_1000 > li:last-of-type #filter',
-                    'evaluateResponse',
-                    page
-                );
-                await page.waitForSelector(
-                    'ul#down_1000 > li:last-of-type #value'
-                );
-                await page.click('ul#down_1000 > li:last-of-type #value');
-                await page.type(
-                    'ul#down_1000 > li:last-of-type #value',
-                    "response.body.message === 'offline';"
-                );
-
-                await page.click('button[type=submit]');
+                const newMonitorName = utils.generateRandomString();
+                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
                 await page.waitFor(120000);
 
                 let spanElement = await page.waitForSelector(
-                    `#monitor-title-${testMonitorName}`
+                    `#monitor-title-${newMonitorName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(testMonitorName);
+                spanElement.should.be.exactly(newMonitorName);
 
                 let monitorStatusElement = await page.waitForSelector(
-                    `#monitor-status-${testMonitorName}`,
+                    `#monitor-status-${newMonitorName}`,
                     { visible: true, timeout: operationTimeOut }
                 );
                 monitorStatusElement = await monitorStatusElement.getProperty(
@@ -812,21 +892,13 @@ describe('API Monitor API', () => {
         'should strip trailing semicolons from evaluate response js expressions',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    testMonitorName,
-                    page
-                );
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
 
-                let monitorId = await page.waitForSelector('#monitorId', {
-                    visible: true,
-                    timeout: operationTimeOut,
-                });
-                monitorId = await monitorId.getProperty('innerText');
-                monitorId = await monitorId.jsonValue();
+                const newMonitorName = utils.generateRandomString();
+                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
 
-                const editButtonSelector = `#edit_${testMonitorName}`;
+                const editButtonSelector = `#edit_${newMonitorName}`;
                 await page.waitForSelector(editButtonSelector, {
                     visible: true,
                 });
@@ -836,34 +908,28 @@ describe('API Monitor API', () => {
                 await page.waitForSelector('#advanceOptions');
                 await page.click('#advanceOptions');
 
-                let upExpression = await page.waitForSelector(
-                    `input[name='up_${monitorId}[4].field1']`
+                // for online criteria
+                const upFields = await page.$$(
+                    `input[name*="up_"][name*=".field1"]`
                 );
-                upExpression = await upExpression.getProperty('value');
+                const lastUpField = upFields[upFields.length - 1];
+                const upExpression = await (
+                    await lastUpField.getProperty('value')
+                ).jsonValue();
 
-                upExpression = await upExpression.jsonValue();
-                upExpression.should.be.exactly("response.body.status === 'ok'");
+                expect(upExpression).toEqual("response.body.status === 'ok'");
 
-                let degradedExpression = await page.waitForSelector(
-                    `input[name='degraded_${monitorId}[1].field1']`
+                // for degraded criteria
+                const degradedFields = await page.$$(
+                    `input[name*="degraded_"][name*=".field1"]`
                 );
-                degradedExpression = await degradedExpression.getProperty(
-                    'value'
-                );
-
-                degradedExpression = await degradedExpression.jsonValue();
-                degradedExpression.should.be.exactly(
+                const lastDegradedField =
+                    degradedFields[degradedFields.length - 1];
+                const degradedExpression = await (
+                    await lastDegradedField.getProperty('value')
+                ).jsonValue();
+                expect(degradedExpression).toEqual(
                     "response.body.message === 'draining'"
-                );
-
-                let downExpression = await page.waitForSelector(
-                    `input[name='down_${monitorId}[2].field1']`
-                );
-                downExpression = await downExpression.getProperty('value');
-
-                downExpression = await downExpression.jsonValue();
-                downExpression.should.be.exactly(
-                    "response.body.message === 'offline'"
                 );
             });
         },
@@ -901,7 +967,10 @@ describe('API Monitor API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitFor(120000);
+                const newMonitorName = utils.generateRandomString();
+                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
+
+                await page.waitFor(15000);
 
                 let monitorStatusElement = await page.waitForSelector(
                     `#monitor-status-${testMonitorName}`,
@@ -1018,8 +1087,19 @@ describe('API Monitor API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
+                const newMonitorName = utils.generateRandomString();
+                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
+
+                const firstIncidentElement = await page.waitForSelector(
+                    `#incident_${newMonitorName}_0`
+                );
+                await Promise.all([
+                    firstIncidentElement.click(),
+                    page.waitForNavigation(),
+                ]);
+
                 let monitorIncidentReportElement = await page.waitForSelector(
-                    `#${testMonitorName}_IncidentReport_0`
+                    `#${newMonitorName}_IncidentReport_0`
                 );
                 monitorIncidentReportElement = await monitorIncidentReportElement.getProperty(
                     'innerText'
@@ -1029,10 +1109,8 @@ describe('API Monitor API', () => {
                     /Response {"message":"offline"} did not evaluate response.body.status === 'ok'.$/
                 );
 
-                await page.waitForSelector(
-                    `#${testMonitorName}_ShowResponse_0`
-                );
-                await page.click(`#${testMonitorName}_ShowResponse_0`);
+                await page.waitForSelector(`#${newMonitorName}_ShowResponse_0`);
+                await page.click(`#${newMonitorName}_ShowResponse_0`);
 
                 let monitorIncidentModalElement = await page.waitForSelector(
                     '#API_Response'
@@ -1050,50 +1128,27 @@ describe('API Monitor API', () => {
     test(
         'should delete API monitors',
         async () => {
-            expect.assertions(2);
+            expect.assertions(1);
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    monitorName,
-                    page
-                );
 
-                let deleteButtonSelector = `#delete_${monitorName}`;
+                await init.navigateToComponentDetails(componentName, page);
+                const newMonitorName = utils.generateRandomString();
+                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
+
+                const deleteButtonSelector = `#delete_${newMonitorName}`;
                 await page.$eval(deleteButtonSelector, e => e.click());
 
-                let confirmDeleteButtonSelector = '#deleteMonitor';
+                const confirmDeleteButtonSelector = '#deleteMonitor';
                 await page.waitForSelector(confirmDeleteButtonSelector);
                 await page.click(confirmDeleteButtonSelector);
                 await page.waitForSelector(confirmDeleteButtonSelector, {
                     hidden: true,
                 });
 
-                let selector = `span#monitor-title-${monitorName}`;
+                const selector = `span#monitor-title-${newMonitorName}`;
 
-                let spanElement = await page.$(selector);
-                expect(spanElement).toBeNull();
-
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    testMonitorName,
-                    page
-                );
-
-                deleteButtonSelector = `#delete_${testMonitorName}`;
-                await page.$eval(deleteButtonSelector, e => e.click());
-
-                confirmDeleteButtonSelector = '#deleteMonitor';
-                await page.waitForSelector(confirmDeleteButtonSelector);
-                await page.click(confirmDeleteButtonSelector);
-                await page.waitForSelector(confirmDeleteButtonSelector, {
-                    hidden: true,
-                });
-
-                selector = `span#monitor-title-${testMonitorName}`;
-
-                spanElement = await page.$(selector);
+                const spanElement = await page.$(selector);
                 expect(spanElement).toBeNull();
             });
         },
