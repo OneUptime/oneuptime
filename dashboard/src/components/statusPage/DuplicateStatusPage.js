@@ -1,4 +1,4 @@
-// import uuid from 'uuid';
+import uuid from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -6,59 +6,54 @@ import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { duplicateStatusPage } from '../../actions/statusPage';
+import DataPathHoC from '../DataPathHoC';
 import DuplicateStatusPageForm from './DuplicateStatusPageForm';
 import { openModal, closeModal } from '../../actions/modal';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class DuplicateStatusPageBox extends Component {
     constructor(props) {
         super(props);
-        // this.state = { deleteModalId: uuid.v4() };
+        this.state = {
+            duplicateModalId: uuid.v4(),
+        };
     }
 
-    handleClick = () => {
-        const {
-            projectId,
-            // showDuplicateStatusPage,
-            scheduleId,
-            history,
-        } = this.props;
-        // const { deleteModalId } = this.state;
-        const { subProjectId } = this.props.match.params;
-        this.props.openModal({
-            // id: deleteModalId,
-            onConfirm: () => {
-                return duplicateStatusPage(subProjectId, scheduleId).then(
-                    () => {
-                        if (SHOULD_LOG_ANALYTICS) {
-                            logEvent(
-                                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > STATUS PAGE DUPLICATED'
-                            );
-                        }
-                        history.push(
-                            `/dashboard/project/${projectId}/status-pages`
-                        );
-                    }
-                );
-            },
-            content: DuplicateStatusPageForm,
-        });
-    };
-
-    // handleKeyBoard = e => {
-    //     switch (e.key) {
-    //         case 'Escape':
-    //             return this.props.closeModal({ id: this.state.duplicateModalId });
-    //         default:
-    //             return false;
-    //     }
+    // handleClick = () => {
+    //     const { statusPageId } = this.props;
+    //     // const { projectId, deleteStatusPage, scheduleId, history } = this.props;
+    //     // const { duplicateModalId } = this.state;
+    //     // const { subProjectId } = this.props.match.params;
+    //     this.props.openModal({
+    //         // id: duplicateModalId,
+    //         onConfirm: () => {
+    //             return duplicateStatusPage(statusPageId).then(() => {
+    //                 if (SHOULD_LOG_ANALYTICS) {
+    //                     logEvent(
+    //                         'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > STATUS PAGE DUPLICATED'
+    //                     );
+    //                 }
+    //                 // history.push(
+    //                 //     `/dashboard/project/${projectId}/status-pages`
+    //                 // );
+    //             });
+    //         },
+    //         content: DuplicateStatusPageForm,
+    //     });
     // };
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({
+                    id: this.state.duplicateModalId,
+                });
+            default:
+                return false;
+        }
+    };
 
     render() {
         const { isRequesting } = this.props;
-
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -82,10 +77,21 @@ export class DuplicateStatusPageBox extends Component {
                                 <span className="db-SettingsForm-footerMessage"></span>
                                 <div>
                                     <button
-                                        // id="delete"
+                                        id="duplicate"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={isRequesting}
-                                        onClick={this.handleClick}
+                                        onClick={() => {
+                                            this.props.openModal({
+                                                id: this.state.duplicateModalId,
+                                                content: DataPathHoC(
+                                                    DuplicateStatusPageForm,
+                                                    {
+                                                        statusPageId: this.props
+                                                            .statusPageId,
+                                                    }
+                                                ),
+                                            });
+                                        }}
                                     >
                                         <ShouldRender if={!isRequesting}>
                                             <span>Duplicate</span>
@@ -108,45 +114,45 @@ DuplicateStatusPageBox.displayName = 'DuplicateStatusPageBox';
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { duplicateStatusPage, openModal, closeModal },
+        {
+            // deleteStatusPage,
+            openModal,
+            closeModal,
+        },
         dispatch
     );
 
-const mapStateToProps = (state, props) => {
-    const { scheduleId, projectId } = props.match.params;
-
-    //  const status = state.statusPage.statusPages.find(
-    //   statusPage => statusPage._id === scheduleId
-    //   );
-
-    //  const scheduleName = schedule && schedule.name;
-
+const mapStateToProps = (
+    state
+    // props
+) => {
+    // const { scheduleId, projectId } = props.match.params;
     return {
-        // scheduleName,
-        projectId,
-        scheduleId,
-        // isRequesting:
-        //     state.statusPage &&
-        //     state.statusPage.deleteStatusPage &&
-        //     state.statusPage.deleteStatusPage.requesting,
+        // projectId,
+        // scheduleId,
+        isRequesting:
+            state.statusPage &&
+            state.statusPage.newStatusPage &&
+            state.statusPage.newStatusPage.requesting,
     };
 };
 
 DuplicateStatusPageBox.propTypes = {
-    isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    history: PropTypes.object.isRequired,
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    scheduleId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    // deleteStatusPage: PropTypes.func.isRequired,
-    // closeModal: PropTypes.func,
+    closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
-    match: PropTypes.object,
+    isRequesting: PropTypes.oneOf([null, undefined, true, false]),
+    statusPageId: PropTypes.object,
+    // history: PropTypes.object.isRequired,
+    // projectId: PropTypes.oneOfType([
+    //     PropTypes.string,
+    //     PropTypes.oneOf([null, undefined]),
+    // ]),
+    // scheduleId: PropTypes.oneOfType([
+    //     PropTypes.string,
+    //     PropTypes.oneOf([null, undefined]),
+    // ]),
+    // deleteStatusPage: PropTypes.func.isRequired,
+    // match: PropTypes.object,
 };
 
 export default withRouter(

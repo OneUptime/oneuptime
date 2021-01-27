@@ -8,7 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { Spinner } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
-import { createStatusPage } from '../../actions/statusPage';
+import { duplicateStatusPage } from '../../actions/statusPage';
 
 function validate(values) {
     const errors = {};
@@ -35,9 +35,9 @@ export class StatusPageForm extends React.Component {
 
     submitForm = values => {
         const { data } = this.props;
-        this.props.createStatusPage(data.projectId, values).then(() => {
+        this.props.duplicateStatusPage(data.statusPageId, values).then(() => {
             return this.props.closeModal({
-                id: this.props.statusPageModalId,
+                id: this.props.duplicateModalId,
             });
         });
     };
@@ -53,7 +53,7 @@ export class StatusPageForm extends React.Component {
 
     handleCloseModal = () => {
         this.props.closeModal({
-            id: this.props.statusPageModalId,
+            id: this.props.duplicateModalId,
         });
     };
 
@@ -126,7 +126,7 @@ export class StatusPageForm extends React.Component {
                                                 onClick={() => {
                                                     this.props.closeModal({
                                                         id: this.props
-                                                            .statusPageModalId,
+                                                            .duplicateModalId,
                                                     });
                                                 }}
                                                 disabled={
@@ -190,21 +190,23 @@ const DuplicateStatusPageForm = reduxForm({
 const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
-        statusPageModalId: state.modal.modals[0].id,
+        duplicateModalId: state.modal.modals[0].id,
         statusPage: state.statusPage,
     };
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ closeModal, createStatusPage }, dispatch);
+    return bindActionCreators({ closeModal, duplicateStatusPage }, dispatch);
 };
 
 StatusPageForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
-    createStatusPage: PropTypes.func.isRequired,
-    statusPageModalId: PropTypes.string.isRequired,
+    duplicateStatusPage: PropTypes.func.isRequired,
+    duplicateModalId: PropTypes.string.isRequired,
+
     statusPage: PropTypes.object,
+    statusPageId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
 };
 

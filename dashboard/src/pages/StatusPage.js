@@ -224,7 +224,15 @@ class StatusPage extends Component {
                                                                             {this
                                                                                 .props
                                                                                 .showDuplicateStatusPage ? (
-                                                                                <DuplicateStatusBox />
+                                                                                <DuplicateStatusBox
+                                                                                    statusPageId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .statusPage
+                                                                                            .status
+                                                                                            ._id
+                                                                                    }
+                                                                                />
                                                                             ) : null}
                                                                         </div>
                                                                     </RenderIfSubProjectAdmin>

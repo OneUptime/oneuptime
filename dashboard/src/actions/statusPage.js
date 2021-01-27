@@ -800,14 +800,40 @@ export function duplicateStatusPageError(error) {
 }
 
 // Calls the API to duplicate statuspage.
-export function duplicateStatusPage(projectId, data) {
+export function duplicateStatusPage(statusPageId, data) {
     return function(dispatch) {
-        const promise = postApi(`statusPage/${projectId}`, data);
+        const readStatusPromise = getApi(`statusPage/${statusPageId}`, data);
         dispatch(duplicateStatusPageRequest());
-        promise.then(
+        readStatusPromise.then(
             function(response) {
-                const statusPage = response.data;
-                dispatch(duplicateStatusPageSuccess(statusPage));
+                const statusPageData = response.data;
+                delete statusPageData._id;
+                statusPageData.name = data.name;
+                const createStatusPromise = postApi(
+                    `statusPage/${statusPageData.projectId._id}`,
+                    statusPageData
+                );
+                createStatusPromise.then(
+                    function(response) {
+                        const duplicateStatusPage = response.data;
+                        dispatch(
+                            duplicateStatusPageSuccess(duplicateStatusPage)
+                        );
+                    },
+                    function(error) {
+                        if (error && error.response && error.response.data)
+                            error = error.response.data;
+                        if (error && error.data) {
+                            error = error.data;
+                        }
+                        if (error && error.message) {
+                            error = error.message;
+                        } else {
+                            error = 'Network Error';
+                        }
+                        dispatch(duplicateStatusPageError(errors(error)));
+                    }
+                );
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -823,7 +849,7 @@ export function duplicateStatusPage(projectId, data) {
                 dispatch(duplicateStatusPageError(errors(error)));
             }
         );
-        return promise;
+        return readStatusPromise;
     };
 }
 
