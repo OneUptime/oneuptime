@@ -20,7 +20,10 @@ const { toXML } = require('jstoxml');
 const moment = require('moment');
 
 const { getUser, checkUser } = require('../middlewares/user');
-const { getSubProjects } = require('../middlewares/subProject');
+const {
+    getSubProjects,
+    getViewerSubProjects,
+} = require('../middlewares/subProject');
 const { isUserAdmin } = require('../middlewares/project');
 const storage = require('../middlewares/upload');
 const { isAuthorized } = require('../middlewares/authorization');
@@ -478,9 +481,18 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
+    getViewerSubProjects,
     async function(req, res) {
-        const subProjectIds = req.user.subProjects
-            ? req.user.subProjects.map(project => project._id)
+        let subProjects = req.user.subProjects ?? req.user.viewerSubProjects;
+        if (req.user.subProjects && req.user.viewerSubProjects) {
+            subProjects = [
+                ...req.user.subProjects,
+                ...req.user.viewerSubProjects,
+            ];
+        }
+
+        const subProjectIds = subProjects
+            ? subProjects.map(project => project._id)
             : null;
         try {
             const statusPages = await StatusPageService.getSubProjectStatusPages(

@@ -21,7 +21,7 @@ export class SubProjectTable extends Component {
 
     handleRevealAPIKey = userId => {
         const { openModal, subProject, currentProject } = this.props;
-        isOwnerOrAdmin(userId, currentProject)
+        isOwnerOrAdmin(userId, currentProject) && !this.isProjectViewer(userId)
             ? openModal({
                   id: this.state.subProjectModalId,
                   content: DataPathHoC(SubProjectApiKey, {
@@ -38,7 +38,7 @@ export class SubProjectTable extends Component {
 
     handleEdit = userId => {
         const { openModal, subProject, currentProject } = this.props;
-        isOwnerOrAdmin(userId, currentProject)
+        isOwnerOrAdmin(userId, currentProject) && !this.isProjectViewer(userId)
             ? openModal({
                   id: this.state.subProjectModalId,
                   content: DataPathHoC(SubProjectForm, {
@@ -56,7 +56,7 @@ export class SubProjectTable extends Component {
 
     handleRemove = userId => {
         const { openModal, subProject, currentProject } = this.props;
-        isOwnerOrAdmin(userId, currentProject)
+        isOwnerOrAdmin(userId, currentProject) && !this.isProjectViewer(userId)
             ? openModal({
                   id: this.state.subProjectModalId,
                   content: DataPathHoC(RemoveSubProject, {
@@ -69,6 +69,15 @@ export class SubProjectTable extends Component {
                   id: this.state.subProjectModalId,
                   content: DataPathHoC(Unauthorised),
               });
+    };
+
+    isProjectViewer = userId => {
+        const { subProject } = this.props;
+        const viewer = subProject.users.find(
+            user => user.userId === userId && user.role === 'Viewer'
+        );
+        if (viewer) return true;
+        return false;
     };
 
     render() {
