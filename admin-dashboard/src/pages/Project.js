@@ -85,7 +85,7 @@ class Project extends Component {
                                                         this.props.projectUsers
                                                             .page
                                                     }
-                                                    membersPerPage={5}
+                                                    membersPerPage={20}
                                                     count={
                                                         this.props
                                                             .projectUsers &&
@@ -112,7 +112,7 @@ class Project extends Component {
                                                             this.props
                                                                 .projectUsers
                                                                 .page *
-                                                                5
+                                                                20
                                                             ? true
                                                             : false
                                                     }

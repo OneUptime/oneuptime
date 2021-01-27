@@ -333,12 +333,12 @@ class ProjectUser extends Component {
                                     id={`project_${this.props.projectName}`}
                                     style={{ textTransform: 'capitalize' }}
                                 >
-                                    Project Users Members
+                                    Project Users
                                 </span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span>
-                                    Here are all the members who belong to{' '}
+                                    Here are all the users who belong to{' '}
                                     <span
                                         style={{ textTransform: 'lowercase' }}
                                     >
@@ -361,7 +361,7 @@ class ProjectUser extends Component {
                                         </div>
 
                                         <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                                            <span>Invite Team Member</span>
+                                            <span>Add User</span>
                                             <span className="new-btn__keycode">
                                                 N
                                             </span>

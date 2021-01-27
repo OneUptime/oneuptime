@@ -74,7 +74,7 @@ const LoadedTeam = props => {
         currentProjectId,
         modalList,
     } = props;
-    const membersPerPage = 5;
+    const membersPerPage = 20;
 
     // SubProject TeamMembers List
     const allTeamMembers =
