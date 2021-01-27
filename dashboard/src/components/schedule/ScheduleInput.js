@@ -26,7 +26,7 @@ const ScheduleInput = ({ schedules = [], fields, currentProject = {} }) => {
                                 ? schedules[index]._id.toString()
                                 : index
                         }`}
-                        className="Box-root Margin-bottom--12"
+                        className="Box-root Margin-vertical--8"
                     >
                         <div
                             data-test="RetrySettings-failedPaymentsRow"

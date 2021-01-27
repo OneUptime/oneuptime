@@ -1088,13 +1088,18 @@ describe('API Monitor API', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 const newMonitorName = utils.generateRandomString();
-                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
+                await init.addAPIMonitorWithJSExpression(page, newMonitorName, {
+                    createAlertForOnline: true,
+                });
 
-                const firstIncidentElement = await page.waitForSelector(
-                    `#incident_${newMonitorName}_0`
-                );
+                // wait for a new incident is created
+                await page.waitForSelector(`#incident_${newMonitorName}_0`, {
+                    timeout: 120 * 1000,
+                });
                 await Promise.all([
-                    firstIncidentElement.click(),
+                    page.$eval(`#incident_${newMonitorName}_0`, element =>
+                        element.click()
+                    ),
                     page.waitForNavigation(),
                 ]);
 
@@ -1106,7 +1111,7 @@ describe('API Monitor API', () => {
                 );
                 monitorIncidentReportElement = await monitorIncidentReportElement.jsonValue();
                 monitorIncidentReportElement.should.match(
-                    /Response {"message":"offline"} did not evaluate response.body.status === 'ok'.$/
+                    /.*Response {"status":"ok"} Did evaluate response.body.status === 'ok'.*$/
                 );
 
                 await page.waitForSelector(`#${newMonitorName}_ShowResponse_0`);

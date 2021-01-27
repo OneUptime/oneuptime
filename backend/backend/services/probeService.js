@@ -218,7 +218,7 @@ module.exports = {
                 await MonitorService.updateMonitorPingTime(data.monitorId);
             }
 
-            const { matchedCriterion } = data;
+            const { lastMatchedCriterion } = data.monitor;
 
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
@@ -230,13 +230,11 @@ module.exports = {
                         return { retry: true, retryCount: data.retryCount };
 
                     const autoAcknowledge =
-                        lastStatus && lastStatus === 'degraded'
-                            ? matchedCriterion.autoAcknowledge
-                            : lastStatus === 'offline' && true; // automatically acknowledge offline monitors
+                        lastMatchedCriterion &&
+                        lastMatchedCriterion.autoAcknowledge; // automatically acknowledge offline monitors
                     const autoResolve =
-                        lastStatus === 'degraded'
-                            ? matchedCriterion.autoResolve
-                            : lastStatus === 'offline' && true; // automatically resolve offline monitors
+                        lastMatchedCriterion &&
+                        lastMatchedCriterion.autoResolve; // automatically resolve offline monitors
                     await _this.incidentResolveOrAcknowledge(
                         data,
                         lastStatus,
@@ -310,7 +308,7 @@ module.exports = {
             });
             const incidents = await IncidentService.findBy({
                 monitorId: data.monitorId,
-                incidentType: data.status,
+                // incidentType: data.status,
                 resolved: false,
                 manuallyCreated: false,
             });
@@ -542,7 +540,7 @@ module.exports = {
                 })
             );
 
-            incidentsV2.forEach(async incident => {
+            await forEach(incidentsV2, async incident => {
                 const trueArray = [];
                 const falseArray = [];
                 incident.probes.forEach(probe => {
@@ -5408,4 +5406,4 @@ const { promisify } = require('util');
 const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
-const { some } = require('p-iteration');
+const { some, forEach } = require('p-iteration');
