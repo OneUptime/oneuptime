@@ -467,7 +467,8 @@ describe('Component API with Sub-Projects', function() {
         createUser(request, userData.anotherUser, function(err, res) {
             let project = res.body.project;
             otherProjectId = project._id;
-            otherUserId = res.body.id;                      
+            otherUserId = res.body.id;
+
             VerificationTokenModel.findOne({ userId: otherUserId }, function(
                 err,
                 verificationToken
