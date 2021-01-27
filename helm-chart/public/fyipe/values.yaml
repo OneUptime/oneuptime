@@ -155,6 +155,10 @@ nginx-ingress-controller:
 
   ##################################################################################
 
+haraka:
+  user: "user@hackerbay.io"
+  password: "hackerbay"
+
 host: 
   backendPort: 3002
   homePort: 1444
@@ -164,6 +168,9 @@ host:
   accountsPort: 3003
   helmChartPort: 3423
   apiDocsPort: 1445
+  # if port 25 is avaialble and accessible
+  # then we can use it as default port
+  harakaPort: 2525
   httpTestServerPort: 3010
   adminDashboardPort: 3100
   backendServicePort: 80
@@ -181,6 +188,7 @@ host:
   licensingServicePort: 80
   helmChartServicePort: 80
   httpTestServerServicePort: 80
+  harakaServicePort: 80
 
 isThirdPartyBilling: false
 isRunningOnGCPMarketplace: false
