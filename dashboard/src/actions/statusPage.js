@@ -799,58 +799,15 @@ export function duplicateStatusPageError(error) {
     };
 }
 
-// Calls the API to duplicate statuspage.
-export function duplicateStatusPage(statusPageId, data) {
-    return function(dispatch) {
-        const readStatusPromise = getApi(`statusPage/${statusPageId}`, data);
-        dispatch(duplicateStatusPageRequest());
-        readStatusPromise.then(
-            function(response) {
-                const statusPageData = response.data;
-                delete statusPageData._id;
-                statusPageData.name = data.name;
-                const createStatusPromise = postApi(
-                    `statusPage/${statusPageData.projectId._id}`,
-                    statusPageData
-                );
-                createStatusPromise.then(
-                    function(response) {
-                        const duplicateStatusPage = response.data;
-                        dispatch(
-                            duplicateStatusPageSuccess(duplicateStatusPage)
-                        );
-                    },
-                    function(error) {
-                        if (error && error.response && error.response.data)
-                            error = error.response.data;
-                        if (error && error.data) {
-                            error = error.data;
-                        }
-                        if (error && error.message) {
-                            error = error.message;
-                        } else {
-                            error = 'Network Error';
-                        }
-                        dispatch(duplicateStatusPageError(errors(error)));
-                    }
-                );
-            },
-            function(error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(duplicateStatusPageError(errors(error)));
-            }
-        );
-        return readStatusPromise;
-    };
+export function readStatusPage(statusPageId, data) {
+    return getApi(`statusPage/${statusPageId}`, data);
+}
+
+export function createDuplicateStatusPage(statusPageData) {
+    return postApi(
+        `statusPage/${statusPageData.projectId._id}`,
+        statusPageData
+    );
 }
 
 //Update status page embedded css

@@ -8,7 +8,10 @@ import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { Spinner } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
-import { duplicateStatusPage } from '../../actions/statusPage';
+import {
+    createDuplicateStatusPage,
+    readStatusPage,
+} from '../../actions/statusPage';
 import DuplicateStatusPageConfirmation from './DuplicateStatusPageConfirmation';
 
 function validate(values) {
@@ -36,18 +39,29 @@ export class StatusPageForm extends React.Component {
 
     submitForm = values => {
         const { data } = this.props;
-        this.props.duplicateStatusPage(data.statusPageId, values).then(() => {
-            this.props.closeModal({
-                id: this.props.duplicateModalId,
+        readStatusPage(data.statusPageId, values)
+            .then(response => {
+                const statusPageData = response.data;
+                delete statusPageData._id;
+                statusPageData.name = values.name;
+                return new Promise(resolve => {
+                    resolve(statusPageData);
+                });
+            })
+            .then(res => {
+                createDuplicateStatusPage(res).then(res => {
+                    this.props.closeModal({
+                        id: this.props.duplicateModalId,
+                    });
+                    this.props.openModal({
+                        id: this.props.duplicateModalId,
+                        content: DuplicateStatusPageConfirmation,
+                        statusPageId: res.data._id,
+                        subProjectId: data.subProjectId,
+                        projectId: data.projectId,
+                    });
+                });
             });
-            this.props.openModal({
-                id: this.props.duplicateModalId,
-                content: DuplicateStatusPageConfirmation,
-                statusPageId: data.statusPageId,
-                subProjectId: data.subProjectId,
-                projectId: data.projectId,
-            });
-        });
     };
 
     handleKeyBoard = e => {
@@ -208,17 +222,13 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators(
-        { openModal, closeModal, duplicateStatusPage },
-        dispatch
-    );
+    return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
 StatusPageForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
-    duplicateStatusPage: PropTypes.func.isRequired,
     duplicateModalId: PropTypes.string.isRequired,
 
     statusPage: PropTypes.object,
