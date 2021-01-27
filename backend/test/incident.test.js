@@ -505,10 +505,10 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
         expect(res.body.count).to.be.equal(1);
-        let sameType=[];
-        res.body.data.map(function(e){
+        let sameType;
+        sameType = res.body.data.filter(function(e){
             console.log("Variable Same Type: ",e.type)
-            sameType = e.type
+            return e.type === 'internal'
         })
         console.log("The Same Type is: ", sameType)
         expect(res.body.data[2].type).to.be.equal(type); 
