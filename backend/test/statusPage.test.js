@@ -1033,7 +1033,17 @@ describe('StatusPage API with Sub-Projects', function() {
         });
     });
 
-    
+    it('should not get private status page for authorized user that is not in project', function(done) {
+        const authorization = `Basic ${newUserToken}`;
+        request
+            .get(`/statusPage/${privateStatusPageId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                if (err) throw err;
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
 
     it('should not create a statusPage for user that is not `admin` in sub-project.', function(done) {
         const authorization = `Basic ${newUserToken}`;
@@ -1195,17 +1205,6 @@ describe('StatusPage API with Sub-Projects', function() {
                         expect(res.body).to.have.property('monitors');
                         done();
                     });
-            });
-    });
-    it('should not get private status page for authorized user that is not in project', function(done) {
-        const authorization = `Basic ${newUserToken}`;
-        request
-            .get(`/statusPage/${privateStatusPageId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                if (err) throw err;
-                expect(res).to.have.status(400);
-                done();
             });
     });
 
