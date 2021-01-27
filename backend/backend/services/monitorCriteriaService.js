@@ -368,43 +368,53 @@ const MonitorCriteriaService = {
             const criteriaObj = {};
             if (criteria) {
                 if (criteria.up_1000 && criteria.up_1000.length) {
-                    criteriaObj.up = this.makeCriteria(criteria.up_1000);
-                    criteriaObj.up.createAlert = criteria.up_1000_createAlert
+                    const upCriteria = this.makeCriteria(criteria.up_1000);
+                    upCriteria.scheduleIds = [];
+                    upCriteria.createAlert = criteria.up_1000_createAlert
                         ? true
                         : false;
-                    criteriaObj.up.autoAcknowledge = criteria.up_1000_autoAcknowledge
+                    upCriteria.autoAcknowledge = criteria.up_1000_autoAcknowledge
                         ? true
                         : false;
-                    criteriaObj.up.autoResolve = criteria.up_1000_autoResolve
+                    upCriteria.autoResolve = criteria.up_1000_autoResolve
                         ? true
                         : false;
-                } else if (
-                    criteria.degraded_1000 &&
-                    criteria.degraded_1000.length
-                ) {
-                    criteriaObj.degraded = this.makeCriteria(
+                    criteriaObj.up = [upCriteria];
+                }
+                if (criteria.degraded_1000 && criteria.degraded_1000.length) {
+                    const degradedCriteria = this.makeCriteria(
                         criteria.degraded_1000
                     );
-                    criteriaObj.degraded.createAlert = criteria.degraded_1000_createAlert
+                    degradedCriteria.scheduleIds = [];
+                    degradedCriteria.createAlert = criteria.degraded_1000_createAlert
                         ? true
                         : false;
-                    criteriaObj.degraded.autoAcknowledge = criteria.degraded_1000_autoAcknowledge
+                    degradedCriteria.autoAcknowledge = criteria.degraded_1000_autoAcknowledge
                         ? true
                         : false;
-                    criteriaObj.degraded.autoResolve = criteria.degraded_1000_autoResolve
+                    degradedCriteria.autoResolve = criteria.degraded_1000_autoResolve
                         ? true
                         : false;
-                } else {
-                    criteriaObj.down = this.makeCriteria(criteria.down_1000);
-                    criteriaObj.down.createAlert = criteria.down_1000_createAlert
+                    criteriaObj.degraded = [degradedCriteria];
+                }
+                if (criteria.down_1000 && criteria.down_1000.length) {
+                    const downCriteria = this.makeCriteria(criteria.down_1000);
+                    downCriteria.scheduleIds = [];
+                    downCriteria.createAlert = criteria.down_1000_createAlert
                         ? true
                         : false;
-                    criteriaObj.down.autoAcknowledge = criteria.down_1000_autoAcknowledge
+                    downCriteria.autoAcknowledge = criteria.down_1000_autoAcknowledge
                         ? true
                         : false;
-                    criteriaObj.down.autoResolve = criteria.down_1000_autoResolve
+                    downCriteria.autoResolve = criteria.down_1000_autoResolve
                         ? true
                         : false;
+
+                    const defaultCriterion = {
+                        ...downCriteria,
+                        default: true,
+                    };
+                    criteriaObj.down = [defaultCriterion];
                 }
             }
 

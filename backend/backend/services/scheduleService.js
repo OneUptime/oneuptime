@@ -137,6 +137,24 @@ module.exports = {
         }
     },
 
+    addMonitorToSchedules: async function(scheduleIds, monitorId) {
+        try {
+            await ScheduleModel.updateMany(
+                {
+                    _id: { $in: scheduleIds },
+                },
+                {
+                    $addToSet: {
+                        monitorIds: monitorId,
+                    },
+                }
+            );
+        } catch (error) {
+            ErrorService.log('scheduleService.addMonitor', error);
+            throw error;
+        }
+    },
+
     removeMonitor: async function(monitorId) {
         try {
             const schedule = await ScheduleModel.findOneAndUpdate(
@@ -242,7 +260,7 @@ module.exports = {
 
     deleteMonitor: async function(monitorId) {
         try {
-            await ScheduleModel.update(
+            await ScheduleModel.updateMany(
                 { deleted: false },
                 { $pull: { monitorIds: monitorId } }
             );
