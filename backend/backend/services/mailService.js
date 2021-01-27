@@ -79,6 +79,7 @@ const _this = {
             ErrorService.log('mailService.getEmailBody', error);
         }
     },
+
     createMailer: async function({ host, port, user, pass, secure }) {
         if (!host || !user || !pass) {
             const settings = await _this.getSmtpSettings();
@@ -175,6 +176,7 @@ const _this = {
 
             const mailer = await _this.createMailer({});
             EmailBody = await _this.getEmailBody(mailOptions);
+
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -332,6 +334,7 @@ const _this = {
         }
     },
     sendLeadEmailToFyipeTeam: async function(lead) {
+        console.log(lead.project.users);
         let mailOptions = {};
         let EmailBody;
         const accountMail = await _this.getSmtpSettings();
@@ -343,7 +346,92 @@ const _this = {
                 template: 'lead_to_fyipe_team',
                 context: {
                     homeURL: global.homeHost,
-                    text: JSON.stringify(lead, null, 2),
+                    text: lead,
+                    deleted: JSON.stringify(lead.deleted),
+                    _id: JSON.stringify(lead._id),
+                    createdAt: JSON.stringify(lead.createdAt),
+                    message: JSON.stringify(lead.message),
+                    page: JSON.stringify(lead.page),
+                    projectId: JSON.stringify(lead.projectId),
+                    createdById: JSON.stringify(lead.createdById),
+                    __v: JSON.stringify(lead.__v),
+
+                    //project
+                    //AlertOPtions
+                    projectAlertOptionsBillingUSCountries: JSON.stringify(
+                        lead.project &&
+                            lead.project.alertOptions &&
+                            lead.project.alertOptions.billingUS
+                    ),
+                    projectAlertOptionsBillingNonUSCountries: JSON.stringify(
+                        lead.project &&
+                            lead.project.alertOptions &&
+                            lead.project.alertOptions.billingNonUSCountries
+                    ),
+                    projectAlertOptionsBillingRiskCountries: JSON.stringify(
+                        lead.project &&
+                            lead.project.alertOptions &&
+                            lead.project.alertOptions.billingRiskCountries
+                    ),
+                    projectSeats: JSON.stringify(lead.project.seats),
+                    projectDeleted: JSON.stringify(lead.project.deleted),
+                    projectAlertEnabled: JSON.stringify(
+                        lead.project.alertEnable
+                    ),
+                    projectAlertLimitReached: JSON.stringify(
+                        lead.project.alertLimitReached
+                    ),
+                    projectBalance: JSON.stringify(lead.project.balance),
+                    projectIisBlocked: JSON.stringify(lead.project.isBlocked),
+                    projectSendCreatedIncidentNotificationSms: JSON.stringify(
+                        lead.project.sendCreatedIncidentNotificationSms
+                    ),
+                    projectSendAcknowledgedIncidentNotificationSms: JSON.stringify(
+                        lead.project.sendAcknowledgedIncidentNotificationSms
+                    ),
+                    projectSendResolvedIncidentNotificationSms: JSON.stringify(
+                        lead.project.sendResolvedIncidentNotificationSms
+                    ),
+                    projectSendCreatedIncidentNotificationEmail: JSON.stringify(
+                        lead.project.sendCreatedIncidentNotificationEmail
+                    ),
+                    projectSendAcknowledgedIncidentNotificationEmail: JSON.stringify(
+                        lead.project.sendAcknowledgedIncidentNotificationEmail
+                    ),
+                    projectSendResolvedIncidentNotificationEmail: JSON.stringify(
+                        lead.project.sendResolvedIncidentNotificationEmail
+                    ),
+                    projectEnableInvestigationNoteNotificationSMS: JSON.stringify(
+                        lead.project.enableInvestigationNoteNotificationSMS
+                    ),
+                    projectEnableInvestigationNoteNotificationEmail: JSON.stringify(
+                        lead.project.enableInvestigationNoteNotificationEmail
+                    ),
+                    projectEnableInvestigationNoteNotificationWebhook: JSON.stringify(
+                        lead.project.enableInvestigationNoteNotificationWebhook
+                    ),
+                    projectUnpaidSubscriptionNotifications: JSON.stringify(
+                        lead.project.unpaidSubscriptionNotifications
+                    ),
+                    ProjectId: JSON.stringify(lead.project._id),
+                    projectUsers: lead.project.users,
+                    projectCreatedAt: JSON.stringify(lead.project.createdAt),
+                    projectAdminNotes: JSON.stringify(lead.project.adminNotes),
+                    projectName: JSON.stringify(lead.project.name),
+                    projectSlug: JSON.stringify(lead.project.slug),
+                    projectApiKey: JSON.stringify(lead.project.apiKey),
+                    projectStripePlanId: JSON.stringify(
+                        lead.project.stripePlanId
+                    ),
+                    projectStripeSubscriptionId: JSON.stringify(
+                        lead.project.stripeSubscriptionId
+                    ),
+
+                    projectParentProjectId: JSON.stringify(
+                        lead.project.parentProjectId
+                    ),
+                    project__v: JSON.stringify(lead.__v),
+                    airtableId: JSON.stringify(lead.airtableId),
                 },
             };
 
