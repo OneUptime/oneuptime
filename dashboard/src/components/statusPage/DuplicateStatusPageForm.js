@@ -7,8 +7,9 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { Spinner } from '../basic/Loader';
-import { closeModal } from '../../actions/modal';
+import { openModal, closeModal } from '../../actions/modal';
 import { duplicateStatusPage } from '../../actions/statusPage';
+import DuplicateStatusPageConfirmation from './DuplicateStatusPageConfirmation';
 
 function validate(values) {
     const errors = {};
@@ -36,8 +37,15 @@ export class StatusPageForm extends React.Component {
     submitForm = values => {
         const { data } = this.props;
         this.props.duplicateStatusPage(data.statusPageId, values).then(() => {
-            return this.props.closeModal({
+            this.props.closeModal({
                 id: this.props.duplicateModalId,
+            });
+            this.props.openModal({
+                id: this.props.duplicateModalId,
+                content: DuplicateStatusPageConfirmation,
+                statusPageId: data.statusPageId,
+                subProjectId: data.subProjectId,
+                projectId: data.projectId,
             });
         });
     };
@@ -46,6 +54,10 @@ export class StatusPageForm extends React.Component {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
+            case 'Enter':
+                return document
+                    .querySelector('#btnDuplicateStatusPage')
+                    .click();
             default:
                 return false;
         }
@@ -196,17 +208,22 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ closeModal, duplicateStatusPage }, dispatch);
+    return bindActionCreators(
+        { openModal, closeModal, duplicateStatusPage },
+        dispatch
+    );
 };
 
 StatusPageForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
+    openModal: PropTypes.func.isRequired,
     duplicateStatusPage: PropTypes.func.isRequired,
     duplicateModalId: PropTypes.string.isRequired,
 
     statusPage: PropTypes.object,
     statusPageId: PropTypes.string.isRequired,
+    subProjectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
 };
 

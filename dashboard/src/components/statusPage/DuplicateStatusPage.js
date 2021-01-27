@@ -18,29 +18,6 @@ export class DuplicateStatusPageBox extends Component {
         };
     }
 
-    // handleClick = () => {
-    //     const { statusPageId } = this.props;
-    //     // const { projectId, deleteStatusPage, scheduleId, history } = this.props;
-    //     // const { duplicateModalId } = this.state;
-    //     // const { subProjectId } = this.props.match.params;
-    //     this.props.openModal({
-    //         // id: duplicateModalId,
-    //         onConfirm: () => {
-    //             return duplicateStatusPage(statusPageId).then(() => {
-    //                 if (SHOULD_LOG_ANALYTICS) {
-    //                     logEvent(
-    //                         'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > STATUS PAGE DUPLICATED'
-    //                     );
-    //                 }
-    //                 // history.push(
-    //                 //     `/dashboard/project/${projectId}/status-pages`
-    //                 // );
-    //             });
-    //         },
-    //         content: DuplicateStatusPageForm,
-    //     });
-    // };
-
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -88,6 +65,10 @@ export class DuplicateStatusPageBox extends Component {
                                                     {
                                                         statusPageId: this.props
                                                             .statusPageId,
+                                                        subProjectId: this.props
+                                                            .subProjectId,
+                                                        projectId: this.props
+                                                            .projectId,
                                                     }
                                                 ),
                                             });
@@ -115,21 +96,14 @@ DuplicateStatusPageBox.displayName = 'DuplicateStatusPageBox';
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            // deleteStatusPage,
             openModal,
             closeModal,
         },
         dispatch
     );
 
-const mapStateToProps = (
-    state
-    // props
-) => {
-    // const { scheduleId, projectId } = props.match.params;
+const mapStateToProps = state => {
     return {
-        // projectId,
-        // scheduleId,
         isRequesting:
             state.statusPage &&
             state.statusPage.newStatusPage &&
@@ -142,17 +116,8 @@ DuplicateStatusPageBox.propTypes = {
     openModal: PropTypes.func.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     statusPageId: PropTypes.object,
-    // history: PropTypes.object.isRequired,
-    // projectId: PropTypes.oneOfType([
-    //     PropTypes.string,
-    //     PropTypes.oneOf([null, undefined]),
-    // ]),
-    // scheduleId: PropTypes.oneOfType([
-    //     PropTypes.string,
-    //     PropTypes.oneOf([null, undefined]),
-    // ]),
-    // deleteStatusPage: PropTypes.func.isRequired,
-    // match: PropTypes.object,
+    subProjectId: PropTypes.object,
+    projectId: PropTypes.object,
 };
 
 export default withRouter(

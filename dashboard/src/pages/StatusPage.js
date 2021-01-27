@@ -232,6 +232,22 @@ class StatusPage extends Component {
                                                                                             .status
                                                                                             ._id
                                                                                     }
+                                                                                    subProjectId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .match
+                                                                                            .params
+                                                                                            .subProjectId
+                                                                                    }
+                                                                                    projectId={
+                                                                                        history.location.pathname
+                                                                                            .split(
+                                                                                                'project/'
+                                                                                            )[1]
+                                                                                            .split(
+                                                                                                '/'
+                                                                                            )[0]
+                                                                                    }
                                                                                 />
                                                                             ) : null}
                                                                         </div>
