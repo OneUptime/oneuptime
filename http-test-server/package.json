@@ -18,7 +18,7 @@
         "cross-env": "^6.0.3",
         "custom-env": "^1.0.2",
         "ejs": "^2.6.2",
-        "express": "^4.16.4",
+        "express": "^4.17.1",
         "faker": "^4.1.0",
         "jest": "^24.9.0",
         "puppeteer": "^5.5.0",
