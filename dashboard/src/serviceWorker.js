@@ -56,21 +56,19 @@ export function register(config) {
 
 function registerValidSW(swUrl, config) {
     //clear all cache.
-    // navigator.serviceWorker.addEventListener('activate', function(event) {
-    //     self.skipWaiting()
+    navigator.serviceWorker.addEventListener('activate', function(event) {
+        event.waitUntil(
+            caches.keys().then(function(cacheNames) {
+                return Promise.all(
+                    cacheNames
+                        .map(function(cacheName) {
+                            return caches.delete(cacheName);
+                        })
+                );
+            })
+        );
+    });
 
-    //     event.waitUntil(
-    //         caches.keys().then(function(cacheNames) {
-    //             return Promise.all(
-    //                 cacheNames
-    //                     .map(function(cacheName) {
-    //                         return caches.delete(cacheName);
-    //                     })
-    //             );
-    //         })
-    //     );
-    // });
-console.log('****** navigator **********', navigator.serviceWorker)
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
         .then(registration => {
@@ -81,6 +79,16 @@ console.log('****** navigator **********', navigator.serviceWorker)
                 }
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed') {
+                        // When the user asks to refresh the UI, we'll need to reload the window
+                        var preventDevToolsReloadLoop
+                        navigator.serviceWorker.addEventListener('controllerchange', function (event) {
+                            // Ensure refresh is only called once.
+                            // This works around a bug in "force update on reload".
+                            if (preventDevToolsReloadLoop) return
+                            preventDevToolsReloadLoop = true
+                            window.location.reload()
+                        })
+                        
                         if (navigator.serviceWorker.controller) {
                             // At this point, the updated precached content has been fetched,
                             // but the previous service worker will still serve the older
