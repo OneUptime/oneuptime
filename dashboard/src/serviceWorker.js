@@ -69,12 +69,8 @@ function registerValidSW(swUrl, config) {
         );
     });
 
-    self.addEventListener('install', function() {
-        self.skipWaiting();
-        console.log('****** installing ********')
-    })
-
     console.log('******* self *********', self)
+    console.log('******* ServiceWorkerGlobalScope *********', ServiceWorkerGlobalScope)
 
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
