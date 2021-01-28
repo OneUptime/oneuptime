@@ -703,7 +703,6 @@ module.exports = {
                     ? project.parentProjectId._id
                     : project._id
                 : projectId;
-                console.log(projectId, data, 'project id')
 
             global.io.emit(`updateAllLighthouseLog-${parentProjectId}`, {
                 projectId,

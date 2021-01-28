@@ -427,29 +427,30 @@ class SocketApp extends Component {
                         thisObj.props.updatelighthouselogbysocket(data);
                 }
             });
-            socket.on(`updateAllLighthouseLog-${this.props.project._id}`, function(
-                data
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          user => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.updateAlllighthouselogbysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        subProject => subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            socket.on(
+                `updateAllLighthouseLog-${this.props.project._id}`,
+                function(data) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               user => user.userId === loggedInUser
                           )
                         : false;
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.updateAlllighthouselogbysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            subProject => subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  user => user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.updateAlllighthouselogbysocket(data);
+                    }
                 }
-            });
+            );
             socket.on(`updateProbe-${this.props.project._id}`, function(data) {
                 const isUserInProject = thisObj.props.project
                     ? thisObj.props.project.users.some(

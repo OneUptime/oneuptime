@@ -33,7 +33,7 @@ const subscriberAlertService = require('../services/subscriberAlertService');
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {monitorId, projectId}
 // Returns: 200: Incident, 400: Error; 500: Server Error.
 
-router.post('/:projectId/:monitorId', getUser, isAuthorized, async function (
+router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -144,7 +144,7 @@ router.post(
     '/:projectId/monitor/:monitorId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         // include date range
         try {
             const { startDate, endDate } = req.body;
@@ -177,7 +177,7 @@ router.post(
 );
 
 // Fetch incidents by projectId
-router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (
+router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     req,
     res
 ) {
@@ -194,7 +194,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
     }
 });
 
-router.get('/:projectId/incident', getUser, isAuthorized, async function (
+router.get('/:projectId/incident', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -221,7 +221,7 @@ router.get(
     '/:projectId/incident/:incidentId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         // Call the IncidentService.
 
         try {
@@ -239,7 +239,7 @@ router.get(
     '/:projectId/timeline/:incidentId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const incidentId = req.params.incidentId;
             const timeline = await IncidentTimelineService.findBy(
@@ -260,7 +260,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map(project => project._id)
@@ -282,7 +282,7 @@ router.post(
     '/:projectId/acknowledge/:incidentId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
             const projectId = req.params.projectId;
@@ -292,27 +292,38 @@ router.post(
                 userId,
                 req.user.name
             );
-            let incidentMessages = await IncidentMessageService.findBy(
-                { incidentId: incident._id, type: "internal" }
-            );
-            const timeline = await IncidentTimelineService.findBy(
-                { incidentId: incident._id }
-            );
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incident._id }
+            let incidentMessages = await IncidentMessageService.findBy({
+                incidentId: incident._id,
+                type: 'internal',
             });
-            const subscriberAlerts = await subscriberAlertService.findBy(
-                { incidentId: incident._id, projectId }
+            const timeline = await IncidentTimelineService.findBy({
+                incidentId: incident._id,
+            });
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incident._id },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incident._id,
+                projectId,
+            });
+            const subAlerts = deduplicate(subscriberAlerts);
+            incidentMessages = [
+                ...incidentMessages,
+                ...timeline,
+                ...alerts,
+                ...subAlerts,
+            ];
+            incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+            const filteredMsg = incidentMessages.filter(
+                a =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
             );
-            const subAlerts = uniqByKeepFirst(subscriberAlerts, it => it.identification)
-            incidentMessages = [...incidentMessages, ...timeline, ...alerts, ...subAlerts]
-            incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-            const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
             const result = {
                 data: filteredMsg,
                 incident,
-                type: "internal"
-            }
+                type: 'internal',
+            };
             return sendItemResponse(req, res, result);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -329,7 +340,7 @@ router.post(
     '/:projectId/resolve/:incidentId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
             const projectId = req.params.projectId;
@@ -338,27 +349,38 @@ router.post(
                 req.params.incidentId,
                 userId
             );
-            let incidentMessages = await IncidentMessageService.findBy(
-                { incidentId: incident._id, type: "internal" }
-            );
-            const timeline = await IncidentTimelineService.findBy(
-                { incidentId: incident._id }
-            );
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incident._id }
+            let incidentMessages = await IncidentMessageService.findBy({
+                incidentId: incident._id,
+                type: 'internal',
             });
-            const subscriberAlerts = await subscriberAlertService.findBy(
-                { incidentId: incident._id, projectId }
+            const timeline = await IncidentTimelineService.findBy({
+                incidentId: incident._id,
+            });
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incident._id },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incident._id,
+                projectId,
+            });
+            const subAlerts = deduplicate(subscriberAlerts);
+            incidentMessages = [
+                ...incidentMessages,
+                ...timeline,
+                ...alerts,
+                ...subAlerts,
+            ];
+            incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+            const filteredMsg = incidentMessages.filter(
+                a =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
             );
-            const subAlerts = uniqByKeepFirst(subscriberAlerts, it => it.identification)
-            incidentMessages = [...incidentMessages, ...timeline, ...alerts, ...subAlerts]
-            incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-            const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
             const result = {
                 data: filteredMsg,
                 incident,
-                type: "internal"
-            }
+                type: 'internal',
+            };
 
             return sendItemResponse(req, res, result);
         } catch (error) {
@@ -371,7 +393,7 @@ router.post(
     '/:projectId/close/:incidentId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
             // Call the IncidentService
@@ -392,7 +414,7 @@ router.put(
     '/:projectId/incident/:incidentId/details',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         const projectId = req.params.projectId;
         const incidentId = req.params.incidentId;
         const { title, description, incidentPriority } = req.body;
@@ -431,7 +453,7 @@ router.post(
     '/:projectId/incident/:incidentId/message',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const data = req.body;
             const incidentId = req.params.incidentId;
@@ -563,8 +585,9 @@ router.post(
                         error
                     );
                 });
-                const status = `${incidentMessage.type} notes ${data.id ? 'updated' : 'added'
-                    }`;
+                const status = `${incidentMessage.type} notes ${
+                    data.id ? 'updated' : 'added'
+                }`;
 
                 // update timeline
                 await IncidentTimelineService.create({
@@ -575,27 +598,42 @@ router.post(
                 });
 
                 const alerts = await AlertService.findBy({
-                    query: { incidentId: incident._id }
+                    query: { incidentId: incident._id },
                 });
-                const subscriberAlerts = await subscriberAlertService.findBy(
-                    { incidentId: incident._id, projectId: req.params.projectId }
-                );
+                const subscriberAlerts = await subscriberAlertService.findBy({
+                    incidentId: incident._id,
+                    projectId: req.params.projectId,
+                });
 
-                if (data.type === "internal" || (data.type === "internal" && data.incident_state === 'update')) {
-                    let incidentMessages = await IncidentMessageService.findBy(
-                        { incidentId: incident._id, type: data.type }
+                if (
+                    data.type === 'internal' ||
+                    (data.type === 'internal' &&
+                        data.incident_state === 'update')
+                ) {
+                    let incidentMessages = await IncidentMessageService.findBy({
+                        incidentId: incident._id,
+                        type: data.type,
+                    });
+                    const timeline = await IncidentTimelineService.findBy({
+                        incidentId: incident._id,
+                    });
+                    const subAlerts = deduplicate(subscriberAlerts);
+                    incidentMessages = [
+                        ...incidentMessages,
+                        ...timeline,
+                        ...alerts,
+                        ...subAlerts,
+                    ];
+                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+                    const filteredMsg = incidentMessages.filter(
+                        a =>
+                            a.status !== 'internal notes added' &&
+                            a.status !== 'internal notes updated'
                     );
-                    const timeline = await IncidentTimelineService.findBy(
-                        { incidentId: incident._id }
-                    );
-                    const subAlerts = uniqByKeepFirst(subscriberAlerts, it => it.identification)
-                    incidentMessages = [...incidentMessages, ...timeline, ...alerts, ...subAlerts];
-                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-                    const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
                     incidentMessage = {
                         type: data.type,
-                        data: filteredMsg
-                    }
+                        data: filteredMsg,
+                    };
                 } else {
                     incidentMessage = await IncidentMessageService.findOneBy({
                         _id: incidentMessage._id,
@@ -616,7 +654,7 @@ router.get(
     '/:projectId/:incidentId/statuspages',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const {
                 statusPages,
@@ -637,12 +675,12 @@ router.delete(
     '/:projectId/incident/:incidentId/message/:incidentMessageId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
-            const checkMsg = await IncidentMessageService.findOneBy(
-                { _id: incidentMessageId }
-            );
+            const checkMsg = await IncidentMessageService.findOneBy({
+                _id: incidentMessageId,
+            });
             let result;
             const incidentMessage = await IncidentMessageService.deleteBy(
                 {
@@ -660,29 +698,40 @@ router.delete(
                     status,
                 });
                 const alerts = await AlertService.findBy({
-                    query: { incidentId: incidentId }
+                    query: { incidentId: incidentId },
                 });
-                const subscriberAlerts = await subscriberAlertService.findBy(
-                    { incidentId: incidentId, projectId }
-                );
+                const subscriberAlerts = await subscriberAlertService.findBy({
+                    incidentId: incidentId,
+                    projectId,
+                });
 
                 await RealTimeService.deleteIncidentNote(incidentMessage);
                 if (checkMsg.type === 'investigation') {
-                    result = incidentMessage
+                    result = incidentMessage;
                 } else {
-                    let incidentMessages = await IncidentMessageService.findBy(
-                        { incidentId, type: checkMsg.type }
+                    let incidentMessages = await IncidentMessageService.findBy({
+                        incidentId,
+                        type: checkMsg.type,
+                    });
+                    const timeline = await IncidentTimelineService.findBy({
+                        incidentId,
+                    });
+                    const subAlerts = deduplicate(subscriberAlerts);
+                    incidentMessages = [
+                        ...incidentMessages,
+                        ...timeline,
+                        ...alerts,
+                        ...subAlerts,
+                    ];
+                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+                    const filteredMsg = incidentMessages.filter(
+                        a =>
+                            a.status !== 'internal notes added' &&
+                            a.status !== 'internal notes updated'
                     );
-                    const timeline = await IncidentTimelineService.findBy(
-                        { incidentId }
-                    );
-                    const subAlerts = uniqByKeepFirst(subscriberAlerts, it => it.identification)
-                    incidentMessages = [...incidentMessages, ...timeline, ...alerts, ...subAlerts];
-                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-                    const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
                     result = {
                         type: checkMsg.type,
-                        data: filteredMsg
+                        data: filteredMsg,
                     };
                 }
                 return sendItemResponse(req, res, result);
@@ -701,7 +750,7 @@ router.get(
     '/:projectId/incident/:incidentId/message',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         let type = 'investigation';
         if (req.query.type && req.query.type === 'internal') {
             type = 'internal';
@@ -717,19 +766,21 @@ router.get(
                     req.query.limit || 10
                 );
             } else {
-                incidentMessages = await IncidentMessageService.findBy(
-                    { incidentId, type }
-                );
+                incidentMessages = await IncidentMessageService.findBy({
+                    incidentId,
+                    type,
+                });
             }
-            const timeline = await IncidentTimelineService.findBy(
-                { incidentId }
-            );
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incidentId }
+            const timeline = await IncidentTimelineService.findBy({
+                incidentId,
             });
-            const subscriberAlerts = await subscriberAlertService.findBy(
-                { incidentId: incidentId, projectId }
-            );
+            const alerts = await AlertService.findBy({
+                query: { incidentId: incidentId },
+            });
+            const subscriberAlerts = await subscriberAlertService.findBy({
+                incidentId: incidentId,
+                projectId,
+            });
             const count = await IncidentMessageService.countBy({
                 incidentId,
                 type,
@@ -737,10 +788,19 @@ router.get(
             if (type === 'investigation') {
                 result = incidentMessages;
             } else {
-                const subAlerts = uniqByKeepFirst(subscriberAlerts, it => it.identification)
-                incidentMessages = [...incidentMessages, ...timeline, ...alerts, ...subAlerts];
-                incidentMessages.sort((a, b) => b.createdAt - a.createdAt)
-                const filteredMsg = incidentMessages.filter(a => a.status !== 'internal notes added' && a.status !== 'internal notes updated')
+                const subAlerts = deduplicate(subscriberAlerts);
+                incidentMessages = [
+                    ...incidentMessages,
+                    ...timeline,
+                    ...alerts,
+                    ...subAlerts,
+                ];
+                incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+                const filteredMsg = incidentMessages.filter(
+                    a =>
+                        a.status !== 'internal notes added' &&
+                        a.status !== 'internal notes updated'
+                );
                 result = filteredMsg;
             }
             return sendListResponse(req, res, result, count);
@@ -750,7 +810,7 @@ router.get(
     }
 );
 
-router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function (
+router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
     req,
     res
 ) {
@@ -783,7 +843,7 @@ router.get(
     '/:projectId/resolve/:incidentId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
             await IncidentService.resolve(req.params.incidentId, userId);
@@ -810,7 +870,7 @@ router.get(
     '/:projectId/acknowledge/:incidentId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
             await IncidentService.acknowledge(
@@ -831,12 +891,24 @@ router.get(
     }
 );
 
-function uniqByKeepFirst(a, key) {
-    let seen = new Set();
-    return a.filter(item => {
-        let k = key(item);
-        return seen.has(k) ? false : seen.add(k);
-    });
+function deduplicate(arr = []) {
+    const map = {};
+
+    let curr;
+
+    for (let i = 0; i < arr.length; i++) {
+        curr = arr[i];
+
+        if (!map[curr.identification]) {
+            map[curr.identification] = curr;
+        } else {
+            if (curr.error && !map[curr.identification].error) {
+                map[curr.identification].error = true;
+            }
+        }
+    }
+
+    return Object.values(map);
 }
 
 module.exports = router;

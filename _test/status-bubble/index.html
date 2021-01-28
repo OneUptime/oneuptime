@@ -1,0 +1,76 @@
+<div class='bubble-box'>
+    <div id="fyipe-status-bubble"></div>
+    <div id='fyipe-bubble-text'></div>
+  </div>
+    <style>
+    .all {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 5px;
+        background-color: rgba(108, 219, 86);
+    }
+    .some {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 5px;
+        background-color: rgba(250, 109, 70);
+    },
+    .none {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 5px;
+        background-color: rgba(250, 109, 70);
+    }
+    .degraded {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 5px;
+        background-color: rgba(255, 222, 36);
+    }
+    .text {
+        color: rgb(76, 76, 76);
+        font-size: 13px;
+        padding-top: 4px;
+    }
+    .bubble-box {
+        display:flex;
+        flex-direction: row;
+      }
+    </style>
+        <script language="javascript" type="text/javascript">
+        function initializeBubble() {
+            var placeholderDiv = document.getElementById("fyipe-status-bubble");
+            var placeholderTitleDiv = document.getElementById("fyipe-bubble-text");
+            var bubble = 'all';
+            var statusMessage = '';
+            var url = 'https://staging.fyipe.com/api/statusPage/statusBubble?statusPageId=5ffa98e25f166c0014d9c045&statusBubbleId=04013896-dcbe-40bd-8f1d-f4825badd782';
+            fetch(url,{
+                method: 'GET',
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json;charset=UTF-8',
+                }})
+                .then(response => response.json())
+            .then(json => {
+                bubble = json && json.bubble ? json.bubble : null;
+                statusMessage = json && json.statusMessage ? json.statusMessage : null;
+                if (bubble === 'all') {
+                    placeholderDiv.className = 'all';
+            } else if (bubble === 'some') {
+              placeholderDiv.className = 'some';
+            } else if (bubble === 'none') {
+                placeholderDiv.className = 'none';
+            } else if (bubble === 'some-degraded') {
+                placeholderDiv.className = 'degraded';
+            }
+            placeholderTitleDiv.className = 'text';
+            placeholderTitleDiv.innerHTML = statusMessage;
+            })
+            .catch(err => console.error(err));
+        };window.onload = function (){initializeBubble()};
+        </script>

@@ -1,5 +1,19 @@
 const mongoose = require('../config/db');
 
+// a schema definition for a criterion event, i.e up, down, or degraded
+const criterionEventSchema = {
+    scheduleIds: [String],
+    createAlert: { type: Boolean, default: false },
+    autoAcknowledge: { type: Boolean, default: false },
+    autoResolve: { type: Boolean, default: false },
+    title: { type: String, default: '' },
+    description: { type: String, default: '' },
+    and: [Object],
+    or: [Object],
+    default: { type: Boolean, default: false },
+    name: String,
+};
+
 const Schema = mongoose.Schema;
 const monitorSchema = new Schema({
     projectId: {
@@ -46,7 +60,12 @@ const monitorSchema = new Schema({
         type: Date,
         default: Date.now,
     },
-    criteria: Object,
+    criteria: {
+        up: { type: [criterionEventSchema], default: [] },
+        degraded: { type: [criterionEventSchema], default: [] },
+        down: { type: [criterionEventSchema], default: [] },
+    },
+    lastMatchedCriterion: { type: criterionEventSchema, default: {} },
     method: String,
     bodyType: String,
     formData: [Object],

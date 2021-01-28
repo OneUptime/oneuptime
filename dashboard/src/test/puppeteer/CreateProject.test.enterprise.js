@@ -50,8 +50,6 @@ describe('Enterprise Project API', () => {
     test(
         'Should create new project from dropdown after login for disabled payment',
         async done => {
-            expect.assertions(1);
-
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
                 puppeteerOptions: utils.puppeteerLaunchConfig,

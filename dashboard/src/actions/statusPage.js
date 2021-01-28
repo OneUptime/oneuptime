@@ -778,6 +778,38 @@ export function deleteStatusPage(projectId, statusPageId) {
     };
 }
 
+//Duplicate statuspage
+export function duplicateStatusPageRequest() {
+    return {
+        type: types.DUPLICATE_STATUSPAGE_REQUEST,
+    };
+}
+
+export function duplicateStatusPageSuccess(statusPage) {
+    return {
+        type: types.DUPLICATE_STATUSPAGE_SUCCESS,
+        payload: statusPage,
+    };
+}
+
+export function duplicateStatusPageError(error) {
+    return {
+        type: types.DUPLICATE_STATUSPAGE_FAILURE,
+        payload: error,
+    };
+}
+
+export function readStatusPage(statusPageId, data) {
+    return getApi(`statusPage/${statusPageId}`, data);
+}
+
+export function createDuplicateStatusPage(statusPageData) {
+    return postApi(
+        `statusPage/${statusPageData.projectId._id}`,
+        statusPageData
+    );
+}
+
 //Update status page embedded css
 
 export function updateStatusPageEmbeddedCssRequest() {
@@ -972,3 +1004,10 @@ export function switchStatusPage(statusPage) {
         payload: statusPage,
     };
 }
+
+export const showDuplicateStatusPage = function(obj) {
+    return {
+        type: types.SHOW_DUPLICATE_STATUSPAGE,
+        payload: obj,
+    };
+};

@@ -71,7 +71,9 @@ class Schedule extends Component {
                                             <div>
                                                 <div>
                                                     <RenameScheduleBox />
-                                                    <MonitorBox />
+                                                    <MonitorBox
+                                                        schedule={schedule}
+                                                    />
 
                                                     {!editSchedule &&
                                                         escalations.length >
