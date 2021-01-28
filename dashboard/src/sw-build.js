@@ -11,8 +11,7 @@ const buildSW = () => {
             globDirectory: 'build',
             globPatterns: ['**/*.{js,css,html,png}'],
             dontCacheBustURLsMatching: new RegExp(".+.[a-f0-9]{20}..+|index.html"),
-            exclude: [new RegExp("index.html")],
-            skipWaiting: true,
+            globIgnores: [new RegExp("index.html")],
         })
         .then(({ count, size }) => {
             // Optionally, log any warnings and details.
