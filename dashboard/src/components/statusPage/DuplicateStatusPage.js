@@ -55,7 +55,7 @@ export class DuplicateStatusPageBox extends Component {
                                 <div>
                                     <button
                                         id="duplicate"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--new"
                                         disabled={isRequesting}
                                         onClick={() => {
                                             this.props.openModal({
