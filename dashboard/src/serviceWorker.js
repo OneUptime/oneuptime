@@ -80,11 +80,7 @@ function registerValidSW(swUrl, config) {
                     return;
                 }
                 installingWorker.onstatechange = () => {
-                    if(installingWorker.state === 'installing'){
-                        self.skipWaiting()
-                    }
                     if (installingWorker.state === 'installed') {
-                        self.skipWaiting()
                         if (navigator.serviceWorker.controller) {
                             // At this point, the updated precached content has been fetched,
                             // but the previous service worker will still serve the older
