@@ -69,20 +69,27 @@ function registerValidSW(swUrl, config) {
         );
     });
 
+    self.addEventListener('install', function() {
+        self.skipWaiting();
+        console.log('****** installing ********')
+    })
+
+    console.log('******* self *********', self)
+
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
         .then(registration => {
-            console.log('******* registration first ************', registration)
+            console.log('***** reg *****', registration);
             registration.onupdatefound = () => {
                 const installingWorker = registration.installing;
-                console.log('******* registration second *********', registration)
                 if (installingWorker == null) {
                     return;
                 }
+                self.skipWaiting();
+                console.log('******* installing worker ********', installingWorker);
                 installingWorker.onstatechange = () => {
-                    console.log('****** worker state ********', installingWorker);
                     if(installingWorker.state === 'installing'){
-                        self.skipWaiting();
+                        self.skipWaiting()
                     }
                     if (installingWorker.state === 'installed') {
                         if (navigator.serviceWorker.controller) {
