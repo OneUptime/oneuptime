@@ -72,9 +72,10 @@ function registerValidSW(swUrl, config) {
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
         .then(registration => {
+            console.log('******* registration first ************', registration)
             registration.onupdatefound = () => {
                 const installingWorker = registration.installing;
-                console.log('******* registration *********', registration)
+                console.log('******* registration second *********', registration)
                 if (installingWorker == null) {
                     return;
                 }
