@@ -57,17 +57,10 @@ export function register(config) {
 function registerValidSW(swUrl, config) {
     //clear all cache.
     navigator.serviceWorker.addEventListener('activate', function(event) {
-        self.skipWaiting()
         event.waitUntil(
             caches.keys().then(function(cacheNames) {
                 return Promise.all(
                     cacheNames
-                        // .filter(function(cacheName) {
-                        //     // Return true if you want to remove this cache,
-                        //     // but remember that caches are shared across
-                        //     // the whole origin
-                        //     return true;
-                        // })
                         .map(function(cacheName) {
                             return caches.delete(cacheName);
                         })
@@ -85,6 +78,9 @@ function registerValidSW(swUrl, config) {
                     return;
                 }
                 installingWorker.onstatechange = () => {
+                    if(installingWorker.state === 'installing'){
+                        self.skipWaiting();
+                    }
                     if (installingWorker.state === 'installed') {
                         if (navigator.serviceWorker.controller) {
                             // At this point, the updated precached content has been fetched,
