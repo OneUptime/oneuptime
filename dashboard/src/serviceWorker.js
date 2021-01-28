@@ -56,38 +56,35 @@ export function register(config) {
 
 function registerValidSW(swUrl, config) {
     //clear all cache.
-    navigator.serviceWorker.addEventListener('activate', function(event) {
-        event.waitUntil(
-            caches.keys().then(function(cacheNames) {
-                return Promise.all(
-                    cacheNames
-                        .map(function(cacheName) {
-                            return caches.delete(cacheName);
-                        })
-                );
-            })
-        );
-    });
+    // navigator.serviceWorker.addEventListener('activate', function(event) {
+    //     self.skipWaiting()
 
-    console.log('******* self *********', self)
-    console.log('******* ServiceWorkerGlobalScope *********', ServiceWorkerGlobalScope)
+    //     event.waitUntil(
+    //         caches.keys().then(function(cacheNames) {
+    //             return Promise.all(
+    //                 cacheNames
+    //                     .map(function(cacheName) {
+    //                         return caches.delete(cacheName);
+    //                     })
+    //             );
+    //         })
+    //     );
+    // });
 
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
         .then(registration => {
-            console.log('***** reg *****', registration);
             registration.onupdatefound = () => {
                 const installingWorker = registration.installing;
                 if (installingWorker == null) {
                     return;
                 }
-                self.skipWaiting();
-                console.log('******* installing worker ********', installingWorker);
                 installingWorker.onstatechange = () => {
                     if(installingWorker.state === 'installing'){
                         self.skipWaiting()
                     }
                     if (installingWorker.state === 'installed') {
+                        self.skipWaiting()
                         if (navigator.serviceWorker.controller) {
                             // At this point, the updated precached content has been fetched,
                             // but the previous service worker will still serve the older
