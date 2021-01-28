@@ -199,6 +199,26 @@ module.exports = {
             .set('Authorization', authorization)
             .send(payload);
     },
+    markIncidentAsAcknowledged: async ({
+        request,
+        authorization,
+        projectId,
+        incidentId,
+    }) => {
+        return await request
+            .post(`/incident/${projectId}/acknowledge/${incidentId}`)
+            .set('Authorization', authorization);
+    },
+    markSubprojectIncidentAsAcknowledged: async ({
+        request,
+        authorization,
+        subProjectId,
+        incidentId,
+    }) => {
+        return await request
+            .post(`/incident/${subProjectId}/acknowledge/${incidentId}`)
+            .set('Authorization', authorization);
+    },
     markIncidentAsResolved: async ({
         request,
         authorization,
@@ -207,6 +227,16 @@ module.exports = {
     }) => {
         return await request
             .post(`/incident/${projectId}/resolve/${incidentId}`)
+            .set('Authorization', authorization);
+    },
+    markSubprojectIncidentAsResolved: async ({
+        request,
+        authorization,
+        subProjectId,
+        incidentId,
+    }) => {
+        return await request
+            .post(`/incident/${subProjectId}/resolve/${incidentId}`)
             .set('Authorization', authorization);
     },
 };

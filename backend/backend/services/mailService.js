@@ -79,6 +79,7 @@ const _this = {
             ErrorService.log('mailService.getEmailBody', error);
         }
     },
+
     createMailer: async function({ host, port, user, pass, secure }) {
         if (!host || !user || !pass) {
             const settings = await _this.getSmtpSettings();
@@ -175,6 +176,7 @@ const _this = {
 
             const mailer = await _this.createMailer({});
             EmailBody = await _this.getEmailBody(mailOptions);
+
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -343,7 +345,16 @@ const _this = {
                 template: 'lead_to_fyipe_team',
                 context: {
                     homeURL: global.homeHost,
-                    text: JSON.stringify(lead, null, 2),
+                    text: lead,
+                    deleted: JSON.stringify(lead.deleted),
+                    _id: JSON.stringify(lead._id),
+                    createdAt: JSON.stringify(lead.createdAt),
+                    message: JSON.stringify(lead.message),
+                    page: JSON.stringify(lead.page),
+                    projectId: JSON.stringify(lead.projectId),
+                    createdById: JSON.stringify(lead.createdById),
+                    projectName: JSON.stringify(lead.project.name),
+                    airtableId: JSON.stringify(lead.airtableId),
                 },
             };
 

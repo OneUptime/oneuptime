@@ -3,6 +3,7 @@
 const expect = require('chai').expect;
 const chai = require('chai');
 chai.use(require('chai-http'));
+require('dotenv').config();
 const requests = [];
 let app, request, sandbox;
 

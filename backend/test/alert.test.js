@@ -118,6 +118,7 @@ describe('Alert API', function() {
                             monitorId,
                             alertVia: 'email',
                             incidentId: incidentId,
+                            eventType: 'identified'
                         })
                         .end(function(err, res) {
                             alertId = res.body._id;
@@ -302,6 +303,7 @@ describe('Alert API', function() {
                     monitorId: monitorId,
                     alertVia: 'email',
                     incidentId: incidentId,
+                    eventType: 'identified'
                 })
                 .end(function(err, res) {
                     alertId = res.body._id;
@@ -320,6 +322,7 @@ describe('Alert API', function() {
                     monitorId: monitorId,
                     alertVia: 'email',
                     incidentId: incidentId,
+                    eventType: 'identified'
                 })
                 .end(function(err, res) {
                     subProjectAlertId = res.body._id;
