@@ -15,7 +15,6 @@ import { logEvent } from '../analytics';
 import { loadPage } from '../actions/page';
 import { ApplicationLogList } from '../components/application/ApplicationLogList';
 import { LoadingState } from '../components/basic/Loader';
-import LibraryList from '../components/application/LibraryList';
 import sortByName from '../utils/sortByName';
 import { API_URL } from '../config';
 import io from 'socket.io-client';
@@ -125,10 +124,6 @@ class ApplicationLog extends Component {
                                             }
                                         />
                                     </ShouldRender>
-                                    <LibraryList
-                                        title="Log Container"
-                                        type="logs"
-                                    />
                                     {applicationLogsList}
                                     <NewApplicationLog
                                         index={2000}

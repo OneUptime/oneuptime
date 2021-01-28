@@ -29,9 +29,9 @@ function renderLibraries() {
     });
     return list;
 }
-function renderLanguageQuickStart(library, type) {
+function renderLanguageQuickStart(library, type, errorTracker, applicationLog) {
     const currentLibrary = logLibraries
-        .getQuickStarts()
+        .getQuickStarts(errorTracker, applicationLog)
         .filter(quickStart => quickStart.id === library);
     const libraryDoc = currentLibrary[0]
         ? currentLibrary[0][type]
@@ -54,7 +54,7 @@ function renderLanguageQuickStart(library, type) {
                     </span>
                 </span>
 
-                <div className="Padding-horizontal--20">
+                <div>
                     <AceCodeEditor
                         value={
                             libraryDoc.installation
@@ -70,7 +70,7 @@ function renderLanguageQuickStart(library, type) {
                 <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28 Padding-horizontal--20">
                     <span>{'Usage'}</span>
                 </span>
-                <div className="Padding-horizontal--20">
+                <div>
                     <AceCodeEditor
                         value={libraryDoc.usage ? libraryDoc.usage : ''}
                         name={`quickstart-${type}`}
@@ -83,7 +83,7 @@ function renderLanguageQuickStart(library, type) {
         );
     }
 }
-const LibraryList = ({ title, type, library }) => (
+const LibraryList = ({ title, type, library, errorTracker, applicationLog }) => (
     <div tabIndex="0" className="Box-root Margin-vertical--12">
         <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">
@@ -98,7 +98,7 @@ const LibraryList = ({ title, type, library }) => (
                 </div>
             </div>
             <div className="Box-root">
-                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-vertical--16">
+                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column ">
                     <div className="Box-root">
                         <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28 Padding-horizontal--20">
                             <span> Quick Start</span>
@@ -155,7 +155,7 @@ const LibraryList = ({ title, type, library }) => (
                             </div>
                         </div>
                     </form>
-                    {renderLanguageQuickStart(library, type)}
+                    {renderLanguageQuickStart(library, type, errorTracker, applicationLog)}
                 </div>
             </div>
         </div>
@@ -172,6 +172,8 @@ LibraryList.propTypes = {
     title: PropTypes.string,
     library: PropTypes.string,
     type: PropTypes.string,
+    errorTracker: PropTypes.object,
+    applicationLog: PropTypes.object,
 };
 const mapStateToProps = state => {
     const initialValues = {
