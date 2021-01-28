@@ -10,6 +10,7 @@ const EmailStatusService = require('./emailStatusService');
 const DateTime = require('../utils/DateTime');
 const Path = require('path');
 const fsp = require('fs/promises');
+const moment = require('moment');
 
 const helpers = {
     year: DateTime.getCurrentYear,
@@ -345,15 +346,18 @@ const _this = {
                 template: 'lead_to_fyipe_team',
                 context: {
                     homeURL: global.homeHost,
-                    text: lead,
-                    deleted: JSON.stringify(lead.deleted),
                     _id: JSON.stringify(lead._id),
-                    createdAt: JSON.stringify(lead.createdAt),
+                    createdAt: JSON.stringify(
+                        moment(lead.createdAt).format('LLLL')
+                    ),
                     message: JSON.stringify(lead.message),
                     page: JSON.stringify(lead.page),
                     projectId: JSON.stringify(lead.projectId),
                     createdById: JSON.stringify(lead.createdById),
                     projectName: JSON.stringify(lead.project.name),
+                    userName: JSON.stringify(lead.userName),
+                    userPhone: JSON.stringify(lead.userPhone),
+                    userEmail: JSON.stringify(lead.userEmail),
                     airtableId: JSON.stringify(lead.airtableId),
                 },
             };
