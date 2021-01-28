@@ -9,8 +9,11 @@ if ('function' === typeof importScripts) {
         const {skipWaiting} = workbox.core;
         const {precacheAndRoute, cleanupOutdatedCaches} = workbox.precaching;
 
-        skipWaiting();
+        // skip waiting and switch to activating stage
+        skipWaiting(); 
+        // try to clean up old caches from previous versions
         cleanupOutdatedCaches();
+        
         /* injection point for manifest files.  */
         precacheAndRoute([], {
             cleanURLs: false,
