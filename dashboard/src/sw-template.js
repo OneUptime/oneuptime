@@ -3,16 +3,14 @@ if ('function' === typeof importScripts) {
     importScripts(
         'https://storage.googleapis.com/workbox-cdn/releases/6.0.2/workbox-sw.js'
     );
-    const {skipWaiting, clientsClaim, CacheNames} = workbox.core;
-    const {precacheAndRoute} = workbox.precaching;
-
-    self.cacheNames = CacheNames;
-    console.log('******* cache names ********', CacheNames)
-
+    
     /* global workbox */
     if (workbox) {
+        const {skipWaiting} = workbox.core;
+        const {precacheAndRoute, cleanupOutdatedCaches} = workbox.precaching;
+
         skipWaiting();
-        // clientsClaim();
+        cleanupOutdatedCaches();
         /* injection point for manifest files.  */
         precacheAndRoute([], {
             cleanURLs: false,
