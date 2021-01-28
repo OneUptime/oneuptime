@@ -70,7 +70,7 @@ function registerValidSW(swUrl, config) {
     //         })
     //     );
     // });
-
+console.log('****** navigator **********', navigator.serviceWorker)
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
         .then(registration => {
