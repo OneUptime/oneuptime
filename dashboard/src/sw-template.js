@@ -11,8 +11,8 @@ if ('function' === typeof importScripts) {
         skipWaiting();
         clientsClaim();
         /* injection point for manifest files.  */
-        precacheAndRoute([], {
-            cleanURLs: false,
-        });
+        // precacheAndRoute([], {
+        //     cleanURLs: false,
+        // });
     }
 }

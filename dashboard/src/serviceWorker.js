@@ -13,12 +13,12 @@
 
 const isLocalhost = Boolean(
     window.location.hostname === 'localhost' ||
-        // [::1] is the IPv6 localhost address.
-        window.location.hostname === '[::1]' ||
-        // 127.0.0.1/8 is considered localhost for IPv4.
-        window.location.hostname.match(
-            /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
-        )
+    // [::1] is the IPv6 localhost address.
+    window.location.hostname === '[::1]' ||
+    // 127.0.0.1/8 is considered localhost for IPv4.
+    window.location.hostname.match(
+        /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
+    )
 );
 
 export function register(config) {
@@ -32,6 +32,8 @@ export function register(config) {
             return;
         }
 
+
+
         window.addEventListener('load', () => {
             const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
 
@@ -43,7 +45,7 @@ export function register(config) {
                 navigator.serviceWorker.ready.then(() => {
                     console.log(
                         'This web app is being served cache-first by a service ' +
-                            'worker. To learn more, visit https://bit.ly/CRA-PWA'
+                        'worker. To learn more, visit https://bit.ly/CRA-PWA'
                     );
                 });
             } else {
@@ -55,15 +57,19 @@ export function register(config) {
 }
 
 function registerValidSW(swUrl, config) {
-    //clear all cache.
-    navigator.serviceWorker.addEventListener('activate', function(event) {
+    //clear all cache. 
+    navigator.serviceWorker.addEventListener('activate', function (event) {
         event.waitUntil(
-            caches.keys().then(function(cacheNames) {
+            caches.keys().then(function (cacheNames) {
                 return Promise.all(
-                    cacheNames
-                        .map(function(cacheName) {
-                            return caches.delete(cacheName);
-                        })
+                    cacheNames.filter(function (cacheName) {
+                        // Return true if you want to remove this cache,
+                        // but remember that caches are shared across
+                        // the whole origin
+                        return true;
+                    }).map(function (cacheName) {
+                        return caches.delete(cacheName);
+                    })
                 );
             })
         );
@@ -79,23 +85,13 @@ function registerValidSW(swUrl, config) {
                 }
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed') {
-                        // When the user asks to refresh the UI, we'll need to reload the window
-                        var preventDevToolsReloadLoop
-                        navigator.serviceWorker.addEventListener('controllerchange', function (event) {
-                            // Ensure refresh is only called once.
-                            // This works around a bug in "force update on reload".
-                            if (preventDevToolsReloadLoop) return
-                            preventDevToolsReloadLoop = true
-                            window.location.reload()
-                        })
-                        
                         if (navigator.serviceWorker.controller) {
                             // At this point, the updated precached content has been fetched,
                             // but the previous service worker will still serve the older
                             // content until all client tabs are closed.
                             console.log(
                                 'New content is available and will be used when all ' +
-                                    'tabs for this page are closed. See https://bit.ly/CRA-PWA.'
+                                'tabs for this page are closed. See https://bit.ly/CRA-PWA.'
                             );
 
                             // Execute callback
@@ -106,7 +102,6 @@ function registerValidSW(swUrl, config) {
                             // At this point, everything has been precached.
                             // It's the perfect time to display a
                             // "Content is cached for offline use." message.
-                            console.log('Content is cached for offline use.');
 
                             // Execute callback
                             if (config && config.onSuccess) {
