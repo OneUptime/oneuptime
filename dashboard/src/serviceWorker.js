@@ -47,8 +47,6 @@ export function register(config) {
                     );
                 });
             } else {
-                console.log('******** public url and swUrl *********', publicUrl, swUrl);
-                console.log('******* config *******', config);
                 // Is not localhost. Just register service worker
                 registerValidSW(swUrl, config);
             }
@@ -59,22 +57,18 @@ export function register(config) {
 function registerValidSW(swUrl, config) {
     //clear all cache.
     navigator.serviceWorker.addEventListener('activate', function(event) {
+        self.skipWaiting()
         event.waitUntil(
             caches.keys().then(function(cacheNames) {
-                console.log('******** cache names **********', cacheNames);
                 return Promise.all(
                     cacheNames
-                        .filter(function(cacheName) {
-                            // Return true if you want to remove this cache,
-                            // but remember that caches are shared across
-                            // the whole origin
-                            return true;
-                        })
+                        // .filter(function(cacheName) {
+                        //     // Return true if you want to remove this cache,
+                        //     // but remember that caches are shared across
+                        //     // the whole origin
+                        //     return true;
+                        // })
                         .map(function(cacheName) {
-                            console.log(
-                                '******** each cache name **********',
-                                cacheName
-                            );
                             return caches.delete(cacheName);
                         })
                 );
@@ -85,14 +79,6 @@ function registerValidSW(swUrl, config) {
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
         .then(registration => {
-            if (registration.installing) {
-                console.log('Service worker installing');
-            } else if (registration.waiting) {
-                console.log('Service worker installed');
-            } else if (registration.active) {
-                console.log('Service worker active');
-            }
-
             registration.onupdatefound = () => {
                 const installingWorker = registration.installing;
                 if (installingWorker == null) {
