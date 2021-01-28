@@ -57,6 +57,7 @@ export function register(config) {
 }
 
 function registerValidSW(swUrl, config) {
+    console.log('********* caches **********', self.cacheNames);
     //clear all cache. 
     navigator.serviceWorker.addEventListener('activate', function (event) {
         event.waitUntil(
