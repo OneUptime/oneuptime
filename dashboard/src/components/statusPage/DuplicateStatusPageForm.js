@@ -6,7 +6,6 @@ import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
-import { Spinner } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
 import {
     createDuplicateStatusPage,
@@ -27,6 +26,9 @@ export class StatusPageForm extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
         super(props);
+        this.state = {
+            errorMessage: null,
+        };
     }
 
     componentDidMount() {
@@ -49,18 +51,40 @@ export class StatusPageForm extends React.Component {
                 });
             })
             .then(res => {
-                createDuplicateStatusPage(res).then(res => {
-                    this.props.closeModal({
-                        id: this.props.duplicateModalId,
+                createDuplicateStatusPage(res)
+                    .then(res => {
+                        this.props.closeModal({
+                            id: this.props.duplicateModalId,
+                        });
+                        this.props.openModal({
+                            id: this.props.duplicateModalId,
+                            content: DuplicateStatusPageConfirmation,
+                            statusPageId: res.data._id,
+                            subProjectId: data.subProjectId,
+                            projectId: data.projectId,
+                        });
+                    })
+                    .catch(error => {
+                        if (error && error.response && error.response.data)
+                            this.setState({
+                                errorMessage: error.response.data,
+                            });
+
+                        if (error && error.data) {
+                            this.setState({
+                                errorMessage: error.data,
+                            });
+                        }
+                        if (error && error.message) {
+                            this.setState({
+                                errorMessage: error.message,
+                            });
+                        } else {
+                            this.setState({
+                                errorMessage: 'Network Error',
+                            });
+                        }
                     });
-                    this.props.openModal({
-                        id: this.props.duplicateModalId,
-                        content: DuplicateStatusPageConfirmation,
-                        statusPageId: res.data._id,
-                        subProjectId: data.subProjectId,
-                        projectId: data.projectId,
-                    });
-                });
             });
     };
 
@@ -108,16 +132,10 @@ export class StatusPageForm extends React.Component {
                                         </div>
                                         <div className="bs-Modal-messages">
                                             <ShouldRender
-                                                if={
-                                                    this.props.statusPage
-                                                        .newStatusPage.error
-                                                }
+                                                if={this.state.errorMessage}
                                             >
                                                 <p className="bs-Modal-message">
-                                                    {
-                                                        this.props.statusPage
-                                                            .newStatusPage.error
-                                                    }
+                                                    {this.state.errorMessage}
                                                 </p>
                                             </ShouldRender>
                                         </div>
@@ -134,20 +152,13 @@ export class StatusPageForm extends React.Component {
                                                 width: '90%',
                                                 margin: '10px 0 10px 5%',
                                             }}
-                                            disabled={
-                                                this.props.statusPage
-                                                    .newStatusPage.requesting
-                                            }
                                             autoFocus={true}
                                         />
                                     </div>
                                     <div className="bs-Modal-footer">
                                         <div className="bs-Modal-footer-actions">
                                             <button
-                                                className={`bs-Button bs-DeprecatedButton btn__modal ${this
-                                                    .props.statusPage
-                                                    .newStatusPage.requesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button bs-DeprecatedButton btn__modal`}
                                                 type="button"
                                                 onClick={() => {
                                                     this.props.closeModal({
@@ -155,11 +166,6 @@ export class StatusPageForm extends React.Component {
                                                             .duplicateModalId,
                                                     });
                                                 }}
-                                                disabled={
-                                                    this.props.statusPage
-                                                        .newStatusPage
-                                                        .requesting
-                                                }
                                             >
                                                 <span>Cancel</span>
                                                 <span className="cancel-btn__keycode">
@@ -168,27 +174,9 @@ export class StatusPageForm extends React.Component {
                                             </button>
                                             <button
                                                 id="btnDuplicateStatusPage"
-                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
-                                                    .props.statusPage
-                                                    .newStatusPage.requesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal`}
                                                 type="save"
-                                                disabled={
-                                                    this.props.statusPage
-                                                        .newStatusPage
-                                                        .requesting
-                                                }
                                             >
-                                                <ShouldRender
-                                                    if={
-                                                        this.props.statusPage
-                                                            .newStatusPage
-                                                            .requesting
-                                                    }
-                                                >
-                                                    <Spinner />
-                                                </ShouldRender>
-
                                                 <span>Duplicate</span>
                                                 <span className="create-btn__keycode">
                                                     <span className="keycode__icon keycode__icon--enter" />
@@ -230,8 +218,6 @@ StatusPageForm.propTypes = {
     closeModal: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
     duplicateModalId: PropTypes.string.isRequired,
-
-    statusPage: PropTypes.object,
     statusPageId: PropTypes.string.isRequired,
     subProjectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
