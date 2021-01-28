@@ -346,19 +346,17 @@ const _this = {
                 template: 'lead_to_fyipe_team',
                 context: {
                     homeURL: global.homeHost,
-                    _id: JSON.stringify(lead._id),
-                    createdAt: JSON.stringify(
-                        moment(lead.createdAt).format('LLLL')
-                    ),
-                    message: JSON.stringify(lead.message),
-                    page: JSON.stringify(lead.page),
-                    projectId: JSON.stringify(lead.projectId),
-                    createdById: JSON.stringify(lead.createdById),
-                    projectName: JSON.stringify(lead.project.name),
-                    userName: JSON.stringify(lead.userName),
-                    userPhone: JSON.stringify(lead.userPhone),
-                    userEmail: JSON.stringify(lead.userEmail),
-                    airtableId: JSON.stringify(lead.airtableId),
+                    _id: lead._id,
+                    createdAt: moment(lead.createdAt).format('LLLL'),
+                    message: lead.message,
+                    page: lead.page,
+                    projectId: lead.projectId,
+                    createdById: lead.createdById,
+                    projectName: lead.project.name,
+                    userName: lead.userName,
+                    userPhone: lead.userPhone,
+                    userEmail: lead.userEmail,
+                    airtableId: lead.airtableId,
                 },
             };
 
