@@ -13,6 +13,7 @@ import ApplicationLogDetail from '../components/application/ApplicationLogDetail
 import ApplicationLogViewDeleteBox from '../components/application/ApplicationLogViewDeleteBox';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
+import LibraryList from '../components/application/LibraryList';
 
 class ApplicationLogView extends Component {
     componentDidMount() {
@@ -72,6 +73,11 @@ class ApplicationLogView extends Component {
                         <LoadingState />
                     </ShouldRender>
                     <ShouldRender if={this.props.applicationLog[0]}>
+                        <LibraryList
+                            title="Log Container"
+                            type="logs"
+                            applicationLog={this.props.applicationLog[0]}
+                        />
                         <div>
                             <ApplicationLogDetail
                                 componentId={componentId}
