@@ -23,6 +23,7 @@ class DuplicateStatusPageConfirmation extends Component {
         history.push(
             `/dashboard/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPageId}`
         );
+        history.go(0);
     };
 
     handleKeyboard = e => {

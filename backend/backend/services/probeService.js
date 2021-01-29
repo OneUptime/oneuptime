@@ -933,17 +933,17 @@ module.exports = {
                             'Scanning failed please check your docker credential or image path/tag'
                         );
                         error.code = 400;
-                        containerSecurity = await ContainerSecurityService.updateOneBy(
-                            {
-                                _id: security._id,
-                            },
-                            { scanning: false }
-                        );
-                        global.io.emit(
-                            `security_${containerSecurity._id}`,
-                            containerSecurity
-                        );
-                        await deleteFile(exactFilePath);
+                        // containerSecurity = await ContainerSecurityService.updateOneBy(
+                        //     {
+                        //         _id: security._id,
+                        //     },
+                        //     { scanning: false }
+                        // );
+                        // global.io.emit(
+                        //     `security_${containerSecurity._id}`,
+                        //     containerSecurity
+                        // );
+                        // await deleteFile(exactFilePath);
                         return reject(error);
                     }
 

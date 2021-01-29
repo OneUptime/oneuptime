@@ -85,8 +85,10 @@ describe('Enterprise Monitor SubProject API', () => {
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', data.subProjectMonitorName);
+                await page.click('[data-testId=type_url]');
+                await page.waitForSelector('#url');
                 await page.click('#url');
-                await page.type('input[name=url_1000]', 'https://google.com');
+                await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
                 await page.waitFor(5000);
 

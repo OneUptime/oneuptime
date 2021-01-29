@@ -1269,6 +1269,7 @@ const _this = {
         incidentType,
         projectName,
         criterionName,
+        probeName
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1315,6 +1316,7 @@ const _this = {
                     projectName,
                     dashboardURL: global.dashboardHost,
                     criterionName,
+                    probeName
                 },
             };
             EmailBody = await _this.getEmailBody(mailOptions);
