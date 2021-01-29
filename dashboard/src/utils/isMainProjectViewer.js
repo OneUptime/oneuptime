@@ -15,12 +15,14 @@ const isMainProjectViewer = (userId, subProjects, currentProject) => {
     user =
         subProjects && subProjects.length > 0
             ? subProjects.map(subProject =>
-                  subProject.users.find(
-                      user => user.userId === userId && user.role === 'Viewer'
-                  )
+                  subProject.users.find(user => user.userId === userId)
               )
             : null;
-    if (user && user.length > 0) return true;
+    if (user && user.length > 0) {
+        const member = user.find(user => user.role !== 'Viewer');
+        if (member && member._id) return false;
+        return true;
+    }
     return false;
 };
 

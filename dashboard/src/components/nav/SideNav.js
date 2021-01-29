@@ -198,7 +198,7 @@ class SideNav extends Component {
             location.pathname.match(/profile\/advanced/);
 
         let groupsToRender = [];
-        if (switchToProjectViewerNav) {
+        if (switchToProjectViewerNav && !switchToProfileNav) {
             groupsToRender = groups
                 .filter(group => group.visibleForProjectViewer)
                 .filter(group => group.visible);
@@ -215,11 +215,19 @@ class SideNav extends Component {
                 .filter(group => group.visibleOnProfile)
                 .filter(group => group.visible)
                 .map(group => {
-                    group.routes = group.routes.filter(
-                        route =>
+                    group.routes = group.routes.filter(route => {
+                        if (
+                            route.title === 'Back to Dashboard' &&
+                            switchToProjectViewerNav
+                        ) {
+                            route.path =
+                                '/dashboard/project/:projectId/status-pages';
+                        }
+                        return (
                             route.visible &&
                             route.title !== 'Team Member Profile'
-                    );
+                        );
+                    });
                     return group;
                 });
         } else {

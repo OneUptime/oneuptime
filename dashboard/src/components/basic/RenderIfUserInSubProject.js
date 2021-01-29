@@ -16,6 +16,13 @@ export function RenderIfUserInSubProject(props) {
         ).length > 0
     ) {
         renderItems = children;
+    } else if (
+        currentProject &&
+        currentProject.users.filter(
+            user => user.userId === userId && user.role === 'Viewer'
+        ).length > 0
+    ) {
+        renderItems = children;
     } else {
         if (subProjects) {
             subProjects.forEach(subProject => {

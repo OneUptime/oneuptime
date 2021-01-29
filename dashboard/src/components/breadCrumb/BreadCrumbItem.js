@@ -13,6 +13,7 @@ function BreadCrumbItem({
     status,
     containerType,
     icon,
+    switchToProjectViewerNav,
 }) {
     const id = name ? name.split(' ').join('') : '';
     const pages = pageTitles();
@@ -24,6 +25,9 @@ function BreadCrumbItem({
 
     const getRoute = (route, projectId) => {
         if (route === '/') {
+            if (switchToProjectViewerNav) {
+                return `/dashboard/project/${projectId}/status-pages`;
+            }
             return `/dashboard/project/${projectId}`;
         }
         return route;
@@ -86,6 +90,7 @@ BreadCrumbItem.propTypes = {
     status: PropTypes.string,
     containerType: PropTypes.string,
     icon: PropTypes.string,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 export default BreadCrumbItem;
