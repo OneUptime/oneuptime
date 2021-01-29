@@ -49,6 +49,7 @@ const RenderCodeEditor = ({
         placeholder={placeholder}
         height={height}
         width={width}
+        fontSize="14px"
     />
 );
 

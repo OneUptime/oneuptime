@@ -121,9 +121,7 @@ module.exports = {
                                 ? matchedCriterion.description
                                 : descriptionTemplate(templatesInput);
                         incident.criterionCause = {
-                            name: matchedCriterion.default
-                                ? 'Default'
-                                : matchedCriterion.name,
+                            name: matchedCriterion.name,
                         };
 
                         incident.incidentPriority =
