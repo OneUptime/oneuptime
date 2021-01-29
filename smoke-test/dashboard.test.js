@@ -37,38 +37,38 @@ describe('Monitor API', () => {
     });
 
     afterAll(async done => {
-        // await cluster.execute(null, async ({ page }) => {
-        //     // delete monitor
-        //     await page.goto(utils.DASHBOARD_URL, {
-        //         waitUntil: 'domcontentloaded',
-        //     });
-        //     await page.waitForSelector('#components');
-        //     await page.click('#components');
-        //     await page.waitForSelector(`#more-details-${componentName}`);
-        //     await page.click(`#more-details-${componentName}`);
-        //     await page.waitForSelector(`#more-details-${monitorName}`);
-        //     await page.click(`#more-details-${monitorName}`);
-        //     await page.waitForSelector(`#delete_${monitorName}`);
-        //     await page.click(`#delete_${monitorName}`);
-        //     await page.waitForSelector('#deleteMonitor');
-        //     await page.click('#deleteMonitor');
+        await cluster.execute(null, async ({ page }) => {
+            // delete monitor
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: 'domcontentloaded',
+            });
+            await page.waitForSelector('#components');
+            await page.click('#components');
+            await page.waitForSelector(`#more-details-${componentName}`);
+            await page.click(`#more-details-${componentName}`);
+            await page.waitForSelector(`#more-details-${monitorName}`);
+            await page.click(`#more-details-${monitorName}`);
+            await page.waitForSelector(`#delete_${monitorName}`);
+            await page.click(`#delete_${monitorName}`);
+            await page.waitForSelector('#deleteMonitor');
+            await page.click('#deleteMonitor');
 
-        //     await page.waitForSelector('.ball-beat', { visible: true });
-        //     await page.waitForSelector('.ball-beat', { hidden: true });
+            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { hidden: true });
 
-        //     // delete component
-        //     await page.goto(utils.DASHBOARD_URL, {
-        //         waitUntil: 'domcontentloaded',
-        //     });
-        //     await page.waitForSelector('#components');
-        //     await page.click('#components');
+            // delete component
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: 'domcontentloaded',
+            });
+            await page.waitForSelector('#components');
+            await page.click('#components');
 
-        //     await page.waitForSelector(`#delete-component-${componentName}`);
-        //     await page.click(`#delete-component-${componentName}`);
-        //     await page.waitForSelector('#deleteComponent');
-        //     await page.click('#deleteComponent');
-        //     await page.waitForSelector('#deleteComponent', { hidden: true });
-        // });
+            await page.waitForSelector(`#delete-component-${componentName}`);
+            await page.click(`#delete-component-${componentName}`);
+            await page.waitForSelector('#deleteComponent');
+            await page.click('#deleteComponent');
+            await page.waitForSelector('#deleteComponent', { hidden: true });
+        });
         await cluster.idle();
         await cluster.close();
         done();
@@ -128,11 +128,11 @@ describe('Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor', {
                     visible: true,
                 });
-
+                
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]', { visible: true });
                 await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
@@ -151,42 +151,42 @@ describe('Monitor API', () => {
         operationTimeOut
     );
 
-    // it(
-    //     'Should not create new monitor when details that are incorrect',
-    //     async () => {
-    //         return await cluster.execute(null, async ({ page }) => {
-    //             // Navigate to Components page
-    //             await page.goto(utils.DASHBOARD_URL, {
-    //                 waitUntil: 'domcontentloaded',
-    //             });
-    //             await page.waitForSelector('#components');
-    //             await page.click('#components');
+    it(
+        'Should not create new monitor when details that are incorrect',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Components page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'domcontentloaded',
+                });
+                await page.waitForSelector('#components');
+                await page.click('#components');
 
-    //             // Navigate to details page of component created in previous test
-    //             await page.waitForSelector(`#more-details-${componentName}`);
-    //             await page.click(`#more-details-${componentName}`);
-    //             await page.waitForSelector('#form-new-monitor', {
-    //                 visible: true,
-    //             });
+                // Navigate to details page of component created in previous test
+                await page.waitForSelector(`#more-details-${componentName}`);
+                await page.click(`#more-details-${componentName}`);
+                await page.waitForSelector('#form-new-monitor', {
+                    visible: true,
+                });
 
-    //             // Submit New Monitor form with incorrect details
-    //             await page.waitForSelector('#name');
-    //             await init.selectByText('#type', 'url', page);
-    //             await page.waitForSelector('#url');
-    //             await page.type('#url', 'https://google.com');
-    //             await page.click('button[type=submit]');
+                // Submit New Monitor form with incorrect details
+                await page.waitForSelector('#name');
+                await page.click('[data-testId=type_url]');
+                await page.waitForSelector('#url');
+                await page.type('#url', 'https://google.com');
+                await page.click('button[type=submit]');
 
-    //             let spanElement;
-    //             spanElement = await page.waitForSelector(
-    //                 '#form-new-monitor span#field-error'
-    //             );
-    //             spanElement = await spanElement.getProperty('innerText');
-    //             spanElement = await spanElement.jsonValue();
-    //             spanElement.should.be.exactly(
-    //                 'This field cannot be left blank'
-    //             );
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+                let spanElement;
+                spanElement = await page.waitForSelector(
+                    '#form-new-monitor span#field-error'
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(
+                    'This field cannot be left blank'
+                );
+            });
+        },
+        operationTimeOut
+    );
 });
