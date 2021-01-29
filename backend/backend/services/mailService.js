@@ -345,18 +345,30 @@ const _this = {
                 subject: 'New Lead Added',
                 template: 'lead_to_fyipe_team',
                 context: {
-                    homeURL: global.homeHost,
-                    _id: lead._id,
-                    createdAt: moment(lead.createdAt).format('LLLL'),
-                    message: lead.message,
+                    airtableId: lead.airtableId,
                     page: lead.page,
                     projectId: lead.projectId,
                     createdById: lead.createdById,
-                    projectName: lead.project.name,
-                    userName: lead.userName,
-                    userPhone: lead.userPhone,
-                    userEmail: lead.userEmail,
-                    airtableId: lead.airtableId,
+                    homeURL: global.homeHost,
+                    _id: lead._id,
+                    message: lead.message,
+                    createdAt: moment(lead.createdAt).format('LLLL'),
+                    projectName:
+                        lead.project && lead.project.name
+                            ? lead.project.name
+                            : '',
+                    userName: lead.userName
+                        ? lead.userName
+                        : lead.name
+                        ? lead.name
+                        : '',
+                    userPhone: lead.phone,
+                    userEmail: lead.email,
+                    type: lead.type,
+                    country: lead.country,
+                    website: lead.website,
+                    companySize: lead.companySize,
+                    whitepaperName: lead.whitepaperName,
                 },
             };
 

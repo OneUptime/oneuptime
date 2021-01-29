@@ -344,18 +344,19 @@ span.st-Delink.st-Delink--footer a {
                                 <td width="720" align="center" valign="top" style="padding:0;Margin:0">
                                   <table cellpadding="0" cellspacing="0" width="100%" role="presentation" style="border-collapse:collapse;border-spacing:0px">
                                     <tbody>
-                                      <tr style="border-collapse:collapse">
+                                      {{#if projectName}}<tr style="border-collapse:collapse">
                                         <td align="left" style="padding:0;margin:0;width:50%">                                       
                                           <strong>Project Name</strong>
                                         </td> 
                                         <td style="padding:0;margin:0;width:50%"><span><span style="white-space:nowrap">{{projectName}}</span></span></td>
-                                      </tr>
-                                      <tr style="border-collapse:collapse">
+                                      </tr>{{/if}}
+
+                                      {{#if _id}}<tr style="border-collapse:collapse">
                                         <td align="left" style="padding:0;margin:0;width:50%">                                       
                                           <strong>Project Id</strong>
                                         </td> 
                                         <td style="padding:0;margin:0;width:50%"> <span><span style="white-space:nowrap">{{_id}}</span></span></td>
-                                      </tr>
+                                      </tr>{{/if}}
                                       <tr style="border-collapse:collapse">
                                         <td align="left" style="padding:0;margin:0;width:50%">                                       
                                           <strong>User Name</strong>
@@ -380,24 +381,56 @@ span.st-Delink.st-Delink--footer a {
                                         </td> 
                                         <td style="padding:0;margin:0;width:50%"><span><span style="white-space:nowrap">{{createdAt}}</span></span></td>
                                       </tr>
-                                      <tr style="border-collapse:collapse">
+                                       {{#if page}}<tr style="border-collapse:collapse">
                                         <td align="left" style="padding:0;margin:0;width:50%">                                       
                                           <strong>Page</strong>
                                         </td> 
                                         <td style="padding:0;margin:0;width:50%"><span><span style="white-space:nowrap">{{page}}</span></span></td>
-                                      </tr>
-                                      <tr style="border-collapse:collapse">
+                                      </tr>{{/if}}
+
+                                      {{#if type}}<tr style="border-collapse:collapse">
+                                        <td align="left" style="padding:0;margin:0;width:50%">                                       
+                                          <strong>Type</strong>
+                                        </td> 
+                                        <td style="padding:0;margin:0;width:50%"><span><span style="white-space:nowrap">{{type}}</span></span></td>
+                                      </tr>{{/if}}
+                                      {{#if country}}<tr style="border-collapse:collapse">
+                                        <td align="left" style="padding:0;margin:0;width:50%">                                       
+                                          <strong>Country</strong>
+                                        </td> 
+                                        <td style="padding:0;margin:0;width:50%"><span><span style="white-space:nowrap">{{country}}</span></span></td>
+                                      </tr>{{/if}}
+                                      {{#if website}}<tr style="border-collapse:collapse">
+                                        <td align="left" style="padding:0;margin:0;width:50%">                                       
+                                          <strong>Website</strong>
+                                        </td> 
+                                        <td style="padding:0;margin:0;width:50%"><span><span style="white-space:nowrap">{{website}}</span></span></td>
+                                      </tr>{{/if}}
+                                      {{#if companySize}}<tr style="border-collapse:collapse">
+                                        <td align="left" style="padding:0;margin:0;width:50%">                                       
+                                          <strong>Company Size</strong>
+                                        </td> 
+                                        <td style="padding:0;margin:0;width:50%"><span><span style="white-space:nowrap">{{companySize}}</span></span></td>
+                                      </tr>{{/if}}
+                                      {{#if whitepaperName}}<tr style="border-collapse:collapse">
+                                        <td align="left" style="padding:0;margin:0;width:50%">                                       
+                                          <strong>Whitepaper Name</strong>
+                                        </td> 
+                                        <td style="padding:0;margin:0;width:50%"><span><span style="white-space:nowrap">{{whitepaperName}}</span></span></td>
+                                      </tr>{{/if}}
+
+                                       {{#if airtableId}}<tr style="border-collapse:collapse">
                                         <td align="left" style="padding:0;margin:0;width:50%">                                       
                                           <strong>AirtableId</strong>
                                         </td> 
                                         <td style="padding:0;margin:0;width:50%"><span><span style="white-space:nowrap">{{airtableId}}</span></span></td>
-                                      </tr> 
-                                      <tr style="border-collapse:collapse">
+                                      </tr> {{/if}}
+                                      {{#if message}} <tr style="border-collapse:collapse">
                                         <td align="left" style="padding:0;margin:0;width:50%">                                       
                                           <strong>Message</strong>
                                         </td> 
                                         <td style="padding:0;margin:0;width:50%"><span><span style="white-space:wrap">{{message}}</span></span></td>
-                                      </tr>
+                                      </tr> {{/if}}
                                     </tbody>
                                   </table>
                                 </td>
