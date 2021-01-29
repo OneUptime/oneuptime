@@ -263,7 +263,6 @@ class Main extends Component {
     }
 
     render() {
-        console.log("Props: ",this.props);
         const { headerHTML, footerHTML, customCSS } = this.props.statusData;
         const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
         const probes = this.props.probes;
