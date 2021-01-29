@@ -355,8 +355,8 @@ module.exports = {
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await page.click('[data-testId=show_all_monitors]');
-        await page.waitForSelector('[data-testId=type_device]');
+        await page.waitForSelector('#showMoreMonitors');
+        await page.click('#showMoreMonitors');
         await page.click('[data-testId=type_device]');
         await page.waitForSelector('#deviceId');
         await page.click('#deviceId');
