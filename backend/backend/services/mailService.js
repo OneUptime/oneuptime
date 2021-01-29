@@ -10,6 +10,7 @@ const EmailStatusService = require('./emailStatusService');
 const DateTime = require('../utils/DateTime');
 const Path = require('path');
 const fsp = require('fs/promises');
+const moment = require('moment');
 
 const helpers = {
     year: DateTime.getCurrentYear,
@@ -344,17 +345,30 @@ const _this = {
                 subject: 'New Lead Added',
                 template: 'lead_to_fyipe_team',
                 context: {
+                    airtableId: lead.airtableId,
+                    page: lead.page,
+                    projectId: lead.projectId,
+                    createdById: lead.createdById,
                     homeURL: global.homeHost,
-                    text: lead,
-                    deleted: JSON.stringify(lead.deleted),
-                    _id: JSON.stringify(lead._id),
-                    createdAt: JSON.stringify(lead.createdAt),
-                    message: JSON.stringify(lead.message),
-                    page: JSON.stringify(lead.page),
-                    projectId: JSON.stringify(lead.projectId),
-                    createdById: JSON.stringify(lead.createdById),
-                    projectName: JSON.stringify(lead.project.name),
-                    airtableId: JSON.stringify(lead.airtableId),
+                    _id: lead._id,
+                    message: lead.message,
+                    createdAt: moment(lead.createdAt).format('LLLL'),
+                    projectName:
+                        lead.project && lead.project.name
+                            ? lead.project.name
+                            : '',
+                    userName: lead.userName
+                        ? lead.userName
+                        : lead.name
+                        ? lead.name
+                        : '',
+                    userPhone: lead.phone,
+                    userEmail: lead.email,
+                    type: lead.type,
+                    country: lead.country,
+                    website: lead.website,
+                    companySize: lead.companySize,
+                    whitepaperName: lead.whitepaperName,
                 },
             };
 
