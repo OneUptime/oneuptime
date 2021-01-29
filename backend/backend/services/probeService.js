@@ -308,7 +308,7 @@ module.exports = {
             });
             const incidents = await IncidentService.findBy({
                 monitorId: data.monitorId,
-                // incidentType: data.status,
+                incidentType: data.status,
                 resolved: false,
                 manuallyCreated: false,
             });

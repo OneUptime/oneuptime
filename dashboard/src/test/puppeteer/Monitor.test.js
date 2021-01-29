@@ -865,7 +865,7 @@ describe('API Monitor API', () => {
 
                 const newMonitorName = utils.generateRandomString();
                 await init.addAPIMonitorWithJSExpression(page, newMonitorName);
-                await page.waitFor(120000);
+                await page.waitFor(120 * 1000);
 
                 let spanElement = await page.waitForSelector(
                     `#monitor-title-${newMonitorName}`
@@ -874,15 +874,21 @@ describe('API Monitor API', () => {
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(newMonitorName);
 
-                let monitorStatusElement = await page.waitForSelector(
-                    `#monitor-status-${newMonitorName}`,
-                    { visible: true, timeout: operationTimeOut }
-                );
-                monitorStatusElement = await monitorStatusElement.getProperty(
-                    'innerText'
-                );
-                monitorStatusElement = await monitorStatusElement.jsonValue();
-                monitorStatusElement.should.be.exactly('Online');
+                const probeTabs = await page.$$('button[id^=probes-btn]');
+                for (const probeTab of probeTabs) {
+                    await probeTab.click();
+
+                    let monitorStatusElement = await page.$(
+                        `#monitor-status-${testMonitorName}`
+                    );
+                    if (monitorStatusElement) {
+                        monitorStatusElement = await monitorStatusElement.getProperty(
+                            'innerText'
+                        );
+                        monitorStatusElement = await monitorStatusElement.jsonValue();
+                        monitorStatusElement.should.be.exactly('Degraded');
+                    }
+                }
             });
         },
         operationTimeOut
@@ -964,23 +970,29 @@ describe('API Monitor API', () => {
             await cluster.execute(null, testServer);
 
             return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Component details
+                await page.goto(utils.DASHBOARD_URL);
                 await init.navigateToComponentDetails(componentName, page);
 
                 const newMonitorName = utils.generateRandomString();
                 await init.addAPIMonitorWithJSExpression(page, newMonitorName);
 
-                await page.waitFor(15000);
+                await page.waitFor(120 * 1000);
 
-                let monitorStatusElement = await page.waitForSelector(
-                    `#monitor-status-${testMonitorName}`,
-                    { visible: true, timeout: operationTimeOut }
-                );
-                monitorStatusElement = await monitorStatusElement.getProperty(
-                    'innerText'
-                );
-                monitorStatusElement = await monitorStatusElement.jsonValue();
-                monitorStatusElement.should.be.exactly('Degraded');
+                const probeTabs = await page.$$('button[id^=probes-btn]');
+                for (const probeTab of probeTabs) {
+                    await probeTab.click();
+
+                    let monitorStatusElement = await page.$(
+                        `#monitor-status-${testMonitorName}`
+                    );
+                    if (monitorStatusElement) {
+                        monitorStatusElement = await monitorStatusElement.getProperty(
+                            'innerText'
+                        );
+                        monitorStatusElement = await monitorStatusElement.jsonValue();
+                        monitorStatusElement.should.be.exactly('Degraded');
+                    }
+                }
             });
         },
         operationTimeOut
@@ -1011,74 +1023,92 @@ describe('API Monitor API', () => {
             await cluster.execute(null, testServer);
 
             return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Component details
+                await page.goto(utils.DASHBOARD_URL);
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitFor(120000);
+                const newMonitorName = utils.generateRandomString();
+                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
 
-                let monitorStatusElement = await page.waitForSelector(
-                    `#monitor-status-${testMonitorName}`,
-                    { visible: true, timeout: operationTimeOut }
-                );
-                monitorStatusElement = await monitorStatusElement.getProperty(
-                    'innerText'
-                );
-                monitorStatusElement = await monitorStatusElement.jsonValue();
-                monitorStatusElement.should.be.exactly('Offline');
+                await page.waitFor(120 * 1000);
+
+                const probeTabs = await page.$$('button[id^=probes-btn]');
+                for (const probeTab of probeTabs) {
+                    await probeTab.click();
+
+                    let monitorStatusElement = await page.$(
+                        `#monitor-status-${testMonitorName}`
+                    );
+                    if (monitorStatusElement) {
+                        monitorStatusElement = await monitorStatusElement.getProperty(
+                            'innerText'
+                        );
+                        monitorStatusElement = await monitorStatusElement.jsonValue();
+                        monitorStatusElement.should.be.exactly('Offline');
+                    }
+                }
             });
         },
         operationTimeOut
     );
 
-    test(
-        'should display offline status if evaluate response does not match in criteria',
-        async () => {
-            const testServer = async ({ page }) => {
-                await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-                await page.evaluate(
-                    () => (document.getElementById('responseTime').value = '')
-                );
-                await page.evaluate(
-                    () => (document.getElementById('statusCode').value = '')
-                );
-                await page.evaluate(
-                    () => (document.getElementById('body').value = '')
-                );
-                await page.waitForSelector('#responseTime');
-                await page.click('input[name=responseTime]');
-                await page.type('input[name=responseTime]', '0');
-                await page.waitForSelector('#statusCode');
-                await page.click('input[name=statusCode]');
-                await page.type('input[name=statusCode]', '200');
-                await page.waitForSelector('#body');
-                await page.click('textarea[name=body]');
-                await page.type('textarea[name=body]', '{"status":"not ok"}');
-                await page.click('button[type=submit]');
-                await page.waitForSelector('#save-btn');
-                await page.waitForSelector('#save-btn', { visible: true });
-            };
+    test('should display offline status if evaluate response does not match in criteria', async () => {
+        const testServer = async ({ page }) => {
+            await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
+            await page.evaluate(
+                () => (document.getElementById('responseTime').value = '')
+            );
+            await page.evaluate(
+                () => (document.getElementById('statusCode').value = '')
+            );
+            await page.evaluate(
+                () => (document.getElementById('body').value = '')
+            );
+            await page.waitForSelector('#responseTime');
+            await page.click('input[name=responseTime]');
+            await page.type('input[name=responseTime]', '0');
+            await page.waitForSelector('#statusCode');
+            await page.click('input[name=statusCode]');
+            await page.type('input[name=statusCode]', '200');
+            await page.waitForSelector('#body');
+            await page.click('textarea[name=body]');
+            await page.type('textarea[name=body]', '{"status":"not ok"}');
+            await page.click('button[type=submit]');
+            await page.waitForSelector('#save-btn');
+            await page.waitForSelector('#save-btn', { visible: true });
+        };
 
-            await cluster.execute(null, testServer);
+        await cluster.execute(null, testServer);
 
-            return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Component details
+        return await cluster.execute(
+            null,
+            async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitFor(120000);
+                const newMonitorName = utils.generateRandomString();
+                await init.addAPIMonitorWithJSExpression(page, newMonitorName);
 
-                let monitorStatusElement = await page.waitForSelector(
-                    `#monitor-status-${testMonitorName}`,
-                    { visible: true, timeout: operationTimeOut }
-                );
-                monitorStatusElement = await monitorStatusElement.getProperty(
-                    'innerText'
-                );
-                monitorStatusElement = await monitorStatusElement.jsonValue();
-                monitorStatusElement.should.be.exactly('Offline');
-            });
-        },
-        operationTimeOut
-    );
+                await page.waitFor(120 * 1000);
+
+                const probeTabs = await page.$$('button[id^=probes-btn]');
+                for (const probeTab of probeTabs) {
+                    await probeTab.click();
+
+                    let monitorStatusElement = await page.$(
+                        `#monitor-status-${testMonitorName}`
+                    );
+                    if (monitorStatusElement) {
+                        monitorStatusElement = await monitorStatusElement.getProperty(
+                            'innerText'
+                        );
+                        monitorStatusElement = await monitorStatusElement.jsonValue();
+                        monitorStatusElement.should.be.exactly('Offline');
+                    }
+                }
+            },
+            operationTimeOut
+        );
+    });
 
     test(
         'should show specific property, button and modal for evaluate response',
@@ -1111,7 +1141,7 @@ describe('API Monitor API', () => {
                 );
                 monitorIncidentReportElement = await monitorIncidentReportElement.jsonValue();
                 monitorIncidentReportElement.should.match(
-                    /.*Response {"status":"ok"} Did evaluate response.body.status === 'ok'.*$/
+                    /.*Response {"status":"ok"} Did evaluate response.body.status === 'ok'.*/
                 );
 
                 await page.waitForSelector(`#${newMonitorName}_ShowResponse_0`);
@@ -1142,6 +1172,7 @@ describe('API Monitor API', () => {
                 await init.addAPIMonitorWithJSExpression(page, newMonitorName);
 
                 const deleteButtonSelector = `#delete_${newMonitorName}`;
+                await page.waitForSelector(deleteButtonSelector);
                 await page.$eval(deleteButtonSelector, e => e.click());
 
                 const confirmDeleteButtonSelector = '#deleteMonitor';
