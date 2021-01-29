@@ -249,7 +249,7 @@ class Main extends Component {
 
     renderError = () => {
         const { error } = this.props.status;
-        if (error === 'Input data schema mismatch.') {
+        if (error === 'Input data schema mismatch.' || error === null) {
             return 'Page Not Found';
         } else if (error === 'Project Not present') {
             return 'Invalid Project.';
@@ -263,6 +263,7 @@ class Main extends Component {
     }
 
     render() {
+        console.log("Props: ",this.props);
         const { headerHTML, footerHTML, customCSS } = this.props.statusData;
         const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
         const probes = this.props.probes;
