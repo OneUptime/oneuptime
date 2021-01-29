@@ -140,6 +140,7 @@ class StatusPagesTable extends Component {
                                             subProjectStatusPages.length
                                         }
                                         modalList={this.props.modalList}
+                                        project={subProject}
                                     />
                                 </div>
                             </div>
@@ -208,6 +209,7 @@ class StatusPagesTable extends Component {
                                         subProjectStatusPages.length
                                     }
                                     modalList={this.props.modalList}
+                                    project={currentProject}
                                 />
                             </div>
                         </div>

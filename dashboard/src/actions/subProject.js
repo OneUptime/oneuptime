@@ -32,7 +32,7 @@ export const resetSubProjects = () => {
 export function getSubProjects(projectId, skip = 0, limit = 10) {
     return function(dispatch) {
         const promise = getApi(
-            `project/${projectId}/user/subProjects?skip=${skip}&limit=${limit}`
+            `project/${projectId}/subProjects?skip=${skip}&limit=${limit}`
         );
         dispatch(subProjectsRequest(promise));
 

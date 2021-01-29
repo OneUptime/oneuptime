@@ -62,46 +62,4 @@ module.exports = {
             });
         }
     },
-
-    // Description: Get subprojects where a user is a viewer
-    getViewerSubProjects: async function(req, res, next) {
-        try {
-            const userId = req.user
-                ? req.user.id
-                : null || url.parse(req.url, true).query.userId;
-
-            req.user.viewerSubProjects = null;
-
-            //sanitize
-            if (!userId) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'User is not present.',
-                });
-            }
-
-            const query = {
-                'users.userId': userId,
-                'users.role': 'Viewer',
-            };
-            // Fetch user subprojects
-            const subProjects = await ProjectService.findBy(query);
-            if (subProjects.length > 0) {
-                req.user.viewerSubProjects = subProjects;
-                next();
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'You are not present in any subProject as a viewer.',
-                });
-            }
-        } catch (error) {
-            ErrorService.log('subProject.getRoleBaseSubProjects', error);
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Bad request to server',
-            });
-        }
-    },
 };

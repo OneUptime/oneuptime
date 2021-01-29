@@ -33,6 +33,7 @@ import { deleteProjectIncidents } from './incident';
 import { getSubProjects, resetSubProjects } from './subProject';
 import { resetFetchComponentResources } from './component';
 import errors from '../errors';
+import isMainProjectViewer from '../utils/isMainProjectViewer';
 
 export function changeDeleteModal() {
     return {
@@ -277,11 +278,29 @@ export function createProject(values) {
     };
 }
 
-export function switchProject(dispatch, project) {
+export function switchToProjectViewerNav(userId, subProjects, currentProject) {
+    return function(dispatch) {
+        dispatch({
+            type: types.SHOW_VIEWER_MENU,
+            payload: isMainProjectViewer(userId, subProjects, currentProject),
+        });
+    };
+}
+
+export function switchProject(dispatch, project, subProjects = []) {
     const currentProjectId = User.getCurrentProjectId();
     const historyProjectId = history.location.pathname.split('project')[1];
     if (!currentProjectId || project._id !== currentProjectId) {
-        history.push(`/dashboard/project/${project._id}`);
+        const isViewer = isMainProjectViewer(
+            User.getUserId(),
+            subProjects,
+            project
+        );
+        if (isViewer) {
+            history.push(`/dashboard/project/${project._id}/status-pages`);
+        } else {
+            history.push(`/dashboard/project/${project._id}`);
+        }
         User.setCurrentProjectId(project._id);
     } else if (historyProjectId && historyProjectId === '/') {
         history.push(`/dashboard/project/${project._id}`);

@@ -165,14 +165,9 @@ router.get('/projects', getUser, async function(req, res) {
     try {
         const userId = req.user ? req.user.id : null;
         // find user subprojects and parent projects
-        let userProjects = await ProjectService.findBy({
+        const userProjects = await ProjectService.findBy({
             'users.userId': userId,
         });
-        userProjects = userProjects.filter(project =>
-            project.users.find(
-                user => user.userId === userId && user.role !== 'Viewer'
-            )
-        );
         let parentProjectIds = [];
         let projectIds = [];
         if (userProjects.length > 0) {
@@ -774,42 +769,6 @@ router.get('/:projectId/subProjects', getUser, isAuthorized, async function(
         return sendErrorResponse(req, res, error);
     }
 });
-
-// Description: Fetch all subprojects for a particular user.
-// Returns: 200: [...subprojects];
-router.get(
-    '/:projectId/user/subProjects',
-    getUser,
-    isAuthorized,
-    async function(req, res) {
-        try {
-            const userId = req.user ? req.user.id : null;
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
-            const userProjects = await ProjectService.findBy({
-                'users.userId': userId,
-            });
-            let projectIds = [];
-            if (userProjects.length > 0) {
-                const subProjects = userProjects
-                    .map(project => (project.parentProjectId ? project : null))
-                    .filter(subProject => subProject !== null);
-                projectIds = subProjects.map(project => project._id);
-            }
-            const response = await ProjectService.findBy(
-                { _id: { $in: projectIds } },
-                limit,
-                skip
-            );
-            const count = await ProjectService.countBy({
-                _id: { $in: projectIds },
-            });
-            return sendListResponse(req, res, response, count);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
-    }
-);
 
 router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function(
     req,
