@@ -890,7 +890,6 @@ module.exports = {
                 `security_${containerSecurity._id}`,
                 containerSecurity
             );
-
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
                 const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
@@ -928,22 +927,26 @@ module.exports = {
                     let auditLogs = await readFileContent(exactFilePath);
                     // if auditLogs is empty, then scanning was unsuccessful
                     // the provided credentials or image path must have been wrong
-                    if (!auditLogs) {
+                    if (
+                        !auditLogs ||
+                        (typeof auditLogs === 'string' &&
+                            !JSON.stringify(auditLogs).trim())
+                    ) {
                         const error = new Error(
                             'Scanning failed please check your docker credential or image path/tag'
                         );
                         error.code = 400;
-                        // containerSecurity = await ContainerSecurityService.updateOneBy(
-                        //     {
-                        //         _id: security._id,
-                        //     },
-                        //     { scanning: false }
-                        // );
-                        // global.io.emit(
-                        //     `security_${containerSecurity._id}`,
-                        //     containerSecurity
-                        // );
-                        // await deleteFile(exactFilePath);
+                        containerSecurity = await ContainerSecurityService.updateOneBy(
+                            {
+                                _id: security._id,
+                            },
+                            { scanning: false }
+                        );
+                        global.io.emit(
+                            `security_${containerSecurity._id}`,
+                            containerSecurity
+                        );
+                        await deleteFile(exactFilePath);
                         return reject(error);
                     }
 
@@ -988,40 +991,46 @@ module.exports = {
                                 vulnerabilities: [],
                             };
 
-                            auditLog.Vulnerabilities.map(vulnerability => {
-                                let severity;
-                                if (vulnerability.Severity === 'LOW') {
-                                    counter.low += 1;
-                                    severity = 'low';
-                                }
-                                if (vulnerability.Severity === 'MEDIUM') {
-                                    counter.moderate += 1;
-                                    severity = 'moderate';
-                                }
-                                if (vulnerability.Severity === 'HIGH') {
-                                    counter.high += 1;
-                                    severity = 'high';
-                                }
-                                if (vulnerability.Severity === 'CRITICAL') {
-                                    counter.critical += 1;
-                                    severity = 'critical';
-                                }
+                            if (
+                                auditLog.Vulnerabilities &&
+                                auditLog.Vulnerabilities.length > 0
+                            ) {
+                                auditLog.Vulnerabilities.map(vulnerability => {
+                                    let severity;
+                                    if (vulnerability.Severity === 'LOW') {
+                                        counter.low += 1;
+                                        severity = 'low';
+                                    }
+                                    if (vulnerability.Severity === 'MEDIUM') {
+                                        counter.moderate += 1;
+                                        severity = 'moderate';
+                                    }
+                                    if (vulnerability.Severity === 'HIGH') {
+                                        counter.high += 1;
+                                        severity = 'high';
+                                    }
+                                    if (vulnerability.Severity === 'CRITICAL') {
+                                        counter.critical += 1;
+                                        severity = 'critical';
+                                    }
 
-                                const vulObj = {
-                                    vulnerabilityId:
-                                        vulnerability.VulnerabilityID,
-                                    library: vulnerability.PkgName,
-                                    installedVersion:
-                                        vulnerability.InstalledVersion,
-                                    fixedVersions: vulnerability.FixedVersion,
-                                    title: vulnerability.Title,
-                                    description: vulnerability.Description,
-                                    severity,
-                                };
-                                log.vulnerabilities.push(vulObj);
+                                    const vulObj = {
+                                        vulnerabilityId:
+                                            vulnerability.VulnerabilityID,
+                                        library: vulnerability.PkgName,
+                                        installedVersion:
+                                            vulnerability.InstalledVersion,
+                                        fixedVersions:
+                                            vulnerability.FixedVersion,
+                                        title: vulnerability.Title,
+                                        description: vulnerability.Description,
+                                        severity,
+                                    };
+                                    log.vulnerabilities.push(vulObj);
 
-                                return vulnerability;
-                            });
+                                    return vulnerability;
+                                });
+                            }
 
                             auditData.vulnerabilityData.push(log);
                             return auditLog;
