@@ -250,7 +250,7 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('#otp');
                 await page.type('#otp', '654321');
                 await page.click('#verify');
-                await page.waitFor('#smsVerificationErrors');
+                await page.waitForSelector('#smsVerificationErrors');
                 const message = await page.$eval(
                     '#smsVerificationErrors',
                     e => e.textContent
@@ -282,7 +282,7 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('#otp');
                 await page.type('#otp', '123456');
                 await page.click('#verify');
-                await page.waitFor('#successMessage', { visible: true });
+                await page.waitForSelector('#successMessage', { visible: true });
                 const message = await page.$eval(
                     '#successMessage',
                     e => e.textContent
@@ -321,7 +321,7 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('#otp');
                 await page.type('#otp', '123456');
                 await page.click('#verify');
-                await page.waitFor('#successMessage', { visible: true });
+                await page.waitForSelector('#successMessage', { visible: true });
                 const message = await page.$eval(
                     '#successMessage',
                     e => e.textContent

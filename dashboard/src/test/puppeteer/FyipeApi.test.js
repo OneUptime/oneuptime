@@ -118,7 +118,7 @@ describe('API test', () => {
                 await page.click('button[id=resetApiKey]', { delay: 100 });
                 await page.waitForSelector('button[id=resetApiKeySave]');
                 await page.click('button[id=resetApiKeySave]');
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
 
                 let newApiKey = await page.$('#apiKey', { visible: true });
                 newApiKey = await newApiKey.getProperty('innerText');
@@ -160,7 +160,7 @@ describe('API test', () => {
                 await page.click(`#${role}_${projectName}`);
                 await page.waitForSelector('button[type=submit]');
                 await page.click('button[type=submit]');
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 await init.logout(page);
 
                 // Login as member

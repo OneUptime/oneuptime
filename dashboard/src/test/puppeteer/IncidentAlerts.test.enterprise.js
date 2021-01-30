@@ -107,7 +107,7 @@ describe('Schedule', () => {
             await cluster.execute(null, async ({ page }) => {
                 await init.addIncident(monitorName, 'offline', page);
                 await page.waitForSelector('#viewIncident-0');
-                await page.waitFor(3000);
+                await page.waitForTimeout(3000);
                 await page.click('#viewIncident-0');
                 await page.waitForSelector('#react-tabs-4');
                 await page.click('#react-tabs-4');

@@ -132,7 +132,7 @@ describe('SMTP Settings API', () => {
                 );
                 await page.$eval('#smtp-secure', element => element.click());
                 await page.click('button[type=submit]');
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
                 await page.reload();
 
                 const value = await page.$eval(
@@ -162,7 +162,7 @@ describe('SMTP Settings API', () => {
                 await page.waitForSelector('input[name=test-email]');
                 await page.type('input[name=test-email]', email);
                 await page.click('#confirmSmtpTest');
-                await page.waitFor(10000);
+                await page.waitForTimeout(10000);
                 await page.waitForSelector(
                     '.bs-Modal-header > div > span > span'
                 );
@@ -195,7 +195,7 @@ describe('SMTP Settings API', () => {
                 await page.waitForSelector('input[name=test-email]');
                 await page.type('input[name=test-email]', email);
                 await page.click('#confirmSmtpTest');
-                await page.waitFor(10000);
+                await page.waitForTimeout(10000);
                 await page.waitForSelector(
                     '.bs-Modal-header > div > span > span'
                 );

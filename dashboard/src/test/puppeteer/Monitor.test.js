@@ -413,7 +413,7 @@ describe('Monitor API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                // await page.waitFor(10000);
+                // await page.waitForTimeout(10000);
 
                 let sslStatusElement = await page.waitForSelector(
                     `#ssl-status-${monitorName}`,
@@ -550,7 +550,7 @@ describe('Monitor API', () => {
             const dashboard = async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitFor(120000);
+                await page.waitForTimeout(120000);
 
                 await page.waitForSelector(
                     `#more-details-${testServerMonitorName}`
@@ -613,7 +613,7 @@ describe('Monitor API', () => {
             const dashboard = async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitFor(280000);
+                await page.waitForTimeout(280000);
 
                 await page.waitForSelector(
                     `#more-details-${testServerMonitorName}`
@@ -865,7 +865,7 @@ describe('API Monitor API', () => {
 
                 const newMonitorName = utils.generateRandomString();
                 await init.addAPIMonitorWithJSExpression(page, newMonitorName);
-                await page.waitFor(120000);
+                await page.waitForTimeout(120000);
 
                 let spanElement = await page.waitForSelector(
                     `#monitor-title-${newMonitorName}`
@@ -970,7 +970,7 @@ describe('API Monitor API', () => {
                 const newMonitorName = utils.generateRandomString();
                 await init.addAPIMonitorWithJSExpression(page, newMonitorName);
 
-                await page.waitFor(15000);
+                await page.waitForTimeout(15000);
 
                 let monitorStatusElement = await page.waitForSelector(
                     `#monitor-status-${testMonitorName}`,
@@ -1014,7 +1014,7 @@ describe('API Monitor API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitFor(120000);
+                await page.waitForTimeout(120000);
 
                 let monitorStatusElement = await page.waitForSelector(
                     `#monitor-status-${testMonitorName}`,
@@ -1064,7 +1064,7 @@ describe('API Monitor API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitFor(120000);
+                await page.waitForTimeout(120000);
 
                 let monitorStatusElement = await page.waitForSelector(
                     `#monitor-status-${testMonitorName}`,

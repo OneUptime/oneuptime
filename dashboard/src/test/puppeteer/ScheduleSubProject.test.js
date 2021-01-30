@@ -157,7 +157,7 @@ describe('Schedule API With SubProjects', () => {
                         data.subProjectName,
                         page
                     );
-                    await page.waitFor(2000);
+                    await page.waitForTimeout(2000);
                     await page.waitForSelector(
                         `#schedule_count_${data.subProjectName}`
                     );
@@ -196,7 +196,7 @@ describe('Schedule API With SubProjects', () => {
                         data.subProjectName,
                         page
                     );
-                    await page.waitFor(1000);
+                    await page.waitForTimeout(1000);
                 }
             } else {
                 // await cluster.waitForOne();
@@ -204,7 +204,7 @@ describe('Schedule API With SubProjects', () => {
                 // await init.switchProject(data.projectName, page);
                 await page.waitForSelector('#onCallSchedules');
                 await page.click('#onCallSchedules');
-                await page.waitFor(3000);
+                await page.waitForTimeout(3000);
 
                 let scheduleRows = await page.$$('tr.scheduleListItem');
                 let countSchedules = scheduleRows.length;
@@ -214,7 +214,7 @@ describe('Schedule API With SubProjects', () => {
                 const nextSelector = await page.$('#btnNext');
 
                 await nextSelector.click();
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 scheduleRows = await page.$$('tr.scheduleListItem');
                 countSchedules = scheduleRows.length;
                 expect(countSchedules).toEqual(1);
@@ -222,7 +222,7 @@ describe('Schedule API With SubProjects', () => {
                 const prevSelector = await page.$('#btnPrev');
 
                 await prevSelector.click();
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 scheduleRows = await page.$$('tr.scheduleListItem');
                 countSchedules = scheduleRows.length;
                 expect(countSchedules).toEqual(10);
@@ -275,7 +275,7 @@ describe('Schedule API With SubProjects', () => {
                     );
                     await page.waitForSelector('#btnSaveMonitors');
                     await page.click('#btnSaveMonitors');
-                    await page.waitFor(5000);
+                    await page.waitForTimeout(5000);
 
                     const monitorSelectValue = await page.$eval(
                         'input[type=checkbox]',
@@ -316,7 +316,7 @@ describe('Schedule API With SubProjects', () => {
                     await page.click('#delete');
                     await page.waitForSelector('#confirmDelete');
                     await page.click('#confirmDelete');
-                    await page.waitFor(2000);
+                    await page.waitForTimeout(2000);
 
                     await page.waitForSelector('#onCallSchedules');
                     await page.click('#onCallSchedules');

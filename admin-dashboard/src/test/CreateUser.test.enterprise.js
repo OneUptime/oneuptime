@@ -91,7 +91,7 @@ describe('Enterprise User API', () => {
                 await page.click('input[name=confirmPassword]');
                 await page.type('input[name=confirmPassword]', '1234567890');
                 await page.click('button[type=submit]');
-                await page.waitFor(20000);
+                await page.waitForTimeout(20000);
 
                 const userRows = await page.$$('a.db-UserListRow');
                 const countUsers = userRows.length;
@@ -151,7 +151,7 @@ describe('Enterprise User API', () => {
                 await page.click('input[name=confirmPassword]');
                 await page.type('input[name=confirmPassword]', '1234567890');
                 await page.click('button[type=submit]');
-                await page.waitFor(20000);
+                await page.waitForTimeout(20000);
             }
 
             let userRows = await page.$$('a.db-UserListRow');
@@ -162,7 +162,7 @@ describe('Enterprise User API', () => {
             const nextSelector = await page.$('#btnNext');
 
             await nextSelector.click();
-            await page.waitFor(5000);
+            await page.waitForTimeout(5000);
             userRows = await page.$$('a.db-UserListRow');
             countUsers = userRows.length;
             expect(countUsers).toBeGreaterThanOrEqual(2);
@@ -170,7 +170,7 @@ describe('Enterprise User API', () => {
             const prevSelector = await page.$('#btnPrev');
 
             await prevSelector.click();
-            await page.waitFor(5000);
+            await page.waitForTimeout(5000);
             userRows = await page.$$('a.db-UserListRow');
             countUsers = userRows.length;
             expect(countUsers).toEqual(10);
@@ -222,7 +222,7 @@ describe('Enterprise User API', () => {
                 await page.click('input[name=confirmPassword]');
                 await page.type('input[name=confirmPassword]', '1234567890');
                 await page.click('button[type=submit]');
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 const html = await page.$eval('#frmUser', e => {
                     return e.innerHTML;

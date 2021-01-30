@@ -157,7 +157,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('button[title="Change Role"]');
                 await page.waitForSelector(`div[title="${role}"]`);
                 await page.click(`div[title="${role}"]`);
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
 
                 // Switch projects and change member role -> Owner
                 await init.switchProject(projectName, page);
@@ -167,7 +167,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('button[title="Change Role"]');
                 await page.waitForSelector(`div[title="${role}"]`);
                 await page.click(`div[title="${role}"]`);
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
 
                 // Navigate to profile page and delete account
                 await page.waitForSelector('#profile-menu');

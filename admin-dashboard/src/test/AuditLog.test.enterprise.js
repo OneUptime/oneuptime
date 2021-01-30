@@ -192,7 +192,7 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // get the new log count
                 let newLogCount = await page.waitForSelector(`#log-count`);
@@ -230,13 +230,13 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#auditLogSubmit');
                 await page.click('#auditLogSubmit');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // go back to audit logs page
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 // look for the alert panel
                 const alertPanelElement = await page.waitForSelector(
                     `#auditLogDisabled`
@@ -275,7 +275,7 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // validate that the number doesnt change
                 let newLogCount = await page.waitForSelector(`#log-count`);
@@ -321,13 +321,13 @@ describe('Audit Logs', () => {
                 await page.waitForSelector('#auditLogSubmit');
                 await page.click('#auditLogSubmit');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // go back to audit logs
                 await page.waitForSelector('#auditLogs');
                 await page.click('#auditLogs');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // count new number of logs
                 let newLogCount = await page.waitForSelector(`#log-count`);
