@@ -566,6 +566,7 @@ router.post('/scan/docker', isAuthorizedProbe, async function(req, res) {
     try {
         let { security } = req.body;
 
+        security = JSON.parse(security); // always parse the JSON
         security = await ContainerSecurityService.decryptPassword(security);
 
         const securityLog = await ProbeService.scanContainerSecurity(security);
