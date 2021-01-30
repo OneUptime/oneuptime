@@ -1,6 +1,7 @@
 # DEPLOYMENT STAGE - HTTP-TEST-SERVER
 deploy_staging_http_test_server:
     stage: Deploy
+    allow_failure: true
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
@@ -29,6 +30,7 @@ deploy_staging_http_test_server:
 # DEPLOYMENT STAGE - HTTP-TEST-SERVER
 deploy_production_http_test_server:
     stage: Deploy
+    allow_failure: true
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh

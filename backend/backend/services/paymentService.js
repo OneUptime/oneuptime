@@ -16,7 +16,10 @@ module.exports = {
     ) {
         let release;
         try {
-            const mutex = getProjectMutex(project._id.toString());
+            const mutex = getMutex(
+                MUTEX_RESOURCES.PROJECT,
+                project._id.toString()
+            );
             release = await mutex.acquire();
 
             const countryType = getCountryType(alertPhoneNumber);
@@ -142,7 +145,10 @@ module.exports = {
         let release;
         try {
             const status = {};
-            const mutex = getProjectMutex(project._id.toString());
+            const mutex = getMutex(
+                MUTEX_RESOURCES.PROJECT,
+                project._id.toString()
+            );
             release = await mutex.acquire();
             // check balance
             const isBalanceEnough = await this.hasEnoughBalance(
@@ -469,5 +475,6 @@ const {
     getCountryType,
     Call,
 } = require('../config/alertType');
-const getProjectMutex = require('../constants/projectMutexProvider');
+const getMutex = require('../constants/mutexProvider');
 const { formatBalance } = require('../utils/number');
+const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');

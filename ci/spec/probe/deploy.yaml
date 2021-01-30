@@ -1,6 +1,7 @@
 deploy_production_probe:
     stage: Deploy
     retry: 2
+    allow_failure: true
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh

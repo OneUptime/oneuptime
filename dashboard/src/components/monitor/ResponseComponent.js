@@ -220,35 +220,34 @@ export class ResponseComponent extends Component {
                                         >
                                             <div>
                                                 <div>
-                                                    <ShouldRender
-                                                        if={!criterion.default}
-                                                    >
-                                                        <div className="bs-Fieldset-row Flex-alignContent--start">
-                                                            <label
-                                                                htmlFor={`name_${criterionFieldName}`}
-                                                                style={{
-                                                                    flex:
-                                                                        '0 0 8rem',
-                                                                }}
-                                                            >
-                                                                Criteria Name
-                                                            </label>
-                                                            <div>
-                                                                <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderField
-                                                                    }
-                                                                    name={`name_${criterionFieldName}`}
-                                                                    id={`name_${criterionFieldName}`}
-                                                                    validate={[
-                                                                        ValidateField.required,
-                                                                    ]}
-                                                                    placeholder="Name for the criterion"
-                                                                />
-                                                            </div>
+                                                    <div className="bs-Fieldset-row Flex-alignContent--start">
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            htmlFor={`name_${criterionFieldName}`}
+                                                            style={{
+                                                                flex:
+                                                                    '0 0 8rem',
+                                                                textAlign:
+                                                                    'left',
+                                                            }}
+                                                        >
+                                                            Criteria Name
+                                                        </label>
+                                                        <div>
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name={`name_${criterionFieldName}`}
+                                                                id={`name_${criterionFieldName}`}
+                                                                validate={[
+                                                                    ValidateField.required,
+                                                                ]}
+                                                                placeholder="Name for the criterion"
+                                                            />
                                                         </div>
-                                                    </ShouldRender>
+                                                    </div>
                                                     <ShouldRender
                                                         if={
                                                             criterion.default ||
@@ -260,12 +259,21 @@ export class ResponseComponent extends Component {
                                                         }
                                                     >
                                                         <div className="bs-Fieldset-row Flex-alignContent--start">
-                                                            <label className="Padding-right--12">
+                                                            <label
+                                                                className="bs-Fieldset-label"
+                                                                style={{
+                                                                    flex:
+                                                                        '0 0 8rem',
+                                                                    textAlign:
+                                                                        'left',
+                                                                }}
+                                                            >
                                                                 <span>
                                                                     Call
                                                                     Schedules
                                                                 </span>
                                                             </label>
+
                                                             <FieldArray
                                                                 name={`criterion_${criterionId}_schedules`}
                                                                 schedules={
@@ -317,16 +325,12 @@ export class ResponseComponent extends Component {
                                                         }
                                                     >
                                                         <div className="Flex-flex Flex-direction--column Flex-alignItems--flexStart">
-                                                            <div
-                                                                className="bs-Fieldset-row Margin-left--16"
-                                                                style={{
-                                                                    gap: '1rem',
-                                                                }}
-                                                            >
+                                                            <div className="bs-Fieldset-row">
                                                                 <label
+                                                                    className="bs-Fieldset-label"
                                                                     style={{
                                                                         flex:
-                                                                            '0 0 6rem',
+                                                                            '0 0 8rem',
                                                                         textAlign:
                                                                             'left',
                                                                     }}
@@ -347,17 +351,12 @@ export class ResponseComponent extends Component {
                                                                     />
                                                                 </div>
                                                             </div>
-                                                            <div
-                                                                className="bs-Fieldset-row Margin-left--16"
-                                                                style={{
-                                                                    gap: '1rem',
-                                                                }}
-                                                            >
+                                                            <div className="bs-Fieldset-row">
                                                                 <label
                                                                     className="bs-Fieldset-label script-label"
                                                                     style={{
                                                                         flex:
-                                                                            '0 0 6em',
+                                                                            '0 0 8em',
                                                                         textAlign:
                                                                             'left',
                                                                     }}
