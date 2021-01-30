@@ -372,6 +372,8 @@ class NewMonitor extends Component {
         if (postObj.type === 'script') {
             postObj.data.script = thisObj.state.script;
         }
+        if (postObj.type === 'edge')
+            postObj.data.IPAddress = values[`edge_${this.props.index}`];
 
         if (
             postObj.type === 'server-monitor' &&
@@ -401,7 +403,8 @@ class NewMonitor extends Component {
             postObj.type === 'api' ||
             postObj.type === 'server-monitor' ||
             postObj.type === 'script' ||
-            postObj.type === 'incomingHttpRequest'
+            postObj.type === 'incomingHttpRequest' ||
+            postObj.type === 'edge'
         ) {
             // collect and organize all criteria data
             const criteria = { up: [], down: [], degraded: [] };
@@ -2255,7 +2258,8 @@ class NewMonitor extends Component {
                                                                 'server-monitor' ||
                                                             type === 'script' ||
                                                             type ===
-                                                                'incomingHttpRequest') &&
+                                                                'incomingHttpRequest' ||
+                                                            type === 'edge') &&
                                                         !this.state.advance
                                                     }
                                                 >
@@ -2304,7 +2308,8 @@ class NewMonitor extends Component {
                                                                 'server-monitor' ||
                                                             type === 'script' ||
                                                             type ===
-                                                                'incomingHttpRequest')
+                                                                'incomingHttpRequest' ||
+                                                            type === 'edge')
                                                     }
                                                 >
                                                     <ShouldRender
