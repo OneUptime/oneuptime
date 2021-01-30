@@ -880,7 +880,7 @@ module.exports = {
             // update container security to scanning true
             // so the cron job does not pull it multiple times due to network delays
             // since the cron job runs every minute
-            let containerSecurity = await ContainerSecurityService.updateOneBy(
+            const containerSecurity = await ContainerSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
@@ -906,19 +906,13 @@ module.exports = {
                 });
 
                 output.on('error', async error => {
-                    error.code = 400;
-                    error.message =
+                    const errorMessage =
                         'Scanning failed please check your docker credential or image path/tag';
-                    containerSecurity = await ContainerSecurityService.updateOneBy(
-                        {
-                            _id: security._id,
-                        },
-                        { scanning: false }
-                    );
-                    global.io.emit(
-                        `security_${containerSecurity._id}`,
-                        containerSecurity
-                    );
+                    error.code = 400;
+                    error.message = errorMessage;
+                    await ContainerSecurityService.updateScanTime({
+                        _id: security._id,
+                    });
                     await deleteFile(exactFilePath);
                     return reject(error);
                 });
@@ -936,16 +930,9 @@ module.exports = {
                             'Scanning failed please check your docker credential or image path/tag'
                         );
                         error.code = 400;
-                        containerSecurity = await ContainerSecurityService.updateOneBy(
-                            {
-                                _id: security._id,
-                            },
-                            { scanning: false }
-                        );
-                        global.io.emit(
-                            `security_${containerSecurity._id}`,
-                            containerSecurity
-                        );
+                        await ContainerSecurityService.updateScanTime({
+                            _id: security._id,
+                        });
                         await deleteFile(exactFilePath);
                         return reject(error);
                     }
