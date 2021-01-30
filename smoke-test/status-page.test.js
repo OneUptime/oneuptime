@@ -23,7 +23,7 @@ describe('Check status-page up', () => {
         await page.goto(`${utils.STATUSPAGE_URL}/fakeStatusPageId`, {
             waitUntil: 'domcontentloaded',
         });
-        await page.waitFor(2000);
+        await page.waitForTimeout(2000);
         const response = await page.$eval('#app-loading > div', e => {
             return e.innerHTML;
         });
