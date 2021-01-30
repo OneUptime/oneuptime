@@ -9,6 +9,10 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
 import ProbeDeleteModal from './ProbeDeleteModal';
 import uuid from 'uuid';
+import { reduxForm, Field, formValueSelector } from 'redux-form';
+import { UploadFile } from '../basic/UploadFile';
+
+const selector = formValueSelector('probeForm');
 
 export class ProbeList extends Component {
     constructor(props) {
@@ -431,6 +435,13 @@ ProbeList.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     requesting: PropTypes.bool,
+    initialValues: {},
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(ProbeList);
+const ProbeSettingsForm = reduxForm({
+    form: 'probeForm', // a unique identifier for this form,
+    enableReinitialize: true,
+    // validate, // <--- validation function given to redux-for
+})(ProbeList);
+
+export default connect(mapStateToProps, mapDispatchToProps)(ProbeSettingsForm);
