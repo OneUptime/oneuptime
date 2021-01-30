@@ -38,6 +38,7 @@ deploy_staging_helm-chart:
 
 deploy_production_helm-chart:
     stage: Deploy
+    allow_failure: true
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
