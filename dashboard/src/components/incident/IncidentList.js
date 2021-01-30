@@ -307,7 +307,21 @@ export class IncidentList extends Component {
                                                                         alt=""
                                                                     />
                                                                     <span>
-                                                                        Fyipe
+                                                                        {incident.probes &&
+                                                                        incident
+                                                                            .probes[0] &&
+                                                                        incident
+                                                                            .probes[0]
+                                                                            .probeId &&
+                                                                        incident
+                                                                            .probes[0]
+                                                                            .probeId
+                                                                            .probeName
+                                                                            ? incident
+                                                                                  .probes[0]
+                                                                                  .probeId
+                                                                                  .probeName
+                                                                            : 'Fyipe'}
                                                                     </span>
                                                                 </div>
                                                             )
