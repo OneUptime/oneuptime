@@ -67,7 +67,9 @@ module.exports = {
             if (securities && securities.length > 0) {
                 await Promise.all(
                     securities.map(security => {
-                        return ContainerSecurity.scan(security);
+                        // send a stringified json over the network
+                        // fix issue with iv key on the collection (obj.toObject is not a function)
+                        return ContainerSecurity.scan(JSON.stringify(security));
                     })
                 );
             }

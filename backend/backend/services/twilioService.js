@@ -15,7 +15,6 @@ const SmsCountService = require('./smsCountService');
 const CallLogsService = require('./callLogsService');
 const AlertService = require('./alertService');
 const { IS_TESTING } = require('../config/server');
-const IncidentService = require('./incidentService');
 
 const _this = {
     findByOne: async function(query) {
@@ -66,20 +65,8 @@ const _this = {
     ) {
         let smsBody;
         try {
-            const incident = await IncidentService.findOneBy({
-                _id: incidentId,
-            });
-            const criterionName =
-                !incident.manuallyCreated && incident.criterionCause
-                    ? incident.criterionCause.name
-                    : '';
-
             const options = {
-                body: `Fyipe Alert: Monitor ${monitorName} is ${incidentType} ${
-                    criterionName
-                        ? `according to criterion - ${criterionName}`
-                        : ''
-                }. Please acknowledge or resolve this incident on Fyipe Dashboard.`,
+                body: `Fyipe Alert: Monitor ${monitorName} is ${incidentType}. Please acknowledge or resolve this incident on Fyipe Dashboard.`,
                 to: number,
             };
             smsBody = options.body;

@@ -22,6 +22,7 @@ class AceCodeEditor extends Component {
                 setOptions={{
                     showLineNumbers: false,
                 }}
+                fontSize="14px"
             />
         );
     }

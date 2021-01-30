@@ -30,6 +30,7 @@ deploy_staging_status-page:
 
 deploy_production_status-page:
     stage: Deploy
+    allow_failure: true
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh

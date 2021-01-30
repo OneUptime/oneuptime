@@ -130,6 +130,7 @@ class NewMonitor extends Component {
                     type: CRITERIA_TYPES.DOWN.type,
                     id: uuid.v4(),
                     default: true,
+                    name: CRITERIA_TYPES.DOWN.name,
                 };
                 this.addCriterionFieldsToReduxForm(defaultDownCriterion);
                 criteria.push(defaultDownCriterion);
@@ -291,7 +292,6 @@ class NewMonitor extends Component {
                 return (
                     acc +
                     (criterion.id !== criterionItem.id &&
-                    !criterionItem.default &&
                     criterion.type === criterionItem.type
                         ? 1
                         : 0)
@@ -1740,6 +1740,7 @@ class NewMonitor extends Component {
                                                                             this
                                                                                 .scriptTextChange
                                                                         }
+                                                                        fontSize="14px"
                                                                     />
                                                                 </span>
                                                             </span>

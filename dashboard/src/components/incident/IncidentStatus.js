@@ -1513,12 +1513,8 @@ export class IncidentStatus extends Component {
                                                             <div className="bs-content">
                                                                 <label className="">
                                                                     Criterion
-                                                                    Cause
                                                                 </label>
                                                                 <div className="bs-content-inside">
-                                                                    According to
-                                                                    Criterion
-                                                                    {' - '}
                                                                     {`${this.props.incident.criterionCause.name}`}
                                                                 </div>
                                                             </div>

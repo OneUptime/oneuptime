@@ -355,8 +355,8 @@ module.exports = {
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await page.click('[data-testId=show_all_monitors]');
-        await page.waitForSelector('[data-testId=type_device]');
+        await page.waitForSelector('#showMoreMonitors');
+        await page.click('#showMoreMonitors');
         await page.click('[data-testId=type_device]');
         await page.waitForSelector('#deviceId');
         await page.click('#deviceId');
@@ -370,8 +370,13 @@ module.exports = {
      *  adds an api monitor with js expressions for up and degraded events
      * @param {*} page a page instance of puppeteer
      * @param {string} monitorName the name of the new monitor
+     * @param {{createAlertForOnline : boolean, createAlertForDegraded : boolean, createAlertForDown : boolean}} options
      */
-    addAPIMonitorWithJSExpression: async function(page, monitorName) {
+    addAPIMonitorWithJSExpression: async function(
+        page,
+        monitorName,
+        options = {}
+    ) {
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
@@ -419,6 +424,17 @@ module.exports = {
             'ul[data-testId=up_criteria_list]> li:last-of-type #value',
             "response.body.status === 'ok';"
         );
+
+        if (options.createAlertForOnline) {
+            await page.click('[data-testId=criterionAdvancedOptions_up]');
+
+            await page.waitForSelector('input[name^=createAlert_up]', {
+                visible: true,
+            });
+            await page.$eval('input[name^=createAlert_up]', element =>
+                element.click()
+            );
+        }
 
         // degraded criteria
         await page.$$eval(
