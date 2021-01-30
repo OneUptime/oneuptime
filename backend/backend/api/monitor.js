@@ -103,12 +103,13 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             data.type !== 'api' &&
             data.type !== 'server-monitor' &&
             data.type !== 'script' &&
-            data.type !== 'incomingHttpRequest'
+            data.type !== 'incomingHttpRequest' &&
+            data.type !== 'edge'
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message:
-                    'Monitor type should be url, manual, device or script.',
+                    'Monitor type should be url, manual, device, edge or script.',
             });
         }
         if (!data.data) {
