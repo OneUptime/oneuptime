@@ -139,7 +139,7 @@ describe('Schedule', () => {
                     elem = Array.from(elem);
                     elem[0].click();
                 });
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 let monitor = await page.$(
                     `label[id=scheduleMonitor_0] > div.Checkbox-label > span > span[title=${monitorName}]`

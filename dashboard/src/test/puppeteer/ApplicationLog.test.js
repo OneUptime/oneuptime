@@ -245,7 +245,7 @@ describe('Log Containers', () => {
                 await page.waitForSelector(`#${applicationLogName}-warning`);
                 await page.click(`#${applicationLogName}-warning`);
 
-                await page.waitFor(1000);
+                await page.waitForTimeout(1000);
                 // confim that thee drop down current value is warning
                 logTypeElement = await page.waitForSelector(
                     'input[name=log_type_selector]'
@@ -259,7 +259,7 @@ describe('Log Containers', () => {
                 await page.waitForSelector(`#${applicationLogName}-info`);
                 await page.click(`#${applicationLogName}-info`);
 
-                await page.waitFor(1000);
+                await page.waitForTimeout(1000);
                 // confim that thee drop down current value is info
                 logTypeElement = await page.waitForSelector(
                     'input[name=log_type_selector]'
@@ -273,7 +273,7 @@ describe('Log Containers', () => {
                 await page.waitForSelector(`#${applicationLogName}-error`);
                 await page.click(`#${applicationLogName}-error`);
 
-                await page.waitFor(1000);
+                await page.waitForTimeout(1000);
                 // confim that thee drop down current value is error
                 logTypeElement = await page.waitForSelector(
                     'input[name=log_type_selector]'
@@ -287,7 +287,7 @@ describe('Log Containers', () => {
                 await page.waitForSelector(`#${applicationLogName}-all`);
                 await page.click(`#${applicationLogName}-all`);
 
-                await page.waitFor(1000);
+                await page.waitForTimeout(1000);
                 // confim that thee drop down current value is all
                 logTypeElement = await page.waitForSelector(
                     'input[name=log_type_selector]'
@@ -585,7 +585,7 @@ describe('Log Containers', () => {
                 await page.click(`#delete_${categoryName}`);
                 await page.waitForSelector('#deleteResourceCategory');
                 await page.click('#deleteResourceCategory');
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // go back to log details and confirm it is not there anymore
                 const spanElementBadge = await page.$(

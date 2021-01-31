@@ -192,7 +192,7 @@ describe('SMS Logs', () => {
                 await page.waitForSelector('#smsLogs');
                 await page.click('#smsLogs');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // get the new log count
                 let newLogCount = await page.waitForSelector(`#log-count`);
@@ -230,13 +230,13 @@ describe('SMS Logs', () => {
                 await page.waitForSelector('#smsLogSubmit');
                 await page.click('#smsLogSubmit');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // go back to SMS logs page
                 await page.waitForSelector('#smsLogs');
                 await page.click('#smsLogs');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 // look for the alert panel
                 const alertPanelElement = await page.waitForSelector(
                     `#smsLogDisabled`
@@ -275,7 +275,7 @@ describe('SMS Logs', () => {
                 await page.waitForSelector('#smsLogs');
                 await page.click('#smsLogs');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // validate that the number doesnt change
                 let newLogCount = await page.waitForSelector(`#log-count`);
@@ -321,13 +321,13 @@ describe('SMS Logs', () => {
                 await page.waitForSelector('#smsLogSubmit');
                 await page.click('#smsLogSubmit');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // go back to SMS logs
                 await page.waitForSelector('#smsLogs');
                 await page.click('#smsLogs');
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // count new number of logs
                 let newLogCount = await page.waitForSelector(`#log-count`);

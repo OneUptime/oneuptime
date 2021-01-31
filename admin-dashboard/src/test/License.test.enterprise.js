@@ -84,7 +84,7 @@ describe('Enterprise License API', () => {
                     utils.generateRandomBusinessEmail()
                 );
                 await page.click('button[type=submit]');
-                await page.waitFor(20000);
+                await page.waitForTimeout(20000);
 
                 const expiredError = await page.$eval('#licenseError', e => {
                     return e.innerHTML;
