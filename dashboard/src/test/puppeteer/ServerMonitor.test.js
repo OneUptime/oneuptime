@@ -77,7 +77,7 @@ describe('Server Monitor API', () => {
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
 
-                await page.waitFor(300000);
+                await page.waitForTimeout(300000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -143,7 +143,7 @@ describe('Server Monitor API', () => {
 
                 monitor.start();
 
-                await page.waitFor(120000);
+                await page.waitForTimeout(120000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -213,7 +213,7 @@ describe('Server Monitor API', () => {
 
                 monitor.start();
 
-                await page.waitFor(120000);
+                await page.waitForTimeout(120000);
 
                 // check status
                 const element = await page.waitForSelector(
@@ -277,7 +277,7 @@ describe('Server Monitor API', () => {
 
                 monitor.start();
 
-                await page.waitFor(120000);
+                await page.waitForTimeout(120000);
 
                 // check status
                 const element = await page.waitForSelector(
@@ -341,11 +341,11 @@ describe('Server Monitor API', () => {
 
                 monitor.start();
 
-                await page.waitFor(120000);
+                await page.waitForTimeout(120000);
 
                 monitor.stop();
 
-                await page.waitFor(300000);
+                await page.waitForTimeout(300000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -374,11 +374,11 @@ describe('Server Monitor API', () => {
                 await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
                     e.click()
                 );
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
                     e.click()
                 );
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -392,7 +392,7 @@ describe('Server Monitor API', () => {
                     'No incidents currently active.'
                 );
 
-                await page.waitFor(300000);
+                await page.waitForTimeout(300000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
