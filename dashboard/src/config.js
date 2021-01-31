@@ -1140,7 +1140,7 @@ const item = {
 logger.log(item); // returns a promise
             `,
                 },
-                old: 'No Docs available at the moment',
+                old: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
             },
             {
                 id: 'php',
@@ -1149,7 +1149,7 @@ logger.log(item); // returns a promise
                     install: '50px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
                 logs: {
                     installation: {
                         package: 'Composer Install',
@@ -1182,7 +1182,7 @@ var_dump($response);
             {
                 id: 'java',
                 language: 'Java',
-                errorTracking: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
                 height: {
                     install: '100px',
                     usage: '300px',
@@ -1227,8 +1227,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
             },
             {
                 id: 'dotnet',
@@ -1237,8 +1237,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
             },
             {
                 id: 'swift',
@@ -1247,8 +1247,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
             },
             {
                 id: 'rust',
@@ -1257,8 +1257,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
             },
             {
                 id: 'ruby',
@@ -1267,8 +1267,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
             },
             {
                 id: 'go',
@@ -1277,8 +1277,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     usage: '500px',
                 },
                 language: 'Go',
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We're working on them and they will be launched soon. ',
             },
         ];
     },

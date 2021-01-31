@@ -341,7 +341,7 @@ const _this = {
         try {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: 'noreply@fyipe.com',
+                to: 'support@fyipe.com',
                 subject: 'New Lead Added',
                 template: 'lead_to_fyipe_team',
                 context: {

@@ -39,7 +39,7 @@ function renderLanguageQuickStart(library, type, errorTracker, applicationLog) {
             : ''
         : '';
     if (libraryDoc === '') {
-        return <div className="Padding-all--20"> No Doc Now</div>;
+        return <div className="Padding-all--20"> Please select a library to see quickstart docs.</div>;
     } else if (!libraryDoc.installation) {
         return <div className="Padding-all--20"> {libraryDoc} </div>;
     } else {
