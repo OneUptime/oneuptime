@@ -52,3 +52,14 @@ replicaCount: 1
 
 # This should be 32 chars in length.
 encryptionKey: pg#K^C$-)IGOg6DYXDGq2jdmfws0MiR7
+
+haraka:
+  user: "noreply@fyipe.com"
+  password: "tX8z_bDEcRdRHnyKxAHYEQk_B"
+
+
+host:
+# if port 25 is avaialble and accessible
+  # then we can use it as default port
+  harakaPort: 2525
+  harakaServicePort: 80
