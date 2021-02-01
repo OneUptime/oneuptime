@@ -6,14 +6,16 @@ const errorTrackerSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Component',
         alias: 'component',
+        index: true,
     }, //which component this error tracker belongs to.
     name: String,
     key: String,
     resourceCategory: {
         type: Schema.Types.ObjectId,
         ref: 'ResourceCategory',
+        index: true,
     },
-    createdById: { type: String, ref: 'User' }, //userId.
+    createdById: { type: String, ref: 'User',index: true, }, //userId.
     createdAt: {
         type: Date,
         default: Date.now,
@@ -24,7 +26,7 @@ const errorTrackerSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true, },
 });
 
 errorTrackerSchema.virtual('component', {

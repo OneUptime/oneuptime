@@ -10,6 +10,7 @@ const gitCredentialSchema = Schema(
         projectId: {
             type: Schema.Types.ObjectId,
             ref: 'Project',
+            index: true,
         },
         deleted: {
             type: Boolean,
