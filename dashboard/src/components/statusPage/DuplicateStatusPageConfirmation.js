@@ -30,7 +30,9 @@ class DuplicateStatusPageConfirmation extends Component {
     handleKeyboard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal();
+                return this.props.closeModal({
+                    id: this.props.duplicateModalId,
+                });
             case 'Enter':
                 return this.handleNavigation();
             default:
@@ -67,7 +69,12 @@ class DuplicateStatusPageConfirmation extends Component {
                                         <button
                                             className={`bs-Button btn__modal`}
                                             type="button"
-                                            onClick={closeModal}
+                                            onClick={() =>
+                                                this.props.closeModal({
+                                                    id: this.props
+                                                        .duplicateModalId,
+                                                })
+                                            }
                                         >
                                             <span>Close</span>
                                             <span className="cancel-btn__keycode">
