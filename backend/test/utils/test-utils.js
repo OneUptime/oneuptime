@@ -239,4 +239,20 @@ module.exports = {
             .post(`/incident/${subProjectId}/resolve/${incidentId}`)
             .set('Authorization', authorization);
     },
+    /**
+     * payload = {
+     *  planId: 'ID' // for example "plan_GoWKiTdQ6NiQFw",
+     *  projectName: 'PROJECT_NAME'
+     * }
+     */
+    createProject: async ({
+        request,
+        authorization,
+        payload,
+    }) => {
+        return await request
+            .post(`api/project/create`)
+            .set('Authorization', authorization)
+            .send(payload);
+    }
 };
