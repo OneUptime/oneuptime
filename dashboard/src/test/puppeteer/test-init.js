@@ -337,21 +337,8 @@ module.exports = {
         }
         await page.waitFor(1000);
     },
-    addMonitorToComponent: async function(
-        component,
-        monitorName,
-        page
-        // componentName
-    ) {
+    addMonitorToComponent: async function(component, monitorName, page) {
         component && (await this.addComponent(component, page));
-        // componentName = component || componentName;
-
-        // await page.goto(utils.DASHBOARD_URL);
-        // await page.waitForSelector('#components', { visible: true });
-        // await page.click('#components');
-        // await page.waitForSelector('#component0', { visible: true });
-        // await page.click(`#more-details-${componentName}`);
-
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
