@@ -32,6 +32,7 @@ deploy_staging_licensing:
 deploy_production_licensing:
     stage: Deploy
     retry: 2
+    allow_failure: true
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh

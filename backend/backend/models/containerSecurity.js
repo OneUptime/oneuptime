@@ -8,16 +8,19 @@ const containerSecuritySchema = new Schema(
         dockerCredential: {
             type: Schema.Types.ObjectId,
             ref: 'DockerCredential',
+            index: true
         },
         imagePath: String,
         imageTags: String,
         componentId: {
             type: Schema.Types.ObjectId,
             ref: 'Component',
+            index: true
         },
         resourceCategory: {
             type: Schema.Types.ObjectId,
             ref: 'ResourceCategory',
+            index: true
         },
         deleted: {
             type: Boolean,

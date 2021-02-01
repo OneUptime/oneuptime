@@ -43,7 +43,7 @@ describe('Monitor Detail API', () => {
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-            // await page.waitFor(1000);
+            // await page.waitForTimeout(1000);
             // await page.goto(utils.DASHBOARD_URL);
             // add new monitor to component on parent project
             await init.addMonitorToComponent(componentName, monitorName, page);

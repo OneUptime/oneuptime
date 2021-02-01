@@ -28,8 +28,8 @@ helm install -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/
 Staging: 
 
 ```
-kubectl delete job fi-init-script
-helm upgrade --reuse-values -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
+sudo kubectl delete job fi-init-script
+sudo helm upgrade --reuse-values -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
 ```
 
 Production: 

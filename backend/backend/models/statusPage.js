@@ -6,6 +6,7 @@ const statusSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Project',
         alias: 'project',
+        index: true,
     }, //which project this statuspage belongs to.
     domains: [
         {
@@ -13,12 +14,13 @@ const statusSchema = new Schema({
             domainVerificationToken: {
                 type: Schema.Types.ObjectId,
                 ref: 'DomainVerificationToken',
+                index: true,
             },
         },
     ],
     monitors: [
         {
-            monitor: { type: Schema.Types.ObjectId, ref: 'Monitor' },
+            monitor: { type: Schema.Types.ObjectId, ref: 'Monitor', index: true, },
             description: String,
             uptime: Boolean,
             memory: Boolean,
@@ -97,6 +99,6 @@ const statusSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: Schema.Types.ObjectId, ref: 'User' },
+    deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true, },
 });
 module.exports = mongoose.model('StatusPage', statusSchema);

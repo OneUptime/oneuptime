@@ -179,6 +179,12 @@ export const Validate = {
     isValidBusinessEmail(email) {
         return emaildomains.test(email);
     },
+    isValidBusinessEmails(emails) {
+            for (const email of emails) {
+                if (!emaildomains.test(email)) return false;
+            }
+            return true;
+    },
 
     compare(text1, text2) {
         return text1 === text2;

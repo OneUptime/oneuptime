@@ -75,7 +75,7 @@ describe('User Feedback', () => {
                 await page.click('#feedback-div', { clickCount: 2 });
                 await page.type('#feedback-textarea', data.testFeedback);
                 await page.click('#feedback-button');
-                await page.waitFor(3000);
+                await page.waitForTimeout(3000);
 
                 const feedbackMessage = await page.$eval(
                     '#feedback-div',

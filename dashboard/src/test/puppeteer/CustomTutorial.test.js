@@ -49,7 +49,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 const componentBoxElement = await page.waitForSelector(
                     `#info-${customTutorialType}`
                 );
@@ -78,7 +78,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 const componentBoxElement = await page.waitForSelector(
                     `#info-${customTutorialType}`
                 );
@@ -96,7 +96,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 // click on the call to action button
                 await page.waitForSelector(`#close-${customTutorialType}`);
                 await page.click(`#close-${customTutorialType}`);
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
                 // find component quick tip and confirm it shows
                 const componentQuickTip = await page.waitForSelector(
                     `#quick-tip-${customTutorialType}`
@@ -116,7 +116,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 const componentBoxElement = await page.waitForSelector(
                     `#info-${customTutorialType}`
                 );
@@ -139,7 +139,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 const componentBoxElement = await page.waitForSelector(
                     `#info-${customTutorialType}`
                 );
