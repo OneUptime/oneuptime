@@ -62,7 +62,7 @@ const _this = {
         return { user, pass, host, port, from, name, secure };
     },
 
-    getEmailBody: async function(mailOptions) {
+    getEmailBody: async function (mailOptions) {
         try {
             const data = await fsp.readFile(
                 Path.resolve(
@@ -81,7 +81,7 @@ const _this = {
         }
     },
 
-    createMailer: async function({ host, port, user, pass, secure }) {
+    createMailer: async function ({ host, port, user, pass, secure }) {
         if (!host || !user || !pass) {
             const settings = await _this.getSmtpSettings();
             host = settings.host;
@@ -158,7 +158,7 @@ const _this = {
     // Params:
     // Param 1: userEmail: Email of user
     // Returns: promise
-    sendSignupMail: async function(userEmail, name) {
+    sendSignupMail: async function (userEmail, name) {
         const accountMail = await _this.getSmtpSettings();
         let mailOptions = {};
         let EmailBody;
@@ -217,7 +217,7 @@ const _this = {
         }
     },
     // Automated email sent when a user deletes a project
-    sendDeleteProjectEmail: async function({ userEmail, name, projectName }) {
+    sendDeleteProjectEmail: async function ({ userEmail, name, projectName }) {
         const accountMail = await _this.getSmtpSettings();
         accountMail.name = 'Fyipe Support';
         accountMail.from = 'support@fyipe.com';
@@ -279,7 +279,7 @@ const _this = {
             throw error;
         }
     },
-    sendVerifyEmail: async function(tokenVerifyURL, name, email) {
+    sendVerifyEmail: async function (tokenVerifyURL, name, email) {
         let mailOptions = {};
         let EmailBody;
         const accountMail = await _this.getSmtpSettings();
@@ -334,7 +334,7 @@ const _this = {
             throw error;
         }
     },
-    sendLeadEmailToFyipeTeam: async function(lead) {
+    sendLeadEmailToFyipeTeam: async function (lead) {
         let mailOptions = {};
         let EmailBody;
         const accountMail = await _this.getSmtpSettings();
@@ -360,8 +360,8 @@ const _this = {
                     userName: lead.userName
                         ? lead.userName
                         : lead.name
-                        ? lead.name
-                        : '',
+                            ? lead.name
+                            : '',
                     userPhone: lead.phone,
                     userEmail: lead.email,
                     type: lead.type,
@@ -413,7 +413,7 @@ const _this = {
         }
     },
 
-    sendUserFeedbackResponse: async function(userEmail, name) {
+    sendUserFeedbackResponse: async function (userEmail, name) {
         let mailOptions = {};
         let EmailBody;
         const accountMail = await _this.getSmtpSettings();
@@ -469,7 +469,7 @@ const _this = {
         }
     },
 
-    sendRequestDemoEmail: async function(to) {
+    sendRequestDemoEmail: async function (to) {
         let mailOptions = {};
         let EmailBody;
         try {
@@ -528,7 +528,7 @@ const _this = {
         }
     },
 
-    sendWhitepaperEmail: async function(to, whitepaperName) {
+    sendWhitepaperEmail: async function (to, whitepaperName) {
         let mailOptions = {};
         let EmailBody;
         try {
@@ -615,7 +615,7 @@ const _this = {
     // Param 2: email: Email of user
     // Param 3: token: Password reset token
     // Returns: promise
-    sendForgotPasswordMail: async function(forgotPasswordURL, email) {
+    sendForgotPasswordMail: async function (forgotPasswordURL, email) {
         let mailOptions = {};
         let EmailBody;
         try {
@@ -674,7 +674,7 @@ const _this = {
     // Params:
     // Param 1: email: Email of user
     // Returns: promise
-    sendResetPasswordConfirmMail: async function(email) {
+    sendResetPasswordConfirmMail: async function (email) {
         let mailOptions = {};
         let EmailBody;
         try {
@@ -733,7 +733,7 @@ const _this = {
     // Params:
     // Param 1: userEmail: Email of users
     // Returns: promise
-    sendNewUserAddedToProjectMail: async function(
+    sendNewUserAddedToProjectMail: async function (
         project,
         addedByUser,
         email,
@@ -798,7 +798,7 @@ const _this = {
         }
     },
 
-    sendExistingUserAddedToProjectMail: async function(
+    sendExistingUserAddedToProjectMail: async function (
         project,
         addedByUser,
         email
@@ -862,7 +862,7 @@ const _this = {
         }
     },
 
-    sendExistingStatusPageViewerMail: async function(
+    sendExistingStatusPageViewerMail: async function (
         subProject,
         addedByUser,
         email
@@ -925,7 +925,7 @@ const _this = {
         }
     },
 
-    sendExistingUserAddedToSubProjectMail: async function(
+    sendExistingUserAddedToSubProjectMail: async function (
         project,
         addedByUser,
         email
@@ -989,7 +989,7 @@ const _this = {
         }
     },
 
-    sendNewStatusPageViewerMail: async function(project, addedByUser, email) {
+    sendNewStatusPageViewerMail: async function (project, addedByUser, email) {
         let mailOptions = {};
         let EmailBody;
         try {
@@ -1046,7 +1046,7 @@ const _this = {
         }
     },
 
-    sendChangeRoleEmailToUser: async function(
+    sendChangeRoleEmailToUser: async function (
         project,
         addedByUser,
         email,
@@ -1110,7 +1110,7 @@ const _this = {
         }
     },
 
-    sendRemoveFromProjectEmailToUser: async function(
+    sendRemoveFromProjectEmailToUser: async function (
         project,
         removedByUser,
         email
@@ -1175,7 +1175,7 @@ const _this = {
         }
     },
 
-    sendRemoveFromSubProjectEmailToUser: async function(
+    sendRemoveFromSubProjectEmailToUser: async function (
         subProject,
         removedByUser,
         email
@@ -1250,7 +1250,7 @@ const _this = {
      * @param {string} resolveUrl API link that has requirements for resolving incident.
      * @param {string} accessToken An access token to be used used to access API from email.
      */
-    sendIncidentCreatedMail: async function({
+    sendIncidentCreatedMail: async function ({
         incidentTime,
         monitorName,
         monitorUrl,
@@ -1269,7 +1269,8 @@ const _this = {
         incidentType,
         projectName,
         criterionName,
-        probeName
+        probeName,
+        emailProgress
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1291,7 +1292,8 @@ const _this = {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
-                subject: `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`,
+                subject: `Reminder ${emailProgress.current}/${emailProgress.total} - 
+                            Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`,
                 template: 'new_incident_created',
                 context: {
                     homeURL: global.homeHost,
@@ -1368,7 +1370,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    sendIncidentCreatedMailToSubscriber: async function(
+    sendIncidentCreatedMailToSubscriber: async function (
         incidentTime,
         monitorName,
         email,
@@ -1478,7 +1480,7 @@ const _this = {
         }
     },
 
-    sendIncidentAcknowledgedMail: async function({
+    sendIncidentAcknowledgedMail: async function ({
         incidentTime,
         monitorName,
         monitorUrl,
@@ -1571,7 +1573,7 @@ const _this = {
         }
     },
 
-    sendIncidentResolvedMail: async function({
+    sendIncidentResolvedMail: async function ({
         incidentTime,
         monitorName,
         monitorUrl,
@@ -1671,7 +1673,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    sendIncidentAcknowledgedMailToSubscriber: async function(
+    sendIncidentAcknowledgedMailToSubscriber: async function (
         incidentTime,
         monitorName,
         email,
@@ -1793,7 +1795,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      */
 
-    sendInvestigationNoteToSubscribers: async function(
+    sendInvestigationNoteToSubscribers: async function (
         incidentTime,
         monitorName,
         email,
@@ -1884,7 +1886,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    sendIncidentResolvedMailToSubscriber: async function(
+    sendIncidentResolvedMailToSubscriber: async function (
         incidentTime,
         monitorName,
         email,
@@ -1998,7 +2000,7 @@ const _this = {
         }
     },
 
-    testSmtpConfig: async function(data) {
+    testSmtpConfig: async function (data) {
         let mailOptions = {};
         let EmailBody;
         try {
@@ -2091,7 +2093,7 @@ const _this = {
         }
     },
 
-    sendChangePlanMail: async function(projectName, oldPlan, newPlan, email) {
+    sendChangePlanMail: async function (projectName, oldPlan, newPlan, email) {
         let mailOptions = {};
         let EmailBody;
         try {
@@ -2150,7 +2152,7 @@ const _this = {
         }
     },
 
-    sendCreateProjectMail: async function(projectName, email) {
+    sendCreateProjectMail: async function (projectName, email) {
         let mailOptions = {};
         let EmailBody;
         try {
@@ -2208,7 +2210,7 @@ const _this = {
         }
     },
 
-    sendCreateSubProjectMail: async function(subProjectName, email) {
+    sendCreateSubProjectMail: async function (subProjectName, email) {
         let mailOptions = {};
         let EmailBody;
         try {
@@ -2264,7 +2266,7 @@ const _this = {
         }
     },
 
-    sendUpgradeToEnterpriseMail: async function(
+    sendUpgradeToEnterpriseMail: async function (
         projectName,
         projectId,
         oldPlan,
@@ -2327,7 +2329,7 @@ const _this = {
         }
     },
 
-    sendPaymentFailedEmail: async function(
+    sendPaymentFailedEmail: async function (
         projectName,
         email,
         name,
@@ -2399,7 +2401,7 @@ const _this = {
             : false;
     },
 
-    sendSlaNotification: async function({
+    sendSlaNotification: async function ({
         userEmail,
         name,
         projectId,
@@ -2479,7 +2481,7 @@ const _this = {
             throw error;
         }
     },
-    sendSlaBreachNotification: async function({
+    sendSlaBreachNotification: async function ({
         userEmail,
         name,
         projectId,
@@ -2556,7 +2558,7 @@ const _this = {
             throw error;
         }
     },
-    sendUnpaidSubscriptionReminder: async function({
+    sendUnpaidSubscriptionReminder: async function ({
         projectName,
         projectPlan,
         name,
@@ -2629,7 +2631,7 @@ const _this = {
             throw error;
         }
     },
-    sendUnpaidSubscriptionProjectDelete: async function({
+    sendUnpaidSubscriptionProjectDelete: async function ({
         projectName,
         projectPlan,
         name,
