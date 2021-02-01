@@ -116,6 +116,12 @@ const INITIAL_STATE = {
         success: false,
         statusPage: null,
     },
+    duplicateStatusPage: {
+        error: null,
+        requesting: false,
+        success: false,
+        statusPage: null,
+    },
     monitors: {
         error: null,
         requesting: false,
@@ -297,8 +303,8 @@ export default function statusPage(state = INITIAL_STATE, action) {
         //Duplicate statuspage
         case DUPLICATE_STATUSPAGE_REQUEST:
             return Object.assign({}, state, {
-                newStatusPage: {
-                    ...state.newStatusPage,
+                duplicateStatusPage: {
+                    ...state.duplicateStatusPage,
                     requesting: true,
                     error: null,
                     success: false,
@@ -310,11 +316,11 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 statusPage => statusPage._id === action.payload.projectId
             );
             return Object.assign({}, state, {
-                newStatusPage: {
+                duplicateStatusPage: {
                     requesting: false,
                     error: null,
                     success: true,
-                    newStatusPage: action.payload,
+                    duplicateStatusPage: action.payload,
                 },
                 subProjectStatusPages: isExistingStatusPage
                     ? state.subProjectStatusPages.length > 0
@@ -356,7 +362,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
 
         case DUPLICATE_STATUSPAGE_FAILURE:
             return Object.assign({}, state, {
-                newStatusPage: {
+                duplicateStatusPage: {
                     requesting: false,
                     error: action.payload,
                     success: false,
