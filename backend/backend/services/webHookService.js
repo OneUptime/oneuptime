@@ -163,7 +163,7 @@ module.exports = {
                             title_link: uri,
                             incidentId: incident._id,
                             text: notificationText,
-                            criterionCauseName,
+                            criterion: criterionCauseName,
                         },
                     ],
                 };
@@ -187,7 +187,7 @@ module.exports = {
                             title_link: uri,
                             incidentId: incident._id,
                             text: notificationText,
-                            criterionCauseName,
+                            criterion: criterionCauseName,
                         },
                     ],
                 };
@@ -275,7 +275,7 @@ module.exports = {
                                     short: true,
                                 },
                                 {
-                                    title: 'According to Criterion:',
+                                    title: 'Criterion:',
                                     value: criterionCauseName,
                                 },
                             ],
@@ -298,7 +298,7 @@ module.exports = {
                     : 'Fyipe',
                 incidentStatus: incident.incidentType,
                 monitorStatus,
-                criterionCauseName,
+                criterion: criterionCauseName,
             };
             if (incident.acknowledged) {
                 data.acknowledgedBy = incident.acknowledgedBy.name;

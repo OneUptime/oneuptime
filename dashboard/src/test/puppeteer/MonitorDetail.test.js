@@ -47,7 +47,7 @@ describe('Monitor Detail API', () => {
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-            // await page.waitFor(1000);
+            // await page.waitForTimeout(1000);
             await page.goto(utils.DASHBOARD_URL);
             // add new monitor to component on parent project
             await init.addMonitorToComponent(componentName, monitorName, page);
@@ -248,18 +248,18 @@ describe('Monitor Detail API', () => {
                     monitorName,
                     page
                 );
-                // await page.waitFor(5000);
+                // await page.waitForTimeout(5000);
                 const selector = `#incident_${monitorName}_0`;
                 await page.waitForSelector(selector);
                 await page.$eval(selector, e => e.click());
-                // await page.waitFor(5000);
+                // await page.waitForTimeout(5000);
 
                 // click on advance option tab
                 await init.gotoTab(utils.incidentTabIndexes.ADVANCE, page);
 
                 await page.waitForSelector('#deleteIncidentButton');
                 await page.$eval('#deleteIncidentButton', e => e.click());
-                // await page.waitFor(5000);
+                // await page.waitForTimeout(5000);
                 await page.waitForSelector('#confirmDeleteIncident', {
                     visible: true,
                 });
@@ -951,7 +951,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
 
-                // await page.waitFor(200000);
+                // await page.waitForTimeout(200000);
 
                 const createdLighthouseLogsSelector =
                     '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
@@ -990,7 +990,7 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector('input[id=siteUrl]');
                 await page.type('input[id=siteUrl]', 'https://fyipe.com');
                 await page.$eval('#addSiteUrlButton', e => e.click());
-                // await page.waitFor(5000);
+                // await page.waitForTimeout(5000);
                 await page.waitForSelector('#addSiteUrlButton', {
                     hidden: true,
                 });
@@ -1029,7 +1029,7 @@ describe('Monitor Detail API', () => {
                 );
                 await page.waitForSelector('#websiteUrlDelete');
                 await page.$eval('#websiteUrlDelete', e => e.click());
-                // await page.waitFor(5000);
+                // await page.waitForTimeout(5000);
                 await page.waitForSelector('#websiteUrlDelete', {
                     hidden: true,
                 });
@@ -1065,7 +1065,7 @@ describe('Monitor Detail API', () => {
                     e.click()
                 );
 
-                // await page.waitFor(200000);
+                // await page.waitForTimeout(200000);
 
                 let lighthousePerformanceElement = await page.waitForSelector(
                     `#performance_${urlMonitorName}_0`,
@@ -1133,7 +1133,7 @@ describe('Monitor Detail API', () => {
                     '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
                 await page.waitForSelector(createdLighthouseLogsSelector);
                 await page.$eval(createdLighthouseLogsSelector, e => e.click());
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 let lighthousePerformanceElement = await page.waitForSelector(
                     `#lighthouse-performance`
@@ -1217,7 +1217,7 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector('#form-new-monitor', {
                     hidden: true,
                 });
-                // await page.waitFor(3000);
+                // await page.waitForTimeout(3000);
 
                 const selector = `#monitor-title-${newMonitorName}`;
 
@@ -1254,7 +1254,7 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector(confirmDeleteButtonSelector, {
                     hidden: true,
                 });
-                // await page.waitFor(5000);
+                // await page.waitForTimeout(5000);
 
                 const selector = `span#monitor-title-${newMonitorName}`;
 

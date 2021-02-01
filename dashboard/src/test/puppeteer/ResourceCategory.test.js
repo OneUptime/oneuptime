@@ -168,7 +168,7 @@ describe('Resource Category', () => {
                 await page.click(deleteButtonSelector);
                 await page.waitForSelector('#deleteResourceCategory');
                 await page.click('#deleteResourceCategory');
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 const resourceCategoryCounterSelector =
                     '#resourceCategoryCount';

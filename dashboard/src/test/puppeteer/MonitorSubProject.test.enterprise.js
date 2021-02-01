@@ -90,7 +90,7 @@ describe('Enterprise Monitor SubProject API', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 let spanElement = await page.$(
                     `#monitor-title-${data.subProjectMonitorName}`
