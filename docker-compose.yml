@@ -157,5 +157,6 @@ services:
         environment:
             - SMTP_USER="user@hackerbay.io"
             - SMTP_PASSWORD="hackerbay"
+            
 volumes:
     mongodata:

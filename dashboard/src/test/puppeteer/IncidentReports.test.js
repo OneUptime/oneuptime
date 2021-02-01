@@ -91,7 +91,7 @@ describe('Incident Reports API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitFor(120000);
+                await page.waitForTimeout(120000);
 
                 let incidentReportElement = await page.waitForSelector(
                     `#${monitorName}_IncidentReport_0`,
@@ -137,7 +137,7 @@ describe('Incident Reports API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitFor(120000);
+                await page.waitForTimeout(120000);
 
                 let incidentReportElement = await page.waitForSelector(
                     `#${monitorName}_IncidentReport_0`,

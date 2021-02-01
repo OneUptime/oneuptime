@@ -12,7 +12,7 @@ spec:
     selector:
         matchLabels:
             app: {{ printf "%s-%s" .Release.Name "haraka"  }}
-    replicas: {{ .Values.replicaCount }}
+    replicas: 1
     template:
         metadata:
             labels:
