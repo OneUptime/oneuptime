@@ -6,11 +6,12 @@ const componentSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Project',
         alias: 'project',
+        index: true
     },
 
     name: String,
 
-    createdById: { type: String, ref: 'User' },
+    createdById: { type: String, ref: 'User',index: true },
     createdAt: {
         type: Date,
         default: Date.now,
@@ -18,7 +19,7 @@ const componentSchema = new Schema({
 
     deleted: { type: Boolean, default: false },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User',index: true },
     deletedAt: {
         type: Date,
     },
