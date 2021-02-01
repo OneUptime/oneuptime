@@ -290,6 +290,11 @@ export class RenderOption extends Component {
                                     label: 'Request Incoming Time',
                                     show: type === 'incomingHttpRequest',
                                 },
+                                {
+                                    value: 'responseToPing',
+                                    label: 'Response To Ping',
+                                    show: type === 'edge',
+                                },
                             ]}
                         />
                     </div>
@@ -418,16 +423,18 @@ export class RenderOption extends Component {
                                         label: 'True',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType ===
-                                                'doesRespond',
+                                            (bodyfield.responseType ===
+                                                'doesRespond' ||
+                                                type === 'edge'),
                                     },
                                     {
                                         value: 'isDown',
                                         label: 'False',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType ===
-                                                'doesRespond',
+                                            (bodyfield.responseType ===
+                                                'doesRespond' ||
+                                                type === 'edge'),
                                     },
                                     {
                                         value: 'equalTo',
