@@ -312,52 +312,13 @@ export default function statusPage(state = INITIAL_STATE, action) {
             });
 
         case DUPLICATE_STATUSPAGE_SUCCESS:
-            isExistingStatusPage = state.subProjectStatusPages.find(
-                statusPage => statusPage._id === action.payload.projectId
-            );
             return Object.assign({}, state, {
                 duplicateStatusPage: {
                     requesting: false,
                     error: null,
                     success: true,
-                    duplicateStatusPage: action.payload,
                 },
-                subProjectStatusPages: isExistingStatusPage
-                    ? state.subProjectStatusPages.length > 0
-                        ? state.subProjectStatusPages.map(statusPage => {
-                              return statusPage._id === action.payload.projectId
-                                  ? {
-                                        _id: action.payload.projectId,
-                                        statusPages: [
-                                            action.payload,
-                                            ...statusPage.statusPages.filter(
-                                                (status, index) => index < 9
-                                            ),
-                                        ],
-                                        count: statusPage.count + 1,
-                                        skip: statusPage.skip,
-                                        limit: statusPage.limit,
-                                    }
-                                  : statusPage;
-                          })
-                        : [
-                              {
-                                  _id: action.payload.projectId,
-                                  statusPages: [action.payload],
-                                  count: 1,
-                                  skip: 0,
-                                  limit: 0,
-                              },
-                          ]
-                    : state.subProjectStatusPages.concat([
-                          {
-                              _id: action.payload.projectId,
-                              statusPages: [action.payload],
-                              count: 1,
-                              skip: 0,
-                              limit: 0,
-                          },
-                      ]),
+                status: action.payload,
             });
 
         case DUPLICATE_STATUSPAGE_FAILURE:

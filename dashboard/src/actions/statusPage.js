@@ -856,6 +856,32 @@ export function createDuplicateStatusPage(statusPageData) {
     };
 }
 
+export function fetchStatusPage(statusPageId) {
+    return function(dispatch) {
+        const promise = getApi(`statusPage/${statusPageId}`);
+        promise.then(
+            function(response) {
+                const statusPageData = response.data;
+                dispatch(duplicateStatusPageSuccess(statusPageData));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(duplicateStatusPageError(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+
 //Update status page embedded css
 
 export function updateStatusPageEmbeddedCssRequest() {
