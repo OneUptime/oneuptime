@@ -345,6 +345,7 @@ const _this = {
                 subject: 'New Lead Added',
                 template: 'lead_to_fyipe_team',
                 context: {
+                    templateName: lead.templateName,
                     airtableId: lead.airtableId,
                     page: lead.page,
                     projectId: lead.projectId,
@@ -1269,7 +1270,7 @@ const _this = {
         incidentType,
         projectName,
         criterionName,
-        probeName
+        probeName,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1316,7 +1317,7 @@ const _this = {
                     projectName,
                     dashboardURL: global.dashboardHost,
                     criterionName,
-                    probeName
+                    probeName,
                 },
             };
             EmailBody = await _this.getEmailBody(mailOptions);
