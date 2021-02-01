@@ -249,7 +249,7 @@ class Main extends Component {
 
     renderError = () => {
         const { error } = this.props.status;
-        if (error === 'Input data schema mismatch.' ) {
+        if (error === 'Input data schema mismatch.') {
             return 'Page Not Found';
         } else if (error === 'Project Not present') {
             return 'Invalid Project.';
