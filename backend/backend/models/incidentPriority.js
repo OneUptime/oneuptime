@@ -6,6 +6,7 @@ const IncidentPriority = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Project',
         alias: 'project',
+        index: true,
     },
     name: {
         type: Schema.Types.String,
@@ -23,7 +24,7 @@ const IncidentPriority = new Schema({
     deletedAt: {
         type: Date,
     },
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true, },
 });
 
 module.exports = mongoose.model('IncidentPriority', IncidentPriority);

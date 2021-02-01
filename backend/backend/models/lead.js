@@ -20,6 +20,6 @@ const leadSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true, },
 });
 module.exports = mongoose.model('Lead', leadSchema);

@@ -2,8 +2,8 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const monitorLogByHourSchema = new Schema({
-    monitorId: { type: String, ref: 'Monitor' }, // which monitor does this belong to.
-    probeId: { type: String, ref: 'Probe' }, // which probe does this belong to.
+    monitorId: { type: String, ref: 'Monitor', index: true, }, // which monitor does this belong to.
+    probeId: { type: String, ref: 'Probe', index: true, }, // which probe does this belong to.
     status: String, // current status based on criteria.
     responseTime: Number, // current time taken for ping.
     responseStatus: Number, // current status code of ping.

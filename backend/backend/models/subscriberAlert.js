@@ -2,9 +2,9 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const subscriberAlertSchema = new Schema({
-    projectId: { type: String, ref: 'Project' },
-    subscriberId: { type: String, ref: 'Subscriber' },
-    incidentId: { type: String, ref: 'Incident' },
+    projectId: { type: String, ref: 'Project', index: true, },
+    subscriberId: { type: String, ref: 'Subscriber', index: true, },
+    incidentId: { type: String, ref: 'Incident', index: true, },
     alertVia: {
         type: String,
         enum: ['sms', 'email', 'webhook'],
