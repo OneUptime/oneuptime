@@ -1293,7 +1293,7 @@ const _this = {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
-                subject: `Reminder ${emailProgress.current}/${emailProgress.total} - ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`,
+                subject: `Reminder ${emailProgress.current}/${emailProgress.total} - Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`,
                 template: 'new_incident_created',
                 context: {
                     homeURL: global.homeHost,
