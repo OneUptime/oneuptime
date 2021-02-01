@@ -463,6 +463,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     data.scanning = false;
                     log = await ProbeService.saveLighthouseLog(data);
                 } else {
+                    data.matchedUpCriterion =
+                        monitor && monitor.criteria && monitor.criteria.up;
+                    data.matchedDownCriterion =
+                        monitor && monitor.criteria && monitor.criteria.down;
+                    data.matchedDegradedCriterion =
+                        monitor &&
+                        monitor.criteria &&
+                        monitor.criteria.degraded;
+
                     log = await ProbeService.saveMonitorLog(data);
                     if (type === 'script') {
                         await MonitorService.updateBy(

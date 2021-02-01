@@ -218,8 +218,6 @@ module.exports = {
                 await MonitorService.updateMonitorPingTime(data.monitorId);
             }
 
-            const { lastMatchedCriterion } = data.monitor;
-
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
@@ -229,17 +227,22 @@ module.exports = {
                     if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
 
-                    const autoAcknowledge =
-                        lastMatchedCriterion &&
-                        lastMatchedCriterion.autoAcknowledge; // automatically acknowledge offline monitors
-                    const autoResolve =
-                        lastMatchedCriterion &&
-                        lastMatchedCriterion.autoResolve; // automatically resolve offline monitors
+                    // grab all the criteria in a monitor
+                    const allCriteria = [];
+                    data.matchedUpCriterion.forEach(criteria =>
+                        allCriteria.push(criteria)
+                    );
+                    data.matchedDownCriterion.forEach(criteria =>
+                        allCriteria.push(criteria)
+                    );
+                    data.matchedDegradedCriterion.forEach(criteria =>
+                        allCriteria.push(criteria)
+                    );
+
                     await _this.incidentResolveOrAcknowledge(
                         data,
                         lastStatus,
-                        autoAcknowledge,
-                        autoResolve
+                        allCriteria
                     );
                 }
 
@@ -472,8 +475,7 @@ module.exports = {
     incidentResolveOrAcknowledge: async function(
         data,
         lastStatus,
-        autoAcknowledge,
-        autoResolve
+        allCriteria
     ) {
         try {
             const incidents = await IncidentService.findBy({
@@ -482,8 +484,24 @@ module.exports = {
                 resolved: false,
                 manuallyCreated: false,
             });
+            // should grab all the criterion for the monitor and put them into one array
+            // check the id of each criteria against the id of criteria attached to an incident
+            // ack / resolve according to the criteria
+            let autoAcknowledge, autoResolve;
+            if (incidents && incidents.length > 0) {
+                incidents.forEach(incident => {
+                    const criteriaId = String(incident.criterionCause._id);
+                    allCriteria.forEach(criteria => {
+                        if (String(criteria._id) === criteriaId) {
+                            autoAcknowledge = criteria.autoAcknowledge;
+                            autoResolve = criteria.autoResolve;
+                        }
+                    });
+                });
+            }
             const incidentsV1 = [];
             const incidentsV2 = [];
+
             if (incidents && incidents.length) {
                 if (lastStatus && lastStatus !== data.status) {
                     incidents.forEach(incident => {
