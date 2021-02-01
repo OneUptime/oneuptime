@@ -130,9 +130,9 @@ export function userCreate(projectId, values) {
             function(response) {
                 const data = response.data;
                 const projectUsers = data.filter(
-                    team => team._id === projectId
+                    team => team.projectId === projectId
                 )[0];
-                dispatch(userCreateSuccess(projectUsers));
+                dispatch(userCreateSuccess(projectUsers.team));
             },
             function(error) {
                 if (error && error.response && error.response.data)

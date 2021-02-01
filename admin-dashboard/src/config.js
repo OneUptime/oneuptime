@@ -184,12 +184,10 @@ export const Validate = {
         return emaildomains.test(email);
     },
     isValidBusinessEmails(emails) {
-        if (emails && emails.length > 0) {
             for (const email of emails) {
                 if (!emaildomains.test(email)) return false;
             }
             return true;
-        }
     },
 
     compare(text1, text2) {

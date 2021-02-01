@@ -265,7 +265,11 @@ export default function project(state = INITIAL_STATE, action) {
                 },
                 projectTeam: {
                     ...state.projectTeam,
-                    team: action.payload,
+                    team: {
+                        ...state.projectTeam.team,
+                        teamMembers: action.payload,
+                        count: action.payload.length,
+                    },
                 },
             })
         case USER_CREATE_FAILURE:

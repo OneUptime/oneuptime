@@ -87,7 +87,7 @@ class ProjectUser extends Component {
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => {
                                     history.push(
-                                        '/dashboard/profile/' + user.userId
+                                        '/admin/users/' + user.userId
                                     );
                                 }}
                             >
@@ -325,15 +325,15 @@ class ProjectUser extends Component {
         } = this.props;
         return (
             <div className="Box-root">
-                <div className="ContentHeader Box-root Card-shadow--medium Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                <div className="ContentHeader Box-root Card-shadow--medium Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center" style={{paddingLeft: '20px'}}>
                             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                 <span
                                     id={`project_${this.props.projectName}`}
                                     style={{ textTransform: 'capitalize' }}
                                 >
-                                    Project Users
+                                   Project Users
                                 </span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -347,7 +347,7 @@ class ProjectUser extends Component {
                                 </span>
                             </span>
                         </div>
-                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16" style={{paddingRight: '10px'}}>
                             <div className="Box-root">
                                 <button
                                     id={`btn_${this.props.projectName}`}
@@ -378,7 +378,7 @@ class ProjectUser extends Component {
                                     <div className="bs-ObjectList-rows">
                                         <header className="bs-ObjectList-row bs-ObjectList-row--header">
                                             <div className="bs-ObjectList-cell">
-                                                Team Member
+                                                Users
                                             </div>
                                             <div className="bs-ObjectList-cell">
                                                 Role
