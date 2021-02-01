@@ -144,9 +144,19 @@ services:
 
     ##IMPORTANT:
     ## This container is an SMTP server used to send emails.
-    # haraka:
-    #     ports:
-    #         - '25:25'
-    #     build: ./haraka
+    haraka:
+        ports:
+            # port 25 is usually blocked or only accessible by root user
+            # if access is granted to this port we can use it as default port
+            # - '25:25'
+            - '2525:2525'
+        build:
+            context: ./haraka
+            args:
+                PORT: '2525'
+        environment:
+            - SMTP_USER="user@hackerbay.io"
+            - SMTP_PASSWORD="hackerbay"
+            
 volumes:
     mongodata:

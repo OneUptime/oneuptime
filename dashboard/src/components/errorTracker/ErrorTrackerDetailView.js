@@ -7,6 +7,8 @@ import DataPathHoC from '../DataPathHoC';
 import ConfirmErrorTrackerIssueAction from '../modals/ConfirmErrorTrackerIssueAction';
 import uuid from 'uuid';
 import ErrorEventIssueMember from '../modals/ErrorEventIssueMember';
+import ShouldRender from '../basic/ShouldRender';
+import AlertPanel from '../basic/AlertPanel';
 
 class ErrorTrackerDetailView extends Component {
     constructor(props) {
@@ -146,6 +148,33 @@ class ErrorTrackerDetailView extends Component {
         }
         return (
             <div>
+                <ShouldRender
+                    if={
+                        errorTrackerIssues &&
+                        errorTrackerIssues.errorTrackerIssues &&
+                        errorTrackerIssues.errorTrackerIssues.length < 1
+                    }
+                >
+                    <AlertPanel
+                        id={`${errorTracker.name}-no-error-warning`}
+                        message={
+                            <span>
+                                This Error Tracker is currently not reporting
+                                any error, Click{' '}
+                                <a
+                                    rel="noopener noreferrer"
+                                    href="https://github.com/Fyipe/feature-docs/blob/master/log.md"
+                                    target="_blank"
+                                    className="Border-bottom--white Text-fontWeight--bold Text-color--white"
+                                >
+                                    {' '}
+                                    here
+                                </a>{' '}
+                                to setup it up and start tracking errors.
+                            </span>
+                        }
+                    />
+                </ShouldRender>
                 <div
                     style={{
                         overflow: 'hidden',

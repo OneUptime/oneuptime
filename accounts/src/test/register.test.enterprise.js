@@ -35,7 +35,7 @@ describe('Enterprise Registration API', () => {
 
     it('Should register Initial User with valid details', async () => {
         await init.registerEnterpriseUser(user, page);
-        await page.waitFor(2000);
+        await page.waitForTimeout(2000);
 
         const localStorageData = await page.evaluate(() => {
             const json = {};
@@ -46,7 +46,7 @@ describe('Enterprise Registration API', () => {
             return json;
         });
 
-        await page.waitFor(10000);
+        await page.waitForTimeout(10000);
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
@@ -60,7 +60,7 @@ describe('Enterprise Registration API', () => {
         } catch (e) {
             //
         }
-        await otherPage.waitFor(5000);
+        await otherPage.waitForTimeout(5000);
         otherPage.url().should.containEql(utils.ACCOUNTS_URL + '/login');
 
         const signUp = await otherPage.$('#signUpLink');
@@ -79,7 +79,7 @@ describe('Enterprise Registration API', () => {
             return json;
         });
 
-        await otherPage.waitFor(10000);
+        await otherPage.waitForTimeout(10000);
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         otherPage.url().should.containEql(utils.ADMIN_DASHBOARD_URL);

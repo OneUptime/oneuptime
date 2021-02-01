@@ -10,6 +10,7 @@ const EmailStatusService = require('./emailStatusService');
 const DateTime = require('../utils/DateTime');
 const Path = require('path');
 const fsp = require('fs/promises');
+const moment = require('moment');
 
 const helpers = {
     year: DateTime.getCurrentYear,
@@ -79,6 +80,7 @@ const _this = {
             ErrorService.log('mailService.getEmailBody', error);
         }
     },
+
     createMailer: async function({ host, port, user, pass, secure }) {
         if (!host || !user || !pass) {
             const settings = await _this.getSmtpSettings();
@@ -175,6 +177,7 @@ const _this = {
 
             const mailer = await _this.createMailer({});
             EmailBody = await _this.getEmailBody(mailOptions);
+
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -338,12 +341,35 @@ const _this = {
         try {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: 'noreply@fyipe.com',
+                to: 'support@fyipe.com',
                 subject: 'New Lead Added',
                 template: 'lead_to_fyipe_team',
                 context: {
+                    templateName: lead.templateName,
+                    airtableId: lead.airtableId,
+                    page: lead.page,
+                    projectId: lead.projectId,
+                    createdById: lead.createdById,
                     homeURL: global.homeHost,
-                    text: JSON.stringify(lead, null, 2),
+                    _id: lead._id,
+                    message: lead.message,
+                    createdAt: moment(lead.createdAt).format('LLLL'),
+                    projectName:
+                        lead.project && lead.project.name
+                            ? lead.project.name
+                            : '',
+                    userName: lead.userName
+                        ? lead.userName
+                        : lead.name
+                        ? lead.name
+                        : '',
+                    userPhone: lead.phone,
+                    userEmail: lead.email,
+                    type: lead.type,
+                    country: lead.country,
+                    website: lead.website,
+                    companySize: lead.companySize,
+                    whitepaperName: lead.whitepaperName,
                 },
             };
 
@@ -1243,6 +1269,8 @@ const _this = {
         accessToken,
         incidentType,
         projectName,
+        criterionName,
+        probeName,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1288,6 +1316,8 @@ const _this = {
                     incidentType,
                     projectName,
                     dashboardURL: global.dashboardHost,
+                    criterionName,
+                    probeName,
                 },
             };
             EmailBody = await _this.getEmailBody(mailOptions);
@@ -1468,6 +1498,7 @@ const _this = {
         projectName,
         acknowledgeTime,
         length,
+        criterionName,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1498,6 +1529,7 @@ const _this = {
                     incidentType,
                     projectName,
                     dashboardURL: global.dashboardHost,
+                    criterionName,
                 },
             };
             const mailer = await _this.createMailer(accountMail);
@@ -1558,6 +1590,7 @@ const _this = {
         projectName,
         resolveTime,
         length,
+        criterionName,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1587,6 +1620,7 @@ const _this = {
                     incidentType,
                     projectName,
                     dashboardURL: global.dashboardHost,
+                    criterionName,
                 },
             };
             const mailer = await _this.createMailer(accountMail);

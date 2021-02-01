@@ -1,3 +1,22 @@
+process.on('exit', () => {
+    /* eslint-disable no-console */
+    console.log('Shutting Shutdown');
+});
+
+process.on('unhandledRejection', err => {
+    /* eslint-disable no-console */
+    console.error('Unhandled rejection in process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
+process.on('uncaughtException', err => {
+    /* eslint-disable no-console */
+    console.error('Uncaught exception in process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
 const express = require('express');
 const app = express();
 const path = require('path');

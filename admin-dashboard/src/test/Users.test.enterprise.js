@@ -78,7 +78,7 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
                 const userSelector = '#masteradmin';
                 await page.waitForSelector(userSelector);
                 await page.click(userSelector);
-                await page.waitFor(1000); // wait for the contents to load in the background
+                await page.waitForTimeout(1000); // wait for the contents to load in the background
                 await page.waitForSelector('#delete');
                 await page.click('#delete');
                 await page.waitForSelector('#confirmDelete');

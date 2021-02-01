@@ -46,9 +46,9 @@ describe('User logout', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitFor('#profile-menu');
+                await page.waitForTimeout('#profile-menu');
                 await page.click('#profile-menu');
-                await page.waitFor('#logout-button');
+                await page.waitForTimeout('#logout-button');
                 await Promise.all([
                     page.click('#logout-button'),
                     page.waitForNavigation({ waitUntil: 'networkidle2' }),

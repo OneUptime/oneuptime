@@ -1504,6 +1504,22 @@ export class IncidentStatus extends Component {
                                                                     )}
                                                             </div>
                                                         )}
+
+                                                    {this.props.incident
+                                                        .criterionCause &&
+                                                        this.props.incident
+                                                            .criterionCause
+                                                            .name && (
+                                                            <div className="bs-content">
+                                                                <label className="">
+                                                                    Criterion
+                                                                </label>
+                                                                <div className="bs-content-inside">
+                                                                    {`${this.props.incident.criterionCause.name}`}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
                                                     {this.props.incident
                                                         .incidentPriority && (
                                                         <div className="bs-content">

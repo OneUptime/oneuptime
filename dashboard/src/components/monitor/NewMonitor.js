@@ -130,6 +130,7 @@ class NewMonitor extends Component {
                     type: CRITERIA_TYPES.DOWN.type,
                     id: uuid.v4(),
                     default: true,
+                    name: CRITERIA_TYPES.DOWN.name,
                 };
                 this.addCriterionFieldsToReduxForm(defaultDownCriterion);
                 criteria.push(defaultDownCriterion);
@@ -171,20 +172,11 @@ class NewMonitor extends Component {
         const { change } = this.props;
 
         /** @type {{bodyField:Object[] | undefined, createAlert:boolean, autoAcknowledge: boolean, autoResolve:boolean}} */
-        let criterionValues;
         const criterionFieldName = `${criterion.type}_${criterion.id}`;
         // add filter criteria if the criterion is not default
 
-        if (criterion.default) {
-            criterionValues = {
-                createAlert: false,
-                autoAcknowledge: false,
-                autoResolve: false,
-            };
-        } else {
-            criterionValues = this.getCriterionInitialValue(criterion.type);
-            change(criterionFieldName, criterionValues.bodyField);
-        }
+        const criterionValues = this.getCriterionInitialValue(criterion.type);
+        change(criterionFieldName, criterionValues.bodyField);
 
         change(`name_${criterionFieldName}`, criterion.name);
         change(
@@ -251,6 +243,15 @@ class NewMonitor extends Component {
                     initialCriterionValue.autoResolve =
                         initialValues.degraded_1000_autoResolve;
                     break;
+                default:
+                    initialCriterionValue.bodyField = initialValues.up_1000;
+                    initialCriterionValue.createAlert =
+                        initialValues.up_1000_createAlert;
+                    initialCriterionValue.autoAcknowledge =
+                        initialValues.up_1000_autoAcknowledge;
+                    initialCriterionValue.autoResolve =
+                        initialValues.up_1000_autoResolve;
+                    break;
             }
             return initialCriterionValue;
         } catch (error) {
@@ -291,7 +292,6 @@ class NewMonitor extends Component {
                 return (
                     acc +
                     (criterion.id !== criterionItem.id &&
-                    !criterionItem.default &&
                     criterion.type === criterionItem.type
                         ? 1
                         : 0)
@@ -1740,6 +1740,7 @@ class NewMonitor extends Component {
                                                                             this
                                                                                 .scriptTextChange
                                                                         }
+                                                                        fontSize="14px"
                                                                     />
                                                                 </span>
                                                             </span>

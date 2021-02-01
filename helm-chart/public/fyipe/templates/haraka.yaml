@@ -1,0 +1,55 @@
+############-----HARAKA----#############################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "haraka"  }}
+    namespace: {{ .Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "haraka" }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: Helm
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "haraka"  }}
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "haraka"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "haraka" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "haraka"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                      - name: SMTP_USER
+                        value: {{ .Values.haraka.user }}
+                      - name: SMTP_PASSWORD
+                        value: {{ .Values.haraka.password }}
+                  ports:
+                      - containerPort: {{ .Values.host.harakaPort }}
+                        hostPort: {{ .Values.host.harakaPort }}
+                        name: {{ printf "%s-%s" .Release.Name "haraka"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+
+---
+# Fyipe Haraka Service
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "haraka"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" .Release.Name "haraka"  }}
+    namespace: {{ .Release.Namespace }}
+spec:
+    ports:
+        - port: {{ .Values.host.harakaServicePort }}
+          targetPort: {{ .Values.host.harakaPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "haraka"  }}
+    type: ClusterIP
+---
+##########################################################

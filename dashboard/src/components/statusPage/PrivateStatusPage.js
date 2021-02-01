@@ -8,6 +8,7 @@ import {
     updatePrivateStatusPageSuccess,
     updatePrivateStatusPageError,
     fetchProjectStatusPage,
+    showDuplicateStatusPage,
 } from '../../actions/statusPage';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -20,7 +21,6 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import { RenderField } from '../basic/RenderField';
-
 export class PrivateStatusPage extends Component {
     constructor(props) {
         super(props);
@@ -66,10 +66,11 @@ export class PrivateStatusPage extends Component {
         }
     };
 
-    showMoreOptionsToggle = () =>
+    showMoreOptionsToggle = () => {
         this.setState(prevState => ({
             showMoreOptions: !prevState.showMoreOptions,
         }));
+    };
 
     renderIpWhitelist = ({ fields }) => {
         const { formValues } = this.props;
@@ -141,6 +142,7 @@ export class PrivateStatusPage extends Component {
     render() {
         const { handleSubmit, formValues } = this.props;
         const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
+        this.props.showDuplicateStatusPage(this.state.showMoreOptions);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -793,6 +795,7 @@ PrivateStatusPage.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
     formValues: PropTypes.object,
+    showDuplicateStatusPage: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -804,6 +807,7 @@ const mapDispatchToProps = dispatch =>
             updatePrivateStatusPageError,
             fetchProjectStatusPage,
             openModal,
+            showDuplicateStatusPage,
         },
         dispatch
     );

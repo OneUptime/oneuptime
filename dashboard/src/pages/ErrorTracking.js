@@ -13,9 +13,14 @@ import { bindActionCreators } from 'redux';
 import { LoadingState } from '../components/basic/Loader';
 import sortByName from '../utils/sortByName';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+import { SHOULD_LOG_ANALYTICS, API_URL } from '../config';
 import { logEvent } from '../analytics';
-import LibraryList from '../components/application/LibraryList';
+import io from 'socket.io-client';
+import { history } from '../store';
+
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 
 class ErrorTracking extends Component {
     componentDidMount() {
@@ -24,6 +29,9 @@ class ErrorTracking extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING LIST'
             );
         }
+    }
+    componentWillUnmount() {
+        socket.removeListener(`createErrorTracker-${this.props.componentId}`);
     }
     ready = () => {
         const { componentId } = this.props.match.params;
@@ -37,6 +45,11 @@ class ErrorTracking extends Component {
     render() {
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
+            socket.on(`createErrorTracker-${this.props.componentId}`, data => {
+                history.push(
+                    `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/error-trackers/${data._id}`
+                );
+            });
         }
         const {
             location: { pathname },
@@ -105,10 +118,6 @@ class ErrorTracking extends Component {
                                         />
                                     </ShouldRender>
                                 </div>
-                                <LibraryList
-                                    title="Error Tracking"
-                                    type="errorTracking"
-                                />
                                 {errorTrackersList}
                                 <NewErrorTracker
                                     componentId={this.props.componentId}

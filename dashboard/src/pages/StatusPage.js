@@ -11,6 +11,7 @@ import Monitors from '../components/statusPage/Monitors';
 import Branding from '../components/statusPage/Branding';
 import Links from '../components/statusPage/Links';
 import DeleteBox from '../components/statusPage/DeleteBox';
+import DuplicateStatusBox from '../components/statusPage/DuplicateStatusPage';
 import PrivateStatusPage from '../components/statusPage/PrivateStatusPage';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { LoadingState } from '../components/basic/Loader';
@@ -219,6 +220,37 @@ class StatusPage extends Component {
                                                                         <div className="Box-root Margin-bottom--12">
                                                                             <PrivateStatusPage />
                                                                         </div>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            {this
+                                                                                .props
+                                                                                .showDuplicateStatusPage ? (
+                                                                                <DuplicateStatusBox
+                                                                                    statusPageId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .statusPage
+                                                                                            .status
+                                                                                            ._id
+                                                                                    }
+                                                                                    subProjectId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .match
+                                                                                            .params
+                                                                                            .subProjectId
+                                                                                    }
+                                                                                    projectId={
+                                                                                        history.location.pathname
+                                                                                            .split(
+                                                                                                'project/'
+                                                                                            )[1]
+                                                                                            .split(
+                                                                                                '/'
+                                                                                            )[0]
+                                                                                    }
+                                                                                />
+                                                                            ) : null}
+                                                                        </div>
                                                                     </RenderIfSubProjectAdmin>
                                                                     <RenderIfSubProjectAdmin
                                                                         subProjectId={
@@ -278,6 +310,7 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         statusPage: state.statusPage,
+        showDuplicateStatusPage: state.statusPage.showDuplicateStatusPage,
     };
 }
 
@@ -286,6 +319,7 @@ StatusPage.propTypes = {
     switchStatusPage: PropTypes.func,
     fetchProjectStatusPage: PropTypes.func,
     fetchSubProjectStatusPages: PropTypes.func,
+    showDuplicateStatusPage: PropTypes.bool,
     match: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,

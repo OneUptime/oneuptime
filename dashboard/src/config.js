@@ -1050,19 +1050,20 @@ export const logLibraries = {
             },
         ];
     },
-    getQuickStarts() {
+    getQuickStarts(errorTracker, applicationLog) {
         return [
             {
                 id: 'js',
                 language: 'JavaScript',
                 height: {
-                    install: '25px',
+                    install: '50px',
                     usage: '500px',
                 },
                 errorTracking: {
                     installation: {
                         package: 'NPM Install',
-                        command: '$ npm install fyipe',
+                        command: `
+$ npm install fyipe`,
                     },
                     usage: `// In a FrontEnd Environment
 import { ErrorTracker } from 'fyipe';
@@ -1081,9 +1082,9 @@ const options = {
                                                     
 // constructor                    
 const tracker = new ErrorTracker(                    
-    'https://fyipe.com/api'
-    'ERROR_TRACKER_ID',
-    'ERROR_TRACKER_KEY',
+    'https://fyipe.com/api',
+    '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
+    '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
     options // Optional Field
 );
                                 
@@ -1103,7 +1104,8 @@ try {
                 logs: {
                     installation: {
                         package: 'NPM Install',
-                        command: '$ npm install fyipe',
+                        command: `
+$ npm install fyipe`,
                     },
                     usage: `
 // In a FrontEnd Environment
@@ -1118,9 +1120,11 @@ const { Logger } = Fyipe;
             
 // constructor
 const logger = new Logger(
-    'https://fyipe.com/api'
-    'APPLICATION_LOG_ID',
-    'APPLICATION_LOG_KEY'
+    'https://fyipe.com/api',
+    '${
+        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+    }',                    
+    '${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'}'
 );
                 
 // Sending a JSON object log to the server    
@@ -1136,29 +1140,32 @@ const item = {
 logger.log(item); // returns a promise
             `,
                 },
-                old: 'No Docs available at the moment',
+                old: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
             },
             {
                 id: 'php',
                 language: 'PHP',
                 height: {
-                    install: '25px',
+                    install: '50px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
                 logs: {
                     installation: {
                         package: 'Composer Install',
-                        command: '$ composer require fyipe/sdk',
+                        command: `
+$ composer require fyipe/sdk`,
                     },
                     usage: `
 use Fyipe\\FyipeLogger;
                 
 // constructor
 $logger = new Fyipe\\FyipeLogger(                    
-    'https://fyipe.com/api'                    
-    'APPLICATION_LOG_ID',                    
-    'APPLICATION_LOG_KEY'
+    'https://fyipe.com/api',
+    '${
+        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+    }',                    
+    '${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'}'
 );
                 
 // Sending an object log to the server
@@ -1175,14 +1182,15 @@ var_dump($response);
             {
                 id: 'java',
                 language: 'Java',
-                errorTracking: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
                 height: {
                     install: '100px',
                     usage: '300px',
                 },
                 logs: {
                     installation: {
-                        package: 'Maven Install',
+                        package: `
+Maven Install`,
                         command: `                        
 <dependency>
     <groupId>io.hackerbay.fyipe</groupId>
@@ -1197,9 +1205,11 @@ import io.hackerbay.fyipe.FyipeLogger;
                                             
 // constructor                        
 FyipeLogger logger = new FyipeLogger(                        
-    "https://fyipe.com/api"                        
-    "APPLICATION_LOG_ID",                        
-    "APPLICATION_LOG_KEY"                    
+    "https://fyipe.com/api",
+    "${
+        applicationLog ? applicationLog._id : "APPLICATION_LOG_ID"
+    }",                    
+    "${applicationLog ? applicationLog.key : "APPLICATION_LOG_KEY"}"                 
 );
                         
 // Logging any object of a class                        
@@ -1217,8 +1227,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
             },
             {
                 id: 'dotnet',
@@ -1227,8 +1237,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
             },
             {
                 id: 'swift',
@@ -1237,8 +1247,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
             },
             {
                 id: 'rust',
@@ -1247,8 +1257,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
             },
             {
                 id: 'ruby',
@@ -1257,8 +1267,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
             },
             {
                 id: 'go',
@@ -1267,8 +1277,8 @@ public void logACustomClassInformation(CustomClass customClass) {
                     usage: '500px',
                 },
                 language: 'Go',
-                errorTracking: 'No Docs available at the moment',
-                logs: 'No Docs available at the moment',
+                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
             },
         ];
     },

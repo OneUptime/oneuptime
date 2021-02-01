@@ -57,17 +57,19 @@ export function register(config) {
 }
 
 function registerValidSW(swUrl, config) {
-    //clear all cache. 
-    navigator.serviceWorker.addEventListener('activate', function (event) {
+    // Clear old caches
+    self.addEventListener("activate", function (event) {
         event.waitUntil(
             caches.keys().then(function (cacheNames) {
+                // grab the updated cache names
+                let validCacheSet = new Set(Object.values(workbox.core.cacheNames));
                 return Promise.all(
-                    cacheNames.filter(function (cacheName) {
-                        // Return true if you want to remove this cache,
-                        // but remember that caches are shared across
-                        // the whole origin
-                        return true;
-                    }).map(function (cacheName) {
+                    cacheNames
+                    .filter(function (cacheName) {
+                        return !validCacheSet.has(cacheName);
+                    })
+                    .map(function (cacheName) {
+                        // delete old cache
                         return caches.delete(cacheName);
                     })
                 );
