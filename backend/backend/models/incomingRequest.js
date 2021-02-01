@@ -5,10 +5,10 @@ const Schema = mongoose.Schema;
 const incomingRequestSchema = new Schema(
     {
         name: String,
-        projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
+        projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true, },
         monitors: [
             {
-                monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor' },
+                monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor', index: true, },
             },
         ],
         isDefault: { type: Boolean, default: false },
@@ -27,6 +27,7 @@ const incomingRequestSchema = new Schema(
         incidentPriority: {
             type: Schema.Types.Mixed,
             ref: 'IncidentPriority',
+            index: true,
         },
         incidentDescription: String,
         customFields: [{ fieldName: String, fieldValue: Schema.Types.Mixed }],

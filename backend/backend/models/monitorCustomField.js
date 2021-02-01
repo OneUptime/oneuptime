@@ -5,7 +5,7 @@ const monitorCustomFieldSchema = new Schema(
     {
         fieldName: String,
         fieldType: { type: String, enum: ['text', 'number'] },
-        projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
+        projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true, },
         deleted: { type: Boolean, default: false },
         deletedAt: Date,
     },

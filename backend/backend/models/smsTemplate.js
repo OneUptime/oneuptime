@@ -8,7 +8,7 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const smsTemplateSchema = new Schema({
-    projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true, },
     body: { type: String },
     smsType: {
         type: String,
@@ -28,7 +28,7 @@ const smsTemplateSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: Schema.Types.ObjectId, ref: 'User' },
+    deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true, },
 });
 
 module.exports = mongoose.model('SmsTemplate', smsTemplateSchema);
