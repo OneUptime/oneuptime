@@ -51115,8 +51115,18 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 .user-details-fieldset-label{
   flex: none;
 }
+.project-user-modal{
+  max-width: 609px!important;
+}
 @media only screen and (max-width: 768px){
   .admin-probe-list-table-header{
     min-width: 0!important
   }
+}
+@media only screen and (max-width: 470px){
+  .bs-Modal {
+    max-width: 320px!important;
+    width: auto;
+    margin: 0 auto 20px;
+}
 }
