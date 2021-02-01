@@ -1,5 +1,6 @@
 deploy_production_admin-dashboard:
     stage: Deploy
+    allow_failure: true
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh

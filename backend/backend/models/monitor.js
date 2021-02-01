@@ -20,14 +20,16 @@ const monitorSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Project',
         alias: 'project',
+        index: true,
     }, //which project this monitor belongs to.
     componentId: {
         type: Schema.Types.ObjectId,
         ref: 'Component',
+        index: true,
     },
     name: String,
     data: Object, //can be URL, IP address, or anything that depends on the type.
-    createdById: { type: String, ref: 'User' }, //userId.
+    createdById: { type: String, ref: 'User', index: true, }, //userId.
     type: {
         type: String,
         enum: [

@@ -24,6 +24,11 @@ module.exports = {
             lead.message = data.message;
             lead.whitepaperName = data.whitepaperName;
 
+            lead.templateName = 'Request Demo';
+            if (data.whitepaperName) {
+                lead.templateName = 'Whitepaper Request';
+            }
+
             lead = await lead.save();
             MailService.sendLeadEmailToFyipeTeam(lead);
             if (data.type) {

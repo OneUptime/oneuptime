@@ -117,7 +117,7 @@ module.exports = {
                     $set: data,
                 },
                 { new: true }
-            ).populate('dockerCredential');
+            );
 
             if (unsetData) {
                 containerSecurity = await ContainerSecurityModel.findOneAndUpdate(

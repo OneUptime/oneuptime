@@ -150,7 +150,7 @@ describe('Project Setting: Change Plan', () => {
 
                 await page.waitForSelector('#confirmBalanceTopUp');
                 await page.click('#confirmBalanceTopUp');
-                await page.waitFor(9000);
+                await page.waitForTimeout(9000);
 
                 // confirm a pop up comes up and the message is a successful
                 let spanModalElement = await page.waitForSelector(
@@ -167,7 +167,7 @@ describe('Project Setting: Change Plan', () => {
                 // click ok
                 await page.waitForSelector('#modal-ok');
                 await page.click('#modal-ok');
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // confirm the current balance is $20
                 spanBalanceElement = await page.waitForSelector(
@@ -219,7 +219,7 @@ describe('Project Setting: Change Plan', () => {
 
                 await page.waitForSelector('#confirmBalanceTopUp');
                 await page.click('#cancelBalanceTopUp');
-                await page.waitFor(4000);
+                await page.waitForTimeout(4000);
 
                 // confirm the current balance is still $0
                 spanBalanceElement = await page.waitForSelector(

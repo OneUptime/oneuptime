@@ -2,12 +2,12 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const notificationSchema = new Schema({
-    projectId: { type: String, ref: 'Project' },
+    projectId: { type: String, ref: 'Project', index: true, },
     createdAt: { type: Date, default: Date.now },
-    createdBy: { type: String, ref: 'User' },
+    createdBy: { type: String, ref: 'User', index: true, },
     message: String,
-    read: [{ type: String, ref: 'User' }],
-    closed: [{ type: String, ref: 'User' }],
+    read: [{ type: String, ref: 'User', index: true, }],
+    closed: [{ type: String, ref: 'User', index: true, }],
     icon: String,
     deleted: { type: Boolean, default: false },
     meta: {
@@ -16,6 +16,6 @@ const notificationSchema = new Schema({
     deletedAt: {
         type: Date,
     },
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true, },
 });
 module.exports = mongoose.model('Notification', notificationSchema);

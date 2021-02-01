@@ -234,7 +234,7 @@ describe('Incident Priority API', () => {
 
                 await page.waitForSelector('#btnNext');
                 await page.click('#btnNext');
-                await page.waitFor(3000);
+                await page.waitForTimeout(3000);
                 incidentPrioritiesCount = await page.$eval(
                     incidentPrioritiesCountIdentifier,
                     e => e.textContent
@@ -243,7 +243,7 @@ describe('Incident Priority API', () => {
 
                 await page.waitForSelector('#btnPrev');
                 await page.click('#btnPrev');
-                await page.waitFor(3000);
+                await page.waitForTimeout(3000);
                 incidentPrioritiesCount = await page.$eval(
                     incidentPrioritiesCountIdentifier,
                     e => e.textContent

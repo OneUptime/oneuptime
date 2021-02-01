@@ -27,6 +27,7 @@ deploy_staging_server-monitor:
 
 deploy_production_server-monitor:
     stage: Deploy
+    allow_failure: true
     script:
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
