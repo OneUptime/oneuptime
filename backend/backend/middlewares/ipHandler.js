@@ -4,25 +4,29 @@ const apiMiddleware = require('./api');
 const ipaddr = require('ipaddr.js');
 
 const _this = {
-    ipWhitelist: async function(req, res, next) {
+    ipWhitelist: async function (req, res, next) {
         const statusPageId = apiMiddleware.getStatusPageId(req);
         const statusPageUrl = apiMiddleware.getStatusPageUrl(req);
         let statusPage;
 
-        if (statusPageId && statusPageId.length && statusPageId !== 'null') {
-            statusPage = await StatusPageService.findOneBy({
-                _id: statusPageId,
-            });
-        } else {
-            statusPage = await StatusPageService.findOneBy({
-                domains: { $elemMatch: { domain: statusPageUrl } },
-            });
-        }
-        if(statusPage === null){
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Status Page name is null',
-            });
+        try {
+            if (statusPageId && statusPageId.length && statusPageId !== 'null') {
+                statusPage = await StatusPageService.findOneBy({
+                    _id: statusPageId,
+                });
+            } else {
+                statusPage = await StatusPageService.findOneBy({
+                    domains: { $elemMatch: { domain: statusPageUrl } },
+                });
+            }
+            if (statusPage === null) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status Page name is null',
+                });
+            }
+        } catch (error) {
+            return next();
         }
 
         if (!statusPage.enableIpWhitelist) {
@@ -76,7 +80,7 @@ const _this = {
      * @description Gets the ip of the client
      * @param {Object} req Object made available by express
      */
-    getClientIp: function(req) {
+    getClientIp: function (req) {
         // Cloudflare Connecting Ip.
         // https://support.cloudflare.com/hc/en-us/articles/200170786-Restoring-original-visitor-IPs-Logging-visitor-IP-addresses
         let ip =
@@ -97,7 +101,7 @@ const _this = {
     },
 
     // https://www.npmjs.com/package/ip-range-check
-    check_single_cidr: function(addr, cidr) {
+    check_single_cidr: function (addr, cidr) {
         try {
             const parsed_addr = ipaddr.process(addr);
             if (cidr.indexOf('/') === -1) {
@@ -126,7 +130,7 @@ const _this = {
      * @description converts an ip to a normal number, for comparison purposes
      * @param {String} ip a string container an ip address
      */
-    IPtoNum: function(ip) {
+    IPtoNum: function (ip) {
         return Number(
             ip
                 .split('.')
@@ -135,7 +139,7 @@ const _this = {
         );
     },
 
-    inRange: function(ip, range) {
+    inRange: function (ip, range) {
         const min = _this.IPtoNum(range[0]);
         const max = _this.IPtoNum(range[1]);
         ip = _this.IPtoNum(ip);
