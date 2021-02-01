@@ -321,9 +321,13 @@ module.exports = {
             return;
         }
 
-        const emailProgress = {
-            current: currentEscalationStatus.emailRemindersSent + 1,
-            total: escalation.emailReminders
+        let emailProgress = null;
+        const emailRem = currentEscalationStatus.emailRemindersSent + 1;
+        if (emailRem > 1) {
+            emailProgress = {
+                current: emailRem,
+                total: escalation.emailReminders
+            }
         }
 
         shouldSendSMSReminder =
