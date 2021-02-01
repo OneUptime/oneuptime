@@ -340,23 +340,23 @@ module.exports = {
     addMonitorToComponent: async function(
         component,
         monitorName,
-        page,
-        componentName
+        page
+        // componentName
     ) {
         component && (await this.addComponent(component, page));
-        componentName = component || componentName;
+        // componentName = component || componentName;
 
-        await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector('#components', { visible: true });
-        await page.click('#components');
-        await page.waitForSelector('#component0', { visible: true });
-        await page.click(`#more-details-${componentName}`);
+        // await page.goto(utils.DASHBOARD_URL);
+        // await page.waitForSelector('#components', { visible: true });
+        // await page.click('#components');
+        // await page.waitForSelector('#component0', { visible: true });
+        // await page.click(`#more-details-${componentName}`);
 
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await page.waitForSelector('#showMoreMonitors');
-        await page.click('#showMoreMonitors');
+        await page.waitForSelector('button[id=showMoreMonitors]');
+        await page.click('button[id=showMoreMonitors]');
         await page.click('[data-testId=type_device]');
         await page.waitForSelector('#deviceId');
         await page.click('#deviceId');
