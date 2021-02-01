@@ -1273,7 +1273,6 @@ const _this = {
         probeName,
         emailProgress
     }) {
-        console.log('emailProgress: ', emailProgress)
         let mailOptions = {};
         let EmailBody;
         try {
