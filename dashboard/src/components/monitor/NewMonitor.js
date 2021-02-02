@@ -2351,21 +2351,28 @@ class NewMonitor extends Component {
                                                                                 '0',
                                                                             boxShadow:
                                                                                 'none',
+                                                                            display: 'flex',
+                                                                            justifyContent: 'space-between',
+                                                                            alignContent: 'center',
                                                                         }}
                                                                     >
                                                                         <div className="Margin-bottom--16">
-                                                                            <span className="Text-fontSize--15">
-                                                                                There
-                                                                                are
-                                                                                no
-                                                                                {` ${criterionType.type.toLowerCase()} `}
-                                                                                criteria
-                                                                                specified
-                                                                                for
-                                                                                this
-                                                                                monitor
-                                                                                event
+                                                                            <span style={{
+                                                                                    display: 'inline-block',
+                                                                                    borderRadius: '2px',
+                                                                                    height: '8px',
+                                                                                    width: '8px',
+                                                                                    margin: '0 8px 1px 0',
+                                                                                    backgroundColor: criterionType.type === 'up' ? 'rgb(117, 211, 128)': 'rgb(255, 222, 36)'
+                                                                                }}></span>
+                                                                            <span className="Text-fontSize--16 Text-fontWeight--medium">
+                                                                                Monitor {`${criterionType.type.charAt(0).toUpperCase() + criterionType.type.slice(1)}`} Criteria
                                                                             </span>
+                                                                            <p>
+                                                                                <span className="Text-fontSize--14 Margin-left--16" >
+                                                                                    You do not have any Monitor {`${criterionType.type.charAt(0).toUpperCase() + criterionType.type.slice(1)}`} Criteria, feel free to add one
+                                                                                </span>
+                                                                            </p>
                                                                         </div>
                                                                         <button
                                                                             className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
