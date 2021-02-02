@@ -148,6 +148,11 @@ module.exports = {
                             issueId: issue._id,
                             removed: false,
                         });
+
+                        // we get the timeline to attach to this issue
+                        const timeline = await IssueTimelineService.findBy({
+                            issueId: issue._id,
+                        });
                         // fill in its biodata with the latest error event details
                         const errorEvent = {
                             _id: issue._id,
@@ -163,6 +168,7 @@ module.exports = {
                             latestId: latestErrorEvent._id,
                             totalNumberOfEvents,
                             members,
+                            timeline,
                         };
                         // add it to the list of error events
                         totalErrorEvents.push(errorEvent);
@@ -345,4 +351,5 @@ const ErrorEventModel = require('../models/errorEvent');
 const ErrorService = require('./errorService');
 const IssueService = require('./issueService');
 const IssueMemberService = require('./issueMemberService');
+const IssueTimelineService = require('./issueTimelineService');
 const moment = require('moment');
