@@ -126,13 +126,13 @@ export function getProjects(switchToProjectId) {
             function(projects) {
                 projects = projects.data && projects.data.data;
                 dispatch(projectsSuccess(projects));
-
                 if (projects.length > 0 && !switchToProjectId) {
-                    if (User.getCurrentProjectId()) {
-                        const project = projects.filter(
-                            project =>
-                                project._id === User.getCurrentProjectId()
-                        );
+                    console.log('shdfjsjdfjshdjkfjsdhk', User.getCurrentProjectId())
+                    const project = projects.filter(
+                        project =>
+                            project._id === User.getCurrentProjectId()
+                    );
+                    if (User.getCurrentProjectId() && project) {
                         dispatch(switchProject(dispatch, project[0]));
                     } else {
                         dispatch(switchProject(dispatch, projects[0]));
@@ -146,13 +146,16 @@ export function getProjects(switchToProjectId) {
                             projectSwitched = true;
                         }
                     }
+                    console.log(projectSwitched, 'jfdkfgjkdjfkjdkfjkgjdkflg')
                     if (User.getCurrentProjectId() && !projectSwitched) {
                         const project = projects.filter(
                             project =>
                                 project._id === User.getCurrentProjectId()
                         );
-                        dispatch(switchProject(dispatch, project[0]));
-                        projectSwitched = true;
+                        if(project.length > 0){
+                            dispatch(switchProject(dispatch, project[0]));
+                            projectSwitched = true;
+                        }
                     }
                     !projectSwitched &&
                         dispatch(switchProject(dispatch, projects[0]));
