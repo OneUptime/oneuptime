@@ -2373,6 +2373,7 @@ class NewMonitor extends Component {
                                                                         </div>
                                                                         <button
                                                                             className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
+                                                                            id="Add-Criteria-Button"
                                                                             type="button"
                                                                             onClick={() =>
                                                                                 this.addCriterion(
