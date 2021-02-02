@@ -39,12 +39,14 @@ module.exports = {
                 { $set: { deleted: true, deletedAt: Date.now() } },
                 { new: true }
             );
-            if(sso){
-                const {_id:domain} = sso;
-                const ssoDefaultRoles = await SsoDefaultRolesService.findBy({domain});
-                for ( const ssoDefaultRole of ssoDefaultRoles ) {
-                    const {_id}= ssoDefaultRole;
-                    await SsoDefaultRolesService.deleteBy({_id});
+            if (sso) {
+                const { _id: domain } = sso;
+                const ssoDefaultRoles = await SsoDefaultRolesService.findBy({
+                    domain,
+                });
+                for (const ssoDefaultRole of ssoDefaultRoles) {
+                    const { _id } = ssoDefaultRole;
+                    await SsoDefaultRolesService.deleteBy({ _id });
                 }
             }
             return sso;

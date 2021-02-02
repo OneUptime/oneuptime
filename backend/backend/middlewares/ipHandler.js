@@ -18,7 +18,7 @@ const _this = {
                 domains: { $elemMatch: { domain: statusPageUrl } },
             });
         }
-        if(statusPage === null){
+        if (statusPage === null) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Status Page name is null',

@@ -352,19 +352,22 @@ router.post('/sso/callback', async function(req, res) {
         if (!user) {
             // User is not create yet
             try {
-                user = await UserService.create({ 
-                    email, 
-                    sso: sso._id
+                user = await UserService.create({
+                    email,
+                    sso: sso._id,
                 });
-                if(!user){
+                if (!user) {
                     return sendErrorResponse(req, res, {
                         code: 401,
                         message: 'USER creation failed.',
                     });
                 }
-                const { _id: userId }= user;
-                const { _id: domain }= sso;
-                await SsoDefaultRolesService.addUserToDefaultProjects({domain,userId});
+                const { _id: userId } = user;
+                const { _id: domain } = sso;
+                await SsoDefaultRolesService.addUserToDefaultProjects({
+                    domain,
+                    userId,
+                });
             } catch (error) {
                 return sendErrorResponse(req, res, {
                     code: 400,

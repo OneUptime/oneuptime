@@ -1140,7 +1140,8 @@ const item = {
 logger.log(item); // returns a promise
             `,
                 },
-                old: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                old:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
             },
             {
                 id: 'php',
@@ -1149,7 +1150,8 @@ logger.log(item); // returns a promise
                     install: '50px',
                     usage: '500px',
                 },
-                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                errorTracking:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
                 logs: {
                     installation: {
                         package: 'Composer Install',
@@ -1182,7 +1184,8 @@ var_dump($response);
             {
                 id: 'java',
                 language: 'Java',
-                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                errorTracking:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
                 height: {
                     install: '100px',
                     usage: '300px',
@@ -1207,9 +1210,11 @@ import io.hackerbay.fyipe.FyipeLogger;
 FyipeLogger logger = new FyipeLogger(                        
     "https://fyipe.com/api",
     "${
-        applicationLog ? applicationLog._id : "APPLICATION_LOG_ID"
+        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
     }",                    
-    "${applicationLog ? applicationLog.key : "APPLICATION_LOG_KEY"}"                 
+    "${
+        applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'
+    }"                 
 );
                         
 // Logging any object of a class                        
@@ -1227,8 +1232,10 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
-                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                errorTracking:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                logs:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
             },
             {
                 id: 'dotnet',
@@ -1237,8 +1244,10 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
-                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                errorTracking:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                logs:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
             },
             {
                 id: 'swift',
@@ -1247,8 +1256,10 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
-                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                errorTracking:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                logs:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
             },
             {
                 id: 'rust',
@@ -1257,8 +1268,10 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
-                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                errorTracking:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                logs:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
             },
             {
                 id: 'ruby',
@@ -1267,8 +1280,10 @@ public void logACustomClassInformation(CustomClass customClass) {
                     install: '25px',
                     usage: '500px',
                 },
-                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
-                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                errorTracking:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                logs:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
             },
             {
                 id: 'go',
@@ -1277,8 +1292,10 @@ public void logACustomClassInformation(CustomClass customClass) {
                     usage: '500px',
                 },
                 language: 'Go',
-                errorTracking: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
-                logs: 'No quickstart available at the moment. We\'re working on them and they will be launched soon. ',
+                errorTracking:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                logs:
+                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
             },
         ];
     },

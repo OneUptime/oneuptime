@@ -23,7 +23,6 @@ const path = require('path');
 const version = require('./api/version');
 const cors = require('cors');
 
-
 app.use(cors());
 
 app.use(function(req, res, next) {

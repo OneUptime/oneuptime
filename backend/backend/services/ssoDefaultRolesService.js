@@ -84,9 +84,7 @@ module.exports = {
             ErrorService.log('ssoDefaultRolesService.create', error);
             throw error;
         }
-        if (
-            !['Administrator', 'Member', 'Viewer'].includes(data.role)
-        ) {
+        if (!['Administrator', 'Member', 'Viewer'].includes(data.role)) {
             const error = new Error('Invalid role.');
             error.code = 400;
             ErrorService.log('ssoDefaultRolesService.create', error);
@@ -96,17 +94,17 @@ module.exports = {
         const { domain, project } = data;
         const query = { domain, project };
 
-        const sso = await SsoService.findOneBy({_id:domain})
-        if(!sso){
-            const error = new Error('Domain doesn\'t exist.');
+        const sso = await SsoService.findOneBy({ _id: domain });
+        if (!sso) {
+            const error = new Error("Domain doesn't exist.");
             error.code = 400;
             ErrorService.log('ssoDefaultRolesService.create', error);
             throw error;
         }
 
-        const projectObj = await ProjectService.findOneBy({_id:project});
-        if(!projectObj){
-            const error = new Error('Project doesn\'t exist.');
+        const projectObj = await ProjectService.findOneBy({ _id: project });
+        if (!projectObj) {
+            const error = new Error("Project doesn't exist.");
             error.code = 400;
             ErrorService.log('ssoDefaultRolesService.create', error);
             throw error;
@@ -115,7 +113,9 @@ module.exports = {
         const search = await this.findBy(query);
 
         if (search.length) {
-            const error = new Error('[Domain-Project] are already associated to a default role.');
+            const error = new Error(
+                '[Domain-Project] are already associated to a default role.'
+            );
             error.code = 400;
             ErrorService.log('ssoDefaultRolesService.create', error);
             throw error;
@@ -130,26 +130,22 @@ module.exports = {
             const savedSso = await ssoDefaultRole.save();
             //Add existing users to the project.
             const { _id: ssoId } = sso;
-            console.log('sso:', sso)
-            console.log('ssoId:', ssoId)
-            const existingSsoUsers = await UserService.findBy({sso:ssoId});
-
-            console.log('existingSsoUsers : ',existingSsoUsers)
-            for(const ssoUser of existingSsoUsers){
-                const {users, _id:projectId} = projectObj;
-                if( users.some(user => String(user.userId) === String(ssoUser._id)) ){
-                    console.log('User already member of the project!')
+            const existingSsoUsers = await UserService.findBy({ sso: ssoId });
+            for (const ssoUser of existingSsoUsers) {
+                const { users, _id: projectId } = projectObj;
+                if (
+                    users.some(
+                        user => String(user.userId) === String(ssoUser._id)
+                    )
+                ) {
+                    // User already member of the project!
                     continue;
                 }
                 users.push({
                     userId: ssoUser._id,
-                    role:ssoDefaultRole.role
-                })
-                console.log('added new user to the list')
-                await ProjectService.updateOneBy(
-                    {_id:projectId},
-                    {users}
-                );
+                    role: ssoDefaultRole.role,
+                });
+                await ProjectService.updateOneBy({ _id: projectId }, { users });
             }
             return savedSso;
         } catch (error) {
@@ -183,11 +179,11 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            if (!query._id){
+            if (!query._id) {
                 const error = new Error('Id must be defined.');
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateById', error);
-                throw error;                
+                throw error;
             }
             if (query.createdAt !== undefined) {
                 delete query.createdAt;
@@ -227,11 +223,7 @@ module.exports = {
                 ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
-            if (
-                !['Administrator', 'Member', 'Viewer'].includes(
-                    role
-                )
-            ) {
+            if (!['Administrator', 'Member', 'Viewer'].includes(role)) {
                 const error = new Error('Invalid role.');
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateById', error);
@@ -240,8 +232,8 @@ module.exports = {
 
             const payload = { domain };
             const search = await this.findOneBy(payload);
-            if(!search){
-                const error = new Error('Record doesn\'t exist.');
+            if (!search) {
+                const error = new Error("Record doesn't exist.");
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
@@ -274,27 +266,24 @@ module.exports = {
         const count = await ssoDefaultRolesModel.countDocuments(query);
         return count;
     },
-    addUserToDefaultProjects : async function ({domain, userId}){
-        const ssoDefaultRoles = await this.findBy({domain});
-        if(!ssoDefaultRoles.length)
-            return;
+    addUserToDefaultProjects: async function({ domain, userId }) {
+        const ssoDefaultRoles = await this.findBy({ domain });
+        if (!ssoDefaultRoles.length) return;
 
-        for(const ssoDefaultRole of ssoDefaultRoles){
-            const {project,role}= ssoDefaultRole;
-            const {_id:projectId}=project;
-            const projectObj = await ProjectService.findOneBy({_id:projectId});
-            if(!projectObj)
-                continue;
+        for (const ssoDefaultRole of ssoDefaultRoles) {
+            const { project, role } = ssoDefaultRole;
+            const { _id: projectId } = project;
+            const projectObj = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+            if (!projectObj) continue;
 
-            const { users }= projectObj;
+            const { users } = projectObj;
             users.push({
                 userId,
-                role
-            })
-            await ProjectService.updateOneBy(
-                {_id:projectId},
-                {users}
-            )
+                role,
+            });
+            await ProjectService.updateOneBy({ _id: projectId }, { users });
         }
     },
     hardDeleteBy: async function(query) {

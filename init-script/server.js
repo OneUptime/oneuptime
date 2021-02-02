@@ -21,7 +21,6 @@ const fs = require('fs');
 const util = require('./util/db');
 const scripts = require('./scripts');
 
-
 async function run() {
     const excludedScripts = ['index.js', 'start.js', 'end.js'];
 

@@ -78,7 +78,7 @@ describe('SSO API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    describe('should reject request of an unauthenticated user', function() {
+    describe('should reject requests from an unauthenticated users', function() {
         it('should reject GET requests', function(done) {
             request.get('/sso').end(function(err, res) {
                 expect(res).to.have.status(401);
