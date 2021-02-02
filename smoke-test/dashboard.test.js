@@ -63,6 +63,14 @@ describe('Monitor API', () => {
             await page.waitForSelector('#components');
             await page.click('#components');
 
+            await page.waitForSelector(`#more-details-${componentName}`);
+            await page.click(`#more-details-${componentName}`);
+            await page.waitForSelector(`#componentSettings`);
+            await page.click(`#componentSettings`);
+            await page.waitForSelector(`#advanced`);
+            await page.click(`#advanced`);
+
+
             await page.waitForSelector(`#delete-component-${componentName}`);
             await page.click(`#delete-component-${componentName}`);
             await page.waitForSelector('#deleteComponent');
