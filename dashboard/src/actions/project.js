@@ -127,11 +127,11 @@ export function getProjects(switchToProjectId) {
                 projects = projects.data && projects.data.data;
                 dispatch(projectsSuccess(projects));
                 if (projects.length > 0 && !switchToProjectId) {
-                    const project = projects.filter(
-                        project =>
-                            project._id === User.getCurrentProjectId()
-                    );
-                    if (User.getCurrentProjectId() && project) {
+                    if (User.getCurrentProjectId()) {
+                        const project = projects.filter(
+                            project =>
+                                project._id === User.getCurrentProjectId()
+                        );
                         dispatch(switchProject(dispatch, project[0]));
                     } else {
                         dispatch(switchProject(dispatch, projects[0]));
