@@ -8,7 +8,7 @@ module.exports = {
 
             issueTimeline.status = data.status;
             issueTimeline.issueId = data.issueId;
-            issueTimeline.createdById = data.userId;
+            issueTimeline.createdById = data.createdById;
 
             let savedIssueTimeline = await issueTimeline.save();
             savedIssueTimeline = await _this.findOneBy({
