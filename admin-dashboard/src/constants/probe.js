@@ -12,3 +12,8 @@ export const ADD_PROBE_SUCCESS = 'probe/ADD_PROBE_SUCCESS';
 export const ADD_PROBE_FAILED = 'probe/ADD_PROBE_FAILED';
 export const ADD_PROBE_REQUEST = 'probe/ADD_PROBE_REQUEST';
 export const ADD_PROBE_RESET = 'probe/ADD_PROBE_RESET';
+
+export const UPDATE_PROBE_SUCCESS = 'probe/UPDATE_PROBE_SUCCESS';
+export const UPDATE_PROBE_FAILED = 'probe/UPDATE_PROBE_FAILED';
+export const UPDATE_PROBE_REQUEST = 'probe/UPDATE_PROBE_REQUEST';
+export const UPDATE_PROBE_RESET = 'probe/UPDATE_PROBE_RESET';

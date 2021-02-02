@@ -7,10 +7,12 @@ import { ListLoader, FormLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
+import { updateProbe } from '../../actions/probe';
 import ProbeDeleteModal from './ProbeDeleteModal';
 import uuid from 'uuid';
 import { reduxForm, Field, formValueSelector } from 'redux-form';
 import { UploadFile } from '../basic/UploadFile';
+import { API_URL } from '../../config';
 
 const selector = formValueSelector('probeForm');
 
@@ -18,7 +20,7 @@ export class ProbeList extends Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = { deleteModalId: uuid.v4() };
+        this.state = { deleteModalId: uuid.v4(), selectedProbe: '' };
     }
 
     handleClick = probeId => {
@@ -30,12 +32,33 @@ export class ProbeList extends Component {
         });
     };
 
+    handleChange = (probe, e) => {
+        e.preventDefault();
+
+        this.setState({ selectedProbe: probe._id });
+        const reader = new FileReader();
+        const file = e.target.files[0];
+
+        // reader.onloadend = () => {
+        //     this.props.logFile(reader.result);
+        // };
+        try {
+            reader.readAsDataURL(file);
+            let data = { id: probe._id, probeImage: file };
+            this.props.updateProbe(data);
+        } catch (error) {
+            return;
+        }
+    };
+
     render() {
+        let { selectedProbe } = this.state;
         const {
             probes,
             deleteRequesting,
             probeRequesting,
             addRequesting,
+            updateRequesting,
         } = this.props;
         if (probes && probes.skip && typeof probes.skip === 'string') {
             probes.skip = parseInt(probes.skip, 10);
@@ -165,6 +188,24 @@ export class ProbeList extends Component {
                               probes.data &&
                               probes.data.length > 0 ? (
                                 probes.data.map(probe => {
+                                    const fileData =
+                                        probe && probe.probeImage
+                                            ? `${API_URL}/file/${probe.probeImage}`
+                                            : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                                    let imageTag = <span />;
+
+                                    imageTag = (
+                                        <img
+                                            src={fileData}
+                                            alt=""
+                                            className="image-small-circle"
+                                            style={{
+                                                width: '25px',
+                                                height: '25px',
+                                            }}
+                                        />
+                                    );
+
                                     return (
                                         <tr
                                             key={probe._id}
@@ -179,8 +220,21 @@ export class ProbeList extends Component {
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16">
-                                                            <span>
+                                                        <div
+                                                            className="Box-root Margin-right--16"
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems:
+                                                                    'center',
+                                                            }}
+                                                        >
+                                                            {imageTag}
+                                                            <span
+                                                                style={{
+                                                                    marginLeft:
+                                                                        '5px',
+                                                                }}
+                                                            >
                                                                 {
                                                                     probe.probeName
                                                                 }
@@ -250,7 +304,7 @@ export class ProbeList extends Component {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td
+                                            {/* <td
                                                 aria-hidden="true"
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                 style={{
@@ -265,6 +319,41 @@ export class ProbeList extends Component {
                                                         ⁣
                                                     </div>
                                                 </div>
+                                            </td> */}
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <form onSubmit>
+                                                    {/* <div className="bs-FileUploadButton-inputWrap"> */}
+                                                    <ShouldRender if={true}>
+                                                        <span className="bs-Button--icon bs-Button--new"></span>
+                                                        <span>
+                                                            Upload Profile
+                                                            Picture
+                                                        </span>
+                                                    </ShouldRender>
+                                                    <Field
+                                                        // className="bs-FileUploadButton-input"
+                                                        component={UploadFile}
+                                                        name="profilePic"
+                                                        id="profilePic"
+                                                        accept="image/jpeg, image/jpg, image/png"
+                                                        onChange={e =>
+                                                            this.handleChange(
+                                                                probe,
+                                                                e
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            updateRequesting &&
+                                                            selectedProbe ===
+                                                                probe.id
+                                                        }
+                                                        fileInputKey={Math.round()}
+                                                    />
+                                                    {/* </div> */}
+                                                </form>
                                             </td>
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -408,7 +497,7 @@ export class ProbeList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ openModal, closeModal }, dispatch);
+    return bindActionCreators({ openModal, closeModal, updateProbe }, dispatch);
 };
 
 function mapStateToProps(state) {
@@ -418,6 +507,8 @@ function mapStateToProps(state) {
         deleteRequesting:
             state.probe.deleteProbe && state.probe.deleteProbe.requesting,
         addRequesting: state.probe.addProbe && state.probe.addProbe.requesting,
+        updateRequesting:
+            state.probe.updateProbe && state.probe.updateProbe.requesting,
     };
 }
 
@@ -436,6 +527,8 @@ ProbeList.propTypes = {
     ]),
     requesting: PropTypes.bool,
     initialValues: {},
+    updateRequesting: PropTypes.bool,
+    updateProbe: PropTypes.func,
 };
 
 const ProbeSettingsForm = reduxForm({
