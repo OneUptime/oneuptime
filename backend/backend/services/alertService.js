@@ -321,10 +321,14 @@ module.exports = {
             return;
         }
 
-        let alertProgress = null;
+        let alertProgress = {
+            emailProgress: null,
+            smsProgress: null,
+            callProgress: null
+        };
         const emailRem = currentEscalationStatus.emailRemindersSent + 1;
         if (emailRem > 1) {
-            alertProgress = {
+            alertProgress.emailProgress = {
                 current: emailRem,
                 total: escalation.emailReminders
             }
@@ -571,7 +575,7 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
-                        alertProgress
+                        emailProgress: alertProgress.emailProgress
                     });
                 }
 
@@ -600,7 +604,7 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
-        alertProgress
+        emailProgress
     }) {
         const _this = this;
         const probeName =
@@ -704,7 +708,7 @@ module.exports = {
                         ? incident.criterionCause.name
                         : '',
                 probeName,
-                alertProgress
+                emailProgress
             });
             return await _this.create({
                 projectId: incident.projectId,
