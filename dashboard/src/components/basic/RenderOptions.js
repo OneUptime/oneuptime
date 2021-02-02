@@ -424,7 +424,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             (bodyfield.responseType ===
-                                                'doesRespond' ||
+                                                'responseToPing' ||
                                                 type === 'edge'),
                                     },
                                     {
@@ -433,7 +433,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             (bodyfield.responseType ===
-                                                'doesRespond' ||
+                                                'responseToPing' ||
                                                 type === 'edge'),
                                     },
                                     {
