@@ -12,7 +12,7 @@ const issueTimelineSchema = new Schema({
 
     status: {
         type: String,
-        enum: ['ignore', 'unresolved', 'resolved'],
+        enum: ['ignore', 'unresolve', 'resolve'],
         required: true,
     },
 
