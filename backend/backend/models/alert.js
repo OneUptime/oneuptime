@@ -17,13 +17,13 @@ const alertSchema = new Schema({
         enum: ['identified', 'acknowledged', 'resolved'],
         required: true,
     },
-    monitorId: { type: String, ref: 'Monitor',index: true  },
-    createdAt: { type: Date, default: Date.now, index: true  },
+    monitorId: { type: String, ref: 'Monitor', index: true },
+    createdAt: { type: Date, default: Date.now, index: true },
     incidentId: { type: String, ref: 'Incident' },
     onCallScheduleStatus: {
         type: Schema.Types.ObjectId,
         ref: 'OnCallScheduleStatus',
-        index: true
+        index: true,
     },
     schedule: { type: Schema.Types.ObjectId, ref: 'Schedule', index: true },
     escalation: { type: Schema.Types.ObjectId, ref: 'Escalation', index: true },

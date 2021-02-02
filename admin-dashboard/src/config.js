@@ -180,10 +180,10 @@ export const Validate = {
         return emaildomains.test(email);
     },
     isValidBusinessEmails(emails) {
-            for (const email of emails) {
-                if (!emaildomains.test(email)) return false;
-            }
-            return true;
+        for (const email of emails) {
+            if (!emaildomains.test(email)) return false;
+        }
+        return true;
     },
 
     compare(text1, text2) {

@@ -39,7 +39,12 @@ function renderLanguageQuickStart(library, type, errorTracker, applicationLog) {
             : ''
         : '';
     if (libraryDoc === '') {
-        return <div className="Padding-all--20"> Please select a library to see quickstart docs.</div>;
+        return (
+            <div className="Padding-all--20">
+                {' '}
+                Please select a library to see quickstart docs.
+            </div>
+        );
     } else if (!libraryDoc.installation) {
         return <div className="Padding-all--20"> {libraryDoc} </div>;
     } else {
@@ -83,7 +88,13 @@ function renderLanguageQuickStart(library, type, errorTracker, applicationLog) {
         );
     }
 }
-const LibraryList = ({ title, type, library, errorTracker, applicationLog }) => (
+const LibraryList = ({
+    title,
+    type,
+    library,
+    errorTracker,
+    applicationLog,
+}) => (
     <div tabIndex="0" className="Box-root Margin-vertical--12">
         <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">
@@ -155,7 +166,12 @@ const LibraryList = ({ title, type, library, errorTracker, applicationLog }) => 
                             </div>
                         </div>
                     </form>
-                    {renderLanguageQuickStart(library, type, errorTracker, applicationLog)}
+                    {renderLanguageQuickStart(
+                        library,
+                        type,
+                        errorTracker,
+                        applicationLog
+                    )}
                 </div>
             </div>
         </div>
