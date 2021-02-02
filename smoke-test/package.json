@@ -23,7 +23,7 @@
     "jest": {
         "testMatch": [
             "<rootDir>/**/*.test.js",
-            "**/dashboard.test.enterprise.js"
+            "**/*.test.enterprise.js"
         ]
     }
 }
