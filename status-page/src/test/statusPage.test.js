@@ -511,6 +511,7 @@ describe('Status page monitors check', function() {
         await page.reload({
             waitUntil: 'networkidle0',
         });
+        await page.waitForTimeout(3000);
         await page.waitForSelector('.largestatus > .status-paused');
         const textHeader = await page.$eval('.title', e => e.textContent);
         expect(textHeader).to.be.eql('Some services are degraded');
