@@ -56,7 +56,7 @@ module.exports = [
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
             '{{incident.customFields.*}} : The value of any incident custom field',
             '{{monitor.customFields.*}} : The value of any monitor custom field',
-            '{{incidentNote}} : The content of the investigation note'
+            '{{incidentNote}} : The content of the investigation note',
         ],
         smsType: 'Investigation note is created',
         body:

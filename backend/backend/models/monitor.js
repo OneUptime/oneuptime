@@ -29,7 +29,7 @@ const monitorSchema = new Schema({
     },
     name: String,
     data: Object, //can be URL, IP address, or anything that depends on the type.
-    createdById: { type: String, ref: 'User', index: true, }, //userId.
+    createdById: { type: String, ref: 'User', index: true }, //userId.
     type: {
         type: String,
         enum: [

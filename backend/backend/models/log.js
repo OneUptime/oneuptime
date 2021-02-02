@@ -20,7 +20,7 @@ const logSchema = new Schema({
             type: String,
         },
     ],
-    createdById: { type: String, ref: 'User', index: true, }, //userId.
+    createdById: { type: String, ref: 'User', index: true }, //userId.
     createdAt: {
         type: Date,
         default: Date.now,
@@ -31,7 +31,7 @@ const logSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
 });
 
 logSchema.virtual('applicationLog', {

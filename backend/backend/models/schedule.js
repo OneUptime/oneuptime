@@ -9,7 +9,7 @@ const scheduleSchema = new Schema({
         alias: 'project',
         index: true,
     }, //which project this schedule belongs to.
-    createdById: { type: String, ref: 'User', index: true, },
+    createdById: { type: String, ref: 'User', index: true },
     monitorIds: [
         {
             type: Schema.Types.ObjectId,
@@ -19,7 +19,13 @@ const scheduleSchema = new Schema({
         },
     ],
     escalationIds: [
-        { type: String, ref: 'Escalation', default: [], alias: 'escalations',index: true, },
+        {
+            type: String,
+            ref: 'Escalation',
+            default: [],
+            alias: 'escalations',
+            index: true,
+        },
     ],
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
@@ -28,7 +34,7 @@ const scheduleSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
     isDefault: { type: Boolean, default: false },
 });
 module.exports = mongoose.model('Schedule', scheduleSchema);

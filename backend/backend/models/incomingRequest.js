@@ -5,10 +5,14 @@ const Schema = mongoose.Schema;
 const incomingRequestSchema = new Schema(
     {
         name: String,
-        projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true, },
+        projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
         monitors: [
             {
-                monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor', index: true, },
+                monitorId: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'Monitor',
+                    index: true,
+                },
             },
         ],
         isDefault: { type: Boolean, default: false },

@@ -15,11 +15,11 @@ const scheduledEventNoteSchema = new Schema(
             required: true,
         },
         event_state: String,
-        createdById: { type: Schema.Types.ObjectId, ref: 'User', index: true, },
+        createdById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
         updated: { type: Boolean, default: false },
         deleted: { type: Boolean, default: false },
         deletedAt: Date,
-        deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true, },
+        deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     },
     { timestamps: true }
 );

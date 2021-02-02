@@ -8,7 +8,7 @@ const projectSchema = new Schema({
     },
     users: [
         {
-            userId: { type: String, ref: 'User', index: true, },
+            userId: { type: String, ref: 'User', index: true },
             role: {
                 type: String,
                 enum: ['Owner', 'Administrator', 'Member', 'Viewer'],
@@ -18,7 +18,7 @@ const projectSchema = new Schema({
 
     stripePlanId: String,
     stripeSubscriptionId: String, // this is for plans.
-    parentProjectId: { type: String, ref: 'Project', index: true, },
+    parentProjectId: { type: String, ref: 'Project', index: true },
     seats: { type: String, default: '1' },
     createdAt: {
         type: Date,
@@ -30,7 +30,7 @@ const projectSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
 
     apiKey: String,
     alertEnable: {

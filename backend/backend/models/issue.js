@@ -31,21 +31,21 @@ const issueSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
     resolved: { type: Boolean, default: false },
 
     resolvedAt: {
         type: Date,
     },
 
-    resolvedById: { type: String, ref: 'User', index: true, },
+    resolvedById: { type: String, ref: 'User', index: true },
     ignored: { type: Boolean, default: false },
 
     ignoredAt: {
         type: Date,
     },
 
-    ignoredById: { type: String, ref: 'User', index: true, },
+    ignoredById: { type: String, ref: 'User', index: true },
 });
 issueSchema.virtual('errorTracker', {
     localField: '_id',

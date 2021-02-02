@@ -589,7 +589,8 @@ module.exports = {
         eventType,
     }) {
         const _this = this;
-        const probeName = incident.probes.length > 0 && incident.probes[0].probeId.probeName;
+        const probeName =
+            incident.probes.length > 0 && incident.probes[0].probeId.probeName;
         let date = new Date();
         const monitorId = monitor._id;
         const accessToken = UserService.getAccessToken({
@@ -688,7 +689,7 @@ module.exports = {
                     !incident.manuallyCreated && incident.criterionCause
                         ? incident.criterionCause.name
                         : '',
-                probeName
+                probeName,
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -3133,6 +3134,5 @@ const componentService = require('./componentService');
 const {
     calculateHumanReadableDownTime,
     getIncidentLength,
-} = require('../utils/incident')
-;const ProbeService = require('./probeService');
-
+} = require('../utils/incident');
+// const ProbeService = require('./probeService');

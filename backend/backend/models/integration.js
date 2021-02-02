@@ -35,7 +35,7 @@ const integrationSchema = new Schema({
     deletedAt: {
         type: Date,
     },
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
 });
 
 integrationSchema.index({ projectId: 1, teamId: -1 });

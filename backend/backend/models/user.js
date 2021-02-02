@@ -10,7 +10,7 @@ const userSchema = new Schema({
         type: Boolean,
         default: false,
     },
-    sso: { type: String, ref: 'Sso', index: true, },
+    sso: { type: String, ref: 'Sso', index: true },
     companyName: String,
     companyRole: String,
     companySize: String,
@@ -71,7 +71,7 @@ const userSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
     alertPhoneNumber: {
         type: String,
         default: '',

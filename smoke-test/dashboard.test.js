@@ -128,7 +128,7 @@ describe('Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor', {
                     visible: true,
                 });
-                
+
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]', { visible: true });
                 await page.type('input[id=name]', monitorName);
