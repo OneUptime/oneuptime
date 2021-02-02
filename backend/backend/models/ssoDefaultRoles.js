@@ -15,7 +15,7 @@ const ssoDefaultRoleSchema = new Schema({
     role: {
         type: String,
         required: true,
-        enum: ['Owner', 'Administrator', 'Member', 'Viewer'],
+        enum: ['Administrator', 'Member', 'Viewer'],
     },
     createdAt: {
         type: Date,

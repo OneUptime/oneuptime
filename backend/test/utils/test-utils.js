@@ -245,14 +245,38 @@ module.exports = {
      *  projectName: 'PROJECT_NAME'
      * }
      */
-    createProject: async ({
-        request,
-        authorization,
-        payload,
-    }) => {
-        return await request
-            .post(`api/project/create`)
+    createProject: async ({ request, authorization, payload }) =>
+        await request
+            .post(`/api/project/create`)
             .set('Authorization', authorization)
-            .send(payload);
-    }
+            .send(payload),
+    /**
+     *  examplePayload = {
+     *      'saml-enabled': 
+     *          true,
+     *      domain: 
+     *          'tests.hackerbay.io',
+     *      samlSsoUrl:
+     *          'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
+     *      remoteLogoutUrl: 
+     *          'http://localhost:9876/logout',
+     *  }
+     */
+    createSso: async ({ request, authorization, payload }) =>
+        await request
+            .post(`/api/sso/`)
+            .set('Authorization', authorization)
+            .send(payload),
+    /**
+     *  examplePayload = {
+     *      domain: "6017d3105299cd0725598155",
+     *      project: "600fcb791450c01eab741764",
+     *      role: "Viewer",
+     *  }
+     */
+    createSsoDefaultRole: async ({ request, authorization, payload }) =>
+        await request
+            .post(`/api/ssoDefaultRoles/`)
+            .set('Authorization', authorization)
+            .send(payload),
 };
