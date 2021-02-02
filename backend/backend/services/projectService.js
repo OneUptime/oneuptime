@@ -298,7 +298,7 @@ module.exports = {
             projectId,
             data.alertOptions
         );
-        if (chargeForBalance) {
+        if (chargeForBalance && !chargeForBalance.client_secret) {
             const newBalance = rechargeToBalance + currentBalance;
             updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,

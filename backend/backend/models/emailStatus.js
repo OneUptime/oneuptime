@@ -8,8 +8,8 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const schema = new Schema({
-    from: { type: String, ref: 'Project' },
-    to: { type: String, ref: 'User' },
+    from: { type: String, ref: 'Project', index: true },
+    to: { type: String, ref: 'User', index: true },
     subject: String,
     body: String,
     createdAt: { type: Date, default: Date.now },
@@ -22,7 +22,7 @@ const schema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true },
     replyTo: String,
 });
 

@@ -9,6 +9,7 @@ const monitorSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Project',
         alias: 'project',
+        index: true,
     }, //which project this incident belongs to.
     title: {
         type: Schema.Types.String,
@@ -20,17 +21,18 @@ const monitorSchema = new Schema({
         type: Schema.Types.String,
     },
     response: Object,
-    monitorId: { type: String, ref: 'Monitor' }, // which monitor does this incident belongs to.
-    notificationId: { type: String, ref: 'Notification' },
+    monitorId: { type: String, ref: 'Monitor', index: true }, // which monitor does this incident belongs to.
+    notificationId: { type: String, ref: 'Notification', index: true },
     incidentPriority: {
         type: String,
         ref: 'IncidentPriority',
+        index: true,
     },
     acknowledged: {
         type: Boolean,
         default: false,
     },
-    acknowledgedBy: { type: String, ref: 'User' }, // userId
+    acknowledgedBy: { type: String, ref: 'User', index: true }, // userId
     acknowledgedAt: {
         type: Date,
     },
@@ -70,7 +72,7 @@ const monitorSchema = new Schema({
     internalNote: { type: String, default: '' },
     investigationNote: { type: String, default: '' },
 
-    createdById: { type: String, ref: 'User' }, // userId
+    createdById: { type: String, ref: 'User', index: true }, // userId
 
     createdAt: {
         type: Date,
@@ -82,7 +84,7 @@ const monitorSchema = new Schema({
         default: false,
     }, // is true when zapier creates incident
 
-    notClosedBy: [{ type: String, ref: 'User' }],
+    notClosedBy: [{ type: String, ref: 'User', index: true }],
     manuallyCreated: { type: Boolean, default: false },
     criterionCause: {
         name: String,
@@ -94,7 +96,7 @@ const monitorSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true },
     breachedCommunicationSla: { type: Boolean, default: false },
     customFields: [{ fieldName: String, fieldValue: Schema.Types.Mixed }],
     acknowledgedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },

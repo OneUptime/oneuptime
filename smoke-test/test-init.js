@@ -223,7 +223,7 @@ module.exports = {
         await page.waitForSelector('button#logout-button');
         await page.click('button#logout-button');
         await page.reload();
-        await page.waitFor(3000);
+        await page.waitForTimeout(3000);
     },
     selectByText: async function(selector, text, page) {
         await page.click(selector, { delay: 100 });
