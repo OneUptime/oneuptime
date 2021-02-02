@@ -162,4 +162,25 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(response.body).to.have.property('role');
     });
 
+    it('should fetch the existing default sso roles',async()=>{
+        const result = await testUtils.fetchSsoDefaultRoles({
+            request,
+            authorization: adminAuthorizationHeader,
+        });
+        expect(result.body).to.be.an('Object');
+        expect(result.body).to.have.property('count');
+        expect(result.body).to.have.property('data');
+        expect(result.body.count).to.equal(2);
+    });
+
+    // it('should update the existing default SSO role',async()=>{
+    // });
+    // it('should automatically add new SSO users to the projects with roles defined on SSO default roles',async()=>{
+    // });
+    // it('should automatically add existing SSO users to the projects with roles defined on SSO default roles',async()=>{
+    // })
+    // it('should delete the existing default sso role',async()=>{
+    // });
+    // it('should delete all default SSO roles when an SSO is deleted',async()=>{
+    // });
 });
