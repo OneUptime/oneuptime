@@ -882,6 +882,12 @@ export function fetchStatusPage(statusPageId) {
     };
 }
 
+export function duplicateStatusPageReset() {
+    return {
+        type: types.DUPLICATE_STATUSPAGE_RESET,
+    };
+}
+
 //Update status page embedded css
 
 export function updateStatusPageEmbeddedCssRequest() {

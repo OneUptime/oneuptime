@@ -332,7 +332,11 @@ export default function statusPage(state = INITIAL_STATE, action) {
 
         case DUPLICATE_STATUSPAGE_RESET:
             return Object.assign({}, state, {
-                ...INITIAL_STATE,
+                duplicateStatusPage: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
             });
 
         //handle domain
