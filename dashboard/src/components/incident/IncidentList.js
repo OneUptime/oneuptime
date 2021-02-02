@@ -177,20 +177,9 @@ export class IncidentList extends Component {
                             {incidents && incidents.length > 0 ? (
                                 incidents.map((incident, i) => {
                                     let probeName = 'Fyipe';
-                                    let probeImage = (
-                                        <img
-                                            src="/dashboard/assets/img/Fyipe.svg"
-                                            style={{
-                                                display: 'inline-block',
-                                                height: '20px',
-                                                width: '20px',
-                                                borderRadius: '50%',
-                                                margin: '-1px 5px -5px -7px',
-                                                backgroundColor: '#14AAD9',
-                                            }}
-                                            alt=""
-                                        />
-                                    );
+                                    let probeImage =
+                                        '/dashboard/assets/img/Fyipe.svg';
+
                                     if (
                                         incident.probes &&
                                         incident.probes[0] &&
@@ -211,23 +200,7 @@ export class IncidentList extends Component {
                                             probeImageId[0] &&
                                             probeImageId[0].probeImage
                                         ) {
-
-                                            probeImage = (
-                                                <img
-                                                    src={`${API_URL}/file/${probeImageId[0].probeImage}`}
-                                                    style={{
-                                                        display: 'inline-block',
-                                                        height: '20px',
-                                                        width: '20px',
-                                                        borderRadius: '50%',
-                                                        margin:
-                                                            '-1px 5px -5px -7px',
-                                                        backgroundColor:
-                                                            '#14AAD9',
-                                                    }}
-                                                    alt=""
-                                                />
-                                            );
+                                            probeImage = `${API_URL}/file/${probeImageId[0].probeImage}`;
                                         }
                                     }
 
@@ -351,7 +324,28 @@ export class IncidentList extends Component {
                                                                 </div>
                                                             ) : (
                                                                 <div className="Box-root Margin-right--16">
-                                                                    {probeImage}
+                                                                    {
+                                                                        <img
+                                                                            src={
+                                                                                probeImage
+                                                                            }
+                                                                            style={{
+                                                                                display:
+                                                                                    'inline-block',
+                                                                                height:
+                                                                                    '20px',
+                                                                                width:
+                                                                                    '20px',
+                                                                                borderRadius:
+                                                                                    '50%',
+                                                                                margin:
+                                                                                    '-1px 5px -5px -7px',
+                                                                                backgroundColor:
+                                                                                    '#14AAD9',
+                                                                            }}
+                                                                            alt=""
+                                                                        />
+                                                                    }
 
                                                                     <span>
                                                                         {
