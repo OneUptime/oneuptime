@@ -31,6 +31,17 @@ import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 
 class StatusPage extends Component {
+    state = {
+        tabIndex: 0,
+    };
+    tabSelected = index => {
+        const tabSlider = document.getElementById('tab-slider');
+        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        this.setState({
+            tabIndex: index,
+        });
+    };
+
     async componentDidMount() {
         if (!this.props.statusPage.status._id) {
             const projectId = history.location.pathname
@@ -67,10 +78,14 @@ class StatusPage extends Component {
     componentWillMount() {
         resetIdCounter();
     }
-    tabSelected = index => {
-        const tabSlider = document.getElementById('tab-slider');
-        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
-    };
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.statusPage.status._id !== this.props.statusPage.status._id
+        ) {
+            this.tabSelected(0);
+        }
+    }
 
     render() {
         const {
@@ -95,6 +110,7 @@ class StatusPage extends Component {
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
                         onSelect={tabIndex => this.tabSelected(tabIndex)}
+                        selectedIndex={this.state.tabIndex}
                     >
                         <div className="Flex-flex Flex-direction--columnReverse">
                             <TabList
