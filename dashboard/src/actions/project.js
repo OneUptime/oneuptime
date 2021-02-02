@@ -127,7 +127,6 @@ export function getProjects(switchToProjectId) {
                 projects = projects.data && projects.data.data;
                 dispatch(projectsSuccess(projects));
                 if (projects.length > 0 && !switchToProjectId) {
-                    console.log('shdfjsjdfjshdjkfjsdhk', User.getCurrentProjectId())
                     const project = projects.filter(
                         project =>
                             project._id === User.getCurrentProjectId()
@@ -146,7 +145,6 @@ export function getProjects(switchToProjectId) {
                             projectSwitched = true;
                         }
                     }
-                    console.log(projectSwitched, 'jfdkfgjkdjfkjdkfjkgjdkflg')
                     if (User.getCurrentProjectId() && !projectSwitched) {
                         const project = projects.filter(
                             project =>
