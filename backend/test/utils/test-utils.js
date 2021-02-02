@@ -279,8 +279,18 @@ module.exports = {
             .post(`/api/ssoDefaultRoles/`)
             .set('Authorization', authorization)
             .send(payload),
+    updateSsoDefaultRole: async ({ request, authorization, id, payload }) =>
+        await request
+            .put(`/api/ssoDefaultRoles/${id}`)
+            .set('Authorization', authorization)
+            .send(payload),
     fetchSsoDefaultRoles: async({request, authorization })=>
         await request
             .get(`/api/ssoDefaultRoles/`)
+            .set('Authorization', authorization),
+    fetchSsoDefaultRole: async({request, authorization, id })=>
+        await request
+            .get(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization)
+
 };

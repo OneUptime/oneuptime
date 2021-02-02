@@ -16,7 +16,13 @@ const SsoService = require('../backend/services/ssoService');
 const testUtils = require('./utils/test-utils');
 
 
-let adminAuthorizationHeader, adminId, projectId,ssoId1,ssoId2;
+let adminId,
+    adminAuthorizationHeader,
+    projectId,
+    ssoId1,
+    ssoId2,
+    ssoDefaultRole1,
+    ssoDefaultRole2;
 
 const sso1CreationPayload = {
     'saml-enabled': 
@@ -94,7 +100,7 @@ describe('SSO DEFAULT ROLES API', function() {
     });
 
     it("should not create an 'Owner' role as default SSO role for a domain, in a project",async()=>{
-        const payload ={
+        const payload = {
             domain:ssoId1,
             project:projectId,
             role: "Owner"
@@ -111,7 +117,7 @@ describe('SSO DEFAULT ROLES API', function() {
     });
 
     it('should create a default SSO role for a domain, in a project',async ()=>{
-        const payload ={
+        const payload = {
             domain:ssoId1,
             project:projectId,
             role: "Member"
@@ -123,9 +129,11 @@ describe('SSO DEFAULT ROLES API', function() {
         });
         expect(response).to.have.status(200);
         expect(response.body).to.be.an('Object');
+        expect(response.body).to.have.property('_id');
         expect(response.body).to.have.property('domain');
         expect(response.body).to.have.property('project');
         expect(response.body).to.have.property('role');
+        ssoDefaultRole1 = response.body._id;
     })
 
     it('should not create a default SSO role for a domain that already has a default role for a specific project',async ()=>{
@@ -146,8 +154,8 @@ describe('SSO DEFAULT ROLES API', function() {
 
     it('should create a new default SSO role for a different SSO domain, in the same project', async ()=>{
         const payload ={
-            domain:ssoId2,
-            project:projectId,
+            domain: ssoId2,
+            project: projectId,
             role: "Member"
         }
         const response = await testUtils.createSsoDefaultRole({
@@ -173,8 +181,31 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(result.body.count).to.equal(2);
     });
 
-    // it('should update the existing default SSO role',async()=>{
-    // });
+    it('should update the existing default SSO role',async()=>{
+        const payload = {
+            domain:ssoId1,
+            project: projectId,
+            role:'Administrator',
+        }
+        const updateEndpointResponse = await testUtils.updateSsoDefaultRole({
+            request, 
+            authorization:adminAuthorizationHeader, 
+            id:ssoDefaultRole1,
+            payload
+        })
+        expect(updateEndpointResponse).to.have.status(200);
+        expect(updateEndpointResponse.body).to.be.an('Object');
+
+        const getEndpointResponse = await testUtils.fetchSsoDefaultRole({
+            request, 
+            authorization:adminAuthorizationHeader, 
+            id:ssoDefaultRole1,
+        });
+        expect(getEndpointResponse).to.have.status(200);
+        expect(getEndpointResponse.body).to.be.an('Object');
+        expect(getEndpointResponse.body).to.have.property('role');
+        expect(getEndpointResponse.body.role).to.equal('Administrator');
+    });
     // it('should automatically add new SSO users to the projects with roles defined on SSO default roles',async()=>{
     // });
     // it('should automatically add existing SSO users to the projects with roles defined on SSO default roles',async()=>{
