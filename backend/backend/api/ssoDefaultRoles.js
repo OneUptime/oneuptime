@@ -54,10 +54,9 @@ router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
 router.put('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const id = req.params.id;
-        const data = req.body;
         const ssoDefaultRole = await SsoDefaultRolesService.updateById(
-            { _id: id },
-            data
+             id,
+             req.body
         );
         return sendItemResponse(req, res, ssoDefaultRole);
     } catch (error) {

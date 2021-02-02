@@ -32,7 +32,6 @@ module.exports = {
             throw error;
         }
     },
-
     deleteBy: async function(query) {
         try {
             if (!query) {
@@ -174,21 +173,20 @@ module.exports = {
         }
     },
 
-    updateById: async function(query, data) {
+    updateById: async function(id, data) {
         try {
-            if (!query) {
-                query = {};
-            }
-            if (!query._id) {
+            if (!id) {
                 const error = new Error('Id must be defined.');
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
-            if (query.createdAt !== undefined) {
-                delete query.createdAt;
-            }
-            query.deleted = false;
+
+            const query = {
+                _id: id,
+                deleted:false,
+            };
+
             const { domain, project, role } = data;
 
             if (!domain) {
@@ -205,7 +203,7 @@ module.exports = {
             }
 
             if (!project) {
-                const error = new Error('Project  must be defined.');
+                const error = new Error('Project must be defined.');
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
@@ -230,26 +228,30 @@ module.exports = {
                 throw error;
             }
 
-            const payload = { domain };
-            const search = await this.findOneBy(payload);
+            const search = await this.findOneBy({ domain,project });
             if (!search) {
                 const error = new Error("Record doesn't exist.");
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
-            if (String(search._id) !== query._id) {
+
+            if (String(search._id) !== String(query._id)) {
                 const error = new Error('Domain has a default role.');
                 error.code = 400;
                 ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
+            const payload = { domain,project,role };
 
-            await ssoDefaultRolesModel.updateMany(query, {
-                $set: payload,
-            });
-            const sso = await this.findBy(query);
-            return sso;
+            await ssoDefaultRolesModel.updateOne(
+                query, 
+                {
+                    $set: payload,
+                },
+            );
+            const ssodefaultRole = await this.findOneBy(query);
+            return ssodefaultRole;
         } catch (error) {
             ErrorService.log('ssoDefaultRolesService.updateById', error);
             throw error;
