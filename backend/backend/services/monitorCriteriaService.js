@@ -359,6 +359,63 @@ const MonitorCriteriaService = {
                 degraded_1000_autoResolve: true,
                 type_1000: 'script',
             },
+            edge: {
+                up_1000: [
+                    {
+                        match: 'all',
+                        responseType: 'responseToPing',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'responseToPing',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'responseToPing',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'responseToPing',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                up_1000_createAlert: true,
+                up_1000_autoAcknowledge: true,
+                up_1000_autoResolve: true,
+                down_1000: [
+                    {
+                        match: 'any',
+                        responseType: 'responseToPing',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'responseToPing',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                down_1000_createAlert: true,
+                down_1000_autoAcknowledge: true,
+                down_1000_autoResolve: true,
+                type_1000: 'edge',
+            },
         };
     },
 
