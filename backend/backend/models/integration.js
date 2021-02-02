@@ -7,6 +7,7 @@ const integrationSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Project',
         alias: 'project',
+        index: true,
     },
     createdById: { type: Schema.Types.ObjectId, ref: 'User', alias: 'user' },
     integrationType: {
@@ -19,6 +20,7 @@ const integrationSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Monitor',
         alias: 'monitor',
+        index: true,
     },
     createdAt: {
         type: Date,
@@ -33,7 +35,7 @@ const integrationSchema = new Schema({
     deletedAt: {
         type: Date,
     },
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true },
 });
 
 integrationSchema.index({ projectId: 1, teamId: -1 });

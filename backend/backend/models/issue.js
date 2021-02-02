@@ -8,6 +8,7 @@ const issueSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'ErrorTracker',
         alias: 'errorTracker',
+        index: true,
     }, //which error tracker this issue belongs to.
     type: {
         type: String,
@@ -30,21 +31,21 @@ const issueSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true },
     resolved: { type: Boolean, default: false },
 
     resolvedAt: {
         type: Date,
     },
 
-    resolvedById: { type: String, ref: 'User' },
+    resolvedById: { type: String, ref: 'User', index: true },
     ignored: { type: Boolean, default: false },
 
     ignoredAt: {
         type: Date,
     },
 
-    ignoredById: { type: String, ref: 'User' },
+    ignoredById: { type: String, ref: 'User', index: true },
 });
 issueSchema.virtual('errorTracker', {
     localField: '_id',

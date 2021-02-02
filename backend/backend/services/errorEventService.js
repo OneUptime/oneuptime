@@ -109,7 +109,7 @@ module.exports = {
             // get all unique hashes by error tracker Id
             const errorTrackerIssues = await IssueService.findBy(
                 query,
-                limit,
+                0, // set limit to 0 to get ALL issues related by query
                 skip
             );
 
@@ -119,7 +119,7 @@ module.exports = {
             // if the next index is available in the issue tracker, proceed
             while (
                 errorTrackerIssues[index] &&
-                totalErrorEvents.length < limit
+                totalErrorEvents.length < limit // the limit will be used here to fetch limited issues from the ALL issues fetched before
             ) {
                 const issue = errorTrackerIssues[index];
 

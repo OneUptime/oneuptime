@@ -230,7 +230,18 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
+    _setHost() {
+        if (this.#isWindow) {
+            // Web apps
+            this.setTag('url', window.location.origin);
+        } else {
+            // JS Backend
+            // TODO create a way to get host on the backend
+        }
+    }
     prepareErrorObject(type, errorStackTrace) {
+        // set the host as a tag to be used later
+        this._setHost();
         // get current timeline
         const timeline = this.getTimeline();
         // get device location and details

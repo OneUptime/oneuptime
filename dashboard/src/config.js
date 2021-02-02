@@ -1082,7 +1082,7 @@ const options = {
                                                     
 // constructor                    
 const tracker = new ErrorTracker(                    
-    'https://fyipe.com/api',
+    '${apiUrl ? apiUrl : 'API_URL'}',
     '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
     '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
     options // Optional Field
@@ -1120,7 +1120,7 @@ const { Logger } = Fyipe;
             
 // constructor
 const logger = new Logger(
-    'https://fyipe.com/api',
+    '${apiUrl ? apiUrl : 'API_URL'}',
     '${
         applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
     }',                    
@@ -1163,7 +1163,7 @@ use Fyipe\\FyipeLogger;
                 
 // constructor
 $logger = new Fyipe\\FyipeLogger(                    
-    'https://fyipe.com/api',
+    '${apiUrl ? apiUrl : 'API_URL'}',
     '${
         applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
     }',                    
@@ -1208,7 +1208,7 @@ import io.hackerbay.fyipe.FyipeLogger;
                                             
 // constructor                        
 FyipeLogger logger = new FyipeLogger(                        
-    "https://fyipe.com/api",
+    "${apiUrl ? apiUrl : 'API_URL'}",
     "${
         applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
     }",                    
