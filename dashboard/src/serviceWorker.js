@@ -78,14 +78,18 @@ function registerValidSW(swUrl, config) {
     });
 
     let preventDevToolsReloadLoop   
-    navigator.serviceWorker.addEventListener('controllerchange', function (event) {
+    function update(event) {
         console.log('***** called ********', event);
         // Ensure refresh is only called once.
         // This works around a bug in "force update on reload".
         if (preventDevToolsReloadLoop) return
         preventDevToolsReloadLoop = true
-        window.location.reload()
-    })
+        window.location.reload();
+
+        navigator.serviceWorker.removeEventListener('controllerchange', update);
+    }
+    
+    navigator.serviceWorker.addEventListener('controllerchange', update)
 
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
