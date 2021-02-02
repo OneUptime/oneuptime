@@ -144,4 +144,22 @@ describe('SSO DEFAULT ROLES API', function() {
         }
     })
 
+    it('should create a new default SSO role for a different SSO domain, in the same project', async ()=>{
+        const payload ={
+            domain:ssoId2,
+            project:projectId,
+            role: "Member"
+        }
+        const response = await testUtils.createSsoDefaultRole({
+            request,
+            authorization: adminAuthorizationHeader,
+            payload
+        });
+        expect(response).to.have.status(200);
+        expect(response.body).to.be.an('Object');
+        expect(response.body).to.have.property('domain');
+        expect(response.body).to.have.property('project');
+        expect(response.body).to.have.property('role');
+    });
+
 });
