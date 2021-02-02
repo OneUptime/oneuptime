@@ -8,8 +8,8 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const alertSchema = new Schema({
-    projectId: { type: String, ref: 'Project' },
-    userId: { type: String, ref: 'User' },
+    projectId: { type: String, ref: 'Project', index: true },
+    userId: { type: String, ref: 'User', index: true },
     alertVia: String,
     alertStatus: String,
     eventType: {
@@ -17,15 +17,16 @@ const alertSchema = new Schema({
         enum: ['identified', 'acknowledged', 'resolved'],
         required: true,
     },
-    monitorId: { type: String, ref: 'Monitor' },
-    createdAt: { type: Date, default: Date.now },
+    monitorId: { type: String, ref: 'Monitor', index: true },
+    createdAt: { type: Date, default: Date.now, index: true },
     incidentId: { type: String, ref: 'Incident' },
     onCallScheduleStatus: {
         type: Schema.Types.ObjectId,
         ref: 'OnCallScheduleStatus',
+        index: true,
     },
-    schedule: { type: Schema.Types.ObjectId, ref: 'Schedule' },
-    escalation: { type: Schema.Types.ObjectId, ref: 'Escalation' },
+    schedule: { type: Schema.Types.ObjectId, ref: 'Schedule', index: true },
+    escalation: { type: Schema.Types.ObjectId, ref: 'Escalation', index: true },
     error: { type: Boolean, default: false },
     errorMessage: String,
     deleted: { type: Boolean, default: false },
@@ -33,8 +34,6 @@ const alertSchema = new Schema({
     deletedAt: {
         type: Date,
     },
-
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true },
 });
-
 module.exports = mongoose.model('Alert', alertSchema);

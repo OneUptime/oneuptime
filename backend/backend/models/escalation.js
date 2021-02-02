@@ -7,7 +7,7 @@ const teamSchema = new Schema({
             startTime: Date,
             endTime: Date,
             timezone: String,
-            userId: { type: String, ref: 'User' },
+            userId: { type: String, ref: 'User', index: true },
         },
     ],
 });
@@ -18,6 +18,7 @@ const escalationSchema = new Schema({
         ref: 'Project',
         alias: 'project',
         default: null,
+        index: true,
     },
     callReminders: { type: Number, default: null },
     emailReminders: { type: Number, default: null },
@@ -29,7 +30,7 @@ const escalationSchema = new Schema({
     call: { type: Boolean, default: false },
     email: { type: Boolean, default: false },
     sms: { type: Boolean, default: false },
-    createdById: { type: String, ref: 'User', default: null },
+    createdById: { type: String, ref: 'User', default: null, index: true },
     scheduleId: { type: String, ref: 'Schedule', default: null },
     teams: { type: [teamSchema], default: null },
     createdAt: { type: Date, default: Date.now },
@@ -39,6 +40,6 @@ const escalationSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true },
 });
 module.exports = mongoose.model('Escalation', escalationSchema);

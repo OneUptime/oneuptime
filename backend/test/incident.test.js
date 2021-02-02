@@ -32,10 +32,10 @@ const moment = require('moment');
 const SubscriberService = require('../backend/services/subscriberService');
 const AlertVia = require('../backend/config/alertType');
 const {
-    markIncidentAsResolved, 
-    markIncidentAsAcknowledged, 
+    markIncidentAsResolved,
+    markIncidentAsAcknowledged,
     markSubprojectIncidentAsAcknowledged,
-    markSubprojectIncidentAsResolved
+    markSubprojectIncidentAsResolved,
 } = require('./test-utils');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
@@ -322,7 +322,7 @@ describe('Incident API', function() {
         const emailStatus = await EmailStatusService.findBy({
             template: 'incident_resolved',
             createdAt: { $gt: date },
-        });   
+        });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body.incident.resolved).to.be.equal(true);
@@ -424,7 +424,9 @@ describe('Incident API', function() {
             });
         internalMessageId = res.body.data[0]._id;
         expect(res).to.have.status(200);
-        expect(res.body.data[0].incidentId._id.toString()).to.be.equal(incidentId);
+        expect(res.body.data[0].incidentId._id.toString()).to.be.equal(
+            incidentId
+        );
         expect(res.body.type).to.be.equal('internal');
         expect(res.body.data[0].incident_state).to.be.equal('just test');
     });
@@ -457,7 +459,7 @@ describe('Incident API', function() {
                 id: internalMessageId,
                 incident_state: 'update',
             });
-            
+
         expect(res).to.have.status(200);
         expect(res.body._id).to.be.equal(internalMessageId);
         expect(res.body.type).to.be.equal('internal');
@@ -474,7 +476,7 @@ describe('Incident API', function() {
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
             .set('Authorization', authorization);
-            
+
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
@@ -505,11 +507,11 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
         expect(res.body.count).to.be.equal(1);
-        let sameType;
-        sameType = res.body.data.filter(function(e){
-            return e.type === 'internal'
-        })
-        expect(sameType[0].type).to.be.equal(type); 
+
+        const sameType = res.body.data.filter(function(e) {
+            return e.type === 'internal';
+        });
+        expect(sameType[0].type).to.be.equal(type);
     });
 
     it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function() {
@@ -801,11 +803,10 @@ describe('Incident API with Sub-Projects', function() {
             subProjectId,
             incidentId,
         });
-        
+
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body.incident.acknowledged).to.be.equal(true);
-
     });
 
     it('should resolve subproject incident', async function() {
@@ -816,10 +817,9 @@ describe('Incident API with Sub-Projects', function() {
             subProjectId,
             incidentId,
         });
-        
+
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body.incident.resolved).to.be.equal(true);
-
     });
 });

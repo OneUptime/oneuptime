@@ -65,6 +65,12 @@ describe('Enterprise Dashboard API', () => {
             await page.waitForSelector('#components');
             await page.click('#components');
 
+            await page.waitForSelector(`#more-details-${componentName}`);
+            await page.click(`#more-details-${componentName}`);
+            await page.waitForSelector(`#componentSettings`);
+            await page.click(`#componentSettings`);
+            await page.waitForSelector(`#advanced`);
+            await page.click(`#advanced`);
             await page.waitForSelector(`#delete-component-${componentName}`);
             await page.click(`#delete-component-${componentName}`);
             await page.waitForSelector('#deleteComponent');
@@ -106,7 +112,7 @@ describe('Enterprise Dashboard API', () => {
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]', { visible: true });
                 await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
@@ -144,7 +150,7 @@ describe('Enterprise Dashboard API', () => {
 
                 // Submit New Monitor form with incorrect details
                 await page.waitForSelector('#name');
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');

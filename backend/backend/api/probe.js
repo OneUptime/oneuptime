@@ -21,10 +21,10 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
-const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');
-const getMutex = require('../constants/mutexProvider');
 const multer = require('multer');
 const storage = require('../middlewares/upload');
+// const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');
+// const getMutex = require('../constants/mutexProvider');
 
 router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
@@ -146,15 +146,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     req,
     response
 ) {
-    let release;
+    // let release;
     try {
-        const monitorId = req.body.monitor
-            ? req.body.monitor._id.toString()
-            : '';
-        const mutex = getMutex(MUTEX_RESOURCES.MONITOR, monitorId);
-        if (mutex) {
-            release = await mutex.acquire();
-        }
+        // const monitorId = req.body.monitor
+        //     ? req.body.monitor._id.toString()
+        //     : '';
+
+        // const mutex = getMutex(MUTEX_RESOURCES.MONITOR, monitorId);
+        // if (mutex) {
+        //     release = await mutex.acquire();
+        // }
 
         const {
             monitor,
@@ -521,9 +522,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     } catch (error) {
         return sendErrorResponse(req, response, error);
     } finally {
-        if (release) {
-            release();
-        }
+        // if (release) {
+        //     release();
+        // }
     }
 });
 

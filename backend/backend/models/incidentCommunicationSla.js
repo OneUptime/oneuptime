@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const incidentCommunicationSlaSchema = new Schema(
     {
         name: String,
-        projectId: { ref: 'Project', type: Schema.Types.ObjectId },
+        projectId: { ref: 'Project', type: Schema.Types.ObjectId, index: true },
         isDefault: { type: Boolean, default: false },
         duration: { type: String, default: '60' },
         alertTime: String,

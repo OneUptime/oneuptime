@@ -6,6 +6,7 @@ const incidentMessageSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Incident',
         alias: 'incident',
+        index: true,
     },
     content: String,
     type: {
@@ -14,7 +15,7 @@ const incidentMessageSchema = new Schema({
         required: true,
     },
     incident_state: String,
-    createdById: { type: String, ref: 'User' }, //userId.
+    createdById: { type: String, ref: 'User', index: true }, //userId.
     createdAt: {
         type: Date,
         default: Date.now,
@@ -26,7 +27,7 @@ const incidentMessageSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true },
 });
 
 incidentMessageSchema.virtual('incident', {
