@@ -1271,7 +1271,7 @@ const _this = {
         projectName,
         criterionName,
         probeName,
-        emailProgress
+        alertProgress
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1290,8 +1290,8 @@ const _this = {
                 iconColor = '#ffde24';
                 incidentShow = 'Degraded';
             }
-            if (emailProgress) {
-                subject = `Reminder ${emailProgress.current}/${emailProgress.total} - Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`
+            if (alertProgress) {
+                subject = `Reminder ${alertProgress.current}/${alertProgress.total} - Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`
             } else {
                 subject = `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`
             }
