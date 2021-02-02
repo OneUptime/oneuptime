@@ -2344,6 +2344,7 @@ class NewMonitor extends Component {
 
                                                                 {criteria.length ===
                                                                     0 && (
+                                                                    <div>
                                                                     <div
                                                                         className="bs-ContentSection Card-root Card-shadow--clear Padding-all--16 Margin-vertical--16"
                                                                         style={{
@@ -2368,11 +2369,7 @@ class NewMonitor extends Component {
                                                                             <span className="Text-fontSize--16 Text-fontWeight--medium">
                                                                                 Monitor {`${criterionType.type.charAt(0).toUpperCase() + criterionType.type.slice(1)}`} Criteria
                                                                             </span>
-                                                                            <p>
-                                                                                <span className="Text-fontSize--14 Margin-left--16" >
-                                                                                    You do not have any Monitor {`${criterionType.type.charAt(0).toUpperCase() + criterionType.type.slice(1)}`} Criteria, feel free to add one
-                                                                                </span>
-                                                                            </p>
+                            
                                                                         </div>
                                                                         <button
                                                                             className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
@@ -2397,6 +2394,12 @@ class NewMonitor extends Component {
                                                                                 </span>
                                                                             </span>
                                                                         </button>
+                                                                     </div>
+                                                                            <div className="bs-ContentSection-content Box-root Box-background--offset  Padding-horizontal--8 Padding-vertical--16">
+                                                                                <p className="Flex-flex Flex-justifyContent--center Text-fontSize--15">
+                                                                                   You do not have any Monitor {`${criterionType.type.charAt(0).toUpperCase() + criterionType.type.slice(1)}`} Criteria, feel free to add one
+                                                                                </p>
+                                                                            </div>
                                                                     </div>
                                                                 )}
                                                             </div>
