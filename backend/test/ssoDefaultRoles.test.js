@@ -92,6 +92,24 @@ describe('SSO DEFAULT ROLES API', function() {
         }) 
         ssoId2 = sso2.body._id;
     });
+
+    it("should not create an 'Owner' role as default SSO role for a domain, in a project",async()=>{
+        const payload ={
+            domain:ssoId1,
+            project:projectId,
+            role: "Owner"
+        }
+        const response = await testUtils.createSsoDefaultRole({
+            request,
+            authorization: adminAuthorizationHeader,
+            payload
+        });
+        expect(response).to.have.status(400);
+        expect(response.body).to.be.an('Object');
+        expect(response.body).to.have.property('message');
+        expect(response.body.message).to.equal('Invalid role.');
+    });
+
     it('should create a default SSO role for a domain, in a project',async ()=>{
         const payload ={
             domain:ssoId1,
