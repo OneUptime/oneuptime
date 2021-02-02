@@ -2,8 +2,8 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const monitorLogSchema = new Schema({
-    monitorId: { type: String, ref: 'Monitor',index: true, }, // which monitor does this belong to.
-    probeId: { type: String, ref: 'Probe',index: true, }, // which probe does this belong to.
+    monitorId: { type: String, ref: 'Monitor', index: true }, // which monitor does this belong to.
+    probeId: { type: String, ref: 'Probe', index: true }, // which probe does this belong to.
     status: String, // status based on criteria.
     responseTime: Number, // time taken for ping.
     responseStatus: Number, // status code of ping.
@@ -20,7 +20,7 @@ const monitorLogSchema = new Schema({
     storageUsage: Number, // disk usage.
     mainTemp: Number, // cpu temperature.
     maxTemp: Number, // maximum cpu temperature from server.
-    incidentIds: [{ type: String, ref: 'Incident', index: true, }],
+    incidentIds: [{ type: String, ref: 'Incident', index: true }],
     createdAt: {
         type: Date,
         default: Date.now,

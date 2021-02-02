@@ -15,7 +15,7 @@ const errorTrackerSchema = new Schema({
         ref: 'ResourceCategory',
         index: true,
     },
-    createdById: { type: String, ref: 'User',index: true, }, //userId.
+    createdById: { type: String, ref: 'User', index: true }, //userId.
     createdAt: {
         type: Date,
         default: Date.now,
@@ -26,7 +26,7 @@ const errorTrackerSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
 });
 
 errorTrackerSchema.virtual('component', {

@@ -6,6 +6,10 @@ class ErrorEventStackTrace extends Component {
     render() {
         const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
+        // get the host from the tags, this value is always set if the SDK is used from the client side for now.
+        const host = errorEventDetails
+            ? errorEventDetails.tags.filter(tag => tag.key === 'url')[0]
+            : null;
         return (
             <ShouldRender
                 if={
@@ -60,7 +64,16 @@ class ErrorEventStackTrace extends Component {
                                     return (
                                         <div key={i}>
                                             <a
-                                                href={frame.fileName}
+                                                href={`${
+                                                    frame.fileName.startsWith(
+                                                        'http'
+                                                    )
+                                                        ? frame.fileName
+                                                        : host
+                                                        ? host.value +
+                                                          frame.fileName
+                                                        : frame.fileName
+                                                }`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="Text-fontWeight--bold"

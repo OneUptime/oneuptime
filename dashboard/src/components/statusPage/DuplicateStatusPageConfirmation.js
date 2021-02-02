@@ -5,6 +5,7 @@ import ClickOutside from 'react-click-outside';
 import { bindActionCreators } from 'redux';
 import { history } from '../../store';
 import { closeModal } from '../../actions/modal';
+import { fetchStatusPage } from '../../actions/statusPage';
 
 class DuplicateStatusPageConfirmation extends Component {
     componentDidMount() {
@@ -20,16 +21,18 @@ class DuplicateStatusPageConfirmation extends Component {
         this.props.closeModal({
             id: this.props.duplicateModalId,
         });
+        this.props.fetchStatusPage(statusPageId);
         history.push(
             `/dashboard/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPageId}`
         );
-        history.go(0);
     };
 
     handleKeyboard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal();
+                return this.props.closeModal({
+                    id: this.props.duplicateModalId,
+                });
             case 'Enter':
                 return this.handleNavigation();
             default:
@@ -66,7 +69,12 @@ class DuplicateStatusPageConfirmation extends Component {
                                         <button
                                             className={`bs-Button btn__modal`}
                                             type="button"
-                                            onClick={closeModal}
+                                            onClick={() =>
+                                                this.props.closeModal({
+                                                    id: this.props
+                                                        .duplicateModalId,
+                                                })
+                                            }
                                         >
                                             <span>Close</span>
                                             <span className="cancel-btn__keycode">
@@ -108,7 +116,7 @@ const mapStateToProps = state => {
     };
 };
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ closeModal }, dispatch);
+    return bindActionCreators({ closeModal, fetchStatusPage }, dispatch);
 };
 
 DuplicateStatusPageConfirmation.propTypes = {
@@ -120,6 +128,7 @@ DuplicateStatusPageConfirmation.propTypes = {
     ]),
     statusPageId: PropTypes.string.isRequired,
     subProjectId: PropTypes.string.isRequired,
+    fetchStatusPage: PropTypes.func,
 };
 
 export default connect(

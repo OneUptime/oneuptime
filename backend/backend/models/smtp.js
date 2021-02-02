@@ -2,7 +2,7 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const smtpSchema = new Schema({
-    projectId: { type: String, ref: 'Project', index: true, }, //which project does this belong to.
+    projectId: { type: String, ref: 'Project', index: true }, //which project does this belong to.
     user: String,
     pass: String,
     host: String,
@@ -23,6 +23,6 @@ const smtpSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
 });
 module.exports = mongoose.model('Smtp', smtpSchema);

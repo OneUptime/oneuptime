@@ -14,13 +14,13 @@ module.exports = {
         alertPhoneNumber,
         segments = 1
     ) {
-        let release;
+        // let release;
         try {
-            const mutex = getMutex(
-                MUTEX_RESOURCES.PROJECT,
-                project._id.toString()
-            );
-            release = await mutex.acquire();
+            // const mutex = getMutex(
+            //     MUTEX_RESOURCES.PROJECT,
+            //     project._id.toString()
+            // );
+            // release = await mutex.acquire();
 
             const countryType = getCountryType(alertPhoneNumber);
             const alertChargeAmount = getAlertChargeAmount(
@@ -49,9 +49,9 @@ module.exports = {
             );
             return { error: 'Could not charge alert' };
         } finally {
-            if (release) {
-                release();
-            }
+            // if (release) {
+            //     release();
+            // }
         }
     },
     /**
@@ -142,14 +142,14 @@ module.exports = {
         alertPhoneNumber,
         alertType
     ) {
-        let release;
+        // let release;
         try {
             const status = {};
-            const mutex = getMutex(
-                MUTEX_RESOURCES.PROJECT,
-                project._id.toString()
-            );
-            release = await mutex.acquire();
+            // const mutex = getMutex(
+            //     MUTEX_RESOURCES.PROJECT,
+            //     project._id.toString()
+            // );
+            // release = await mutex.acquire();
             // check balance
             const isBalanceEnough = await this.hasEnoughBalance(
                 project._id,
@@ -183,9 +183,9 @@ module.exports = {
             );
             throw error;
         } finally {
-            if (release) {
-                release();
-            }
+            // if (release) {
+            //     release();
+            // }
         }
     },
 
@@ -475,6 +475,6 @@ const {
     getCountryType,
     Call,
 } = require('../config/alertType');
-const getMutex = require('../constants/mutexProvider');
+// const getMutex = require('../constants/mutexProvider');
 const { formatBalance } = require('../utils/number');
-const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');
+// const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');

@@ -258,7 +258,7 @@ export default function project(state = INITIAL_STATE, action) {
             });
         case USER_CREATE_SUCCESS:
             return Object.assign({}, state, {
-                createUser:{
+                createUser: {
                     requesting: false,
                     error: null,
                     success: true,
@@ -271,7 +271,7 @@ export default function project(state = INITIAL_STATE, action) {
                         count: action.payload.length,
                     },
                 },
-            })
+            });
         case USER_CREATE_FAILURE:
             return Object.assign({}, state, {
                 createUser: {
