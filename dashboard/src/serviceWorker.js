@@ -77,12 +77,14 @@ function registerValidSW(swUrl, config) {
         );
     });
 
-    let preventDevToolsReloadLoop    
-    navigator.serviceWorker.ready.then(function() {
-        if(preventDevToolsReloadLoop) return;
-
-        preventDevToolsReloadLoop = true;
-        window.location.reload();
+    let preventDevToolsReloadLoop   
+    navigator.serviceWorker.addEventListener('controllerchange', function (event) {
+        console.log('***** called ********', event);
+        // Ensure refresh is only called once.
+        // This works around a bug in "force update on reload".
+        if (preventDevToolsReloadLoop) return
+        preventDevToolsReloadLoop = true
+        window.location.reload()
     })
 
     navigator.serviceWorker
