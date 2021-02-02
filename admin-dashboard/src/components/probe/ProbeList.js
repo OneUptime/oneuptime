@@ -304,55 +304,54 @@ export class ProbeList extends Component {
                                                     </div>
                                                 </div>
                                             </td>
-                                            {/* <td
-                                                aria-hidden="true"
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{
-                                                    height: '1px',
-                                                    maxWidth: '48px',
-                                                    minWidth: '48px',
-                                                    width: '48px',
-                                                }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        ⁣
-                                                    </div>
-                                                </div>
-                                            </td> */}
                                             <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                 style={{ height: '1px' }}
                                             >
                                                 <form onSubmit>
-                                                    {/* <div className="bs-FileUploadButton-inputWrap"> */}
-                                                    <ShouldRender if={true}>
-                                                        <span className="bs-Button--icon bs-Button--new"></span>
-                                                        <span>
-                                                            Upload Profile
-                                                            Picture
-                                                        </span>
-                                                    </ShouldRender>
-                                                    <Field
-                                                        // className="bs-FileUploadButton-input"
-                                                        component={UploadFile}
-                                                        name="profilePic"
-                                                        id="profilePic"
-                                                        accept="image/jpeg, image/jpg, image/png"
-                                                        onChange={e =>
-                                                            this.handleChange(
-                                                                probe,
-                                                                e
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            updateRequesting &&
-                                                            selectedProbe ===
-                                                                probe.id
-                                                        }
-                                                        fileInputKey={Math.round()}
-                                                    />
-                                                    {/* </div> */}
+                                                    <div className="bs-Button bs-DeprecatedButton Margin-left--8">
+                                                        <ShouldRender
+                                                            if={
+                                                                probe.probeImage
+                                                            }
+                                                        >
+                                                            <span className="bs-Button--icon bs-Button--new"></span>
+                                                            <span>
+                                                                Update Image
+                                                            </span>
+                                                        </ShouldRender>
+                                                        <ShouldRender
+                                                            if={
+                                                                !probe.probeImage
+                                                            }
+                                                        >
+                                                            <span className="bs-Button--icon bs-Button--new"></span>
+                                                            <span>
+                                                                Upload Image
+                                                            </span>
+                                                        </ShouldRender>
+                                                        <Field
+                                                            className="bs-FileUploadButton-input"
+                                                            component={
+                                                                UploadFile
+                                                            }
+                                                            name="profilePic"
+                                                            id="profilePic"
+                                                            accept="image/jpeg, image/jpg, image/png"
+                                                            onChange={e =>
+                                                                this.handleChange(
+                                                                    probe,
+                                                                    e
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                updateRequesting &&
+                                                                selectedProbe ===
+                                                                    probe.id
+                                                            }
+                                                            fileInputKey={Math.round()}
+                                                        />
+                                                    </div>
                                                 </form>
                                             </td>
                                             <td
