@@ -103,7 +103,11 @@ class StatusPagesTable extends Component {
                         subProjectId={subProjectStatusPage._id}
                         key={i}
                     >
-                        <div className="bs-BIM" key={i}>
+                        <div
+                            id={'statusPageTable_' + i}
+                            className="bs-BIM"
+                            key={i}
+                        >
                             <div className="Box-root Margin-bottom--12">
                                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                                     <ShouldRender if={subProjects.length > 0}>

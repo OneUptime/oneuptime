@@ -281,7 +281,10 @@ export class SidebarNavItem extends Component {
                                         }
                                     >
                                         <span
-                                            id={`${route.title}-text`}
+                                            id={`${route.title.replace(
+                                                ' ',
+                                                ''
+                                            )}-text`}
                                             style={route.textStyle}
                                         >
                                             {route.title === 'Incident Log'
