@@ -39,7 +39,7 @@ _README.md
 values-saas-production.yaml
 kubernetes/values-saas-production.yaml
 
-private
-public
-tls_cert.pem
-tls_key.pem
+/private
+/public
+/tls_cert.pem
+/tls_key.pem
