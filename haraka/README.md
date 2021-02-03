@@ -1,11 +1,8 @@
-# Haraka Docker Container for Fyipe
+# SMTP Server Container for Fyipe
 
 This is a simple SMTP server which is used to send bulk emails. This can be used to send email alerts to subscribers and team.
 
-## Important
-
--   This will not work on your local machine because email sending is blocked by ISP. You need to run these on the server and test.
--   Once the docker container is running, please check the logs for the generated DKIM
+> This will not work on your local machine because email sending is blocked by ISP. You need to run these on the server and test.
 
 ## Run a Fyipe Haraka Docker Container
 
@@ -75,6 +72,8 @@ docker build --build-arg PORT="2525" . -t haraka:latest
 ```
 docker run -p 2525:2525 -e SMTP_USER="user@hackerbay.io" -e SMTP_PASSWORD="hackerbay" -e DOMAIN="globalminimalism.com" -e PRIVATE_KEY=$PRIVATE_KEY -e TLS_CERT=$TLS_CERT -e TLS_KEY=$TLS_KEY  haraka:latest
 ```
+
+> The following envs are optional `PRIVATE_KEY`, `TLS_CERT`, and `TLS_KEY`
 
 ## Test
 
