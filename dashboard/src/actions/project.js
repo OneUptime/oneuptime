@@ -126,7 +126,6 @@ export function getProjects(switchToProjectId) {
             function(projects) {
                 projects = projects.data && projects.data.data;
                 dispatch(projectsSuccess(projects));
-
                 if (projects.length > 0 && !switchToProjectId) {
                     if (User.getCurrentProjectId()) {
                         const project = projects.filter(
@@ -151,8 +150,10 @@ export function getProjects(switchToProjectId) {
                             project =>
                                 project._id === User.getCurrentProjectId()
                         );
-                        dispatch(switchProject(dispatch, project[0]));
-                        projectSwitched = true;
+                        if(project.length > 0){
+                            dispatch(switchProject(dispatch, project[0]));
+                            projectSwitched = true;
+                        }
                     }
                     !projectSwitched &&
                         dispatch(switchProject(dispatch, projects[0]));
