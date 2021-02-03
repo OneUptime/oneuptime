@@ -2,9 +2,9 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const monitorStatusSchema = new Schema({
-    monitorId: { type: String, ref: 'Monitor', index: true, }, //which monitor does this belong to.
+    monitorId: { type: String, ref: 'Monitor', index: true }, //which monitor does this belong to.
     probeId: { type: String, ref: 'Probe' }, //which probe does this belong to.
-    incidentId: { type: String, ref: 'Incident', index: true, },
+    incidentId: { type: String, ref: 'Incident', index: true },
     status: String,
     manuallyCreated: {
         type: Boolean,
@@ -25,6 +25,6 @@ const monitorStatusSchema = new Schema({
     },
     deleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
 });
 module.exports = mongoose.model('MonitorStatus', monitorStatusSchema);

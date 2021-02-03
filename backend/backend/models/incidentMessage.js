@@ -15,7 +15,7 @@ const incidentMessageSchema = new Schema({
         required: true,
     },
     incident_state: String,
-    createdById: { type: String, ref: 'User', index: true, }, //userId.
+    createdById: { type: String, ref: 'User', index: true }, //userId.
     createdAt: {
         type: Date,
         default: Date.now,
@@ -27,7 +27,7 @@ const incidentMessageSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
 });
 
 incidentMessageSchema.virtual('incident', {

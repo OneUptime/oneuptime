@@ -100,7 +100,7 @@ include:
   - '/ci/spec/zapier/build-n-test.yaml'
 
   # E2E
-  - '/ci/spec/e2e/docker-compose-entreprise-test.yaml'
+  - '/ci/spec/e2e/docker-compose-enterprise-test.yaml'
   - '/ci/spec/e2e/docker-compose-test.yaml'
   - '/ci/spec/e2e/kubernetes-enterprise-test.yaml'
   - '/ci/spec/e2e/kubernetes-test.yaml'

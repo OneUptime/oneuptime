@@ -321,6 +321,19 @@ module.exports = {
             return;
         }
 
+        const alertProgress = {
+            emailProgress: null,
+            smsProgress: null,
+            callProgress: null,
+        };
+        const emailRem = currentEscalationStatus.emailRemindersSent + 1;
+        if (emailRem > 1) {
+            alertProgress.emailProgress = {
+                current: emailRem,
+                total: escalation.emailReminders,
+            };
+        }
+
         shouldSendSMSReminder =
             escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
         shouldSendCallReminder =
@@ -335,7 +348,7 @@ module.exports = {
             !shouldSendEmailReminder &&
             !shouldSendCallReminder
         ) {
-            _this.escalate({ schedule, incident });
+            _this.escalate({ schedule, incident, alertProgress });
         } else {
             _this.sendAlertsToTeamMembersInEscalationPolicy({
                 escalation,
@@ -343,11 +356,12 @@ module.exports = {
                 incident,
                 schedule,
                 onCallScheduleStatus,
+                alertProgress,
             });
         }
     },
 
-    escalate: async function({ schedule, incident }) {
+    escalate: async function({ schedule, incident, alertProgress }) {
         const _this = this;
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
@@ -414,6 +428,7 @@ module.exports = {
             incident,
             schedule,
             onCallScheduleStatus: callScheduleStatus,
+            alertProgress,
         });
     },
 
@@ -423,6 +438,7 @@ module.exports = {
         monitor,
         schedule,
         onCallScheduleStatus,
+        alertProgress,
     }) {
         const _this = this;
         const monitorId = monitor._id;
@@ -559,6 +575,7 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
+                        emailProgress: alertProgress.emailProgress,
                     });
                 }
 
@@ -587,9 +604,11 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
+        emailProgress,
     }) {
         const _this = this;
-        const probeName = incident.probes.length > 0 && incident.probes[0].probeId.probeName;
+        const probeName =
+            incident.probes.length > 0 && incident.probes[0].probeId.probeName;
         let date = new Date();
         const monitorId = monitor._id;
         const accessToken = UserService.getAccessToken({
@@ -688,7 +707,8 @@ module.exports = {
                     !incident.manuallyCreated && incident.criterionCause
                         ? incident.criterionCause.name
                         : '',
-                probeName
+                probeName,
+                emailProgress,
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -3133,6 +3153,4 @@ const componentService = require('./componentService');
 const {
     calculateHumanReadableDownTime,
     getIncidentLength,
-} = require('../utils/incident')
-;const ProbeService = require('./probeService');
-
+} = require('../utils/incident');

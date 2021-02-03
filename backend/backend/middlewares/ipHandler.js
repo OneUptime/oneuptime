@@ -10,7 +10,11 @@ const _this = {
         let statusPage;
 
         try {
-            if (statusPageId && statusPageId.length && statusPageId !== 'null') {
+            if (
+                statusPageId &&
+                statusPageId.length &&
+                statusPageId !== 'null'
+            ) {
                 statusPage = await StatusPageService.findOneBy({
                     _id: statusPageId,
                 });

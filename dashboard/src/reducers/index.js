@@ -44,6 +44,7 @@ import monitorSla from './monitorSla';
 import incomingRequest from './incomingRequest';
 import customField from './customField';
 import monitorCustomField from './monitorCustomField';
+import callRouting from './callRouting';
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -90,6 +91,7 @@ const appReducer = combineReducers({
     incomingRequest,
     customField,
     monitorCustomField,
+    callRouting,
 });
 
 export default (state, action) => {

@@ -64,8 +64,6 @@ module.exports = {
                 probeVersion = req.query.probeVersion;
             } else if (req.headers['probeversion']) {
                 probeVersion = req.headers['probeversion'];
-            } else if (req.headers['probeversion']) {
-                probeVersion = req.headers['probeversion'];
             } else if (req.body.probeVersion) {
                 probeVersion = req.body.probeVersion;
             }

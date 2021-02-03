@@ -18,7 +18,7 @@ const domainVerificationTokenSchema = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',
-        index: true
+        index: true,
     },
 });
 

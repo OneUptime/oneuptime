@@ -21,8 +21,10 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
-const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');
-const getMutex = require('../constants/mutexProvider');
+const multer = require('multer');
+const storage = require('../middlewares/upload');
+// const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');
+// const getMutex = require('../constants/mutexProvider');
 
 router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
@@ -68,6 +70,45 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
+// Route
+// Description: Updating profile setting.
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
+// Returns: 200: Success, 400: Error; 500: Server Error.
+router.put('/update/image', getUser, async function(req, res) {
+    try {
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'probeImage',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            const probeId = req.body.id;
+            const data = req.body;
+
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            if (
+                req.files &&
+                req.files.probeImage &&
+                req.files.probeImage[0].filename
+            ) {
+                data.probeImage = req.files.probeImage[0].filename;
+            }
+
+            // Call the ProbeService
+            const save = await ProbeService.updateOneBy({ _id: probeId }, data);
+            return sendItemResponse(req, res, save);
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/monitors', isAuthorizedProbe, async function(req, res) {
     try {
         const monitors = await MonitorService.getProbeMonitors(
@@ -105,15 +146,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     req,
     response
 ) {
-    let release;
+    // let release;
     try {
-        const monitorId = req.body.monitor
-            ? req.body.monitor._id.toString()
-            : '';
-        const mutex = getMutex(MUTEX_RESOURCES.MONITOR, monitorId);
-        if (mutex) {
-            release = await mutex.acquire();
-        }
+        // const monitorId = req.body.monitor
+        //     ? req.body.monitor._id.toString()
+        //     : '';
+
+        // const mutex = getMutex(MUTEX_RESOURCES.MONITOR, monitorId);
+        // if (mutex) {
+        //     release = await mutex.acquire();
+        // }
 
         const {
             monitor,
@@ -463,6 +505,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     data.scanning = false;
                     log = await ProbeService.saveLighthouseLog(data);
                 } else {
+                    data.matchedUpCriterion =
+                        monitor && monitor.criteria && monitor.criteria.up;
+                    data.matchedDownCriterion =
+                        monitor && monitor.criteria && monitor.criteria.down;
+                    data.matchedDegradedCriterion =
+                        monitor &&
+                        monitor.criteria &&
+                        monitor.criteria.degraded;
+
                     log = await ProbeService.saveMonitorLog(data);
                     if (type === 'script') {
                         await MonitorService.updateBy(
@@ -480,9 +531,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     } catch (error) {
         return sendErrorResponse(req, response, error);
     } finally {
-        if (release) {
-            release();
-        }
+        // if (release) {
+        //     release();
+        // }
     }
 });
 

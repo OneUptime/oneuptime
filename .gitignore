@@ -35,8 +35,11 @@ encrypted-credentials/
 
 _README.md
 
-
-# Important Add production values to gitignore. 
+# Important Add production values to gitignore.
 values-saas-production.yaml
 kubernetes/values-saas-production.yaml
 
+/private
+/public
+/tls_cert.pem
+/tls_key.pem

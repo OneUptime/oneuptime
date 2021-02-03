@@ -2,9 +2,9 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const incidentTimelineSchema = new Schema({
-    incidentId: { type: String, ref: 'Incident', index: true, },
-    createdById: { type: String, ref: 'User', index: true, }, // userId
-    probeId: { type: String, ref: 'Probe', index: true, }, // probeId
+    incidentId: { type: String, ref: 'Incident', index: true },
+    createdById: { type: String, ref: 'User', index: true }, // userId
+    probeId: { type: String, ref: 'Probe', index: true }, // probeId
 
     createdByZapier: {
         type: Boolean,

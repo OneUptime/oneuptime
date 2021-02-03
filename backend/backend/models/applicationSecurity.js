@@ -6,16 +6,20 @@ const applicationSecuritySchema = new Schema(
     {
         name: String,
         gitRepositoryUrl: String,
-        gitCredential: { type: Schema.Types.ObjectId, ref: 'GitCredential',index: true },
+        gitCredential: {
+            type: Schema.Types.ObjectId,
+            ref: 'GitCredential',
+            index: true,
+        },
         componentId: {
             type: Schema.Types.ObjectId,
             ref: 'Component',
-            index: true
+            index: true,
         },
         resourceCategory: {
             type: Schema.Types.ObjectId,
             ref: 'ResourceCategory',
-            index: true
+            index: true,
         },
         deleted: {
             type: Boolean,

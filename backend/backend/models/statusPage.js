@@ -20,7 +20,11 @@ const statusSchema = new Schema({
     ],
     monitors: [
         {
-            monitor: { type: Schema.Types.ObjectId, ref: 'Monitor', index: true, },
+            monitor: {
+                type: Schema.Types.ObjectId,
+                ref: 'Monitor',
+                index: true,
+            },
             description: String,
             uptime: Boolean,
             memory: Boolean,
@@ -99,6 +103,6 @@ const statusSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true, },
+    deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 });
 module.exports = mongoose.model('StatusPage', statusSchema);

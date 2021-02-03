@@ -1617,25 +1617,25 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
 `,
     },
     {
-      allowedVariables: [
-          '{{userName}} : User display name.',
-          '{{monitorName}} : Name of the monitor on which incident has occured.',
-          '{{componentName}} : Name of the component the monitor belongs to',
-          '{{projectName}} : Name of the project on which the incident has occured.',
-          '{{incidentTime}} : Time at which this incident occured.',
-          '{{incidentType}} : Type of incident.',
-          '{{userId}} : Unique identifier for user account.',
-          '{{projectId}} : Unique identifier for the current project.',
-          "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
-          '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
-          '{{incidentNoteStatus}} : Status of the incident note',
-          '{{incident.customFields.*}} : The value of any incident custom field',
-          '{{monitor.customFields.*}} : The value of any monitor custom field',
-          '{{incidentNote}} : The content of the investigation note'
-      ],
-      emailType: 'Investigation note is created',
-      subject: 'An update on an active incident for {{monitorName}}',
-      body: `
+        allowedVariables: [
+            '{{userName}} : User display name.',
+            '{{monitorName}} : Name of the monitor on which incident has occured.',
+            '{{componentName}} : Name of the component the monitor belongs to',
+            '{{projectName}} : Name of the project on which the incident has occured.',
+            '{{incidentTime}} : Time at which this incident occured.',
+            '{{incidentType}} : Type of incident.',
+            '{{userId}} : Unique identifier for user account.',
+            '{{projectId}} : Unique identifier for the current project.',
+            "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+            '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+            '{{incidentNoteStatus}} : Status of the incident note',
+            '{{incident.customFields.*}} : The value of any incident custom field',
+            '{{monitor.customFields.*}} : The value of any monitor custom field',
+            '{{incidentNote}} : The content of the investigation note',
+        ],
+        emailType: 'Investigation note is created',
+        subject: 'An update on an active incident for {{monitorName}}',
+        body: `
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
     <head>
@@ -2177,5 +2177,5 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
       <!-- /Background -->
     </body></html>
 `,
-  },
+    },
 ];

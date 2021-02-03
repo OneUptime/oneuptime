@@ -21,7 +21,7 @@ module.exports = {
                 .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
-                .populate('probes.probeId', 'probeName')
+                .populate('probes.probeId')
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
@@ -121,7 +121,7 @@ module.exports = {
                                 ? matchedCriterion.description
                                 : descriptionTemplate(templatesInput);
                         incident.criterionCause = {
-                            name: matchedCriterion.name,
+                            ...matchedCriterion,
                         };
 
                         incident.incidentPriority =
@@ -255,7 +255,7 @@ module.exports = {
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
                 .populate('incidentPriority', 'name color')
-                .populate('probes.probeId', 'probeName')
+                .populate('probes.probeId')
                 .populate({
                     path: 'monitorId',
                     select: '_id name',
@@ -304,7 +304,7 @@ module.exports = {
                 .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
-                .populate('probes.probeId', 'probeName')
+                .populate('probes.probeId')
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',

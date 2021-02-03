@@ -21,8 +21,8 @@ const monitorSchema = new Schema({
         type: Schema.Types.String,
     },
     response: Object,
-    monitorId: { type: String, ref: 'Monitor', index: true, }, // which monitor does this incident belongs to.
-    notificationId: { type: String, ref: 'Notification', index: true, },
+    monitorId: { type: String, ref: 'Monitor', index: true }, // which monitor does this incident belongs to.
+    notificationId: { type: String, ref: 'Notification', index: true },
     incidentPriority: {
         type: String,
         ref: 'IncidentPriority',
@@ -32,7 +32,7 @@ const monitorSchema = new Schema({
         type: Boolean,
         default: false,
     },
-    acknowledgedBy: { type: String, ref: 'User', index: true, }, // userId
+    acknowledgedBy: { type: String, ref: 'User', index: true }, // userId
     acknowledgedAt: {
         type: Date,
     },
@@ -72,7 +72,7 @@ const monitorSchema = new Schema({
     internalNote: { type: String, default: '' },
     investigationNote: { type: String, default: '' },
 
-    createdById: { type: String, ref: 'User', index: true, }, // userId
+    createdById: { type: String, ref: 'User', index: true }, // userId
 
     createdAt: {
         type: Date,
@@ -84,11 +84,9 @@ const monitorSchema = new Schema({
         default: false,
     }, // is true when zapier creates incident
 
-    notClosedBy: [{ type: String, ref: 'User', index: true, }],
+    notClosedBy: [{ type: String, ref: 'User', index: true }],
     manuallyCreated: { type: Boolean, default: false },
-    criterionCause: {
-        name: String,
-    },
+    criterionCause: Object,
 
     deleted: { type: Boolean, default: false },
 
@@ -96,7 +94,7 @@ const monitorSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User', index: true, },
+    deletedById: { type: String, ref: 'User', index: true },
     breachedCommunicationSla: { type: Boolean, default: false },
     customFields: [{ fieldName: String, fieldValue: Schema.Types.Mixed }],
     acknowledgedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },

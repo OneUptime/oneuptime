@@ -11,7 +11,11 @@ const scheduledEventsSchema = new Schema(
         },
         monitors: [
             {
-                monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor', index: true, },
+                monitorId: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'Monitor',
+                    index: true,
+                },
             },
         ],
         name: String,
@@ -58,7 +62,7 @@ const scheduledEventsSchema = new Schema(
             default: false,
         },
         resolved: { type: Boolean, default: false },
-        resolvedBy: { type: Schema.Types.ObjectId, ref: 'User', index: true, },
+        resolvedBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
         resolvedAt: Date,
     },
     { timestamps: true }
