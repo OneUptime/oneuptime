@@ -53,6 +53,7 @@ try {
     require('./version.test');
     require('./webhook.test');
     require('./zapier.test');
+    require('./ssoDefaultRoles.test');
 } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error);
