@@ -1161,7 +1161,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                         monitorType === 'api' ||
                         monitorType === 'script' ||
                         monitorType === 'server-monitor' ||
-                        monitorType === 'incomingHttpRequest')
+                        monitorType === 'incomingHttpRequest' ||
+                        monitorType === 'edge')
                     ? state.monitorCriteria.criteria[monitorType]
                     : null
             );

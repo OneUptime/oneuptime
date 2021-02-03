@@ -105,6 +105,9 @@ module.exports = {
                     } else if (data.type === 'incomingHttpRequest') {
                         monitor.data = {};
                         monitor.data.link = data.data.link;
+                    } else if (data.type === 'edge') {
+                        monitor.data = {};
+                        monitor.data.IPAddress = data.data.IPAddress;
                     }
                     if (resourceCategory) {
                         monitor.resourceCategory = data.resourceCategory;
@@ -120,7 +123,8 @@ module.exports = {
                         data.type === 'api' ||
                         data.type === 'server-monitor' ||
                         data.type === 'script' ||
-                        data.type === 'incomingHttpRequest'
+                        data.type === 'incomingHttpRequest' ||
+                        data.type === 'edge'
                     ) {
                         monitor.criteria = _.isEmpty(data.criteria)
                             ? MonitorCriteriaService.create(data.type)
@@ -501,6 +505,7 @@ module.exports = {
                                                 'device',
                                                 'api',
                                                 'incomingHttpRequest',
+                                                'edge',
                                             ],
                                         },
                                     },

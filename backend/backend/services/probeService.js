@@ -5256,6 +5256,7 @@ const criteriaStrings = {
     url: 'Website is',
     api: 'API is',
     incomingHttpRequest: 'Incoming request is',
+    edge: 'IP is',
 };
 
 const formatDecimal = (value, decimalPlaces, roundType) => {

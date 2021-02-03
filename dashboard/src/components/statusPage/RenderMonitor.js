@@ -194,6 +194,20 @@ let RenderMonitor = ({
                                             disabled={!shouldEdit}
                                         />
                                     )}
+                                    {type === 'edge' && (
+                                        <Fragment>
+                                            <Checkbox
+                                                label="Uptime"
+                                                name={`${monitor}.uptime`}
+                                                disabled={!shouldEdit}
+                                            />
+                                            <Checkbox
+                                                label="Response Time"
+                                                name={`${monitor}.responseTime`}
+                                                disabled={!shouldEdit}
+                                            />
+                                        </Fragment>
+                                    )}
                                     {type === 'server-monitor' && (
                                         <Fragment>
                                             <Checkbox

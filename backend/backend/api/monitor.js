@@ -236,6 +236,15 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 });
             }
         }
+        if (data.type === 'edge') {
+            if (!data.data.IPAddress) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Monitor data should have a `IPAddress` property of type string.',
+                });
+            }
+        }
         data.projectId = projectId;
         const monitor = await MonitorService.create(data);
         if (data.callScheduleIds && data.callScheduleIds.length) {
