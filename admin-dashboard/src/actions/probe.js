@@ -1,4 +1,4 @@
-import { getApi, deleteApi, postApi } from '../api';
+import { getApi, deleteApi, postApi, putApi } from '../api';
 import * as types from '../constants/probe';
 import errors from '../errors';
 
@@ -157,6 +157,67 @@ export const addProbe = (probeKey, probeName) => async dispatch => {
         const data = response.data;
         dispatch(addProbeSuccess(data));
         return 'ok';
+    } catch (error) {
+        let errorMsg;
+        if (error && error.response && error.response.data)
+            errorMsg = error.response.data;
+        if (error && error.data) {
+            errorMsg = error.data;
+        }
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else {
+            errorMsg = 'Network Error';
+        }
+        dispatch(addProbeError(errors(errorMsg)));
+        return 'error';
+    }
+};
+
+//Update Probe
+export const updateProbeRequest = () => {
+    return {
+        type: types.UPDATE_PROBE_REQUEST,
+    };
+};
+
+export const updateProbeReset = () => {
+    return {
+        type: types.UPDATE_PROBE_RESET,
+    };
+};
+
+export const updateProbeSuccess = value => {
+    return {
+        type: types.UPDATE_PROBE_SUCCESS,
+        payload: value,
+    };
+};
+
+export const updateProbeError = error => {
+    return {
+        type: types.UPDATE_PROBE_FAILED,
+        payload: error,
+    };
+};
+
+// Calls the API to update a probe
+export const updateProbe = values => async dispatch => {
+    dispatch(updateProbeRequest());
+
+    try {
+        const data = new FormData();
+        data.append('probeImage', values.probeImage);
+        data.append('id', values.id);
+
+        const response = await putApi('probe/update/image', data);
+        const resp = response.data;
+        if (Object.keys(resp).length > 0) {
+            dispatch(updateProbeSuccess(resp));
+            return 'ok';
+        } else {
+            dispatch(addProbeError(errors('Network Error')));
+        }
     } catch (error) {
         let errorMsg;
         if (error && error.response && error.response.data)

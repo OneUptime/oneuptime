@@ -21,6 +21,8 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
+const multer = require('multer');
+const storage = require('../middlewares/upload');
 // const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');
 // const getMutex = require('../constants/mutexProvider');
 
@@ -63,6 +65,45 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const probe = await ProbeService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, probe);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// Description: Updating profile setting.
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
+// Returns: 200: Success, 400: Error; 500: Server Error.
+router.put('/update/image', getUser, async function(req, res) {
+    try {
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'probeImage',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            const probeId = req.body.id;
+            const data = req.body;
+
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            if (
+                req.files &&
+                req.files.probeImage &&
+                req.files.probeImage[0].filename
+            ) {
+                data.probeImage = req.files.probeImage[0].filename;
+            }
+
+            // Call the ProbeService
+            const save = await ProbeService.updateOneBy({ _id: probeId }, data);
+            return sendItemResponse(req, res, save);
+        });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
