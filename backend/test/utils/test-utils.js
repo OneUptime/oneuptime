@@ -307,6 +307,10 @@ module.exports = {
         await request
             .get(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization),
+    deleteSsoDefaultRole: async({request, authorization, id })=>
+        await request
+            .delete(`/api/ssoDefaultRoles/${id}`)
+            .set('Authorization', authorization),
     fetchIdpSAMLResponse: async ({ 
         SAMLRequest,
         username,
