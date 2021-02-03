@@ -412,7 +412,6 @@ module.exports = {
             return components;
         } else {
             component = component[0];
-            console.log('runnning dude')
             if (component) {
                 const componentId = component._id;
                 component = await _this.updateOneBy(
