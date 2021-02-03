@@ -1033,8 +1033,9 @@ export class IncidentMessageThread extends Component {
                                                                                 : 'bs-note-offline'
                                                                         }`}
                                                             ></div>
-                                                            <div className="bs-incident-notes-content">
-                                                                <div className="bs-note-display-flex bs-mob-block">
+                                                            <div className="bs-incident-notes-content bs-incident-notes-cont">
+                                                                <div className="bs-note-display-flex bs-mob-block bs-desktop-in">
+                                                                    <div className="bs-desktop-div">
                                                                     <div
                                                                         className="Box-root bs-note-7"
                                                                         style={{
@@ -1084,9 +1085,9 @@ export class IncidentMessageThread extends Component {
                                                                         </span>
                                                                     </div>
                                                                     <div>
-                                                                        is
-                                                                        notified
-                                                                        by{' '}
+                                                                        is 
+                                                                        {incidentMessage.error && ' not '}
+                                                                        {' notified by '}
                                                                         {incidentMessage.alertVia ===
                                                                         'email'
                                                                             ? 'an'
@@ -1098,30 +1099,24 @@ export class IncidentMessageThread extends Component {
                                                                                 fontWeight:
                                                                                     '600',
                                                                                 textTransform:
-                                                                                    'uppercase',
+                                                                                    'capitalize',
                                                                             }}
                                                                         >
                                                                             {
                                                                                 incidentMessage.alertVia
                                                                             }
-                                                                        </span>{' '}
-                                                                        because
-                                                                        an
-                                                                        incident
-                                                                        was{' '}
-                                                                        <span
-                                                                            style={{
-                                                                                fontWeight:
-                                                                                    '600',
-                                                                            }}
-                                                                        >
-                                                                            {incidentMessage.eventType ===
-                                                                            'identified'
-                                                                                ? 'created'
-                                                                                : incidentMessage.eventType}
-                                                                        </span>
+                                                                        </span>{' because an '}
+                                                                        {
+                                                                            incidentMessage.error ? 'error ocurred'
+                                                                            :
+                                                                            'incident was '
+                                                                        }
+                                                                        <span className="bs-in-style">{!incidentMessage.error && 
+                                                                            (incidentMessage.eventType === 'identified'
+                                                                            ? 'created' :
+                                                                            incidentMessage.eventType)}</span>
                                                                     </div>
-                                                                    <div>
+                                                                    <div className="bs-desk-list">
                                                                         <span className="db-ListViewItem-link">
                                                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -1153,7 +1148,10 @@ export class IncidentMessageThread extends Component {
                                                                                                         >
                                                                                                             <span>
                                                                                                                 {
-                                                                                                                    incidentMessage.alertStatus
+                                                                                                                    incidentMessage.alertStatus ===
+                                                                                                                    'Success' 
+                                                                                                                    ? incidentMessage.alertStatus :
+                                                                                                                    'error'
                                                                                                                 }
                                                                                                             </span>
                                                                                                         </span>
@@ -1166,8 +1164,14 @@ export class IncidentMessageThread extends Component {
                                                                             </div>
                                                                         </span>
                                                                     </div>
+                                                                    </div>
+                                                                    {
+                                                                        incidentMessage.alertProgress ?
+                                                                        <div>{incidentMessage.alertProgress}</div>
+                                                                        :<div style={{opacity: '0'}}>1/4</div>
+                                                                    }
                                                                 </div>
-                                                                <div>
+                                                                <div className="bs-timeline-date">
                                                                     <span>
                                                                         {currentTimeZone
                                                                             ? momentTz(
