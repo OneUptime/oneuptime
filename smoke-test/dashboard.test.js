@@ -70,7 +70,6 @@ describe('Monitor API', () => {
             await page.waitForSelector(`#advanced`);
             await page.click(`#advanced`);
 
-
             await page.waitForSelector(`#delete-component-${componentName}`);
             await page.click(`#delete-component-${componentName}`);
             await page.waitForSelector('#deleteComponent');
