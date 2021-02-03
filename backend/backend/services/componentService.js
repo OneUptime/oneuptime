@@ -126,8 +126,8 @@ module.exports = {
                     }
                 );
             }
+            query.deleted = false
             component = await this.findOneBy(query);
-
             await RealTimeService.componentEdit(component);
 
             return component;
@@ -412,6 +412,7 @@ module.exports = {
             return components;
         } else {
             component = component[0];
+            console.log('runnning dude')
             if (component) {
                 const componentId = component._id;
                 component = await _this.updateOneBy(
