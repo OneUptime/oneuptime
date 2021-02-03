@@ -3,7 +3,7 @@ chai.use(require('chai-http'));
 const expect = require('chai').expect;
 const decode = require('urldecode');
 
-module.exports = {
+const methods= {
     getAuthorizationHeader: ({ jwtToken }) => `Basic ${jwtToken}`,
     login: async ({ request, email, password }) =>
         await request
@@ -365,3 +365,28 @@ module.exports = {
         return SAMLResponse;
     },
 };
+
+
+const proxy = new Proxy(
+    methods,
+    {
+        shared:{},
+        setShared:function(args){
+            this.shared= {...this.shared,...args};
+            return this.shared;
+        },
+        unsetShared:function(attribute){
+            if(this.shared[attribute])
+                delete this.shared[attribute];
+            return this.shared;
+        },
+        get:function(target, prop){
+            if(this[prop] )
+              return (args={})=>this[prop](args)
+            return (args={})=>target[prop]({...this.shared,...args})
+            
+        },
+    }
+);
+
+module.exports = proxy;
