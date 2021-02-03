@@ -150,7 +150,7 @@ export function getProjects(switchToProjectId) {
                             project =>
                                 project._id === User.getCurrentProjectId()
                         );
-                        if(project.length > 0){
+                        if (project.length > 0) {
                             dispatch(switchProject(dispatch, project[0]));
                             projectSwitched = true;
                         }
