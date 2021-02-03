@@ -1,11 +1,22 @@
+const chai = require('chai');
+chai.use(require('chai-http'));
+const expect = require('chai').expect;
+const decode = require('urldecode');
+
 module.exports = {
     getAuthorizationHeader: ({ jwtToken }) => `Basic ${jwtToken}`,
-    login: async ({ request, email, password }) => {
-        return await request.post('/user/login').send({
-            email,
-            password,
-        });
-    },
+    login: async ({ request, email, password }) =>
+        await request
+            .post('/user/login')
+            .send({
+                email,
+                password,
+            }),
+    ssoLogin: async({request, email,})=>
+        await request
+            .get(
+                `/api/user/sso/login?email=${email}`
+            ),
     /**
    * Example of payload:
       const payload = {
@@ -250,6 +261,10 @@ module.exports = {
             .post(`/api/project/create`)
             .set('Authorization', authorization)
             .send(payload),
+    fetchProject: async ({ request, authorization, projectId }) =>
+        await request
+            .get(`/api/project/projects/${projectId}`)
+            .set('Authorization', authorization),
     /**
      *  examplePayload = {
      *      'saml-enabled': 
@@ -291,6 +306,52 @@ module.exports = {
     fetchSsoDefaultRole: async({request, authorization, id })=>
         await request
             .get(`/api/ssoDefaultRoles/${id}`)
-            .set('Authorization', authorization)
-
+            .set('Authorization', authorization),
+    fetchIdpSAMLResponse: async ({ 
+        SAMLRequest,
+        username,
+        password,
+    }) =>{
+        let firstIdpResponse;
+        try {
+            const response = await chai
+                .request(SAMLRequest)
+                .get('')
+                .redirects(0);
+            expect(response).to.have.status(302);
+            firstIdpResponse = response;
+        } catch (error) {
+            expect(error.response).to.have.status(302);
+            firstIdpResponse = error.response;
+        }
+    
+        const {
+            headers: { location, 'set-cookie': cookies },
+        } = firstIdpResponse;
+        const [postSubmissionUrl, AuthState] = location.split('AuthState=');
+    
+        const samlResponsePage = await chai
+            .request(postSubmissionUrl)
+            .post('')
+            .set('Referer', SAMLRequest)
+            .set('Content-Type', 'application/x-www-form-urlencoded')
+            .set('Cookie', cookies[0])
+            .send({
+                username,
+                password,
+                AuthState: decode(AuthState),
+            });
+    
+        const {
+            res: { text: html },
+        } = samlResponsePage;
+        const { parse } = require('node-html-parser');
+        const root = parse(html);
+        // const form = root.querySelector('form');
+        // const callbackUrl = form.rawAttrs.split('\"')[3]
+        const input = root.querySelectorAll('input')[1];
+        const value = input.rawAttrs.split(' ')[2];
+        const SAMLResponse = value.split('"')[1];
+        return SAMLResponse;
+    },
 };
