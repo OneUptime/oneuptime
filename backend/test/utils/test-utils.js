@@ -265,6 +265,10 @@ module.exports = {
         await request
             .get(`/api/project/projects/${projectId}`)
             .set('Authorization', authorization),
+    deleteProject: async ({ request, authorization, id }) =>
+        await request
+            .delete(`/api/project/${id}/deleteProject`)
+            .set('Authorization', authorization),
     /**
      *  examplePayload = {
      *      'saml-enabled': 

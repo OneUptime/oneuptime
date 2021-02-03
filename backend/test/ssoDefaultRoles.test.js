@@ -28,8 +28,9 @@ let adminId,
     ssoDefaultRole3;
 
 /**
- *  ssoId1 is refered by ssoDefaultRole1 & ssoDefaultRole3
- *  ssoId2 is refered by ssoDefaultRole2
+ *  ssoId1 <-> ssoDefaultRole1  <-> projectId1
+ *  ssoId1 <-> ssoDefaultRole3  <-> projectId2 
+ *  ssoId2 <-> ssoDefaultRole2  <-> projectId1
  */
 
 const sso1CreationPayload = {
@@ -351,6 +352,20 @@ describe('SSO DEFAULT ROLES API', function() {
             request, 
             authorization:adminAuthorizationHeader,
             id:ssoId2,
+        });
+        expect(deleteResponse).to.have.status(200);
+        const fetchResponse= await testUtils.fetchSsoDefaultRole({
+            request,
+            authorization:adminAuthorizationHeader,
+            id:ssoDefaultRole2,
+        });
+        expect(fetchResponse).to.have.status(404);
+    });
+    it('should delete all default SSO roles related to a project, when the project is deleted',async()=>{
+        const deleteResponse= await testUtils.deleteProject({
+            request, 
+            authorization:adminAuthorizationHeader,
+            id:projectId2,
         });
         expect(deleteResponse).to.have.status(200);
         const fetchResponse= await testUtils.fetchSsoDefaultRole({
