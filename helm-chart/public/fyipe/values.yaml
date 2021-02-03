@@ -158,10 +158,10 @@ nginx-ingress-controller:
 haraka:
   user: "sample@company.com"
   password: "fyipe"
-  domain: "globalminimalism.com"
-  privateKey: $PRIVATE_KEY
-  tlsCert: $TLS_CERT
-  tlsKey: $TLS_KEY
+  domain:
+  privateKey:
+  tlsCert:
+  tlsKey:
 
 host: 
   backendPort: 3002
