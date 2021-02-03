@@ -16,7 +16,6 @@ const SsoService = require('../backend/services/ssoService');
 const testUtils = require('./utils/test-utils');
 const queryString = require('query-string');
 
-
 let adminId,
     userId,
     adminAuthorizationHeader,
@@ -27,6 +26,11 @@ let adminId,
     ssoDefaultRole1,
     ssoDefaultRole2,
     ssoDefaultRole3;
+
+/**
+ *  ssoId1 is refered by ssoDefaultRole1 & ssoDefaultRole3
+ *  ssoId2 is refered by ssoDefaultRole2
+ */
 
 const sso1CreationPayload = {
     'saml-enabled': 
@@ -342,6 +346,18 @@ describe('SSO DEFAULT ROLES API', function() {
         )).to.equal(true);
     });
 
-    // it('should delete all default SSO roles when an SSO is deleted',async()=>{
-    // });
+    it('should delete all default SSO roles related to a SSO, when the SSO is deleted',async()=>{
+        const deleteResponse= await testUtils.deleteSso({
+            request, 
+            authorization:adminAuthorizationHeader,
+            id:ssoId2,
+        });
+        expect(deleteResponse).to.have.status(200);
+        const fetchResponse= await testUtils.fetchSsoDefaultRole({
+            request,
+            authorization:adminAuthorizationHeader,
+            id:ssoDefaultRole2,
+        });
+        expect(fetchResponse).to.have.status(404);
+    });
 });

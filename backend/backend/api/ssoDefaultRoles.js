@@ -47,6 +47,11 @@ router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
         const sso = await SsoDefaultRolesService.findOneBy({
             _id: req.params.id,
         });
+        if(!sso) {
+            const error = new Error("Requested resource doesn't exist.");
+            error.code = 404;
+            throw error;
+        }
         return sendItemResponse(req, res, sso);
     } catch (error) {
         return sendErrorResponse(req, res, error);

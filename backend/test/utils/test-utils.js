@@ -282,6 +282,10 @@ module.exports = {
             .post(`/api/sso/`)
             .set('Authorization', authorization)
             .send(payload),
+    deleteSso: async ({ request, authorization, id }) =>
+        await request
+            .delete(`/api/sso/${id}`)
+            .set('Authorization', authorization),
     /**
      *  examplePayload = {
      *      domain: "6017d3105299cd0725598155",
@@ -351,8 +355,6 @@ module.exports = {
         } = samlResponsePage;
         const { parse } = require('node-html-parser');
         const root = parse(html);
-        // const form = root.querySelector('form');
-        // const callbackUrl = form.rawAttrs.split('\"')[3]
         const input = root.querySelectorAll('input')[1];
         const value = input.rawAttrs.split(' ')[2];
         const SAMLResponse = value.split('"')[1];
