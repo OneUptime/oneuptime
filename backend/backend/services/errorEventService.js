@@ -223,10 +223,19 @@ module.exports = {
     async findOneWithPrevAndNext(errorEventId, errorTrackerId) {
         try {
             let previous, next;
-            const errorEvent = await this.findOneBy({
+            let errorEvent = await this.findOneBy({
                 _id: errorEventId,
                 errorTrackerId: errorTrackerId,
             });
+
+            // add issue timeline to this error event
+            const issueTimeline = await IssueTimelineService.findBy({
+                issueId: errorEvent.issueId._id,
+            });
+
+            errorEvent = JSON.parse(JSON.stringify(errorEvent));
+            errorEvent.issueId.timeline = issueTimeline;
+
             const previousErrorEvent = await ErrorEventModel.find({
                 _id: { $lt: errorEventId },
                 errorTrackerId: errorEvent.errorTrackerId,

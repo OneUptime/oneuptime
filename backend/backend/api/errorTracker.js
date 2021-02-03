@@ -556,7 +556,7 @@ router.post(
                 };
                 const currentIssue = await IssueService.findOneBy(query);
                 if (currentIssue) {
-                    const issue = await IssueService.updateOneBy(
+                    let issue = await IssueService.updateOneBy(
                         query,
                         updateData
                     );
@@ -569,6 +569,13 @@ router.post(
                     };
 
                     await IssueTimelineService.create(timelineData);
+                    issue = JSON.parse(JSON.stringify(issue));
+
+                    // get the timeline attahced to this issue annd add it to the issue
+
+                    issue.timeline = await IssueTimelineService.findBy({
+                        issueId: currentIssueId,
+                    });
                     issues.push(issue);
 
                     // update a timeline object
