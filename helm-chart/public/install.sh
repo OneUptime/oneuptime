@@ -3,6 +3,22 @@
 # This is used to install Fyipe on a standalone VM
 # This is usally used for CI/CD testing, and to update VM's on GCP, Azure and AWS. 
 
+# create private key and public key
+echo "Setup private and public key"
+openssl genrsa -out private 2048
+chmod 0400 private
+openssl rsa -in private -out public -pubout
+# value of DKIM dns record
+echo "DKIM DNS TXT Record"
+echo "DNS Selector: fyipe._domainkey"
+echo "DNS Value: v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
+export PRIVATE_KEY=$(cat private | base64)
+# generate tls_cert.pem and tls_key.pem files with there keys
+echo "Setup tls_cert and tls_key"
+openssl req -x509 -nodes -days 2190 -newkey rsa:2048 -keyout tls_key.pem -out tls_cert.pem -subj "/C=US/ST=Massachusetts/L=Boston/O=Hackerbay/CN=globalminimalism.com"
+# Encode your tls to base64 and export it
+export TLS_KEY=$(cat tls_key.pem | base64)
+export TLS_CERT=$(cat tls_cert.pem | base64)
 
 # If this is the first install, then helm wont be found. 
 if [[ ! $(which helm) ]]
@@ -167,7 +183,11 @@ then
             --set image.tag=$AVAILABLE_VERSION \
             --set fyipe.admin.email=admin@admin.com \
             --set disableSignup=true \
-            --set fyipe.admin.password=$INSTANCEID 
+            --set fyipe.admin.password=$INSTANCEID \
+            --set haraka.domain=globalminimalism.com \
+            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.tlsCert=$TLS_CERT \
+            --set haraka.tlsKey=$TLS_KEY
             
         else
             # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. This is used for Azure and AWS.
@@ -175,7 +195,11 @@ then
             --set isThirdPartyBilling=true \
             --set nginx-ingress-controller.service.type=NodePort \
             --set nginx-ingress-controller.hostNetwork=true \
-            --set image.tag=$AVAILABLE_VERSION
+            --set image.tag=$AVAILABLE_VERSION \
+            --set haraka.domain=globalminimalism.com \
+            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.tlsCert=$TLS_CERT \
+            --set haraka.tlsKey=$TLS_KEY
         fi
     else
         updateinstallation
@@ -187,9 +211,17 @@ then
         # install services.
         if [[ "$2" == "enterprise" ]]
         then
-            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fyipe ./helm-chart/public/fyipe
+            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fyipe ./helm-chart/public/fyipe \
+            --set haraka.domain=globalminimalism.com \
+            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.tlsCert=$TLS_CERT \
+            --set haraka.tlsKey=$TLS_KEY
         else
-            sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe
+            sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe \
+            --set haraka.domain=globalminimalism.com \
+            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.tlsCert=$TLS_CERT \
+            --set haraka.tlsKey=$TLS_KEY
         fi
     else
         sudo k delete job fyipe-init-script || echo "init-script already deleted"
@@ -198,11 +230,15 @@ then
 else
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
-        # set service of type nodeport for VM's. 
+        # set service of type nodeport for VM's.
         sudo helm install fyipe fyipe/Fyipe \
         --set nginx-ingress-controller.service.type=NodePort \
         --set nginx-ingress-controller.hostNetwork=true \
-        --set image.tag=$AVAILABLE_VERSION
+        --set image.tag=$AVAILABLE_VERSION \
+        --set haraka.domain=globalminimalism.com \
+        --set haraka.privateKey=$PRIVATE_KEY \
+        --set haraka.tlsCert=$TLS_CERT \
+        --set haraka.tlsKey=$TLS_KEY
     else
         updateinstallation
     fi
