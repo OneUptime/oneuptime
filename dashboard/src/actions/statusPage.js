@@ -800,14 +800,92 @@ export function duplicateStatusPageError(error) {
 }
 
 export function readStatusPage(statusPageId, data) {
-    return getApi(`statusPage/${statusPageId}`, data);
+    return function(dispatch) {
+        const promise = getApi(`statusPage/${statusPageId}`, data);
+        dispatch(duplicateStatusPageRequest());
+        promise.then(
+            function(response) {
+                const statusPageData = response.data;
+                delete statusPageData._id;
+                statusPageData.name = data.name;
+                return response;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(duplicateStatusPageError(errors(error)));
+            }
+        );
+        return promise;
+    };
 }
 
 export function createDuplicateStatusPage(statusPageData) {
-    return postApi(
-        `statusPage/${statusPageData.projectId._id}`,
-        statusPageData
-    );
+    return function(dispatch) {
+        const promise = postApi(
+            `statusPage/${statusPageData.data.projectId._id}`,
+            statusPageData.data
+        );
+        promise.then(
+            function(response) {
+                return response;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(duplicateStatusPageError(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+
+export function fetchStatusPage(statusPageId) {
+    return function(dispatch) {
+        const promise = getApi(`statusPage/${statusPageId}`);
+        promise.then(
+            function(response) {
+                const statusPageData = response.data;
+                dispatch(duplicateStatusPageSuccess(statusPageData));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(duplicateStatusPageError(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+
+export function duplicateStatusPageReset() {
+    return {
+        type: types.DUPLICATE_STATUSPAGE_RESET,
+    };
 }
 
 //Update status page embedded css

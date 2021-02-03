@@ -10,7 +10,7 @@ module.exports = {
      * @param {Object} incident the current incident
      * @returns {Object[]} list of schedules
      */
-    getSchedulesForAlerts: async function(incident) {
+    getSchedulesForAlerts: async function (incident) {
         try {
             const monitorId = incident.monitorId._id || incident.monitorId;
             const projectId = incident.projectId._id || incident.projectId;
@@ -51,7 +51,7 @@ module.exports = {
         }
     },
 
-    doesPhoneNumberComplyWithHighRiskConfig: async function(
+    doesPhoneNumberComplyWithHighRiskConfig: async function (
         projectId,
         alertPhoneNumber
     ) {
@@ -70,7 +70,7 @@ module.exports = {
         }
         return false;
     },
-    findBy: async function({ query, skip, limit, sort }) {
+    findBy: async function ({ query, skip, limit, sort }) {
         try {
             if (!skip) skip = 0;
 
@@ -105,7 +105,7 @@ module.exports = {
         }
     },
 
-    create: async function({
+    create: async function ({
         projectId,
         monitorId,
         alertVia,
@@ -146,7 +146,7 @@ module.exports = {
         }
     },
 
-    countBy: async function(query) {
+    countBy: async function (query) {
         try {
             if (!query) {
                 query = {};
@@ -161,7 +161,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -184,7 +184,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -202,7 +202,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function (query, userId) {
         try {
             if (!query) {
                 query = {};
@@ -229,7 +229,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncident: async function(incident) {
+    sendCreatedIncident: async function (incident) {
         try {
             if (incident) {
                 const _this = this;
@@ -249,7 +249,7 @@ module.exports = {
         }
     },
 
-    sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
+    sendAlertsToTeamMembersInSchedule: async function ({ schedule, incident }) {
         const _this = this;
         const monitorId = incident.monitorId._id
             ? incident.monitorId._id
@@ -303,7 +303,7 @@ module.exports = {
             onCallScheduleStatus = callScheduleStatuses[0];
             currentEscalationStatus =
                 onCallScheduleStatus.escalations[
-                    onCallScheduleStatus.escalations.length - 1
+                onCallScheduleStatus.escalations.length - 1
                 ];
             escalationId = currentEscalationStatus.escalation._id;
         }
@@ -321,6 +321,19 @@ module.exports = {
             return;
         }
 
+        let alertProgress = {
+            emailProgress: null,
+            smsProgress: null,
+            callProgress: null
+        };
+        const emailRem = currentEscalationStatus.emailRemindersSent + 1;
+        if (emailRem > 1) {
+            alertProgress.emailProgress = {
+                current: emailRem,
+                total: escalation.emailReminders
+            }
+        }
+
         shouldSendSMSReminder =
             escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
         shouldSendCallReminder =
@@ -335,7 +348,7 @@ module.exports = {
             !shouldSendEmailReminder &&
             !shouldSendCallReminder
         ) {
-            _this.escalate({ schedule, incident });
+            _this.escalate({ schedule, incident, alertProgress });
         } else {
             _this.sendAlertsToTeamMembersInEscalationPolicy({
                 escalation,
@@ -343,11 +356,12 @@ module.exports = {
                 incident,
                 schedule,
                 onCallScheduleStatus,
+                alertProgress
             });
         }
     },
 
-    escalate: async function({ schedule, incident }) {
+    escalate: async function ({ schedule, incident, alertProgress }) {
         const _this = this;
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
@@ -391,7 +405,7 @@ module.exports = {
         if (
             !nextEscalationPolicy ||
             nextEscalationPolicy._id.toString() !==
-                activeEscalation._id.toString()
+            activeEscalation._id.toString()
         ) {
             callScheduleStatus.alertedEveryone = true;
             await callScheduleStatus.save();
@@ -414,15 +428,17 @@ module.exports = {
             incident,
             schedule,
             onCallScheduleStatus: callScheduleStatus,
+            alertProgress
         });
     },
 
-    sendAlertsToTeamMembersInEscalationPolicy: async function({
+    sendAlertsToTeamMembersInEscalationPolicy: async function ({
         escalation,
         incident,
         monitor,
         schedule,
         onCallScheduleStatus,
+        alertProgress
     }) {
         const _this = this;
         const monitorId = monitor._id;
@@ -437,7 +453,7 @@ module.exports = {
         const activeTeam = escalation.activeTeam;
         const currentEscalationStatus =
             onCallScheduleStatus.escalations[
-                onCallScheduleStatus.escalations.length - 1
+            onCallScheduleStatus.escalations.length - 1
             ];
 
         const shouldSendSMSReminder =
@@ -559,6 +575,7 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
+                        emailProgress: alertProgress.emailProgress
                     });
                 }
 
@@ -578,7 +595,7 @@ module.exports = {
         }
     },
 
-    sendEmailAlert: async function({
+    sendEmailAlert: async function ({
         incident,
         user,
         project,
@@ -587,6 +604,7 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
+        emailProgress
     }) {
         const _this = this;
         const probeName =
@@ -617,8 +635,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                hasGlobalSmtpSettings.value &&
-                hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -690,6 +708,7 @@ module.exports = {
                         ? incident.criterionCause.name
                         : '',
                 probeName,
+                emailProgress
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -721,7 +740,7 @@ module.exports = {
         }
     },
 
-    sendSlaEmailToTeamMembers: async function(
+    sendSlaEmailToTeamMembers: async function (
         { projectId, monitor, incidentCommunicationSla, incident, alertTime },
         breached = false
     ) {
@@ -738,8 +757,8 @@ module.exports = {
                 );
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
-                    hasGlobalSmtpSettings.value &&
-                    hasGlobalSmtpSettings.value['email-enabled']
+                        hasGlobalSmtpSettings.value &&
+                        hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -807,7 +826,7 @@ module.exports = {
         }
     },
 
-    sendCallAlert: async function({
+    sendCallAlert: async function ({
         incident,
         user,
         project,
@@ -847,8 +866,8 @@ module.exports = {
         });
         const areAlertsEnabledGlobally =
             hasGlobalTwilioSettings &&
-            hasGlobalTwilioSettings.value &&
-            hasGlobalTwilioSettings.value['call-enabled']
+                hasGlobalTwilioSettings.value &&
+                hasGlobalTwilioSettings.value['call-enabled']
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
@@ -1004,7 +1023,7 @@ module.exports = {
         }
     },
 
-    sendSMSAlert: async function({
+    sendSMSAlert: async function ({
         incident,
         user,
         project,
@@ -1041,8 +1060,8 @@ module.exports = {
         });
         const areAlertsEnabledGlobally =
             hasGlobalTwilioSettings &&
-            hasGlobalTwilioSettings.value &&
-            hasGlobalTwilioSettings.value['sms-enabled']
+                hasGlobalTwilioSettings.value &&
+                hasGlobalTwilioSettings.value['sms-enabled']
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
@@ -1207,7 +1226,7 @@ module.exports = {
         }
     },
 
-    sendStausPageNoteNotificationToProjectWebhooks: async function(
+    sendStausPageNoteNotificationToProjectWebhooks: async function (
         projectId,
         incident,
         statusPageNoteData
@@ -1259,7 +1278,7 @@ module.exports = {
         }
     },
 
-    sendInvestigationNoteToSubscribers: async function(
+    sendInvestigationNoteToSubscribers: async function (
         incident,
         data,
         statusNoteStatus
@@ -1308,7 +1327,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncidentToSubscribers: async function(incident, component) {
+    sendCreatedIncidentToSubscribers: async function (incident, component) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -1363,7 +1382,7 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentMail: async function(incident) {
+    sendAcknowledgedIncidentMail: async function (incident) {
         try {
             const _this = this;
             if (incident) {
@@ -1507,7 +1526,7 @@ module.exports = {
         }
     },
 
-    sendAcknowledgeEmailAlert: async function({
+    sendAcknowledgeEmailAlert: async function ({
         incident,
         user,
         project,
@@ -1543,8 +1562,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                hasGlobalSmtpSettings.value &&
-                hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -1665,7 +1684,7 @@ module.exports = {
         }
     },
 
-    sendResolveIncidentMail: async function(incident) {
+    sendResolveIncidentMail: async function (incident) {
         try {
             const _this = this;
             if (incident) {
@@ -1806,7 +1825,7 @@ module.exports = {
         }
     },
 
-    sendResolveEmailAlert: async function({
+    sendResolveEmailAlert: async function ({
         incident,
         user,
         project,
@@ -1841,8 +1860,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                hasGlobalSmtpSettings.value &&
-                hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -1962,7 +1981,7 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentToSubscribers: async function(incident) {
+    sendAcknowledgedIncidentToSubscribers: async function (incident) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -2016,7 +2035,7 @@ module.exports = {
         }
     },
 
-    sendResolvedIncidentToSubscribers: async function(incident) {
+    sendResolvedIncidentToSubscribers: async function (incident) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -2070,7 +2089,7 @@ module.exports = {
         }
     },
 
-    sendSubscriberAlert: async function(
+    sendSubscriberAlert: async function (
         subscriber,
         incident,
         templateType = 'Subscriber Incident Created',
@@ -2239,8 +2258,8 @@ module.exports = {
                 );
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
-                    hasGlobalSmtpSettings.value &&
-                    hasGlobalSmtpSettings.value['email-enabled']
+                        hasGlobalSmtpSettings.value &&
+                        hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -2498,8 +2517,8 @@ module.exports = {
                     );
                     const areAlertsEnabledGlobally =
                         hasGlobalTwilioSettings &&
-                        hasGlobalTwilioSettings.value &&
-                        hasGlobalTwilioSettings.value['sms-enabled']
+                            hasGlobalTwilioSettings.value &&
+                            hasGlobalTwilioSettings.value['sms-enabled']
                             ? true
                             : false;
 
@@ -2935,7 +2954,7 @@ module.exports = {
         return false;
     },
 
-    getSubProjectAlerts: async function(subProjectIds) {
+    getSubProjectAlerts: async function (subProjectIds) {
         const _this = this;
         const subProjectAlerts = await Promise.all(
             subProjectIds.map(async id => {
@@ -2951,7 +2970,7 @@ module.exports = {
         return subProjectAlerts;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         try {
             await AlertModel.deleteMany(query);
             return 'Alert(s) removed successfully';
@@ -2961,7 +2980,7 @@ module.exports = {
         }
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
         let alert = await _this.findBy({ query });
@@ -3003,7 +3022,7 @@ module.exports = {
     },
 
     //Return true, if the limit is not reached yet.
-    checkPhoneAlertsLimit: async function(projectId) {
+    checkPhoneAlertsLimit: async function (projectId) {
         const _this = this;
         const hasCustomSettings = await TwilioService.hasCustomSettings(
             projectId
@@ -3042,7 +3061,7 @@ module.exports = {
         }
     },
 
-    sendUnpaidSubscriptionEmail: async function(project, user) {
+    sendUnpaidSubscriptionEmail: async function (project, user) {
         try {
             const { name: userName, email: userEmail } = user;
             const { stripePlanId, _id: projectId, name: projectName } = project;
@@ -3062,7 +3081,7 @@ module.exports = {
         }
     },
 
-    sendProjectDeleteEmailForUnpaidSubscription: async function(project, user) {
+    sendProjectDeleteEmailForUnpaidSubscription: async function (project, user) {
         try {
             const { name: userName, email: userEmail } = user;
             const { stripePlanId, name: projectName } = project;

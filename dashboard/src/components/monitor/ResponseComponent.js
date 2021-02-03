@@ -416,9 +416,8 @@ export class ResponseComponent extends Component {
                                                                             incident
                                                                             when
                                                                             monitor
-                                                                            is
-                                                                            back
-                                                                            up.
+                                                                            state
+                                                                            changes.
                                                                         </span>
                                                                     </span>
                                                                 </div>
@@ -458,9 +457,8 @@ export class ResponseComponent extends Component {
                                                                             incident
                                                                             when
                                                                             monitor
-                                                                            is
-                                                                            back
-                                                                            up.
+                                                                            state
+                                                                            changes.
                                                                         </span>
                                                                     </span>
                                                                 </div>

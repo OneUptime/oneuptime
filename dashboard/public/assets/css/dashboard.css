@@ -35246,3 +35246,8 @@ span.CodeMirror-selectedtext {
   width: 35%;
 }
 }
+@media screen and (max-width: 500px){
+  #Add-Criteria-Button{
+    margin: 0!important;
+  }
+}

@@ -8,8 +8,16 @@ import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
 import { markAsRead } from '../../actions/notification';
 import { animateSidebar } from '../../actions/animateSidebar';
+import { getProbes } from '../../actions/probe';
+import { API_URL } from '../../config';
 
 export class IncidentList extends Component {
+    componentDidMount() {
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : null;
+        this.props.getProbes(projectId, 0, 10);
+    }
     render() {
         if (
             this.props.incidents &&
@@ -168,6 +176,34 @@ export class IncidentList extends Component {
                         <tbody className="Table-body">
                             {incidents && incidents.length > 0 ? (
                                 incidents.map((incident, i) => {
+                                    let probeName = 'Fyipe';
+                                    let probeImage =
+                                        '/dashboard/assets/img/Fyipe.svg';
+
+                                    if (
+                                        incident.probes &&
+                                        incident.probes[0] &&
+                                        incident.probes[0].probeId &&
+                                        incident.probes[0].probeId.probeName
+                                    ) {
+                                        probeName =
+                                            incident.probes[0].probeId
+                                                .probeName;
+
+                                        let probeImageId = this.props.probes.filter(
+                                            d =>
+                                                d._id ===
+                                                incident.probes[0].probeId._id
+                                        );
+
+                                        if (
+                                            probeImageId[0] &&
+                                            probeImageId[0].probeImage
+                                        ) {
+                                            probeImage = `${API_URL}/file/${probeImageId[0].probeImage}`;
+                                        }
+                                    }
+
                                     return (
                                         <tr
                                             id={`incident_${
@@ -288,26 +324,33 @@ export class IncidentList extends Component {
                                                                 </div>
                                                             ) : (
                                                                 <div className="Box-root Margin-right--16">
-                                                                    <img
-                                                                        src="/dashboard/assets/img/Fyipe.svg"
-                                                                        style={{
-                                                                            display:
-                                                                                'inline-block',
-                                                                            height:
-                                                                                '20px',
-                                                                            width:
-                                                                                '20px',
-                                                                            borderRadius:
-                                                                                '50%',
-                                                                            margin:
-                                                                                '5px 10px -4px 0px',
-                                                                            backgroundColor:
-                                                                                '#14AAD9',
-                                                                        }}
-                                                                        alt=""
-                                                                    />
+                                                                    {
+                                                                        <img
+                                                                            src={
+                                                                                probeImage
+                                                                            }
+                                                                            style={{
+                                                                                display:
+                                                                                    'inline-block',
+                                                                                height:
+                                                                                    '20px',
+                                                                                width:
+                                                                                    '20px',
+                                                                                borderRadius:
+                                                                                    '50%',
+                                                                                margin:
+                                                                                    '-1px 5px -5px -7px',
+                                                                                backgroundColor:
+                                                                                    '#14AAD9',
+                                                                            }}
+                                                                            alt=""
+                                                                        />
+                                                                    }
+
                                                                     <span>
-                                                                        Fyipe
+                                                                        {
+                                                                            probeName
+                                                                        }
                                                                     </span>
                                                                 </div>
                                                             )
@@ -1002,7 +1045,10 @@ export class IncidentList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ markAsRead, animateSidebar }, dispatch);
+    return bindActionCreators(
+        { markAsRead, animateSidebar, getProbes },
+        dispatch
+    );
 };
 
 function mapStateToProps(state) {
@@ -1010,6 +1056,7 @@ function mapStateToProps(state) {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         requesting: state.incident.incidents.requesting,
+        probes: state.probe.probes.data,
     };
 }
 
@@ -1029,6 +1076,8 @@ IncidentList.propTypes = {
     isFiltered: PropTypes.bool,
     markAsRead: PropTypes.func,
     animateSidebar: PropTypes.func,
+    probes: PropTypes.array,
+    getProbes: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentList);
