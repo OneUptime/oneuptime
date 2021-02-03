@@ -188,7 +188,6 @@ module.exports = {
             throw error;
         }
     },
-
     findOneBy: async function(query) {
         try {
             if (!query) {
@@ -706,6 +705,10 @@ module.exports = {
             projectId,
             deleted: true,
         });
+        await componentService.restoreBy({
+            projectId: projectId,
+            deleted: true
+        })
         return project;
     },
 
