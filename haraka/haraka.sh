@@ -63,37 +63,44 @@ if [[ ! -d "${DATADIR}/config" ]]; then
   echo "true" >${DATADIR}/config/header_hide_version
   echo "$HEADER" >${DATADIR}/config/ehlo_hello_message
 
-  #enable spf,dkim and auth_flat_file
+  #enable spf
   sed -i 's/^#spf$\?/spf/g' ${DATADIR}/config/plugins
-  sed -i 's/^#dkim_sign$\?/dkim_sign/g' ${DATADIR}/config/plugins
   sed -i '/max_unrecognized_commands/d' ${DATADIR}/config/plugins
 
-  #enable tls
-  # grab tls_key and tls_cert values from the env and generate the relevant files
-  # TLS_KEY AND TLS_CERT env must be an encoded base64 for this to work
-  (echo $TLS_KEY | base64 -d) >${DATADIR}/config/tls_key.pem
-  (echo $TLS_CERT | base64 -d) >${DATADIR}/config/tls_cert.pem
+  if [[ -n "$TLS_KEY" ]] && [[ -n "$TLS_CERT" ]]; then
+    #enable tls
+    # grab tls_key and tls_cert values from the env and generate the relevant files
+    # TLS_KEY AND TLS_CERT env must be an encoded base64 for this to work
+    (echo $TLS_KEY | base64 -d) >${DATADIR}/config/tls_key.pem
+    (echo $TLS_CERT | base64 -d) >${DATADIR}/config/tls_cert.pem
 
-  cat <<-EOF >>${DATADIR}/config/tls.ini
+    cat <<-EOF >>${DATADIR}/config/tls.ini
 	[outbound]
     key=tls_key.pem
     cert=tls_cert.pem
     dhparam=dhparams.pem
 	EOF
 
-  #enable dkim sign
-  cd ${DATADIR}/config/dkim/
-  initDkim
-  cd -
+  fi
 
-  selector=$(cat ${DATADIR}/config/dkim/${DOMAIN}/selector)
-  cat <<-EOF >>${DATADIR}/config/dkim_sign.ini
+  if [[ -n "$PRIVATE_KEY" ]]; then
+    #enable dkim sign
+    sed -i 's/^#dkim_sign$\?/dkim_sign/g' ${DATADIR}/config/plugins
+
+    cd ${DATADIR}/config/dkim/
+    initDkim
+    cd -
+
+    selector=$(cat ${DATADIR}/config/dkim/${DOMAIN}/selector)
+    cat <<-EOF >>${DATADIR}/config/dkim_sign.ini
 	disabled = false
 	selector = $selector
 	domain=$DOMAIN
   headers_to_sign = From, Sender, Reply-To, Subject, Date, Message-ID, To, Cc, MIME-Version
 	dkim.private.key=${DATADIR}/config/dkim/${DOMAIN}/private
 	EOF
+
+  fi
 
   #enable outbound
   cat <<-EOF >>${DATADIR}/config/outbound.ini
