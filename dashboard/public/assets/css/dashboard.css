@@ -35157,7 +35157,7 @@ span.CodeMirror-selectedtext {
 }
 
 .bs-ex-up, .bs-ex-down {
-  height: 20px;
+  height: 22px;
 }
 
 .bs-note-offline-o {
@@ -35166,6 +35166,11 @@ span.CodeMirror-selectedtext {
 
 .bs-custom-incident-tab, .bs-custom-incident-slider {
   width: 20% !important
+}
+
+.bs-in-style {
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
 @media (max-width: 768px) {
@@ -35244,6 +35249,24 @@ span.CodeMirror-selectedtext {
   
 .bs-action-side {
   width: 35%;
+}
+.bs-desktop-in {
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.bs-desktop-div {
+  display: flex;
+}
+.bs-desk-list {
+  margin-top: -11px
+}
+.bs-incident-notes-cont {
+  margin-top: 20px;
+}
+.bs-timeline-date {
+  margin-top: -28px
 }
 }
 @media screen and (max-width: 500px){
