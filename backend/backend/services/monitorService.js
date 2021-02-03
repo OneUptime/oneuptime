@@ -195,8 +195,9 @@ module.exports = {
                     }
                 );
             }
+            query.deleted = false
             const monitor = await this.findOneBy(query);
-            await RealTimeService.monitorEdit(monitor);
+           await RealTimeService.monitorEdit(monitor);
 
             return monitor;
         } catch (error) {

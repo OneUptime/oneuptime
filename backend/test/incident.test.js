@@ -36,7 +36,7 @@ const {
     markIncidentAsAcknowledged,
     markSubprojectIncidentAsAcknowledged,
     markSubprojectIncidentAsResolved,
-} = require('./test-utils');
+} = require('./utils/test-utils');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 

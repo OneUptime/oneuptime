@@ -154,6 +154,10 @@ app.use(['/lead', '/api/lead'], require('./backend/api/lead'));
 app.use(['/feedback', '/api/feedback'], require('./backend/api/feedback'));
 app.use(['/twilio', '/api/twilio'], require('./backend/api/twilio'));
 app.use(['/sso', '/api/sso'], require('./backend/api/sso'));
+app.use(
+    ['/ssoDefaultRoles', '/api/ssoDefaultRoles'],
+    require('./backend/api/ssoDefaultRoles')
+);
 app.use(['/zapier', '/api/zapier'], require('./backend/api/zapier'));
 app.use(['/slack', '/api/slack'], require('./backend/api/slack'));
 app.use(['/webhook', '/api/webhook'], require('./backend/api/webHook'));
@@ -263,7 +267,10 @@ app.use(
     ['/monitorCustomField', '/api/monitorCustomField'],
     require('./backend/api/monitorCustomField')
 );
-
+app.use(
+    ['/callRouting', '/api/callRouting'],
+    require('./backend/api/callRouting')
+);
 app.set('port', process.env.PORT || 3002);
 
 const server = http.listen(app.get('port'), function() {

@@ -329,6 +329,31 @@ module.exports = {
         }
     },
 
+    createSubscription: async function(stripeCustomerId, amount) {
+        try {
+            const productId = await Plans.getReserveNumberProductId();
+            const subscriptions = await stripe.subscriptions.create({
+                customer: stripeCustomerId,
+                items: [
+                    {
+                        price_data: {
+                            currency: 'usd',
+                            product: productId,
+                            unit_amount: amount * 100,
+                            recurring: {
+                                interval: 'month',
+                            },
+                        },
+                    },
+                ],
+            });
+            return subscriptions;
+        } catch (error) {
+            ErrorService.log('paymentService.createSubscription', error);
+            throw error;
+        }
+    },
+
     removeSubscription: async function(stripeSubscriptionId) {
         try {
             const confirmations = [];
@@ -377,6 +402,7 @@ module.exports = {
             throw error;
         }
     },
+
     chargeAlert: async function(userId, projectId, chargeAmount) {
         try {
             let project = await ProjectService.findOneBy({
