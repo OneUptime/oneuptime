@@ -14,6 +14,7 @@ const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const SsoService = require('../backend/services/ssoService');
 const testUtils = require('./utils/test-utils');
+const queryString = require('query-string');
 
 
 let adminId,
@@ -46,7 +47,20 @@ const sso2CreationPayload = {
         'http://localhost:9876/logout',
 }
 
-const roles= ['Administrator', 'Member', 'Viewer']
+const roles= ['Administrator', 'Member', 'Viewer'];
+const ssoUsers=[
+    {
+        email:'user1@tests.hackerbay.io',
+        username:'user1',
+        password:'user1pass',
+    },
+    {
+        email:'user2@tests.hackerbay.io',
+        username:'user2',
+        password:'user2pass',
+    }
+
+]
 
 describe('SSO DEFAULT ROLES API', function() {
     this.timeout(300000);
@@ -206,8 +220,46 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(getEndpointResponse.body).to.have.property('role');
         expect(getEndpointResponse.body.role).to.equal('Administrator');
     });
-    // it('should automatically add new SSO users to the projects with roles defined on SSO default roles',async()=>{
-    // });
+    it('should automatically add the new SSO users to the projects with roles defined on default SSO roles',async()=>{
+        const user = ssoUsers[0];
+        const ssoLoginRequest=await testUtils.ssoLogin({
+            request,
+            email:user.email
+        });
+        expect(ssoLoginRequest).to.have.status(200);
+        expect(ssoLoginRequest.body).to.have.property('url');
+        const { url: SAMLRequest } = ssoLoginRequest.body;
+        const SAMLResponse = await testUtils.fetchIdpSAMLResponse({
+            SAMLRequest,
+            username: user.username,
+            password: user.password,
+        })
+        const response= await request
+                .post('/api/user/sso/callback')
+                .redirects(0)
+                .send({ SAMLResponse });
+        expect(response).to.have.status(302);
+        const {
+            header: { location: loginLink },
+        } = response;
+        const projectRequest =await testUtils.fetchProject({
+            request, 
+            authorization:adminAuthorizationHeader,
+            projectId
+        });
+        const parsedQuery = queryString.parse(loginLink.split('?')[1]);
+        expect(!!parsedQuery.id).to.equal(true);
+        expect(projectRequest).to.have.status(200);
+        expect(projectRequest.body).to.be.an('Object');
+        expect(projectRequest.body).to.have.property('users');
+        expect(projectRequest.body.users).to.be.an('Array');
+        expect(projectRequest.body.users.some(user=>
+            (
+                user.role==='Administrator' && 
+                user.userId === parsedQuery.id
+            )
+        )).to.equal(true);
+    });
     // it('should automatically add existing SSO users to the projects with roles defined on SSO default roles',async()=>{
     // })
     // it('should delete the existing default sso role',async()=>{
