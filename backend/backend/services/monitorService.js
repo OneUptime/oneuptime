@@ -105,7 +105,7 @@ module.exports = {
                     } else if (data.type === 'incomingHttpRequest') {
                         monitor.data = {};
                         monitor.data.link = data.data.link;
-                    } else if (data.type === 'edge') {
+                    } else if (data.type === 'ip') {
                         monitor.data = {};
                         monitor.data.IPAddress = data.data.IPAddress;
                     }
@@ -124,7 +124,7 @@ module.exports = {
                         data.type === 'server-monitor' ||
                         data.type === 'script' ||
                         data.type === 'incomingHttpRequest' ||
-                        data.type === 'edge'
+                        data.type === 'ip'
                     ) {
                         monitor.criteria = _.isEmpty(data.criteria)
                             ? MonitorCriteriaService.create(data.type)
@@ -505,7 +505,7 @@ module.exports = {
                                                 'device',
                                                 'api',
                                                 'incomingHttpRequest',
-                                                'edge',
+                                                'ip',
                                             ],
                                         },
                                     },

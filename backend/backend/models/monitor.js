@@ -40,7 +40,7 @@ const monitorSchema = new Schema({
             'server-monitor',
             'script',
             'incomingHttpRequest',
-            'edge',
+            'ip',
         ],
     }, //type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
     agentlessConfig: Object,

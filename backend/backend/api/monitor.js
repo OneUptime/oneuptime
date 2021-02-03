@@ -104,7 +104,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             data.type !== 'server-monitor' &&
             data.type !== 'script' &&
             data.type !== 'incomingHttpRequest' &&
-            data.type !== 'edge'
+            data.type !== 'ip'
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -236,7 +236,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 });
             }
         }
-        if (data.type === 'edge') {
+        if (data.type === 'ip') {
             if (!data.data.IPAddress) {
                 return sendErrorResponse(req, res, {
                     code: 400,

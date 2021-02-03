@@ -194,7 +194,7 @@ let RenderMonitor = ({
                                             disabled={!shouldEdit}
                                         />
                                     )}
-                                    {type === 'edge' && (
+                                    {type === 'ip' && (
                                         <Fragment>
                                             <Checkbox
                                                 label="Uptime"

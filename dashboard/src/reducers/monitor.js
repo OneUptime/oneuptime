@@ -1162,7 +1162,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                         monitorType === 'script' ||
                         monitorType === 'server-monitor' ||
                         monitorType === 'incomingHttpRequest' ||
-                        monitorType === 'edge')
+                        monitorType === 'ip')
                     ? state.monitorCriteria.criteria[monitorType]
                     : null
             );

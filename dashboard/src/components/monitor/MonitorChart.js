@@ -716,7 +716,7 @@ export function MonitorChart({
         type === 'url' ||
         type === 'api' ||
         type === 'device' ||
-        type === 'edge'
+        type === 'ip'
     ) {
         monitorInfo = (
             <>

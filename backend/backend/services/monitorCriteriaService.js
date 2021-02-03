@@ -359,7 +359,7 @@ const MonitorCriteriaService = {
                 degraded_1000_autoResolve: true,
                 type_1000: 'script',
             },
-            edge: {
+            ip: {
                 up_1000: [
                     {
                         match: 'all',
@@ -414,7 +414,7 @@ const MonitorCriteriaService = {
                 down_1000_createAlert: true,
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
-                type_1000: 'edge',
+                type_1000: 'ip',
             },
         };
     },

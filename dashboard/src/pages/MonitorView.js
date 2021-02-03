@@ -606,7 +606,7 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'edge')
+                                                                                        'ip')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
@@ -845,7 +845,7 @@ const mapStateToProps = (state, props) => {
             monitor.type === 'server-monitor' ||
             monitor.type === 'incomingHttpRequest' ||
             monitor.type === 'script' ||
-            monitor.type === 'edge'
+            monitor.type === 'ip'
         ) {
             // collect all criteria
             if (monitor.criteria) {

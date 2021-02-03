@@ -293,7 +293,7 @@ export class RenderOption extends Component {
                                 {
                                     value: 'responseToPing',
                                     label: 'Response To Ping',
-                                    show: type === 'edge',
+                                    show: type === 'ip',
                                 },
                             ]}
                         />
@@ -425,7 +425,7 @@ export class RenderOption extends Component {
                                             bodyfield &&
                                             (bodyfield.responseType ===
                                                 'responseToPing' ||
-                                                type === 'edge'),
+                                                type === 'ip'),
                                     },
                                     {
                                         value: 'isDown',
@@ -434,7 +434,7 @@ export class RenderOption extends Component {
                                             bodyfield &&
                                             (bodyfield.responseType ===
                                                 'responseToPing' ||
-                                                type === 'edge'),
+                                                type === 'ip'),
                                     },
                                     {
                                         value: 'equalTo',
