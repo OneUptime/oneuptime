@@ -3,20 +3,15 @@ chai.use(require('chai-http'));
 const expect = require('chai').expect;
 const decode = require('urldecode');
 
-const methods= {
+const methods = {
     getAuthorizationHeader: ({ jwtToken }) => `Basic ${jwtToken}`,
     login: async ({ request, email, password }) =>
-        await request
-            .post('/user/login')
-            .send({
-                email,
-                password,
-            }),
-    ssoLogin: async({request, email,})=>
-        await request
-            .get(
-                `/api/user/sso/login?email=${email}`
-            ),
+        await request.post('/user/login').send({
+            email,
+            password,
+        }),
+    ssoLogin: async ({ request, email }) =>
+        await request.get(`/api/user/sso/login?email=${email}`),
     /**
    * Example of payload:
       const payload = {
@@ -271,13 +266,13 @@ const methods= {
             .set('Authorization', authorization),
     /**
      *  examplePayload = {
-     *      'saml-enabled': 
+     *      'saml-enabled':
      *          true,
-     *      domain: 
+     *      domain:
      *          'tests.hackerbay.io',
      *      samlSsoUrl:
      *          'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
-     *      remoteLogoutUrl: 
+     *      remoteLogoutUrl:
      *          'http://localhost:9876/logout',
      *  }
      */
@@ -307,23 +302,19 @@ const methods= {
             .put(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization)
             .send(payload),
-    fetchSsoDefaultRoles: async({request, authorization })=>
+    fetchSsoDefaultRoles: async ({ request, authorization }) =>
         await request
             .get(`/api/ssoDefaultRoles/`)
             .set('Authorization', authorization),
-    fetchSsoDefaultRole: async({request, authorization, id })=>
+    fetchSsoDefaultRole: async ({ request, authorization, id }) =>
         await request
             .get(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization),
-    deleteSsoDefaultRole: async({request, authorization, id })=>
+    deleteSsoDefaultRole: async ({ request, authorization, id }) =>
         await request
             .delete(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization),
-    fetchIdpSAMLResponse: async ({ 
-        SAMLRequest,
-        username,
-        password,
-    }) =>{
+    fetchIdpSAMLResponse: async ({ SAMLRequest, username, password }) => {
         let firstIdpResponse;
         try {
             const response = await chai
@@ -336,12 +327,12 @@ const methods= {
             expect(error.response).to.have.status(302);
             firstIdpResponse = error.response;
         }
-    
+
         const {
             headers: { location, 'set-cookie': cookies },
         } = firstIdpResponse;
         const [postSubmissionUrl, AuthState] = location.split('AuthState=');
-    
+
         const samlResponsePage = await chai
             .request(postSubmissionUrl)
             .post('')
@@ -353,7 +344,7 @@ const methods= {
                 password,
                 AuthState: decode(AuthState),
             });
-    
+
         const {
             res: { text: html },
         } = samlResponsePage;
@@ -366,27 +357,20 @@ const methods= {
     },
 };
 
-
-const proxy = new Proxy(
-    methods,
-    {
-        shared:{},
-        setShared:function(args){
-            this.shared= {...this.shared,...args};
-            return this.shared;
-        },
-        unsetShared:function(attribute){
-            if(this.shared[attribute])
-                delete this.shared[attribute];
-            return this.shared;
-        },
-        get:function(target, prop){
-            if(this[prop] )
-              return (args={})=>this[prop](args)
-            return (args={})=>target[prop]({...this.shared,...args})
-            
-        },
-    }
-);
+const proxy = new Proxy(methods, {
+    shared: {},
+    setShared: function(args) {
+        this.shared = { ...this.shared, ...args };
+        return this.shared;
+    },
+    unsetShared: function(attribute) {
+        if (this.shared[attribute]) delete this.shared[attribute];
+        return this.shared;
+    },
+    get: function(target, prop) {
+        if (this[prop]) return (args = {}) => this[prop](args);
+        return (args = {}) => target[prop]({ ...this.shared, ...args });
+    },
+});
 
 module.exports = proxy;

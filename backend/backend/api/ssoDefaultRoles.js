@@ -21,8 +21,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
 
 router.delete('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     try {
-        if(!req.params.id)
-            throw new Error('Id must be defined');
+        if (!req.params.id) throw new Error('Id must be defined');
         const sso = await SsoDefaultRolesService.deleteBy({
             _id: req.params.id,
         });
@@ -47,7 +46,7 @@ router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
         const sso = await SsoDefaultRolesService.findOneBy({
             _id: req.params.id,
         });
-        if(!sso) {
+        if (!sso) {
             const error = new Error("Requested resource doesn't exist.");
             error.code = 404;
             throw error;
@@ -62,8 +61,8 @@ router.put('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const id = req.params.id;
         const ssoDefaultRole = await SsoDefaultRolesService.updateById(
-             id,
-             req.body
+            id,
+            req.body
         );
         return sendItemResponse(req, res, ssoDefaultRole);
     } catch (error) {

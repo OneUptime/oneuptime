@@ -44,7 +44,7 @@ export class ProbeList extends Component {
         // };
         try {
             reader.readAsDataURL(file);
-            let data = { id: probe._id, probeImage: file };
+            const data = { id: probe._id, probeImage: file };
             this.props.updateProbe(data);
         } catch (error) {
             return;
@@ -52,7 +52,7 @@ export class ProbeList extends Component {
     };
 
     render() {
-        let { selectedProbe } = this.state;
+        const { selectedProbe } = this.state;
         const {
             probes,
             deleteRequesting,

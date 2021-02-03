@@ -184,7 +184,7 @@ module.exports = {
 
             const query = {
                 _id: id,
-                deleted:false,
+                deleted: false,
             };
 
             const { domain, project, role } = data;
@@ -228,7 +228,7 @@ module.exports = {
                 throw error;
             }
 
-            const search = await this.findOneBy({ domain,project });
+            const search = await this.findOneBy({ domain, project });
             if (!search) {
                 const error = new Error("Record doesn't exist.");
                 error.code = 400;
@@ -242,14 +242,11 @@ module.exports = {
                 ErrorService.log('ssoDefaultRolesService.updateById', error);
                 throw error;
             }
-            const payload = { domain,project,role };
+            const payload = { domain, project, role };
 
-            await ssoDefaultRolesModel.updateOne(
-                query, 
-                {
-                    $set: payload,
-                },
-            );
+            await ssoDefaultRolesModel.updateOne(query, {
+                $set: payload,
+            });
             const ssodefaultRole = await this.findOneBy(query);
             return ssodefaultRole;
         } catch (error) {

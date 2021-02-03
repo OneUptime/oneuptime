@@ -190,7 +190,7 @@ export class IncidentList extends Component {
                                             incident.probes[0].probeId
                                                 .probeName;
 
-                                        let probeImageId = this.props.probes.filter(
+                                        const probeImageId = this.props.probes.filter(
                                             d =>
                                                 d._id ===
                                                 incident.probes[0].probeId._id
