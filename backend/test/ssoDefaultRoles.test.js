@@ -13,9 +13,10 @@ const AirtableService = require('../backend/services/airtableService');
 const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const SsoService = require('../backend/services/ssoService');
-const testUtils = require('./utils/test-utils');
 const queryString = require('query-string');
+const testUtils = require('./utils/test-utils');
 
+testUtils.setShared({request});
 let adminId,
     userId,
     adminAuthorizationHeader,
@@ -98,6 +99,7 @@ describe('SSO DEFAULT ROLES API', function() {
             password: userData.adminUser.password,
         });
         adminAuthorizationHeader = testUtils.getAuthorizationHeader({jwtToken:response1.body.tokens.jwtAccessToken});
+        testUtils.setShared({authorization: adminAuthorizationHeader})
         await UserService.updateBy(
             {
                 _id: adminId,
@@ -107,21 +109,15 @@ describe('SSO DEFAULT ROLES API', function() {
             }
         );
         const project = await testUtils.createProject({
-          request,
-          authorization: adminAuthorizationHeader,
           payload:projectCreationPayloads[0]
         })
         projectId1 = project.body._id;
         const sso1 = await testUtils.createSso({
-            request,
-            authorization: adminAuthorizationHeader,
             payload:sso1CreationPayload,
         }) 
         ssoId1 = sso1.body._id;
 
         const sso2 = await testUtils.createSso({
-            request,
-            authorization: adminAuthorizationHeader,
             payload:sso2CreationPayload,
         }) 
         ssoId2 = sso2.body._id;
@@ -133,11 +129,7 @@ describe('SSO DEFAULT ROLES API', function() {
             project:projectId1,
             role: "Owner"
         }
-        const response = await testUtils.createSsoDefaultRole({
-            request,
-            authorization: adminAuthorizationHeader,
-            payload
-        });
+        const response = await testUtils.createSsoDefaultRole({payload});
         expect(response).to.have.status(400);
         expect(response.body).to.be.an('Object');
         expect(response.body).to.have.property('message');
@@ -150,11 +142,7 @@ describe('SSO DEFAULT ROLES API', function() {
             project:projectId1,
             role: "Member"
         }
-        const response = await testUtils.createSsoDefaultRole({
-            request,
-            authorization: adminAuthorizationHeader,
-            payload
-        });
+        const response = await testUtils.createSsoDefaultRole({payload});
         expect(response).to.have.status(200);
         expect(response.body).to.be.an('Object');
         expect(response.body).to.have.property('_id');
@@ -171,11 +159,7 @@ describe('SSO DEFAULT ROLES API', function() {
         };
         for(const role of roles){
             payload.role = role;
-            const response = await testUtils.createSsoDefaultRole({
-                request,
-                authorization: adminAuthorizationHeader,
-                payload
-            });
+            const response = await testUtils.createSsoDefaultRole({payload});
             expect(response).to.have.status(400);
         }
     })
@@ -186,11 +170,7 @@ describe('SSO DEFAULT ROLES API', function() {
             project: projectId1,
             role: "Member"
         }
-        const response = await testUtils.createSsoDefaultRole({
-            request,
-            authorization: adminAuthorizationHeader,
-            payload
-        });
+        const response = await testUtils.createSsoDefaultRole({payload});
         expect(response).to.have.status(200);
         expect(response.body).to.be.an('Object');
         expect(response.body).to.have.property('_id');
@@ -201,10 +181,7 @@ describe('SSO DEFAULT ROLES API', function() {
     });
 
     it('should fetch the existing default sso roles',async()=>{
-        const result = await testUtils.fetchSsoDefaultRoles({
-            request,
-            authorization: adminAuthorizationHeader,
-        });
+        const result = await testUtils.fetchSsoDefaultRoles();
         expect(result.body).to.be.an('Object');
         expect(result.body).to.have.property('count');
         expect(result.body).to.have.property('data');
@@ -218,19 +195,13 @@ describe('SSO DEFAULT ROLES API', function() {
             role:'Administrator',
         }
         const updateEndpointResponse = await testUtils.updateSsoDefaultRole({
-            request, 
-            authorization:adminAuthorizationHeader, 
             id:ssoDefaultRole1,
             payload
         })
         expect(updateEndpointResponse).to.have.status(200);
         expect(updateEndpointResponse.body).to.be.an('Object');
 
-        const getEndpointResponse = await testUtils.fetchSsoDefaultRole({
-            request, 
-            authorization:adminAuthorizationHeader, 
-            id:ssoDefaultRole1,
-        });
+        const getEndpointResponse = await testUtils.fetchSsoDefaultRole({id:ssoDefaultRole1});
         expect(getEndpointResponse).to.have.status(200);
         expect(getEndpointResponse.body).to.be.an('Object');
         expect(getEndpointResponse.body).to.have.property('role');
@@ -239,6 +210,7 @@ describe('SSO DEFAULT ROLES API', function() {
 
     it('should automatically add the new SSO users to the existing projects with roles defined on default SSO roles',async()=>{
         const user = ssoUsers[0];
+        testUtils.unsetShared('authorization');
         const ssoLoginRequest=await testUtils.ssoLogin({
             request,
             email:user.email
@@ -259,11 +231,8 @@ describe('SSO DEFAULT ROLES API', function() {
         const {
             header: { location: loginLink },
         } = response;
-        const projectRequest =await testUtils.fetchProject({
-            request, 
-            authorization:adminAuthorizationHeader,
-            projectId: projectId1
-        });
+        testUtils.setShared({authorization:adminAuthorizationHeader})
+        const projectRequest = await testUtils.fetchProject({projectId: projectId1});
         const parsedQuery = queryString.parse(loginLink.split('?')[1]);
         expect(!!parsedQuery.id).to.equal(true);
         userId = parsedQuery.id;
@@ -280,11 +249,7 @@ describe('SSO DEFAULT ROLES API', function() {
     });
 
     it('should automatically add existing SSO users to the new projects with roles defined on SSO default roles',async()=>{
-        const project = await testUtils.createProject({
-          request,
-          authorization: adminAuthorizationHeader,
-          payload:projectCreationPayloads[1]
-        });
+        const project = await testUtils.createProject({payload:projectCreationPayloads[1]});
         projectId2 = project.body._id;
 
         const payload ={
@@ -292,11 +257,7 @@ describe('SSO DEFAULT ROLES API', function() {
             project: projectId2,
             role: "Member"
         }
-        const response = await testUtils.createSsoDefaultRole({
-            request,
-            authorization: adminAuthorizationHeader,
-            payload
-        });
+        const response = await testUtils.createSsoDefaultRole({payload});
         expect(response).to.have.status(200);
         expect(response.body).to.be.an('Object');
         expect(response.body).to.have.property('_id');
@@ -305,18 +266,14 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(response.body).to.have.property('role');
         ssoDefaultRole3 = response.body._id;
 
-        const projectRequest =await testUtils.fetchProject({
-            request, 
-            authorization:adminAuthorizationHeader,
-            projectId: projectId2
-        });
+        const projectRequest =await testUtils.fetchProject({projectId: projectId2});
         expect(projectRequest).to.have.status(200);
         expect(projectRequest.body).to.be.an('Object');
         expect(projectRequest.body).to.have.property('users');
         expect(projectRequest.body.users).to.be.an('Array');
         expect(projectRequest.body.users.some(user=>
             (
-                user.role==='Member' && 
+                user.role === 'Member' && 
                 user.userId === userId
             )
         )).to.equal(true);
@@ -324,17 +281,9 @@ describe('SSO DEFAULT ROLES API', function() {
     });
 
     it('should delete the existing default sso roles with removing the SSO users from existing the projects',async()=>{
-        const deleteResponse = await testUtils.deleteSsoDefaultRole({
-            request, 
-            authorization:adminAuthorizationHeader,
-            id:ssoDefaultRole3,
-        });
+        const deleteResponse = await testUtils.deleteSsoDefaultRole({id:ssoDefaultRole3});
         expect(deleteResponse).to.have.status(200);
-        const projectRequest =await testUtils.fetchProject({
-            request, 
-            authorization:adminAuthorizationHeader,
-            projectId: projectId2
-        });
+        const projectRequest =await testUtils.fetchProject({projectId: projectId2});
         expect(projectRequest).to.have.status(200);
         expect(projectRequest.body).to.be.an('Object');
         expect(projectRequest.body).to.have.property('users');
@@ -348,31 +297,15 @@ describe('SSO DEFAULT ROLES API', function() {
     });
 
     it('should delete all default SSO roles related to a SSO, when the SSO is deleted',async()=>{
-        const deleteResponse= await testUtils.deleteSso({
-            request, 
-            authorization:adminAuthorizationHeader,
-            id:ssoId2,
-        });
+        const deleteResponse= await testUtils.deleteSso({id:ssoId2});
         expect(deleteResponse).to.have.status(200);
-        const fetchResponse= await testUtils.fetchSsoDefaultRole({
-            request,
-            authorization:adminAuthorizationHeader,
-            id:ssoDefaultRole2,
-        });
+        const fetchResponse= await testUtils.fetchSsoDefaultRole({id:ssoDefaultRole2});
         expect(fetchResponse).to.have.status(404);
     });
     it('should delete all default SSO roles related to a project, when the project is deleted',async()=>{
-        const deleteResponse= await testUtils.deleteProject({
-            request, 
-            authorization:adminAuthorizationHeader,
-            id:projectId2,
-        });
+        const deleteResponse= await testUtils.deleteProject({id:projectId2});
         expect(deleteResponse).to.have.status(200);
-        const fetchResponse= await testUtils.fetchSsoDefaultRole({
-            request,
-            authorization:adminAuthorizationHeader,
-            id:ssoDefaultRole2,
-        });
+        const fetchResponse= await testUtils.fetchSsoDefaultRole({id:ssoDefaultRole2});
         expect(fetchResponse).to.have.status(404);
     });
 });
