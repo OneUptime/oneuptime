@@ -42,6 +42,7 @@ try {
     require('./scheduledEventNote.test');
     require('./smsTemplate.test');
     require('./sso.test');
+    require('./ssoDefaultRoles.test');
     require('./statusPage.test');
     require('./stripe.test');
     require('./subscriber.test');
@@ -53,7 +54,6 @@ try {
     require('./version.test');
     require('./webhook.test');
     require('./zapier.test');
-    require('./ssoDefaultRoles.test');
 } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error);

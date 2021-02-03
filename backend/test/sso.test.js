@@ -14,6 +14,7 @@ const AirtableService = require('../backend/services/airtableService');
 const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const SsoService = require('../backend/services/ssoService');
+const ProjectService = require('../backend/services/projectService');
 
 const ssoObject = {
     'saml-enable': true,
@@ -66,9 +67,11 @@ describe('SSO API', function() {
 
     after(async function() {
         await GlobalConfig.removeTestConfig();
+        await ProjectService.hardDeleteBy({'users.userId':userId})
         await UserService.hardDeleteBy({
             email: {
                 $in: [
+                    userData.adminUser.email,
                     userData.user.email,
                     userData.newUser.email,
                     userData.anotherUser.email,

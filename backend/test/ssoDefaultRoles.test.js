@@ -9,10 +9,12 @@ const request = chai.request.agent(app);
 
 const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const SsoService = require('../backend/services/ssoService');
+const SsoDefaultRolesService = require('../backend/services/ssoDefaultRolesService');
 const queryString = require('query-string');
 const testUtils = require('./utils/test-utils');
 
@@ -117,6 +119,46 @@ describe('SSO DEFAULT ROLES API', function() {
         ssoId2 = sso2.body._id;
     });
 
+    after(async function(){
+        await GlobalConfig.removeTestConfig();
+        await ProjectService.hardDeleteBy({'users.userId':userId});
+        await UserService.hardDeleteBy({
+            _id: {
+                $in: [
+                    adminId,
+                    userId,
+                ],
+            },
+        });
+        await SsoDefaultRolesService.hardDeleteBy({
+            _id: {
+                $in: [
+                    ssoDefaultRole1,
+                    ssoDefaultRole2,
+                    ssoDefaultRole3,
+                ],
+            },
+        })
+        await ProjectService.hardDeleteBy({
+            'users.userId':{
+                $in: [
+                    adminId,
+                    userId,
+                ],
+            }
+        });
+    
+        await SsoService.hardDeleteBy({
+            _id: {
+                $in: [
+                    ssoId1,
+                    ssoId2,
+                ],
+            },
+        })
+        await AirtableService.deleteAll({ tableName: 'User' });
+
+    });
     it("should not create an 'Owner' role as default SSO role for a domain, in a project", async () => {
         const payload = {
             domain: ssoId1,
@@ -207,10 +249,7 @@ describe('SSO DEFAULT ROLES API', function() {
     it('should automatically add the new SSO users to the existing projects with roles defined on default SSO roles', async () => {
         const user = ssoUsers[0];
         testUtils.unsetShared('authorization');
-        const ssoLoginRequest = await testUtils.ssoLogin({
-            request,
-            email: user.email,
-        });
+        const ssoLoginRequest = await testUtils.ssoLogin({email: user.email});
         expect(ssoLoginRequest).to.have.status(200);
         expect(ssoLoginRequest.body).to.have.property('url');
         const { url: SAMLRequest } = ssoLoginRequest.body;
