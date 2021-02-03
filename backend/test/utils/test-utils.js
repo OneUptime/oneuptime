@@ -1,11 +1,17 @@
-module.exports = {
+const chai = require('chai');
+chai.use(require('chai-http'));
+const expect = require('chai').expect;
+const decode = require('urldecode');
+
+const methods = {
     getAuthorizationHeader: ({ jwtToken }) => `Basic ${jwtToken}`,
-    login: async ({ request, email, password }) => {
-        return await request.post('/user/login').send({
+    login: async ({ request, email, password }) =>
+        await request.post('/user/login').send({
             email,
             password,
-        });
-    },
+        }),
+    ssoLogin: async ({ request, email }) =>
+        await request.get(`/api/user/sso/login?email=${email}`),
     /**
    * Example of payload:
       const payload = {
@@ -239,4 +245,132 @@ module.exports = {
             .post(`/incident/${subProjectId}/resolve/${incidentId}`)
             .set('Authorization', authorization);
     },
+    /**
+     * payload = {
+     *  planId: 'ID' // for example "plan_GoWKiTdQ6NiQFw",
+     *  projectName: 'PROJECT_NAME'
+     * }
+     */
+    createProject: async ({ request, authorization, payload }) =>
+        await request
+            .post(`/api/project/create`)
+            .set('Authorization', authorization)
+            .send(payload),
+    fetchProject: async ({ request, authorization, projectId }) =>
+        await request
+            .get(`/api/project/projects/${projectId}`)
+            .set('Authorization', authorization),
+    deleteProject: async ({ request, authorization, id }) =>
+        await request
+            .delete(`/api/project/${id}/deleteProject`)
+            .set('Authorization', authorization),
+    /**
+     *  examplePayload = {
+     *      'saml-enabled':
+     *          true,
+     *      domain:
+     *          'tests.hackerbay.io',
+     *      samlSsoUrl:
+     *          'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
+     *      remoteLogoutUrl:
+     *          'http://localhost:9876/logout',
+     *  }
+     */
+    createSso: async ({ request, authorization, payload }) =>
+        await request
+            .post(`/api/sso/`)
+            .set('Authorization', authorization)
+            .send(payload),
+    deleteSso: async ({ request, authorization, id }) =>
+        await request
+            .delete(`/api/sso/${id}`)
+            .set('Authorization', authorization),
+    /**
+     *  examplePayload = {
+     *      domain: "6017d3105299cd0725598155",
+     *      project: "600fcb791450c01eab741764",
+     *      role: "Viewer",
+     *  }
+     */
+    createSsoDefaultRole: async ({ request, authorization, payload }) =>
+        await request
+            .post(`/api/ssoDefaultRoles/`)
+            .set('Authorization', authorization)
+            .send(payload),
+    updateSsoDefaultRole: async ({ request, authorization, id, payload }) =>
+        await request
+            .put(`/api/ssoDefaultRoles/${id}`)
+            .set('Authorization', authorization)
+            .send(payload),
+    fetchSsoDefaultRoles: async ({ request, authorization }) =>
+        await request
+            .get(`/api/ssoDefaultRoles/`)
+            .set('Authorization', authorization),
+    fetchSsoDefaultRole: async ({ request, authorization, id }) =>
+        await request
+            .get(`/api/ssoDefaultRoles/${id}`)
+            .set('Authorization', authorization),
+    deleteSsoDefaultRole: async ({ request, authorization, id }) =>
+        await request
+            .delete(`/api/ssoDefaultRoles/${id}`)
+            .set('Authorization', authorization),
+    fetchIdpSAMLResponse: async ({ SAMLRequest, username, password }) => {
+        let firstIdpResponse;
+        try {
+            const response = await chai
+                .request(SAMLRequest)
+                .get('')
+                .redirects(0);
+            expect(response).to.have.status(302);
+            firstIdpResponse = response;
+        } catch (error) {
+            expect(error.response).to.have.status(302);
+            firstIdpResponse = error.response;
+        }
+
+        const {
+            headers: { location, 'set-cookie': cookies },
+        } = firstIdpResponse;
+        const [postSubmissionUrl, AuthState] = location.split('AuthState=');
+
+        const samlResponsePage = await chai
+            .request(postSubmissionUrl)
+            .post('')
+            .set('Referer', SAMLRequest)
+            .set('Content-Type', 'application/x-www-form-urlencoded')
+            .set('Cookie', cookies[0])
+            .send({
+                username,
+                password,
+                AuthState: decode(AuthState),
+            });
+
+        const {
+            res: { text: html },
+        } = samlResponsePage;
+        const { parse } = require('node-html-parser');
+        const root = parse(html);
+        const input = root.querySelectorAll('input')[1];
+        const value = input.rawAttrs.split(' ')[2];
+        const SAMLResponse = value.split('"')[1];
+        return SAMLResponse;
+    },
 };
+
+const proxy = new Proxy(methods, {
+    shared: {},
+    setShared: function(args) {
+        this.shared = { ...this.shared, ...args };
+        return this.shared;
+    },
+    unsetShared: function(attribute) {
+        if (this.shared[attribute]) delete this.shared[attribute];
+        return this.shared;
+    },
+    get: function(target, prop) {
+        if (this[prop]) return (args = {}) => this[prop](args);
+        return (args = {}) => target[prop]({ ...this.shared, ...args });
+    },
+});
+
+module.exports = proxy;

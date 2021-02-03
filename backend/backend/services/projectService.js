@@ -161,7 +161,13 @@ module.exports = {
                         );
                     })
                 );
-
+                const ssoDefaultRoles = await SsoDefaultRolesService.findBy({
+                    project: project._id,
+                });
+                for (const ssoDefaultRole of ssoDefaultRoles) {
+                    const { _id } = ssoDefaultRole;
+                    await SsoDefaultRolesService.deleteBy({ _id });
+                }
                 project = await ProjectModel.findOneAndUpdate(
                     query,
                     {
@@ -758,3 +764,4 @@ const slugify = require('slugify');
 const generate = require('nanoid/generate');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const componentService = require('./componentService');
+const SsoDefaultRolesService = require('./ssoDefaultRolesService');

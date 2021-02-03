@@ -24,7 +24,7 @@ const {
     updateSchedule,
     verifyToken,
     getChargedAlerts,
-} = require('./test-utils');
+} = require('./utils/test-utils');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const ComponentService = require('../backend/services/componentService');
