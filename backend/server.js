@@ -263,7 +263,10 @@ app.use(
     ['/monitorCustomField', '/api/monitorCustomField'],
     require('./backend/api/monitorCustomField')
 );
-
+app.use(
+    ['/callRouting', '/api/callRouting'],
+    require('./backend/api/callRouting')
+);
 app.set('port', process.env.PORT || 3002);
 
 const server = http.listen(app.get('port'), function() {

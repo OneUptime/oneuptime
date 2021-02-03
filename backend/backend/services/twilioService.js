@@ -961,6 +961,167 @@ const _this = {
             throw error;
         }
     },
+
+    fetchNumbers: async (projectId, countryCode, numberType) => {
+        let accountSid = null;
+        let authToken = null;
+        let numbers;
+        const data = {
+            phoneNumber: '',
+            locality: '',
+            region: '',
+            capabilities: {},
+            price: '',
+            priceUnit: '',
+        };
+        try {
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (customTwilioSettings) {
+                accountSid = customTwilioSettings.accountSid;
+                authToken = customTwilioSettings.authToken;
+            } else {
+                const creds = await _this.getSettings();
+                accountSid = creds['account-sid'];
+                authToken = creds['authentication-token'];
+            }
+            const twilioClient = _this.getClient(accountSid, authToken);
+            const priceList = await twilioClient.pricing.v1.phoneNumbers
+                .countries(countryCode)
+                .fetch();
+            const localPrice = {};
+            const mobilePrice = {};
+            const tollFreePrice = {};
+            priceList &&
+                priceList.phoneNumberPrices &&
+                priceList.phoneNumberPrices.map(p => {
+                    if (p.number_type && p.number_type === 'local') {
+                        localPrice.basePrice = p.base_price;
+                        localPrice.currentPrice = p.current_price;
+                    } else if (p.number_type && p.number_type === 'toll free') {
+                        mobilePrice.basePrice = p.base_price;
+                        mobilePrice.currentPrice = p.current_price;
+                    } else if (p.number_type && p.number_type === 'mobile') {
+                        tollFreePrice.basePrice = p.base_price;
+                        tollFreePrice.currentPrice = p.current_price;
+                    }
+                    return p;
+                });
+
+            data.priceUnit = priceList.priceUnit;
+
+            if (numberType === 'Local') {
+                numbers = await twilioClient
+                    .availablePhoneNumbers(countryCode)
+                    .local.list({ limit: 1 });
+                data.price = await _this.calculatePrice(
+                    localPrice.currentPrice,
+                    localPrice.basePrice
+                );
+            } else if (numberType === 'Mobile') {
+                numbers = await twilioClient
+                    .availablePhoneNumbers(countryCode)
+                    .mobile.list({ limit: 1 });
+                data.price = await _this.calculatePrice(
+                    mobilePrice.currentPrice,
+                    mobilePrice.basePrice
+                );
+            } else if (numberType === 'TollFree') {
+                numbers = await twilioClient
+                    .availablePhoneNumbers(countryCode)
+                    .tollFree.list({ limit: 1 });
+                data.price = await _this.calculatePrice(
+                    tollFreePrice.currentPrice,
+                    tollFreePrice.basePrice
+                );
+            }
+
+            if (numbers && numbers[0] && numbers[0].phoneNumber) {
+                numbers = numbers[0];
+            }
+            data.phoneNumber = numbers.phoneNumber;
+            data.locality = numbers.locality;
+            data.region = numbers.region;
+            data.capabilities = numbers.capabilities;
+            return data;
+        } catch (error) {
+            ErrorService.log('twillioService.fetchNumbers', error);
+            throw error;
+        }
+    },
+
+    buyPhoneNumber: async (projectId, phoneNumber) => {
+        let accountSid = null;
+        let authToken = null;
+        try {
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (customTwilioSettings) {
+                accountSid = customTwilioSettings.accountSid;
+                authToken = customTwilioSettings.authToken;
+            } else {
+                const creds = await _this.getSettings();
+                accountSid = creds['account-sid'];
+                authToken = creds['authentication-token'];
+            }
+            const twilioClient = _this.getClient(accountSid, authToken);
+
+            const numbers = await twilioClient.incomingPhoneNumbers.create({
+                phoneNumber: phoneNumber,
+                voiceUrl: `${global.apiHost}/callRouting/routeCalls`,
+                voiceMethod: 'POST',
+            });
+            return numbers;
+        } catch (error) {
+            ErrorService.log('twillioService.buyPhoneNumber', error);
+            throw error;
+        }
+    },
+
+    releasePhoneNumber: async (projectId, sid) => {
+        let accountSid = null;
+        let authToken = null;
+        try {
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (customTwilioSettings) {
+                accountSid = customTwilioSettings.accountSid;
+                authToken = customTwilioSettings.authToken;
+            } else {
+                const creds = await _this.getSettings();
+                accountSid = creds['account-sid'];
+                authToken = creds['authentication-token'];
+            }
+            const twilioClient = _this.getClient(accountSid, authToken);
+
+            const numbers = await twilioClient
+                .incomingPhoneNumbers(sid)
+                .remove();
+            return { numbers };
+        } catch (error) {
+            ErrorService.log('twillioService.releasePhoneNumber', error);
+            throw error;
+        }
+    },
+
+    calculatePrice: async (currentPrice, basePrice) => {
+        let price =
+            currentPrice && basePrice
+                ? currentPrice > basePrice
+                    ? currentPrice * 10
+                    : basePrice * 10
+                : 'Not available';
+        if (currentPrice && !basePrice) price = currentPrice * 10;
+        else if (basePrice && !currentPrice) price = basePrice * 10;
+        return price;
+    },
+
     hasCustomSettings: async function(projectId) {
         return await _this.findByOne({
             projectId,

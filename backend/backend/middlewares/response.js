@@ -114,8 +114,18 @@ module.exports = {
             error.message &&
             typeof error.code === 'number'
         ) {
+            let status = error.code;
+            if (
+                error.code &&
+                error.status &&
+                typeof error.code === 'number' &&
+                typeof error.status === 'number' &&
+                error.code > 600
+            ) {
+                status = error.status;
+            }
             res.resBody = { message: error.message };
-            return res.status(error.code).send({ message: error.message });
+            return res.status(status).send({ message: error.message });
         } else if (error instanceof mongoose.Error.CastError) {
             res.resBody = { code: 400, message: 'Input data schema mismatch.' };
             return res
