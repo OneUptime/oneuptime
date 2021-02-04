@@ -28,6 +28,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const IssueService = require('../services/issueService');
 const TeamService = require('../services/teamService');
 const IssueMemberService = require('../services/issueMemberService');
+const IssueTimelineService = require('../services/issueTimelineService');
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -555,10 +556,26 @@ router.post(
                 };
                 const currentIssue = await IssueService.findOneBy(query);
                 if (currentIssue) {
-                    const issue = await IssueService.updateOneBy(
+                    let issue = await IssueService.updateOneBy(
                         query,
                         updateData
                     );
+
+                    // add action to timeline for this particular issue
+                    const timelineData = {
+                        issueId: currentIssueId,
+                        createdById: req.user ? req.user.id : null,
+                        status: action,
+                    };
+
+                    await IssueTimelineService.create(timelineData);
+                    issue = JSON.parse(JSON.stringify(issue));
+
+                    // get the timeline attahced to this issue annd add it to the issue
+
+                    issue.timeline = await IssueTimelineService.findBy({
+                        issueId: currentIssueId,
+                    });
                     issues.push(issue);
 
                     // update a timeline object
