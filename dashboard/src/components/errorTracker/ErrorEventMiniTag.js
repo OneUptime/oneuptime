@@ -22,7 +22,7 @@ class ErrorEventMiniTag extends Component {
                             </span>
                         </div>
                     </div>
-                    <div className="Flex-flex Flex-wrap--wrap">
+                    {/* <div className="Flex-flex Flex-wrap--wrap">
                         {errorEventDetails &&
                         errorEventDetails.tags &&
                         errorEventDetails.tags.length > 0 ? (
@@ -34,6 +34,38 @@ class ErrorEventMiniTag extends Component {
                                         </div>
                                         <div className="Tag-Content">
                                             {tag.value}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div> No Tags</div>
+                        )}
+                    </div> */}
+                    <div className="Flex-flex Flex-wrap--wrap">
+                        {errorEventDetails &&
+                        errorEventDetails.tags &&
+                        errorEventDetails.tags.length > 0 ? (
+                            errorEventDetails.tags.map((tag, i) => {
+                                return (
+                                    <div
+                                        key={i}
+                                        className="Flex-flex Flex-alignItems--center Margin-right--12 Margin-top--12"
+                                    >
+                                        <label
+                                            style={{
+                                                color: '#4c4c4c',
+                                                marginRight: '5px',
+                                            }}
+                                        >
+                                            {tag.key}
+                                        </label>
+                                        <div>
+                                            <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span>{tag.value}</span>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 );

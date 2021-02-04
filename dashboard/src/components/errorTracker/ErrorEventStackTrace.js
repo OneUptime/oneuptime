@@ -45,13 +45,28 @@ class ErrorEventStackTrace extends Component {
                         errorEventDetails.content.stacktrace &&
                         errorEventDetails.content.stacktrace.frames && (
                             <div className="Flex-flex Flex-wrap--wrap">
-                                <div className="Tag-Pill">
-                                    <div className="Tag-Title">function</div>
-                                    <div className="Tag-Content">
-                                        {
-                                            errorEventDetails.content.stacktrace
-                                                .frames[0].methodName
-                                        }
+                                <div className="Flex-flex Flex-alignItems--center Margin-right--12 Margin-top--12">
+                                    <label
+                                        style={{
+                                            color: '#4c4c4c',
+                                            marginRight: '5px',
+                                        }}
+                                    >
+                                        function
+                                    </label>
+                                    <div>
+                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span>
+                                                    {
+                                                        errorEventDetails
+                                                            .content.stacktrace
+                                                            .frames[0]
+                                                            .methodName
+                                                    }
+                                                </span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
