@@ -26,6 +26,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const subscriberAlertService = require('../services/subscriberAlertService');
+const onCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 
 // Route
 // Description: Creating incident.
@@ -789,11 +790,15 @@ router.get(
                 result = incidentMessages;
             } else {
                 const subAlerts = deduplicate(subscriberAlerts);
+                const callScheduleStatus = await onCallScheduleStatusService.findBy({
+                    query: {incident: incidentId}
+                })
                 incidentMessages = [
                     ...incidentMessages,
                     ...timeline,
                     ...alerts,
                     ...subAlerts,
+                    ...callScheduleStatus
                 ];
                 incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
                 const filteredMsg = incidentMessages.filter(
