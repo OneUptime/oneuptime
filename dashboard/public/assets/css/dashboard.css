@@ -35006,6 +35006,16 @@ span.CodeMirror-selectedtext {
   margin-bottom: 5px;
 }
 
+
+.bs-dark-bullet {
+  font-size: 60px;
+  display: flex;
+  align-items: flex-end;
+  min-width: 15px;
+  height: 15px;
+  margin-top: 11px;
+  padding-left:2px;
+}
 .bs-btn-extra {
   margin-top: 12px;
   transition: 0.3s;

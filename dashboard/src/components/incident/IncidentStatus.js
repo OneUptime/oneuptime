@@ -769,8 +769,11 @@ export class IncidentStatus extends Component {
                                                                         </span>
                                                                     </div>
                                                                 </div>
+
                                                                 <div className="bs-flex-display bs-margin-top-1 bs-justify-cont bs-margin-bottom">
-                                                                    <div className="bs-circle bs-circle-o"></div>
+                                                                    <span className="bs-dark-bullet">
+                                                                        .
+                                                                    </span>
                                                                     <div className="bs-margin-right">
                                                                         <span className="bs-content-create">
                                                                             Created
@@ -1009,25 +1012,9 @@ export class IncidentStatus extends Component {
                                                                             </div>
                                                                         </div>
                                                                         <div className="bs-flex-display bs-justify-cont bs-margin-top-1">
-                                                                            <svg
-                                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                                viewBox="0 0 24 24"
-                                                                                className="bs-ack-yellow"
-                                                                                width="18"
-                                                                                height="18"
-                                                                                style={{
-                                                                                    minWidth:
-                                                                                        '18px',
-                                                                                    minHeight:
-                                                                                        '18px',
-                                                                                }}
-                                                                            >
-                                                                                <path
-                                                                                    fill="none"
-                                                                                    d="M0 0h24v24H0z"
-                                                                                />
-                                                                                <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" />
-                                                                            </svg>
+                                                                            <span className="bs-dark-bullet">
+                                                                                .
+                                                                            </span>
                                                                             <div
                                                                                 // id={`AcknowledgeText_${this.props.count}`}
                                                                                 className="bs-margin-right "
@@ -1065,26 +1052,10 @@ export class IncidentStatus extends Component {
                                                                                 }
                                                                             </div>
                                                                         </div>
-                                                                        <div className="bs-flex-display bs-justify-cont bs-margin-top-1">
-                                                                            <svg
-                                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                                viewBox="0 0 24 24"
-                                                                                className="bs-ack-yellow"
-                                                                                width="18"
-                                                                                height="18"
-                                                                                style={{
-                                                                                    minWidth:
-                                                                                        '18px',
-                                                                                    minHeight:
-                                                                                        '18px',
-                                                                                }}
-                                                                            >
-                                                                                <path
-                                                                                    fill="none"
-                                                                                    d="M0 0h24v24H0z"
-                                                                                />
-                                                                                <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" />
-                                                                            </svg>
+                                                                        <div className="bs-flex-display bs-justify-cont">
+                                                                            <span className="bs-dark-bullet">
+                                                                                .
+                                                                            </span>
                                                                             <span className="bs-margin-right">
                                                                                 It
                                                                                 took{' '}
@@ -1188,7 +1159,9 @@ export class IncidentStatus extends Component {
                                                                                 </div>
                                                                             </div>
                                                                             <div className="bs-flex-display bs-justify-cont bs-margin-top-1">
-                                                                                <div className="bs-circle-span-green"></div>
+                                                                                <span className="bs-dark-bullet">
+                                                                                    .
+                                                                                </span>
                                                                                 <div
                                                                                     id={`ResolveText_${this.props.count}`}
                                                                                     className="bs-margin-right"
@@ -1227,8 +1200,10 @@ export class IncidentStatus extends Component {
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                        <div className="bs-flex-display bs-justify-cont bs-margin-top-1">
-                                                                            <div className="bs-circle-span-green"></div>
+                                                                        <div className="bs-flex-display bs-justify-cont">
+                                                                            <span className="bs-dark-bullet">
+                                                                                .
+                                                                            </span>
                                                                             <span className="bs-margin-right">
                                                                                 It
                                                                                 took{' '}
