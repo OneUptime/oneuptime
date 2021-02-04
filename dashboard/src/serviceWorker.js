@@ -73,6 +73,7 @@ function registerValidSW(swUrl, config) {
                         return !validCacheSet.has(cacheName);
                     })
                     .map(function (cacheName) {
+                        console.log('****** cacheName final ********', cacheName)
                         // delete old cache
                         // return caches.delete(cacheName);
                         return cacheName;
