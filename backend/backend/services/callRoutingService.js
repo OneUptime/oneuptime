@@ -153,40 +153,53 @@ module.exports = {
         }
     },
 
-    reserveNumber: async function(data, userId) {
+    reserveNumber: async function(data, projectId) {
         try {
-            const user = await UserService.findOneBy({ _id: userId });
-            const stripeCustomerId = user.stripeCustomerId;
             const confirmBuy = await TwilioService.buyPhoneNumber(
                 data.projectId,
                 data.phoneNumber
             );
-            const stripeSubscription = await PaymentService.createSubscription(
-                stripeCustomerId,
-                data.price
+            const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
+                projectId
             );
-            const stripeSubscriptionId =
-                stripeSubscription && stripeSubscription.id
-                    ? stripeSubscription.id
-                    : null;
-            if (stripeSubscriptionId && stripeSubscriptionId.length) {
-                data.stripeSubscriptionId = stripeSubscriptionId;
-                data.sid = confirmBuy.sid;
-                const CallRouting = await this.create(data);
-                return CallRouting;
-            } else {
-                const error = new Error('Error Creating Subscription.');
-                error.code = 400;
-                ErrorService.log('callRoutingService.reserveNumber', error);
-                throw error;
+            if (
+                IS_SAAS_SERVICE &&
+                !hasCustomTwilioSettings &&
+                confirmBuy &&
+                confirmBuy.sid
+            ) {
+                const project = ProjectService.findOneBy({ _id: projectId });
+                let owner = project.users.filter(user => user.role === 'Owner');
+                owner = owner && owner.length ? owner[0] : owner;
+                const user = await UserService.findOneBy({ _id: owner.userId });
+                const stripeCustomerId = user.stripeCustomerId;
+                const stripeSubscription = await PaymentService.createSubscription(
+                    stripeCustomerId,
+                    data.price
+                );
+                if (
+                    stripeSubscription &&
+                    stripeSubscription.id &&
+                    stripeSubscription.id.length
+                ) {
+                    data.stripeSubscriptionId = stripeSubscription.id;
+                } else {
+                    const error = new Error('Error Creating Subscription.');
+                    error.code = 400;
+                    ErrorService.log('callRoutingService.reserveNumber', error);
+                    throw error;
+                }
             }
+            data.sid = confirmBuy.sid;
+            const CallRouting = await this.create(data);
+            return CallRouting;
         } catch (error) {
             ErrorService.log('callRoutingService.reserveNumber', error);
             throw error;
         }
     },
 
-    resolveSchedule: async function(type, id) {
+    findTeamMember: async function(type, id) {
         try {
             let user;
             if (type && type === 'TeamMember') {
@@ -295,21 +308,58 @@ module.exports = {
         }
     },
 
-    getTeamAndSchedules: async function(projectId) {
+    getCallResponse: async function(data, fromNumber, to) {
         try {
-            const teams = await TeamService.getTeamMembersBy({
-                _id: projectId,
-            });
-            const schedules = await ScheduleService.findBy(
-                {
-                    projectId: projectId,
-                },
-                0,
-                0
-            );
-            return { teams, schedules };
+            let memberId = null;
+            const response = new twilio.twiml.VoiceResponse();
+
+            if (
+                data &&
+                data.routingSchema &&
+                data.routingSchema.type &&
+                data.routingSchema.type.length &&
+                data.routingSchema.id &&
+                data.routingSchema.id.length
+            ) {
+                const {
+                    forwardingNumber,
+                    error,
+                    userId,
+                } = await this.findTeamMember(
+                    data.routingSchema.type,
+                    data.routingSchema.id
+                );
+                if (userId) {
+                    memberId = userId;
+                }
+                if (forwardingNumber && (!error || (error && error.length))) {
+                    response.dial(forwardingNumber);
+                } else if (!forwardingNumber && error && error.length) {
+                    response.say(error);
+                }
+            } else {
+                response.say('Sorry could not find anyone on duty');
+            }
+            if (data && data._id) {
+                await CallRoutingLogService.create({
+                    callRoutingId: data && data._id ? data._id : null,
+                    calledFrom: fromNumber,
+                    calledTo: to,
+                    userId: memberId,
+                    scheduleId:
+                        data &&
+                        data.routingSchema &&
+                        data.routingSchema.type &&
+                        data.routingSchema.id &&
+                        data.routingSchema.type === 'Schedule'
+                            ? data.routingSchema.id
+                            : '',
+                });
+            }
+            response.say('Goodbye');
+            return response;
         } catch (error) {
-            ErrorService.log('callRoutingService.reserveNumber', error);
+            ErrorService.log('callRoutingService.getCallResponse', error);
             throw error;
         }
     },
@@ -326,11 +376,14 @@ module.exports = {
 };
 
 const CallRoutingModel = require('../models/callRouting');
+const CallRoutingLogService = require('../services/callRoutingLogService');
 const PaymentService = require('./paymentService');
 const TwilioService = require('./twilioService');
-const TeamService = require('./teamService');
 const ScheduleService = require('./scheduleService');
 const AlertService = require('./alertService');
 const EscalationService = require('./escalationService');
 const UserService = require('./userService');
+const twilio = require('twilio');
+const { IS_SAAS_SERVICE } = require('../config/server');
 const ErrorService = require('./errorService');
+const ProjectService = require('./projectService');
