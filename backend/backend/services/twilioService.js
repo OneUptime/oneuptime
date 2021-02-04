@@ -17,7 +17,7 @@ const AlertService = require('./alertService');
 const { IS_TESTING } = require('../config/server');
 
 const _this = {
-    findByOne: async function(query) {
+    findByOne: async function (query) {
         try {
             if (!query) {
                 query = {};
@@ -53,7 +53,7 @@ const _this = {
         throw error;
     },
 
-    sendIncidentCreatedMessage: async function(
+    sendIncidentCreatedMessage: async function (
         incidentTime,
         monitorName,
         number,
@@ -61,12 +61,19 @@ const _this = {
         userId,
         name,
         incidentType,
-        projectId
+        projectId,
+        smsProgress
     ) {
         let smsBody;
         try {
+            let smsMessage;
+            if(smsProgress) {
+                smsMessage = `Reminder ${smsProgress.current}/${smsProgress.total}: `
+            } else {
+                smsMessage = ''
+            }
             const options = {
-                body: `Fyipe Alert: Monitor ${monitorName} is ${incidentType}. Please acknowledge or resolve this incident on Fyipe Dashboard.`,
+                body: `${smsMessage} Fyipe Alert: Monitor ${monitorName} is ${incidentType}. Please acknowledge or resolve this incident on Fyipe Dashboard.`,
                 to: number,
             };
             smsBody = options.body;
@@ -170,7 +177,7 @@ const _this = {
         }
     },
 
-    sendIncidentCreatedMessageToSubscriber: async function(
+    sendIncidentCreatedMessageToSubscriber: async function (
         incidentTime,
         monitorName,
         number,
@@ -298,7 +305,7 @@ const _this = {
         }
     },
 
-    sendInvestigationNoteToSubscribers: async function(
+    sendInvestigationNoteToSubscribers: async function (
         incidentTime,
         monitorName,
         number,
@@ -426,7 +433,7 @@ const _this = {
         }
     },
 
-    sendIncidentAcknowldegedMessageToSubscriber: async function(
+    sendIncidentAcknowldegedMessageToSubscriber: async function (
         incidentTime,
         monitorName,
         number,
@@ -555,7 +562,7 @@ const _this = {
         }
     },
 
-    sendIncidentResolvedMessageToSubscriber: async function(
+    sendIncidentResolvedMessageToSubscriber: async function (
         incidentTime,
         monitorName,
         number,
@@ -684,7 +691,7 @@ const _this = {
         }
     },
 
-    test: async function(data) {
+    test: async function (data) {
         try {
             const options = {
                 body: 'This is a test SMS from Fyipe',
@@ -721,23 +728,28 @@ const _this = {
         }
     },
 
-    sendIncidentCreatedCall: async function(
+    sendIncidentCreatedCall: async function (
         incidentTime,
         monitorName,
         number,
         accessToken,
         incidentId,
         projectId,
-        incidentType
+        incidentType,
+        callProgress
     ) {
         let callBody;
         try {
+            const extraInfo = callProgress ?
+                `This is the ${await _this.getProgressText(callProgress.current)} 
+                    reminder.` : '';
             const message =
                 '<Say voice="alice">This is an alert from Fyipe. Your monitor ' +
                 monitorName +
                 ' is ' +
                 incidentType +
-                '. Please go to Fyipe Dashboard or Mobile app to acknowledge or resolve this incident.</Say>';
+                '. Please go to Fyipe Dashboard or Mobile app to acknowledge or resolve this incident. ' +
+                extraInfo + '</Say>';
             const hangUp = '<Hangup />';
             const twiml = '<Response> ' + message + hangUp + '</Response>';
             callBody = twiml;
@@ -831,7 +843,22 @@ const _this = {
         }
     },
 
-    getTemplate: async function(smsTemplate, smsTemplateType) {
+    getProgressText: async function (number) {
+        var special = ['zeroth', 'first', 'second', 'third', 
+            'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 
+            'ninth', 'tenth', 'eleventh', 'twelfth', 'thirteenth', 
+            'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 
+            'eighteenth', 'nineteenth'];
+        var deca = ['twent', 'thirt', 'fort', 
+                'fift', 'sixt', 'sevent', 'eight', 
+                'ninet'];
+
+        if (number < 20) return special[number];
+        if (number % 10 === 0) return deca[Math.floor(number / 10) - 2] + 'ieth';
+        return deca[Math.floor(number / 10) - 2] + 'y-' + special[number % 10];
+    },
+
+    getTemplate: async function (smsTemplate, smsTemplateType) {
         const defaultTemplate = defaultSmsTemplates.filter(
             template => template.smsType === smsTemplateType
         )[0];
@@ -846,7 +873,7 @@ const _this = {
         const template = await Handlebars.compile(smsContent);
         return { template };
     },
-    sendVerificationSMS: async function(
+    sendVerificationSMS: async function (
         to,
         userId,
         projectId,
@@ -864,8 +891,8 @@ const _this = {
             const alertPhoneVerificationCode = IS_TESTING
                 ? '123456'
                 : Math.random()
-                      .toString(10)
-                      .substr(2, 6);
+                    .toString(10)
+                    .substr(2, 6);
             if (customTwilioSettings) {
                 const template = `Your verification code: ${alertPhoneVerificationCode}`;
                 smsBody = template;
@@ -1122,7 +1149,7 @@ const _this = {
         return price;
     },
 
-    hasCustomSettings: async function(projectId) {
+    hasCustomSettings: async function (projectId) {
         return await _this.findByOne({
             projectId,
             enabled: true,
