@@ -10,7 +10,7 @@ import { openModal, closeModal } from '../../actions/modal';
 import { updateProbe } from '../../actions/probe';
 import ProbeDeleteModal from './ProbeDeleteModal';
 import uuid from 'uuid';
-import { reduxForm, Field, formValueSelector } from 'redux-form';
+import { reduxForm, Field } from 'redux-form';
 import { UploadFile } from '../basic/UploadFile';
 import { API_URL } from '../../config';
 
