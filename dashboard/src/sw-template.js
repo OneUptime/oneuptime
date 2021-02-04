@@ -21,7 +21,7 @@ if ('function' === typeof importScripts) {
         cleanupOutdatedCaches();
         
         /* injection point for manifest files.  */
-        precacheAndRoute(self.__WB_MANIFEST, {
+        precacheAndRoute([], {
             cleanURLs: false,
         });
 
