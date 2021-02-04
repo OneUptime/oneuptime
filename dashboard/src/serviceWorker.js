@@ -60,7 +60,7 @@ let reload = false;
 
 function registerValidSW(swUrl, config) {
     // Clear old caches
-    self.addEventListener("activate", function (event) {
+    navigator.serviceWorker.addEventListener('activate', function (event) {
         event.waitUntil(
             caches.keys().then(function (cacheNames) {
                 // grab the updated cache names
@@ -84,6 +84,7 @@ function registerValidSW(swUrl, config) {
     });
 
     navigator.serviceWorker.addEventListener('controllerchange', function (event) {
+        console.log('****** about to reload *********', reload);
         // Ensure refresh is only called once.
         // This works around a bug in "force update on reload".
         if (reload) return
