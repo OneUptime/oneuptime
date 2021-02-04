@@ -962,7 +962,8 @@ const _this = {
         }
     },
 
-    fetchNumbers: async (projectId, countryCode, numberType) => {
+    // Fetch Available numbers to buy from twilio
+    fetchPhoneNumbers: async (projectId, countryCode, numberType) => {
         let accountSid = null;
         let authToken = null;
         let numbers;

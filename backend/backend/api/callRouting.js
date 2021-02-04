@@ -5,15 +5,13 @@
  */
 
 const express = require('express');
-const { fetchNumbers } = require('../services/twilioService');
+const { fetchPhoneNumbers } = require('../services/twilioService');
 const CallRoutingService = require('../services/callRoutingService');
-const CallRoutingLogService = require('../services/callRoutingLogService');
 const { isAuthorized } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const twilio = require('twilio');
 const router = express.Router();
 
 const callForward = async (req, res) => {
@@ -21,47 +19,14 @@ const callForward = async (req, res) => {
         const body = req.body;
         const to = body['To'];
         const fromNumber = body['From'];
-        let memberId = null;
-        const response = new twilio.twiml.VoiceResponse();
         const data = await CallRoutingService.findOneBy({
             phoneNumber: to,
         });
-        if (
-            data &&
-            data.routingSchema &&
-            data.routingSchema.type &&
-            data.routingSchema.type.length &&
-            data.routingSchema.id &&
-            data.routingSchema.id.length
-        ) {
-            const {
-                forwardingNumber,
-                error,
-                userId,
-            } = await CallRoutingService.resolveSchedule(
-                data.routingSchema.type,
-                data.routingSchema.id
-            );
-            if (userId) {
-                memberId = userId;
-            }
-            if (forwardingNumber && (!error || (error && error.length))) {
-                response.dial(forwardingNumber);
-            } else if (!forwardingNumber && error && error.length) {
-                response.say(error);
-            }
-        } else {
-            response.say('Sorry could not find anyone on duty');
-        }
-        if (data && data._id) {
-            await CallRoutingLogService.create({
-                callRoutingId: data && data._id ? data._id : null,
-                calledFrom: fromNumber,
-                calledTo: to,
-                forwardedToId: memberId,
-            });
-        }
-        response.say('Goodbye');
+        const response = await CallRoutingService.getCallResponse(
+            data,
+            fromNumber,
+            to
+        );
         res.set('Content-Type', 'text/xml');
         return res.send(response.toString());
     } catch (error) {
@@ -84,14 +49,14 @@ router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
 });
 
 router.get(
-    '/:projectId/fetchnumbers',
+    '/:projectId/routingNumbers',
     getUser,
     isAuthorized,
     async (req, res) => {
         try {
             const { countryCode, numberType } = req.query;
             const { projectId } = req.params;
-            const numbers = await fetchNumbers(
+            const numbers = await fetchPhoneNumbers(
                 projectId,
                 countryCode,
                 numberType
@@ -114,33 +79,17 @@ router.get(
         }
     }
 );
-router.get(
-    '/:projectId/getTeamAndSchedules',
-    getUser,
-    isAuthorized,
-    async (req, res) => {
-        try {
-            const { projectId } = req.params;
-            const teamAndSchedules = await CallRoutingService.getTeamAndSchedules(
-                projectId
-            );
-            return sendItemResponse(req, res, teamAndSchedules);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
-    }
-);
 
-router.post('/:projectId/addNumber', getUser, isUserMasterAdmin, async function(
+router.post('/:projectId/routingNumber', getUser, isUserAdmin, async function(
     req,
     res
 ) {
     try {
         const data = req.body;
-        const userId = req.user.id || req.user._id;
+        const { projectId } = req.params;
         const CallRouting = await CallRoutingService.reserveNumber(
             data,
-            userId
+            projectId
         );
         return sendItemResponse(req, res, CallRouting);
     } catch (error) {
@@ -148,36 +97,34 @@ router.post('/:projectId/addNumber', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.post(
-    '/:projectId/:callRoutingId/addCallRoutingSchedule',
-    getUser,
-    isUserMasterAdmin,
-    async function(req, res) {
-        try {
-            const { callRoutingId } = req.params;
-            const data = req.body;
-            const routingSchema = {};
-            routingSchema.type = data.type;
-            if (data.type && data.type === 'TeamMember') {
-                routingSchema.id = data.teamMemberId;
-            } else if (data.type && data.type === 'Schedule') {
-                routingSchema.id = data.scheduleId;
-            }
-            const CallRouting = await CallRoutingService.updateOneBy(
-                { _id: callRoutingId },
-                { routingSchema }
-            );
-            return sendItemResponse(req, res, CallRouting);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
+router.put('/:projectId/:callRoutingId', getUser, isUserAdmin, async function(
+    req,
+    res
+) {
+    try {
+        const { callRoutingId } = req.params;
+        const data = req.body;
+        const routingSchema = {};
+        routingSchema.type = data.type;
+        if (data.type && data.type === 'TeamMember') {
+            routingSchema.id = data.teamMemberId;
+        } else if (data.type && data.type === 'Schedule') {
+            routingSchema.id = data.scheduleId;
         }
+        const CallRouting = await CallRoutingService.updateOneBy(
+            { _id: callRoutingId },
+            { routingSchema }
+        );
+        return sendItemResponse(req, res, CallRouting);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-);
+});
 
 router.delete(
     '/:projectId/:callRoutingId',
     getUser,
-    isUserMasterAdmin,
+    isUserAdmin,
     async function(req, res) {
         try {
             const { projectId, callRoutingId } = req.params;
