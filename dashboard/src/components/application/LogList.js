@@ -158,10 +158,6 @@ class LogList extends Component {
                                             }_${i}`}
                                             key={log._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
-                                            style={{
-                                                borderBottom:
-                                                    '#f7f7f7 solid 1px',
-                                            }}
                                         >
                                             <td
                                                 id="placeholder-right"

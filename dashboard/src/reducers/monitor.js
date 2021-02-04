@@ -1089,16 +1089,20 @@ export default function monitor(state = INITIAL_STATE, action) {
                                           monitor.data &&
                                           action.payload.data.logs.lighthouseLogs.some(
                                               log =>
+                                                  monitor.currentLighthouseLog &&
                                                   log._id ===
-                                                  monitor.currentLighthouseLog
-                                                      ._id
+                                                      monitor
+                                                          .currentLighthouseLog
+                                                          ._id
                                           )
                                       ) {
                                           monitor.currentLighthouseLog = action.payload.data.logs.lighthouseLogs.filter(
                                               log =>
+                                                  monitor.currentLighthouseLog &&
                                                   log._id ===
-                                                  monitor.currentLighthouseLog
-                                                      ._id
+                                                      monitor
+                                                          .currentLighthouseLog
+                                                          ._id
                                           )[0];
                                       }
                                       if (
