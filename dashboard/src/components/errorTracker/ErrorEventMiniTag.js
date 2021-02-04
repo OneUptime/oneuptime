@@ -14,9 +14,13 @@ class ErrorEventMiniTag extends Component {
                     errorEventDetails.tags
                 }
             >
-                <div className="Box-divider--border-top-1 Padding-vertical--20">
-                    <div>
-                        <p className="SubHeader">Tags</p>
+                <div className="ContentHeader Box-root Box-background--white Box-divider--border-top-1 Flex-flex Flex-direction--column Padding-vertical--16">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span>Tags</span>
+                            </span>
+                        </div>
                     </div>
                     <div className="Flex-flex Flex-wrap--wrap">
                         {errorEventDetails &&

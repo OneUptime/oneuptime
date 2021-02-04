@@ -34,9 +34,13 @@ function ErrorEventInfoSection({ errorEvent }) {
             {errorEventDetails &&
             errorEventDetails.device &&
             errorEventDetails.device.browser ? (
-                <div className="Box-divider--border-top-1 Padding-vertical--20">
-                    <div className="Flex-flex Flex-justifyContent--spaceBetween">
-                        <p className="SubHeader">Browser</p>
+                <div className="ContentHeader Box-root Box-background--white Box-divider--border-top-1 Flex-flex Flex-direction--column Padding-vertical--16">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span>Browser</span>
+                            </span>
+                        </div>
                     </div>
                     <div className="Margin-vertical--8">
                         <RenderTagContent
@@ -54,9 +58,13 @@ function ErrorEventInfoSection({ errorEvent }) {
             {errorEventDetails &&
             errorEventDetails.device &&
             errorEventDetails.device.device ? (
-                <div className="Box-divider--border-top-1 Padding-vertical--20">
-                    <div className="Flex-flex Flex-justifyContent--spaceBetween">
-                        <p className="SubHeader">Operating System</p>
+                <div className="ContentHeader Box-root Box-background--white Box-divider--border-top-1 Flex-flex Flex-direction--column Padding-vertical--16">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span>Operating System</span>
+                            </span>
+                        </div>
                     </div>
                     <div className="Margin-vertical--8">
                         <RenderTagContent
@@ -70,9 +78,13 @@ function ErrorEventInfoSection({ errorEvent }) {
             {!errorEvent.requesting &&
             errorEventDetails &&
             errorEventDetails.sdk ? (
-                <div className="Box-divider--border-top-1 Padding-vertical--20">
-                    <div className="Flex-flex Flex-justifyContent--spaceBetween">
-                        <p className="SubHeader">SDK</p>
+                <div className="ContentHeader Box-root Box-background--white Box-divider--border-top-1 Flex-flex Flex-direction--column Padding-vertical--16">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span>SDK</span>
+                            </span>
+                        </div>
                     </div>
                     <div className="Margin-vertical--8">
                         <RenderTagContent

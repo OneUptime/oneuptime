@@ -77,9 +77,13 @@ class ErrorEventTimeline extends Component {
                 }
             >
                 <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
-                    <div className="Box-root Padding-vertical--12">
-                        <div className="Flex-flex Flex-justifyContent--spaceBetween Padding-all--12">
-                            <p className="SubHeader">Error Event Timeline</p>
+                    <div className="ContentHeader Box-root Box-background--white Flex-flex Flex-direction--column Padding-vertical--16">
+                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center Padding-horizontal--12">
+                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                    <span>Error Event Timeline</span>
+                                </span>
+                            </div>
                         </div>
                         <div
                             style={{

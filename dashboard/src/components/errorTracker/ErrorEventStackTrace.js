@@ -18,22 +18,27 @@ class ErrorEventStackTrace extends Component {
                     errorEventDetails.content
                 }
             >
-                <div className="Box-divider--border-top-1 Padding-vertical--20">
-                    <div>
-                        <p className="SubHeader">Exception</p>
-                    </div>
-                    <div>
-                        <span className="Text-fontSize--14 Text-fontWeight--bold">
-                            {errorEventDetails &&
-                                errorEventDetails.content &&
-                                errorEventDetails.content.type}
-                        </span>
-                        <span>
-                            {' '}
-                            {errorEventDetails &&
-                                errorEventDetails.content &&
-                                errorEventDetails.content.message}
-                        </span>
+                <div className="ContentHeader Box-divider--border-top-1 Box-root Box-background--white Flex-flex Flex-direction--column Padding-vertical--16">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span>Exception</span>
+                            </span>
+                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                <span className="Text-fontWeight--medium">
+                                    {errorEventDetails &&
+                                        errorEventDetails.content &&
+                                        errorEventDetails.content.type}
+                                    {': '}
+                                </span>
+                                <span>
+                                    {errorEventDetails &&
+                                        errorEventDetails.content &&
+                                        errorEventDetails.content.message}
+                                    .
+                                </span>
+                            </span>
+                        </div>
                     </div>
                     {errorEventDetails &&
                         errorEventDetails.content &&
