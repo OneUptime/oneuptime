@@ -7,7 +7,7 @@ import formatNumber from '../../utils/formatNumber';
 import { history } from '../../store';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import ShouldRender from '../basic/ShouldRender';
-import { FormLoader } from '../basic/Loader';
+import { FormLoader2 } from '../basic/Loader';
 
 function getComponentBadge(componentName) {
     return (
@@ -280,7 +280,7 @@ function ErrorTrackerIssue({
                                 errorTrackerStatus[errorTrackerIssue._id] &&
                                 errorTrackerStatus[errorTrackerIssue._id]
                                     .requestingResolve
-                                    ? 'bs-Button--blue'
+                                    ? ''
                                     : 'bs-Button--icon bs-Button--check'
                             }  `}
                             type="button"
@@ -294,7 +294,7 @@ function ErrorTrackerIssue({
                                 errorTrackerStatus[errorTrackerIssue._id] &&
                                 errorTrackerStatus[errorTrackerIssue._id]
                                     .requestingResolve ? (
-                                    <FormLoader />
+                                    <FormLoader2 />
                                 ) : (
                                     <span>
                                         {errorTrackerIssue.resolved

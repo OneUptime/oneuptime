@@ -453,6 +453,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 if (issue && issue.length > 0) {
                     errorTrackerIssues.ignored = issue[0].ignored;
                     errorTrackerIssues.resolved = issue[0].resolved;
+                    errorTrackerIssues.timeline = issue[0].timeline;
                 }
 
                 return errorTrackerIssues;
@@ -525,6 +526,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 if (issue && issue.length > 0) {
                     errorTrackerIssues.ignored = issue[0].ignored;
                     errorTrackerIssues.resolved = issue[0].resolved;
+                    errorTrackerIssues.timeline = issue[0].timeline;
                 }
 
                 return errorTrackerIssues;
@@ -597,6 +599,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 if (issue && issue.length > 0) {
                     errorTrackerIssues.ignored = issue[0].ignored;
                     errorTrackerIssues.resolved = issue[0].resolved;
+                    errorTrackerIssues.timeline = issue[0].timeline;
                 }
 
                 return errorTrackerIssues;
