@@ -9,6 +9,7 @@ import { RenderHeaders } from '../basic/RenderHeaders';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';
 import { ValidateField } from '../../config';
+import RenderQueryParams from '../basic/RenderQueryParams';
 
 const style = {
     marginTop: '10px',
@@ -40,8 +41,15 @@ export class ApiAdvance extends Component {
         });
     };
 
+    addParam = () => {
+        this.props.pushArray('NewMonitor', `params_${this.props.index}`, {
+            key: '',
+            value: '',
+        });
+    };
+
     render() {
-        const { bodytype, type } = this.props;
+        const { bodytype, monitorType } = this.props;
         return (
             <div
                 className="bs-ContentSection Card-root Card-shadow--medium"
@@ -91,7 +99,52 @@ export class ApiAdvance extends Component {
                             </div>
                         </div>
                     </div>
-                    <ShouldRender if={type === 'api'}>
+                    <ShouldRender if={monitorType === 'incomingHttpRequest'}>
+                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                            <div className="Box-root">
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span>Query Params</span>
+                                </span>
+                                <p>
+                                    <span>
+                                        This section belongs to customizing your
+                                        query params that will be sent with the
+                                        api request.
+                                    </span>
+                                </p>
+                            </div>
+
+                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                <div>
+                                    <button
+                                        id="addApiHeaders"
+                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                        type="button"
+                                        onClick={this.addParam}
+                                    >
+                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                            <span>Add Param</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1">
+                            <div>
+                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                    <fieldset className="bs-Fieldset">
+                                        <div className="bs-Fieldset-rows">
+                                            <FieldArray
+                                                name={`params_${this.props.index}`}
+                                                component={RenderQueryParams}
+                                            />
+                                        </div>
+                                    </fieldset>
+                                </div>
+                            </div>
+                        </div>
+                    </ShouldRender>
+                    <ShouldRender if={monitorType === 'api'}>
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -272,6 +325,7 @@ ApiAdvance.propTypes = {
     pushArray: PropTypes.func,
     bodytype: PropTypes.string,
     index: PropTypes.number,
+    monitorType: PropTypes.string,
 };
 
 const mapDispatchToProps = {

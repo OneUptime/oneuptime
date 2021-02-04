@@ -404,6 +404,15 @@ class NewMonitor extends Component {
             } else {
                 postObj.headers = null;
             }
+            if (
+                values &&
+                values[`params_${this.props.index}`] &&
+                values[`params_${this.props.index}`].length
+            ) {
+                postObj.params = values[`params_${this.props.index}`];
+            } else {
+                postObj.params = null;
+            }
         }
 
         if (
@@ -2290,7 +2299,7 @@ class NewMonitor extends Component {
                                                             index={
                                                                 this.props.index
                                                             }
-                                                            type={type}
+                                                            monitorType={type}
                                                         />
                                                     </ShouldRender>
 
