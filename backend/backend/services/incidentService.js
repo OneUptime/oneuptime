@@ -284,13 +284,14 @@ module.exports = {
                 deleted: { $ne: null },
             });
 
-            const notClosedBy = oldIncident.notClosedBy;
+            const notClosedBy = oldIncident && oldIncident.notClosedBy;
             if (data.notClosedBy) {
                 data.notClosedBy = notClosedBy.concat(data.notClosedBy);
             }
             data.manuallyCreated =
-                data.manuallyCreated || oldIncident.manuallyCreated || false;
-
+                data.manuallyCreated ||
+                (oldIncident && oldIncident.manuallyCreated) ||
+                false;
             let updatedIncident = await IncidentModel.findOneAndUpdate(
                 query,
                 {
@@ -298,7 +299,6 @@ module.exports = {
                 },
                 { new: true }
             );
-
             updatedIncident = await updatedIncident
                 .populate('acknowledgedBy', 'name')
                 .populate('monitorId', 'name')
@@ -807,13 +807,14 @@ module.exports = {
         const _this = this;
         query.deleted = true;
         let incident = await _this.findBy(query);
-        if (incident && incident.length > 1) {
+        if (incident && incident.length > 0) {
             const incidents = await Promise.all(
                 incident.map(async incident => {
                     const incidentId = incident._id;
                     incident = await _this.updateOneBy(
                         {
                             _id: incidentId,
+                            deleted: true,
                         },
                         {
                             deleted: false,
