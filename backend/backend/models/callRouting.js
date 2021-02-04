@@ -2,7 +2,7 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const callRoutingSchema = new Schema({
-    projectId: { type: String, ref: 'Project' },
+    projectId: { type: String, ref: 'Project', index: true },
     createdAt: {
         type: Date,
         default: Date.now,
@@ -13,7 +13,7 @@ const callRoutingSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true },
     phoneNumber: String,
     locality: String,
     region: String,

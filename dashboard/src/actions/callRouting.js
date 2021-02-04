@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi } from '../api';
+import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/callRouting';
 import errors from '../errors';
 
@@ -52,12 +52,18 @@ export function getCallRoutingNumbersFailure(error) {
 
 export function getTeamAndSchedules(projectId) {
     return function(dispatch) {
-        const promise = getApi(`callRouting/${projectId}/getTeamAndSchedules`);
+        const schedules = getApi(`schedule/${projectId}?skip=${0}&limit=${0}`);
+        const teams = getApi(`team/${projectId}`);
+        const promise = Promise.all([schedules, teams]);
         dispatch(getTeamAndSchedulesRequest());
 
         promise.then(
-            function(data) {
-                dispatch(getTeamAndSchedulesSuccess(data.data));
+            function([schedule, team]) {
+                const data = {
+                    teams: team.data,
+                    schedules: schedule.data.data,
+                };
+                dispatch(getTeamAndSchedulesSuccess(data));
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -100,7 +106,10 @@ export function getTeamAndSchedulesFailure(error) {
 
 export function addCallRoutingNumber(projectId, values) {
     return function(dispatch) {
-        const promise = postApi(`callRouting/${projectId}/addNumber`, values);
+        const promise = postApi(
+            `callRouting/${projectId}/routingNumber`,
+            values
+        );
         dispatch(addCallRoutingNumberRequest());
 
         promise.then(
@@ -155,8 +164,8 @@ export function resetAddCallRoutingNumber() {
 
 export function addCallRoutingSchedule(projectId, callRoutingId, values) {
     return function(dispatch) {
-        const promise = postApi(
-            `callRouting/${projectId}/${callRoutingId}/addCallRoutingSchedule`,
+        const promise = putApi(
+            `callRouting/${projectId}/${callRoutingId}`,
             values
         );
         dispatch(addCallRoutingScheduleRequest());
@@ -208,7 +217,7 @@ export function addCallRoutingScheduleFailure(error) {
 export function fetchNumbers(projectId, countryCode, numberType) {
     return function(dispatch) {
         const promise = getApi(
-            `callRouting/${projectId}/fetchnumbers?countryCode=${countryCode}&numberType=${numberType}`
+            `callRouting/${projectId}/routingNumbers?countryCode=${countryCode}&numberType=${numberType}`
         );
         dispatch(fetchNumbersRequest());
 
