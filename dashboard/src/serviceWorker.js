@@ -56,6 +56,8 @@ export function register(config) {
     }
 }
 
+let reload = false;
+
 function registerValidSW(swUrl, config) {
     // Clear old caches
     self.addEventListener("activate", function (event) {
@@ -63,6 +65,8 @@ function registerValidSW(swUrl, config) {
             caches.keys().then(function (cacheNames) {
                 // grab the updated cache names
                 let validCacheSet = new Set(Object.values(workbox.core.cacheNames));
+                console.log('****** valid cacheset ********', validCacheSet);
+                console.log('***** caches *********', cacheNames);
                 return Promise.all(
                     cacheNames
                     .filter(function (cacheName) {
@@ -70,7 +74,8 @@ function registerValidSW(swUrl, config) {
                     })
                     .map(function (cacheName) {
                         // delete old cache
-                        return caches.delete(cacheName);
+                        // return caches.delete(cacheName);
+                        return cacheName;
                     })
                 );
             })
