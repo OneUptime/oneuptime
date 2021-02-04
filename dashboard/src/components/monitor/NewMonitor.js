@@ -393,27 +393,8 @@ class NewMonitor extends Component {
             }
         }
 
-        if (postObj.type === 'incomingHttpRequest') {
+        if (postObj.type === 'incomingHttpRequest')
             postObj.data.link = thisObj.state.httpRequestLink;
-            if (
-                values &&
-                values[`headers_${this.props.index}`] &&
-                values[`headers_${this.props.index}`].length
-            ) {
-                postObj.headers = values[`headers_${this.props.index}`];
-            } else {
-                postObj.headers = null;
-            }
-            if (
-                values &&
-                values[`params_${this.props.index}`] &&
-                values[`params_${this.props.index}`].length
-            ) {
-                postObj.params = values[`params_${this.props.index}`];
-            } else {
-                postObj.params = null;
-            }
-        }
 
         if (
             postObj.type === 'url' ||
@@ -2290,16 +2271,13 @@ class NewMonitor extends Component {
                                                         if={
                                                             this.state
                                                                 .advance &&
-                                                            (type === 'api' ||
-                                                                type ===
-                                                                    'incomingHttpRequest')
+                                                            type === 'api'
                                                         }
                                                     >
                                                         <ApiAdvance
                                                             index={
                                                                 this.props.index
                                                             }
-                                                            monitorType={type}
                                                         />
                                                     </ShouldRender>
 

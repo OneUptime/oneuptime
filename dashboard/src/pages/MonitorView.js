@@ -946,12 +946,6 @@ const mapStateToProps = (state, props) => {
             if (monitor.headers && monitor.headers.length)
                 initialValues[`headers_${monitor._id}`] = monitor.headers;
         }
-        if (monitor.type === 'incomingHttpRequest') {
-            if (monitor.headers && monitor.headers.length)
-                initialValues[`headers_${monitor._id}`] = monitor.headers;
-            if (monitor.params && monitor.params.length)
-                initialValues[`params_${monitor._id}`] = monitor.params;
-        }
     }
     return {
         defaultSchedule,
