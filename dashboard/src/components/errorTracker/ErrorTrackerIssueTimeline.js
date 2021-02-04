@@ -204,7 +204,10 @@ class ErrorTrackerIssueTimeline extends Component {
                                 );
                             })
                         ) : (
-                            <div> No timeline event for this issue yet </div>
+                            <div className="Padding-horizontal--12">
+                                {' '}
+                                No timeline event for this issue yet{' '}
+                            </div>
                         )}
                     </div>
                 </div>
