@@ -6,12 +6,15 @@ if ('function' === typeof importScripts) {
     
     /* global workbox */
     if (workbox) {
+        workbox.setConfig({
+            debug: true,
+        });
         const {skipWaiting, clientsClaim} = workbox.core;
         const {precacheAndRoute, cleanupOutdatedCaches} = workbox.precaching;
         const {registerRoute} = workbox.routing;
         const {StaleWhileRevalidate, CacheFirst, NetworkFirst} = workbox.strategies;
-        const {ExpirationPlugin} = workbox.expiration;
-        const {CacheableResponse} = workbox.cacheableResponse;
+        // const {ExpirationPlugin} = workbox.expiration;
+        // const {CacheableResponse} = workbox.cacheableResponse;
 
         // skip waiting and switch to activating stage
         skipWaiting();
@@ -31,12 +34,12 @@ if ('function' === typeof importScripts) {
             new StaleWhileRevalidate({
                 cacheName: 'js-cache',
                 plugins: [
-                    new ExpirationPlugin({
+                    new workbox.expiration.ExpirationPlugin({
                         maxEntries: 30,
                         maxAgeSeconds: 60 * 60 * 24 * 7,
                         purgeOnQuotaError: true,
                     }),
-                    new CacheableResponsePlugin({
+                    new workbox.cacheableResponse.CacheableResponsePlugin({
                         statuses: [0, 200],
                     }),
                 ],
@@ -49,12 +52,12 @@ if ('function' === typeof importScripts) {
             new StaleWhileRevalidate({
                 cacheName: 'css-cache',
                 plugins: [
-                    new ExpirationPlugin({
+                    new workbox.expiration.ExpirationPlugin({
                         maxEntries: 30,
                         maxAgeSeconds: 60 * 60 * 24 * 7,
                         purgeOnQuotaError: true,
                     }),
-                    new CacheableResponsePlugin({
+                    new workbox.cacheableResponse.CacheableResponsePlugin({
                         statuses: [0, 200],
                     }),
                 ],
@@ -67,12 +70,12 @@ if ('function' === typeof importScripts) {
             new CacheFirst({
                 cacheName: 'images-cache',
                 plugins: [
-                    new ExpirationPlugin({
+                    new workbox.expiration.ExpirationPlugin({
                         maxEntries: 60,
                         maxAgeSeconds: 60 * 60 * 24 * 7,
                         purgeOnQuotaError: true,
                     }),
-                    new CacheableResponsePlugin({
+                    new workbox.cacheableResponse.CacheableResponsePlugin({
                         statuses: [0, 200],
                     }),
                 ],
