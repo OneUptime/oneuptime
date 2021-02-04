@@ -161,7 +161,7 @@ module.exports = {
         ) {
             return 'prod_IrghVi0HPtZB95'; //test
         } else {
-            return 'prod_IrghVi0HPtZB95'; //production
+            return 'prod_IsoDG7l9a8t3s4'; //production
         }
     },
 
