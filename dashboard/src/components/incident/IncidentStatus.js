@@ -771,8 +771,8 @@ export class IncidentStatus extends Component {
                                                                 </div>
 
                                                                 <div className="bs-flex-display bs-margin-top-1 bs-justify-cont bs-margin-bottom">
-                                                                    <span className="bs-dark-bullet">
-                                                                        .
+                                                                    <span className="bs-bullet-container">
+                                                                        <span className="bs-dark-bullet"></span>
                                                                     </span>
                                                                     <div className="bs-margin-right">
                                                                         <span className="bs-content-create">
@@ -1012,8 +1012,8 @@ export class IncidentStatus extends Component {
                                                                             </div>
                                                                         </div>
                                                                         <div className="bs-flex-display bs-justify-cont bs-margin-top-1">
-                                                                            <span className="bs-dark-bullet">
-                                                                                .
+                                                                            <span className="bs-bullet-container">
+                                                                                <span className="bs-dark-bullet"></span>
                                                                             </span>
                                                                             <div
                                                                                 // id={`AcknowledgeText_${this.props.count}`}
@@ -1053,8 +1053,8 @@ export class IncidentStatus extends Component {
                                                                             </div>
                                                                         </div>
                                                                         <div className="bs-flex-display bs-justify-cont">
-                                                                            <span className="bs-dark-bullet">
-                                                                                .
+                                                                            <span className="bs-bullet-container">
+                                                                                <span className="bs-dark-bullet"></span>
                                                                             </span>
                                                                             <span className="bs-margin-right">
                                                                                 It
@@ -1159,8 +1159,8 @@ export class IncidentStatus extends Component {
                                                                                 </div>
                                                                             </div>
                                                                             <div className="bs-flex-display bs-justify-cont bs-margin-top-1">
-                                                                                <span className="bs-dark-bullet">
-                                                                                    .
+                                                                                <span className="bs-bullet-container">
+                                                                                    <span className="bs-dark-bullet"></span>
                                                                                 </span>
                                                                                 <div
                                                                                     id={`ResolveText_${this.props.count}`}
@@ -1201,8 +1201,8 @@ export class IncidentStatus extends Component {
                                                                             </div>
                                                                         </div>
                                                                         <div className="bs-flex-display bs-justify-cont">
-                                                                            <span className="bs-dark-bullet">
-                                                                                .
+                                                                            <span className="bs-bullet-container">
+                                                                                <span className="bs-dark-bullet"></span>
                                                                             </span>
                                                                             <span className="bs-margin-right">
                                                                                 It

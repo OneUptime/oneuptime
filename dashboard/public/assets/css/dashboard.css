@@ -35007,14 +35007,19 @@ span.CodeMirror-selectedtext {
 }
 
 
-.bs-dark-bullet {
-  font-size: 60px;
-  display: flex;
-  align-items: flex-end;
-  min-width: 15px;
-  height: 15px;
-  margin-top: 11px;
-  padding-left:2px;
+.bs-bullet-container {
+    display: flex;
+    align-items: flex-start;
+    min-width: 15px;
+    height: 15px;
+    margin-top: 9px;
+    padding-left: 3px;
+}
+
+.bs-dark-bullet{
+  width: 5px;
+  height: 5px;
+  background-color: black;
 }
 .bs-btn-extra {
   margin-top: 12px;
