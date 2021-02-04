@@ -8,16 +8,9 @@ import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
 import { markAsRead } from '../../actions/notification';
 import { animateSidebar } from '../../actions/animateSidebar';
-import { getProbes } from '../../actions/probe';
 import { API_URL } from '../../config';
 
 export class IncidentList extends Component {
-    componentDidMount() {
-        const projectId = this.props.currentProject
-            ? this.props.currentProject._id
-            : null;
-        this.props.getProbes(projectId, 0, 10);
-    }
     render() {
         if (
             this.props.incidents &&
@@ -190,17 +183,12 @@ export class IncidentList extends Component {
                                             incident.probes[0].probeId
                                                 .probeName;
 
-                                        const probeImageId = this.props.probes.filter(
-                                            d =>
-                                                d._id ===
-                                                incident.probes[0].probeId._id
-                                        );
-
                                         if (
-                                            probeImageId[0] &&
-                                            probeImageId[0].probeImage
+                                            incident.probes[0].probeId &&
+                                            incident.probes[0].probeId
+                                                .probeImage
                                         ) {
-                                            probeImage = `${API_URL}/file/${probeImageId[0].probeImage}`;
+                                            probeImage = `${API_URL}/file/${incident.probes[0].probeId.probeImage}`;
                                         }
                                     }
 
@@ -1045,10 +1033,7 @@ export class IncidentList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators(
-        { markAsRead, animateSidebar, getProbes },
-        dispatch
-    );
+    return bindActionCreators({ markAsRead, animateSidebar }, dispatch);
 };
 
 function mapStateToProps(state) {
@@ -1056,7 +1041,6 @@ function mapStateToProps(state) {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         requesting: state.incident.incidents.requesting,
-        probes: state.probe.probes.data,
     };
 }
 
@@ -1076,8 +1060,6 @@ IncidentList.propTypes = {
     isFiltered: PropTypes.bool,
     markAsRead: PropTypes.func,
     animateSidebar: PropTypes.func,
-    probes: PropTypes.array,
-    getProbes: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentList);

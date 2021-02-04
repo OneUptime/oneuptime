@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import Badge from '../common/Badge';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
@@ -30,7 +29,7 @@ class ErrorEventTimeline extends Component {
                         href={timeline.data.content.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: 'blue', cursor: 'pointer' }}
+                        style={{ cursor: 'pointer' }}
                     >
                         {timeline.data.content.url}
                     </a>{' '}
@@ -61,6 +60,11 @@ class ErrorEventTimeline extends Component {
 
         return `/dashboard/assets/img/${image}.svg`;
     };
+    generateText = status => {
+        const capitalizedText =
+            status.charAt(0).toUpperCase() + status.slice(1);
+        return `${capitalizedText}d by`;
+    };
     render() {
         const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
@@ -72,12 +76,18 @@ class ErrorEventTimeline extends Component {
                     errorEventDetails.timeline
                 }
             >
-                <div className="bs-ContentSection Card-root Card-shadow--medium">
-                    <div className="Box-root Padding-all--20">
-                        <div className="Flex-flex Flex-justifyContent--spaceBetween">
-                            <p className="SubHeader">Timeline</p>
+                <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
+                    <div className="Box-root Padding-vertical--12">
+                        <div className="Flex-flex Flex-justifyContent--spaceBetween Padding-all--12">
+                            <p className="SubHeader">Error Event Timeline</p>
                         </div>
-                        <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                        <div
+                            style={{
+                                overflow: 'hidden',
+                                overflowX: 'auto',
+                                marginBottom: '20px',
+                            }}
+                        >
                             <table className="Table">
                                 <thead className="Table-body">
                                     <tr className="Table-row db-ListViewItem db-ListViewItem-header">
@@ -85,11 +95,12 @@ class ErrorEventTimeline extends Component {
                                             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{
                                                 height: '1px',
+                                                minWidth: '100px',
                                             }}
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                    <span>Type </span>
+                                                    <span>Type</span>
                                                 </span>
                                             </div>
                                         </td>
@@ -97,6 +108,7 @@ class ErrorEventTimeline extends Component {
                                             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{
                                                 height: '1px',
+                                                minWidth: '150px',
                                             }}
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -114,25 +126,35 @@ class ErrorEventTimeline extends Component {
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                    <span>Description</span>
+                                                    <span>Description </span>
                                                 </span>
                                             </div>
                                         </td>
-
                                         <td
                                             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{ height: '1px' }}
+                                            style={{
+                                                height: '1px',
+                                                minWidth: '150px',
+                                            }}
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                    <span>Level </span>
+                                                    <span>Level</span>
                                                 </span>
                                             </div>
                                         </td>
                                         <td
                                             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{ height: '1px' }}
+                                            style={{
+                                                height: '1px',
+                                                minWidth: '100px',
+                                            }}
                                         >
+                                            {/* <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                    <span>Priority</span>
+                                                </span>
+                                            </div> */}
                                             <div
                                                 className="db-ListViewItem-cellContent Padding-vertical--8 Flex-flex Flex-justifyContent--spaceBetween Flex-alignItems--center"
                                                 style={{
@@ -169,6 +191,17 @@ class ErrorEventTimeline extends Component {
                                                 Time
                                             </div>
                                         </td>
+
+                                        <td
+                                            id="overflow"
+                                            type="action"
+                                            className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                            style={{ height: '1px' }}
+                                        >
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                            </div>
+                                        </td>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -181,10 +214,6 @@ class ErrorEventTimeline extends Component {
                                                     <tr
                                                         key={i}
                                                         className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
-                                                        style={{
-                                                            borderBottom:
-                                                                '#f7f7f7 solid 1px',
-                                                        }}
                                                     >
                                                         <td
                                                             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -206,9 +235,9 @@ class ErrorEventTimeline extends Component {
                                                                                     alt=""
                                                                                     style={{
                                                                                         height:
-                                                                                            '35px',
+                                                                                            '25px',
                                                                                         width:
-                                                                                            '35px',
+                                                                                            '25px',
                                                                                         padding:
                                                                                             '5px',
                                                                                     }}
@@ -239,9 +268,49 @@ class ErrorEventTimeline extends Component {
                                                                         <div className="Box-root Flex">
                                                                             <div className="Box-root Flex-flex">
                                                                                 <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                                    <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                        {` ${timeline.category}`}
-                                                                                    </div>
+                                                                                    {timeline &&
+                                                                                    timeline.type &&
+                                                                                    timeline.type ===
+                                                                                        'error' ? (
+                                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {`${timeline.category}`}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ) : timeline &&
+                                                                                      timeline.type &&
+                                                                                      timeline.type ===
+                                                                                          'info' ? (
+                                                                                        <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {`${timeline.category}`}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ) : timeline &&
+                                                                                      timeline.type &&
+                                                                                      timeline.type ===
+                                                                                          'warning' ? (
+                                                                                        <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {`${timeline.category}`}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {timeline.category ||
+                                                                                                        'Unknown Category'}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -289,21 +358,49 @@ class ErrorEventTimeline extends Component {
                                                                         <div className="Box-root Flex-flex">
                                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                                 <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                        <Badge
-                                                                                            color={
-                                                                                                timeline.type ===
-                                                                                                'info'
-                                                                                                    ? `blue`
-                                                                                                    : timeline.type ===
-                                                                                                      'warning'
-                                                                                                    ? `orange`
-                                                                                                    : 'red'
-                                                                                            }
-                                                                                        >
-                                                                                            {` ${timeline.type}`}
-                                                                                        </Badge>
-                                                                                    </span>
+                                                                                    {timeline &&
+                                                                                    timeline.type &&
+                                                                                    timeline.type ===
+                                                                                        'error' ? (
+                                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {`${timeline.type}`}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ) : timeline &&
+                                                                                      timeline.type &&
+                                                                                      timeline.type ===
+                                                                                          'info' ? (
+                                                                                        <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {`${timeline.type}`}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ) : timeline &&
+                                                                                      timeline.type &&
+                                                                                      timeline.type ===
+                                                                                          'warning' ? (
+                                                                                        <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {`${timeline.type}`}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {timeline.type ||
+                                                                                                        'Unknown Type'}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -411,4 +508,5 @@ ErrorEventTimeline.propTypes = {
     errorEvent: PropTypes.object,
 };
 ErrorEventTimeline.displayName = 'ErrorEventTimeline';
+
 export default ErrorEventTimeline;

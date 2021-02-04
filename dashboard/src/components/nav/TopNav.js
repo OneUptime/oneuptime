@@ -265,10 +265,13 @@ class TopContent extends Component {
             escalations.map(escalation => {
                 return escalation.teams
                     .map(team => {
-                        const schedule = team.teamMembers
-                            .map(teamMember => teamMember)
-                            .filter(user => user.userId === this.props.user.id)
-                            .pop();
+                        const schedule = team.teamMembers.find(
+                            user =>
+                                String(user.userId) ===
+                                String(
+                                    this.props.user.id || this.props.user._id
+                                )
+                        );
                         if (schedule) {
                             schedule.projectId = escalation.projectId;
                             schedule.scheduleId = escalation.scheduleId;
