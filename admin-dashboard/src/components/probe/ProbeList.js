@@ -14,8 +14,6 @@ import { reduxForm, Field, formValueSelector } from 'redux-form';
 import { UploadFile } from '../basic/UploadFile';
 import { API_URL } from '../../config';
 
-const selector = formValueSelector('probeForm');
-
 export class ProbeList extends Component {
     constructor(props) {
         super(props);
