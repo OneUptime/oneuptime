@@ -217,9 +217,14 @@ class ErrorTrackerIssueTimeline extends Component {
                                     );
                                 })
                         ) : (
-                            <div className="Padding-horizontal--12">
-                                {' '}
-                                No timeline event for this issue yet{' '}
+                            <div
+                                style={{
+                                    textAlign: 'center',
+                                    marginTop: '10px',
+                                    padding: '0 10px',
+                                }}
+                            >
+                                No timeline event for this issue yet
                             </div>
                         )}
                     </div>
