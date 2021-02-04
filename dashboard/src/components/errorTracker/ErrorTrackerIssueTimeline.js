@@ -38,18 +38,20 @@ class ErrorTrackerIssueTimeline extends Component {
                         {errorTrackerIssue &&
                         errorTrackerIssue.timeline &&
                         errorTrackerIssue.timeline.length > 0 ? (
-                            errorTrackerIssue.timeline.map((timeline, i) => {
-                                return (
-                                    <>
-                                        <ShouldRender if={i !== 0}>
-                                            <div className="bs-thread-line-up bs-ex-up"></div>
-                                        </ShouldRender>
-                                        <div
-                                            key={i}
-                                            className="bs-note-display-flex"
-                                        >
+                            errorTrackerIssue.timeline
+                                .reverse()
+                                .map((timeline, i) => {
+                                    return (
+                                        <>
+                                            <ShouldRender if={i !== 0}>
+                                                <div className="bs-thread-line-up bs-ex-up"></div>
+                                            </ShouldRender>
                                             <div
-                                                className={`bs-incident-notes 
+                                                key={i}
+                                                className="bs-note-display-flex"
+                                            >
+                                                <div
+                                                    className={`bs-incident-notes 
                                                                     ${
                                                                         timeline.status ===
                                                                         'resolve'
@@ -62,151 +64,158 @@ class ErrorTrackerIssueTimeline extends Component {
                                                                             ? 'bs-note-acknowleged'
                                                                             : 'bs-note-offline-o'
                                                                     }`}
-                                            ></div>
-                                            <div className="bs-incident-notes-content">
-                                                <div className="bs-note-display-flex bs-mob-block">
-                                                    <div>
-                                                        {this.generateText(
-                                                            timeline.status
-                                                        )}
-                                                    </div>
-                                                    <div
-                                                        className="Box-root Margin-right--16 bs-note-7"
-                                                        style={{
-                                                            cursor: 'pointer',
-                                                            marginLeft: '6px',
-                                                        }}
-                                                        onClick={() => {
-                                                            if (
-                                                                timeline.createdById
-                                                            ) {
-                                                                history.push(
-                                                                    '/dashboard/profile/' +
-                                                                        timeline
-                                                                            .createdById
-                                                                            ._id
-                                                                );
-                                                            }
-                                                        }}
-                                                    >
-                                                        <img
-                                                            src={
-                                                                timeline.createdById &&
+                                                ></div>
+                                                <div className="bs-incident-notes-content">
+                                                    <div className="bs-note-display-flex bs-mob-block">
+                                                        <div>
+                                                            {this.generateText(
+                                                                timeline.status
+                                                            )}
+                                                        </div>
+                                                        <div
+                                                            className="Box-root Margin-right--16 bs-note-7"
+                                                            style={{
+                                                                cursor:
+                                                                    'pointer',
+                                                                marginLeft:
+                                                                    '6px',
+                                                            }}
+                                                            onClick={() => {
+                                                                if (
+                                                                    timeline.createdById
+                                                                ) {
+                                                                    history.push(
+                                                                        '/dashboard/profile/' +
+                                                                            timeline
+                                                                                .createdById
+                                                                                ._id
+                                                                    );
+                                                                }
+                                                            }}
+                                                        >
+                                                            <img
+                                                                src={
+                                                                    timeline.createdById &&
+                                                                    timeline
+                                                                        .createdById
+                                                                        .name
+                                                                        ? '/dashboard/assets/img/profile-user.svg'
+                                                                        : '/dashboard/assets/img/Fyipe.svg'
+                                                                }
+                                                                className="userIcon"
+                                                                alt=""
+                                                                style={{
+                                                                    marginBottom:
+                                                                        '-5px',
+                                                                }}
+                                                            />
+                                                            <span>
+                                                                {timeline.createdById &&
                                                                 timeline
                                                                     .createdById
                                                                     .name
-                                                                    ? '/dashboard/assets/img/profile-user.svg'
-                                                                    : '/dashboard/assets/img/Fyipe.svg'
-                                                            }
-                                                            className="userIcon"
-                                                            alt=""
-                                                            style={{
-                                                                marginBottom:
-                                                                    '-5px',
-                                                            }}
-                                                        />
-                                                        <span>
-                                                            {timeline.createdById &&
-                                                            timeline.createdById
-                                                                .name
-                                                                ? timeline
-                                                                      .createdById
-                                                                      .name
-                                                                : 'Fyipe'}
-                                                        </span>
-                                                    </div>
-
-                                                    <div
-                                                        className="db-ListViewItem-link"
-                                                        style={{
-                                                            width: '0%',
-                                                        }}
-                                                    >
-                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                            <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <div className="Box-root Flex-flex">
-                                                                    <div className="Box-root Flex-flex">
-                                                                        <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                            {timeline &&
-                                                                            timeline.status &&
-                                                                            timeline.status ===
-                                                                                'unresolve' ? (
-                                                                                <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>
-                                                                                            {`${timeline.status}d`}
-                                                                                        </span>
-                                                                                    </span>
-                                                                                </div>
-                                                                            ) : timeline &&
-                                                                              timeline.status &&
-                                                                              timeline.status ===
-                                                                                  'resolve' ? (
-                                                                                <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>
-                                                                                            {`${timeline.status}d`}
-                                                                                        </span>
-                                                                                    </span>
-                                                                                </div>
-                                                                            ) : timeline &&
-                                                                              timeline.status &&
-                                                                              timeline.status ===
-                                                                                  'ignore' ? (
-                                                                                <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>
-                                                                                            {`${timeline.status}d`}
-                                                                                        </span>
-                                                                                    </span>
-                                                                                </div>
-                                                                            ) : (
-                                                                                <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>
-                                                                                            {timeline.status ||
-                                                                                                'Unknown Status'}
-                                                                                        </span>
-                                                                                    </span>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                                                                    ? timeline
+                                                                          .createdById
+                                                                          .name
+                                                                    : 'Fyipe'}
                                                             </span>
                                                         </div>
+
+                                                        <div
+                                                            className="db-ListViewItem-link"
+                                                            style={{
+                                                                width: '0%',
+                                                            }}
+                                                        >
+                                                            <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <div className="Box-root Flex-flex">
+                                                                        <div className="Box-root Flex-flex">
+                                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                {timeline &&
+                                                                                timeline.status &&
+                                                                                timeline.status ===
+                                                                                    'unresolve' ? (
+                                                                                    <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>
+                                                                                                {`${timeline.status}d`}
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ) : timeline &&
+                                                                                  timeline.status &&
+                                                                                  timeline.status ===
+                                                                                      'resolve' ? (
+                                                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>
+                                                                                                {`${timeline.status}d`}
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ) : timeline &&
+                                                                                  timeline.status &&
+                                                                                  timeline.status ===
+                                                                                      'ignore' ? (
+                                                                                    <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>
+                                                                                                {`${timeline.status}d`}
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>
+                                                                                                {timeline.status ||
+                                                                                                    'Unknown Status'}
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <span>
+                                                            {currentTimeZone
+                                                                ? momentTz(
+                                                                      timeline.createdAt
+                                                                  )
+                                                                      .tz(
+                                                                          currentTimeZone
+                                                                      )
+                                                                      .format(
+                                                                          'lll'
+                                                                      )
+                                                                : moment(
+                                                                      timeline.createdAt
+                                                                  ).format(
+                                                                      'lll'
+                                                                  )}
+                                                        </span>
                                                     </div>
                                                 </div>
-                                                <div>
-                                                    <span>
-                                                        {currentTimeZone
-                                                            ? momentTz(
-                                                                  timeline.createdAt
-                                                              )
-                                                                  .tz(
-                                                                      currentTimeZone
-                                                                  )
-                                                                  .format('lll')
-                                                            : moment(
-                                                                  timeline.createdAt
-                                                              ).format('lll')}
-                                                    </span>
-                                                </div>
                                             </div>
-                                        </div>
-                                        <ShouldRender
-                                            if={
-                                                errorTrackerIssue.timeline
-                                                    .length -
-                                                    1 !==
-                                                i
-                                            }
-                                        >
-                                            <div className="bs-thread-line-down bs-ex-down"></div>
-                                        </ShouldRender>
-                                    </>
-                                );
-                            })
+                                            <ShouldRender
+                                                if={
+                                                    errorTrackerIssue.timeline
+                                                        .length -
+                                                        1 !==
+                                                    i
+                                                }
+                                            >
+                                                <div className="bs-thread-line-down bs-ex-down"></div>
+                                            </ShouldRender>
+                                        </>
+                                    );
+                                })
                         ) : (
                             <div className="Padding-horizontal--12">
                                 {' '}
