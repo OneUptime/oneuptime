@@ -14,11 +14,11 @@ class ErrorEventHeader extends Component {
         return;
     };
     handleIgnoreButton = errorTrackerIssue => {
-        const { ignoreErrorEvent, unresolveErrorEvent } = this.props;
+        const { ignoreErrorEvent } = this.props;
         if (!errorTrackerIssue.ignored) {
             ignoreErrorEvent(errorTrackerIssue._id);
         } else {
-            unresolveErrorEvent(errorTrackerIssue._id);
+            ignoreErrorEvent(errorTrackerIssue._id, true); // set this to true to unresolve an ignored Issue
         }
     };
     handleResolveButton = errorTrackerIssue => {
@@ -197,10 +197,7 @@ class ErrorEventHeader extends Component {
                                                 }
                                             >
                                                 <ShouldRender
-                                                    if={
-                                                        errorTrackerIssue &&
-                                                        !errorTrackerIssue.ignored
-                                                    }
+                                                    if={errorTrackerIssue}
                                                 >
                                                     {errorTrackerStatus &&
                                                     errorTrackerStatus[
@@ -211,7 +208,14 @@ class ErrorEventHeader extends Component {
                                                     ].requestingIgnore ? (
                                                         <FormLoader2 />
                                                     ) : (
-                                                        <span>Ignore</span>
+                                                        <ShouldRender
+                                                            if={
+                                                                errorTrackerIssue &&
+                                                                !errorTrackerIssue.ignored
+                                                            }
+                                                        >
+                                                            <span>Ignore</span>
+                                                        </ShouldRender>
                                                     )}
                                                 </ShouldRender>
                                             </button>
