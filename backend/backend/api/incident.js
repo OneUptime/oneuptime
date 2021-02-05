@@ -308,20 +308,28 @@ router.post(
                 projectId,
             });
             const subAlerts = deduplicate(subscriberAlerts);
+            const callScheduleStatus = await onCallScheduleStatusService.findBy({
+                query: {incident: incident._id}
+            })
             incidentMessages = [
                 ...incidentMessages,
                 ...timeline,
                 ...alerts,
                 ...subAlerts,
+                ...callScheduleStatus
             ];
-            incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+            incidentMessages.sort(
+                (a, b) => 
+                    typeof a.schedule !== 'object' && 
+                    b.createdAt - a.createdAt
+            );
             const filteredMsg = incidentMessages.filter(
                 a =>
                     a.status !== 'internal notes added' &&
                     a.status !== 'internal notes updated'
             );
             const result = {
-                data: filteredMsg,
+                data: rearrangeDuty(filteredMsg),
                 incident,
                 type: 'internal',
             };
@@ -365,20 +373,28 @@ router.post(
                 projectId,
             });
             const subAlerts = deduplicate(subscriberAlerts);
+            const callScheduleStatus = await onCallScheduleStatusService.findBy({
+                query: {incident: incident._id}
+            })
             incidentMessages = [
                 ...incidentMessages,
                 ...timeline,
                 ...alerts,
                 ...subAlerts,
+                ...callScheduleStatus
             ];
-            incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+            incidentMessages.sort(
+                (a, b) => 
+                    typeof a.schedule !== 'object' && 
+                    b.createdAt - a.createdAt
+            );
             const filteredMsg = incidentMessages.filter(
                 a =>
                     a.status !== 'internal notes added' &&
                     a.status !== 'internal notes updated'
             );
             const result = {
-                data: filteredMsg,
+                data: rearrangeDuty(filteredMsg),
                 incident,
                 type: 'internal',
             };
@@ -619,13 +635,21 @@ router.post(
                         incidentId: incident._id,
                     });
                     const subAlerts = deduplicate(subscriberAlerts);
+                    const callScheduleStatus = await onCallScheduleStatusService.findBy({
+                        query: {incident: incident._id}
+                    })
                     incidentMessages = [
                         ...incidentMessages,
                         ...timeline,
                         ...alerts,
                         ...subAlerts,
+                        ...callScheduleStatus
                     ];
-                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+                    incidentMessages.sort(
+                        (a, b) => 
+                            typeof a.schedule !== 'object' && 
+                            b.createdAt - a.createdAt
+                    );
                     const filteredMsg = incidentMessages.filter(
                         a =>
                             a.status !== 'internal notes added' &&
@@ -633,7 +657,7 @@ router.post(
                     );
                     incidentMessage = {
                         type: data.type,
-                        data: filteredMsg,
+                        data: rearrangeDuty(filteredMsg),
                     };
                 } else {
                     incidentMessage = await IncidentMessageService.findOneBy({
@@ -707,6 +731,9 @@ router.delete(
                 });
 
                 await RealTimeService.deleteIncidentNote(incidentMessage);
+                const callScheduleStatus = await onCallScheduleStatusService.findBy({
+                    query: {incident: incidentId}
+                })
                 if (checkMsg.type === 'investigation') {
                     result = incidentMessage;
                 } else {
@@ -723,8 +750,13 @@ router.delete(
                         ...timeline,
                         ...alerts,
                         ...subAlerts,
+                        ...callScheduleStatus
                     ];
-                    incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+                    incidentMessages.sort(
+                        (a, b) => 
+                            typeof a.schedule !== 'object' && 
+                            b.createdAt - a.createdAt
+                    );
                     const filteredMsg = incidentMessages.filter(
                         a =>
                             a.status !== 'internal notes added' &&
@@ -732,7 +764,7 @@ router.delete(
                     );
                     result = {
                         type: checkMsg.type,
-                        data: filteredMsg,
+                        data: rearrangeDuty(filteredMsg),
                     };
                 }
                 return sendItemResponse(req, res, result);
@@ -800,13 +832,17 @@ router.get(
                     ...subAlerts,
                     ...callScheduleStatus
                 ];
-                incidentMessages.sort((a, b) => b.createdAt - a.createdAt);
+                incidentMessages.sort(
+                    (a, b) => 
+                        typeof a.schedule !== 'object' && 
+                        b.createdAt - a.createdAt
+                );
                 const filteredMsg = incidentMessages.filter(
                     a =>
                         a.status !== 'internal notes added' &&
                         a.status !== 'internal notes updated'
                 );
-                result = filteredMsg;
+                result = rearrangeDuty(filteredMsg);
             }
             return sendListResponse(req, res, result, count);
         } catch (error) {
@@ -914,6 +950,19 @@ function deduplicate(arr = []) {
     }
 
     return Object.values(map);
+}
+
+function rearrangeDuty(main = []) {
+    let closeStringId;
+    for (let i = 0; i < main.length; i++) {
+        if (typeof main[i].schedule == "object"){
+             closeStringId = i - 1
+             break;
+        } 
+   }
+   main.push(main[closeStringId])
+   main.splice(closeStringId, 1)
+   return main;
 }
 
 module.exports = router;
