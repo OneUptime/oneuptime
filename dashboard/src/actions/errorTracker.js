@@ -483,12 +483,13 @@ export function ignoreErrorEvent(
     projectId,
     componentId,
     errorTrackerId,
-    issueId
+    issueId,
+    unIgnore
 ) {
     return function(dispatch) {
         const promise = postApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
-            { issueId, action: 'ignore' }
+            { issueId, action: `${unIgnore ? 'unresolve' : 'ignore'}` }
         );
         dispatch(ignoreErrorEventRequest(errorTrackerId, issueId));
 
