@@ -12,10 +12,42 @@ import {
     showProjectSwitcher,
     hideProjectSwitcher,
     hideForm,
+    switchToProjectViewerNav,
 } from '../../actions/project';
-import { API_URL } from '../../config';
+import { API_URL, User } from '../../config';
+import { getSubProjects } from '../../actions/subProject';
 
 class SideNav extends Component {
+    state = { navLoading: true };
+    componentDidMount() {
+        if (this.props.currentProject) {
+            this.props.switchToProjectViewer(
+                User.getUserId(),
+                this.props.subProjects,
+                this.props.currentProject
+            );
+            this.updateNavLoading(false);
+        }
+    }
+    componentDidUpdate(prevProps) {
+        if (
+            JSON.stringify(prevProps.currentProject) !==
+            JSON.stringify(this.props.currentProject)
+        ) {
+            this.props
+                .getSubProjects(this.props.currentProject._id)
+                .then(res => {
+                    this.props.switchToProjectViewer(
+                        User.getUserId(),
+                        res.data.data,
+                        this.props.currentProject
+                    );
+                    this.updateNavLoading(false);
+                });
+        }
+    }
+    updateNavLoading = option => this.setState({ navLoading: option });
+
     hideSwitcher = () => {
         if (this.props.project.projectSwitcherVisible) {
             this.props.hideProjectSwitcher();
@@ -120,7 +152,11 @@ class SideNav extends Component {
     };
 
     render() {
-        const { location, selectedComponent } = this.props;
+        const {
+            location,
+            selectedComponent,
+            switchToProjectViewerNav,
+        } = this.props;
         const switchToComponentDetailNav =
             location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/monitoring/
@@ -162,8 +198,11 @@ class SideNav extends Component {
             location.pathname.match(/profile\/advanced/);
 
         let groupsToRender = [];
-
-        if (switchToComponentDetailNav) {
+        if (switchToProjectViewerNav && !switchToProfileNav) {
+            groupsToRender = groups
+                .filter(group => group.visibleForProjectViewer)
+                .filter(group => group.visible);
+        } else if (switchToComponentDetailNav) {
             groupsToRender = groups
                 .filter(group => group.visibleOnComponentDetail)
                 .filter(group => group.visible)
@@ -176,11 +215,19 @@ class SideNav extends Component {
                 .filter(group => group.visibleOnProfile)
                 .filter(group => group.visible)
                 .map(group => {
-                    group.routes = group.routes.filter(
-                        route =>
+                    group.routes = group.routes.filter(route => {
+                        if (
+                            route.title === 'Back to Dashboard' &&
+                            switchToProjectViewerNav
+                        ) {
+                            route.path =
+                                '/dashboard/project/:projectId/status-pages';
+                        }
+                        return (
                             route.visible &&
                             route.title !== 'Team Member Profile'
-                    );
+                        );
+                    });
                     return group;
                 });
         } else {
@@ -188,7 +235,8 @@ class SideNav extends Component {
                 .filter(group => !group.isPublic)
                 .filter(group => !group.visibleOnComponentDetail)
                 .filter(group => !group.visibleOnProfile)
-                .filter(group => group.visible);
+                .filter(group => group.visible)
+                .filter(group => !group.visibleForProjectViewer);
         }
 
         return (
@@ -215,85 +263,90 @@ class SideNav extends Component {
                                     : ' animate-out'
                             }`}
                         >
-                            {groupsToRender.map((group, index, array) => {
-                                const marginClass =
-                                    index === array.length - 1
-                                        ? 'Box-root '
-                                        : 'Box-root Margin-bottom--16';
-                                return (
-                                    <div
-                                        key={group.group}
-                                        className={marginClass}
-                                    >
-                                        <ul>
-                                            {switchToComponentDetailNav && (
-                                                <div
-                                                    style={{
-                                                        position: 'relative',
-                                                        marginBottom: '16px',
-                                                    }}
-                                                >
+                            {!this.state.navLoading &&
+                                groupsToRender.map((group, index, array) => {
+                                    const marginClass =
+                                        index === array.length - 1
+                                            ? 'Box-root '
+                                            : 'Box-root Margin-bottom--16';
+                                    return (
+                                        <div
+                                            key={group.group}
+                                            className={marginClass}
+                                        >
+                                            <ul>
+                                                {switchToComponentDetailNav && (
                                                     <div
                                                         style={{
-                                                            outline: 'none',
+                                                            position:
+                                                                'relative',
+                                                            marginBottom:
+                                                                '16px',
                                                         }}
                                                     >
-                                                        <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
-                                                            <div className="Box-root Flex-flex Flex-alignItems--center">
-                                                                <span
-                                                                    className={
-                                                                        'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--dark'
-                                                                    }
-                                                                >
+                                                        <div
+                                                            style={{
+                                                                outline: 'none',
+                                                            }}
+                                                        >
+                                                            <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
+                                                                <div className="Box-root Flex-flex Flex-alignItems--center">
                                                                     <span
-                                                                        id={`text`}
-                                                                        style={{
-                                                                            fontSize:
-                                                                                '13px',
-                                                                            fontWeight:
-                                                                                'bold',
-                                                                            color:
-                                                                                'white',
-                                                                            background:
-                                                                                'rgb(0, 0, 0)',
-                                                                            padding:
-                                                                                '8px',
-                                                                            borderRadius:
-                                                                                '5px',
-                                                                            paddingTop:
-                                                                                '4px',
-                                                                            paddingBottom:
-                                                                                '4px',
-                                                                        }}
+                                                                        className={
+                                                                            'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--dark'
+                                                                        }
                                                                     >
-                                                                        Component
-                                                                        {': ' +
-                                                                            (selectedComponent
-                                                                                ? selectedComponent.name
-                                                                                : '')}
+                                                                        <span
+                                                                            id={`text`}
+                                                                            style={{
+                                                                                fontSize:
+                                                                                    '13px',
+                                                                                fontWeight:
+                                                                                    'bold',
+                                                                                color:
+                                                                                    'white',
+                                                                                background:
+                                                                                    'rgb(0, 0, 0)',
+                                                                                padding:
+                                                                                    '8px',
+                                                                                borderRadius:
+                                                                                    '5px',
+                                                                                paddingTop:
+                                                                                    '4px',
+                                                                                paddingBottom:
+                                                                                    '4px',
+                                                                            }}
+                                                                        >
+                                                                            Component
+                                                                            {': ' +
+                                                                                (selectedComponent
+                                                                                    ? selectedComponent.name
+                                                                                    : '')}
+                                                                        </span>
                                                                     </span>
-                                                                </span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
 
-                                            {group.routes.map(
-                                                (route, index) => {
-                                                    return (
-                                                        <li key={index}>
-                                                            <NavItem
-                                                                route={route}
-                                                            />
-                                                        </li>
-                                                    );
-                                                }
-                                            )}
-                                        </ul>
-                                    </div>
-                                );
-                            })}
+                                                {group.routes.map(
+                                                    (route, index) => {
+                                                        return (
+                                                            <li key={index}>
+                                                                <NavItem
+                                                                    route={
+                                                                        route
+                                                                    }
+                                                                />
+                                                            </li>
+                                                        );
+                                                    }
+                                                )}
+                                            </ul>
+                                        </div>
+                                    );
+                                })}
                         </div>
                     </div>
                 </div>
@@ -324,6 +377,9 @@ const mapStateToProps = function(state, props) {
         profilePic,
         userName,
         animateSidebar: state.animateSidebar.animateSidebar,
+        currentProject: state.project.currentProject,
+        subProjects: state.subProject.subProjects.subProjects,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -336,6 +392,8 @@ const mapDispatchToProps = function(dispatch) {
             hideProjectSwitcher,
             hideForm,
             closeSideNav,
+            switchToProjectViewer: switchToProjectViewerNav,
+            getSubProjects,
         },
         dispatch
     );
@@ -357,6 +415,11 @@ SideNav.propTypes = {
     ]),
     userName: PropTypes.string,
     animateSidebar: PropTypes.bool,
+    currentProject: PropTypes.object,
+    subProjects: PropTypes.array,
+    switchToProjectViewerNav: PropTypes.bool,
+    switchToProjectViewer: PropTypes.func,
+    getSubProjects: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SideNav);

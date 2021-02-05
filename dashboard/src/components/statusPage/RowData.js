@@ -2,10 +2,13 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { IS_LOCALHOST, User } from '../../config';
+import isSubProjectViewer from '../../utils/isSubProjectViewer';
 
 export class RowData extends Component {
     render() {
-        const { statusPage, projectId, subProjectId } = this.props;
+        const { statusPage, projectId, subProjectId, project } = this.props;
+        const userId = User.getUserId();
         const monitorIds = statusPage.monitorNames;
         const gt = i => monitorIds && monitorIds.length > i;
         let monitors = gt(0) ? monitorIds[0] : 'Not Yet Added';
@@ -13,11 +16,25 @@ export class RowData extends Component {
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
         const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPage._id}`;
+        let statusPageId, publicStatusPageUrl;
+        if (statusPage) {
+            statusPageId = statusPage._id;
+        }
+
+        if (IS_LOCALHOST) {
+            publicStatusPageUrl = `http://${statusPageId}.localhost:3006`;
+        } else {
+            publicStatusPageUrl =
+                window.location.origin + '/status-page/' + statusPageId;
+        }
+
         return (
             <tr
                 className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink statusPageListItem"
                 onClick={() => {
-                    this.props.switchStatusPages(statusPage, path);
+                    isSubProjectViewer(userId, project)
+                        ? window.open(publicStatusPageUrl, '_blank')
+                        : this.props.switchStatusPages(statusPage, path);
                 }}
             >
                 <td
@@ -111,6 +128,7 @@ RowData.propTypes = {
     switchStatusPages: PropTypes.func.isRequired,
     projectId: PropTypes.string.isRequired,
     subProjectId: PropTypes.string.isRequired,
+    project: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
