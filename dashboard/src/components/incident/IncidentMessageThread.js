@@ -1133,6 +1133,21 @@ export class IncidentMessageThread extends Component {
                                                             <div className="bs-incident-notes-content bs-incident-notes-cont">
                                                                 <div className="bs-note-display-flex bs-mob-block bs-desktop-in">
                                                                     <div className="bs-desktop-div">
+                                                                        {incidentMessage.alertProgress && (
+                                                                            <div
+                                                                                style={{
+                                                                                    marginRight:
+                                                                                        '8px',
+                                                                                    fontWeight:
+                                                                                        '600',
+                                                                                }}
+                                                                            >
+                                                                                Reminder:{' '}
+                                                                                {
+                                                                                    incidentMessage.alertProgress
+                                                                                }
+                                                                            </div>
+                                                                        )}
                                                                         <div
                                                                             className="Box-root bs-note-7"
                                                                             style={{
@@ -1272,22 +1287,6 @@ export class IncidentMessageThread extends Component {
                                                                             </span>
                                                                         </div>
                                                                     </div>
-                                                                    {incidentMessage.alertProgress ? (
-                                                                        <div>
-                                                                            {
-                                                                                incidentMessage.alertProgress
-                                                                            }
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div
-                                                                            style={{
-                                                                                opacity:
-                                                                                    '0',
-                                                                            }}
-                                                                        >
-                                                                            1/4
-                                                                        </div>
-                                                                    )}
                                                                 </div>
                                                                 <div className="bs-timeline-date">
                                                                     <span>
