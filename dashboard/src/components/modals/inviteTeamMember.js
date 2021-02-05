@@ -161,7 +161,16 @@ export class FormModal extends Component {
             >
                 <div className="bs-BIM db-InviteSetting">
                     <div className="bs-Modal bs-Modal--large">
-                        <ClickOutside onClickOutside={closeThisDialog}>
+                        <ClickOutside
+                            onClickOutside={e => {
+                                if (
+                                    e.target.className ===
+                                    'bs-BIM db-InviteSetting'
+                                ) {
+                                    closeThisDialog();
+                                }
+                            }}
+                        >
                             <form
                                 id={`frm_${data.subProjectName}`}
                                 lpformnum="2"

@@ -1005,7 +1005,8 @@ module.exports = {
             accessToken,
             incident._id,
             incident.projectId,
-            incident.incidentType
+            incident.incidentType,
+            callProgress
         );
         if (alertStatus && alertStatus.code && alertStatus.code === 400) {
             return await _this.create({
@@ -1210,7 +1211,8 @@ module.exports = {
             user._id,
             user.name,
             incident.incidentType,
-            projectId
+            projectId,
+            smsProgress
         );
 
         if (sendResult && sendResult.code && sendResult.code === 400) {

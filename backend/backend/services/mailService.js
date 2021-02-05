@@ -1291,7 +1291,7 @@ const _this = {
                 incidentShow = 'Degraded';
             }
             if (emailProgress) {
-                subject = `Reminder ${emailProgress.current}/${emailProgress.total} - Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
+                subject = `Reminder ${emailProgress.current}/${emailProgress.total}: Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
             } else {
                 subject = `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
             }

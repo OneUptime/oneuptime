@@ -17,14 +17,20 @@ import ShouldRender from '../basic/ShouldRender';
 import ErrorTrackerIssueTimeline from './ErrorTrackerIssueTimeline';
 
 class ErrorEventDetail extends Component {
-    ignoreErrorEvent = issueId => {
+    ignoreErrorEvent = (issueId, unIgnore = false) => {
         const {
             projectId,
             componentId,
             errorTrackerId,
             ignoreErrorEvent,
         } = this.props;
-        ignoreErrorEvent(projectId, componentId, errorTrackerId, [issueId]);
+        ignoreErrorEvent(
+            projectId,
+            componentId,
+            errorTrackerId,
+            [issueId],
+            unIgnore
+        );
     };
     unresolveErrorEvent = issueId => {
         const {
