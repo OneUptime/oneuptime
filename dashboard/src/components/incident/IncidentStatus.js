@@ -755,7 +755,12 @@ export class IncidentStatus extends Component {
                                                                               this
                                                                                   .props
                                                                                   .incident
-                                                                                  .probes[0] ? (
+                                                                                  .probes[0] &&
+                                                                              this
+                                                                                  .props
+                                                                                  .incident
+                                                                                  .probes[0]
+                                                                                  .probeId ? (
                                                                                 this
                                                                                     .props
                                                                                     .incident

@@ -718,7 +718,9 @@ module.exports = {
                         response,
                         successReasons,
                         failedReasons,
-                        monitorType
+                        monitorType,
+                        queryParams,
+                        headers
                     );
                 }
                 if (stat) {
@@ -1154,7 +1156,7 @@ module.exports = {
         const array = [];
         if (Object.keys(params).length > 0) {
             for (const [key, value] of Object.entries(params)) {
-                array.push(key + '=' + value);
+                array.push(key.toLowerCase() + '=' + value.toLowerCase());
             }
             return array;
         }
@@ -3428,7 +3430,27 @@ const checkAnd = async (
                         con[i] &&
                         con[i].field1 &&
                         queryParams &&
-                        queryParams.includes(con[i].field1)
+                        queryParams.includes(con[i].field1.toLowerCase())
+                    )
+                ) {
+                    validity = false;
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                    );
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'headers') {
+            if (con[i] && con[i].filter && con[i].filter === 'contains') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        headers &&
+                        headers.includes(con[i].field1.toLowerCase())
                     )
                 ) {
                     validity = false;
@@ -3494,7 +3516,9 @@ const checkOr = async (
     response,
     successReasons,
     failedReasons,
-    type
+    type,
+    queryParams,
+    headers
 ) => {
     let validity = false;
     for (let i = 0; i < con.length; i++) {
@@ -5092,6 +5116,46 @@ const checkOr = async (
                         `${criteriaStrings.response} \`${JSON.stringify(
                             responseDisplay
                         )}\` did not evaluate \`${con[i].field1}\``
+                    );
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'queryString') {
+            if (con[i] && con[i].filter && con[i].filter === 'contains') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        queryParams &&
+                        queryParams.includes(con[i].field1.toLowerCase())
+                    )
+                ) {
+                    validity = false;
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                    );
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'headers') {
+            if (con[i] && con[i].filter && con[i].filter === 'contains') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        headers &&
+                        headers.includes(con[i].field1.toLowerCase())
+                    )
+                ) {
+                    validity = false;
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
                     );
                 }
             }

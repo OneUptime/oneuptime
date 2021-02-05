@@ -90,10 +90,15 @@ class NewMonitor extends Component {
     }
 
     componentDidMount() {
+        const { editMonitorProp } = this.props;
         const userId = User.getUserId();
         const projectMember = this.props.currentProject.users.find(
             user => user.userId === userId
         );
+        const link =
+            editMonitorProp && editMonitorProp.data
+                ? editMonitorProp.data.link
+                : `${API_URL}/incomingHttpRequest/${uuid.v4()}`;
         //load call schedules/duties
         if (projectMember) {
             this.props.fetchMonitorSlas(this.props.currentProject._id);
@@ -102,15 +107,29 @@ class NewMonitor extends Component {
         }
         this.props.fetchMonitorCriteria();
         this.props.setFileInputKey(new Date());
+        this.setHttpRequestLink(link);
     }
 
     componentDidUpdate(prevProps) {
-        const { monitor } = this.props;
+        const { monitor, editMonitorProp } = this.props;
+        const link =
+            editMonitorProp && editMonitorProp.data
+                ? editMonitorProp.data.link
+                : `${API_URL}/incomingHttpRequest/${uuid.v4()}`;
         if (
             monitor.newMonitor.error ===
             "You can't add any more monitors. Please upgrade plan."
         ) {
             this.props.showUpgradeForm();
+        }
+        if (
+            prevProps.editMonitorProp &&
+            prevProps.editMonitorProp.data &&
+            editMonitorProp &&
+            editMonitorProp.data &&
+            prevProps.editMonitorProp.data.link !== editMonitorProp.data.link
+        ) {
+            this.setHttpRequestLink(link);
         }
 
         if (!this.props.edit) {
@@ -157,6 +176,8 @@ class NewMonitor extends Component {
             }
         }
     }
+
+    setHttpRequestLink = httpRequestLink => this.setState({ httpRequestLink });
 
     /**
      * adds all necessary criterion fields to redux form

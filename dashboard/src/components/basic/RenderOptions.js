@@ -130,6 +130,7 @@ const placeholders = {
     contains: {
         responseBody: 'Contains',
         queryString: 'abc=xyz',
+        headers: 'Cache-Control=no-cache',
     },
     doesNotContain: {
         responseBody: 'Does not Contain',
@@ -294,6 +295,11 @@ export class RenderOption extends Component {
                                 {
                                     value: 'queryString',
                                     label: 'Request Query Param',
+                                    show: type === 'incomingHttpRequest',
+                                },
+                                {
+                                    value: 'headers',
+                                    label: 'Request Headers',
                                     show: type === 'incomingHttpRequest',
                                 },
                             ]}
@@ -495,7 +501,9 @@ export class RenderOption extends Component {
                                             (bodyfield.responseType ===
                                                 'responseBody' ||
                                                 bodyfield.responseType ===
-                                                    'queryString'),
+                                                    'queryString' ||
+                                                bodyfield.responseType ===
+                                                    'headers'),
                                     },
                                     {
                                         value: 'doesNotContain',
