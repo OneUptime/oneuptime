@@ -511,6 +511,12 @@ module.exports = {
                 teamMember.endTime
             );
 
+            if((JSON.stringify(escalation.scheduleId._id) == JSON.stringify(onCallScheduleStatus.schedule._id) || 
+                JSON.stringify(escalation.scheduleId._id) == JSON.stringify(onCallScheduleStatus.schedule)) && isOnDuty) {
+                onCallScheduleStatus.isOnDuty = true;
+                onCallScheduleStatus.save();
+            }
+
             const user = await UserService.findOneBy({
                 _id: teamMember.userId,
             });
