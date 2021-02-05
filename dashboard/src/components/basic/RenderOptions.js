@@ -129,6 +129,7 @@ const placeholders = {
     },
     contains: {
         responseBody: 'Contains',
+        queryString: 'abc=xyz',
     },
     doesNotContain: {
         responseBody: 'Does not Contain',
@@ -288,6 +289,11 @@ export class RenderOption extends Component {
                                 {
                                     value: 'incomingTime',
                                     label: 'Request Incoming Time',
+                                    show: type === 'incomingHttpRequest',
+                                },
+                                {
+                                    value: 'queryString',
+                                    label: 'Request Query Param',
                                     show: type === 'incomingHttpRequest',
                                 },
                             ]}
@@ -486,8 +492,10 @@ export class RenderOption extends Component {
                                         label: 'Contains',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType ===
-                                                'responseBody',
+                                            (bodyfield.responseType ===
+                                                'responseBody' ||
+                                                bodyfield.responseType ===
+                                                    'queryString'),
                                     },
                                     {
                                         value: 'doesNotContain',

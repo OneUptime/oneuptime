@@ -229,15 +229,21 @@ module.exports = {
 
                     // grab all the criteria in a monitor
                     const allCriteria = [];
-                    data.matchedUpCriterion.forEach(criteria =>
-                        allCriteria.push(criteria)
-                    );
-                    data.matchedDownCriterion.forEach(criteria =>
-                        allCriteria.push(criteria)
-                    );
-                    data.matchedDegradedCriterion.forEach(criteria =>
-                        allCriteria.push(criteria)
-                    );
+                    if (data.matchedUpCriterion) {
+                        data.matchedUpCriterion.forEach(criteria =>
+                            allCriteria.push(criteria)
+                        );
+                    }
+                    if (data.matchedDownCriterion) {
+                        data.matchedDownCriterion.forEach(criteria =>
+                            allCriteria.push(criteria)
+                        );
+                    }
+                    if (data.matchedDegradedCriterion) {
+                        data.matchedDegradedCriterion.forEach(criteria =>
+                            allCriteria.push(criteria)
+                        );
+                    }
 
                     await _this.incidentResolveOrAcknowledge(
                         data,
@@ -675,6 +681,8 @@ module.exports = {
                 : null
             : null;
         const body = resp && resp.body ? resp.body : null;
+        const queryParams = resp && resp.queryParams ? resp.queryParams : null;
+        const headers = resp && resp.headers ? resp.headers : null;
         const sslCertificate =
             resp && resp.sslCertificate ? resp.sslCertificate : null;
         const successReasons = [];
@@ -696,7 +704,9 @@ module.exports = {
                         response,
                         successReasons,
                         failedReasons,
-                        monitorType
+                        monitorType,
+                        queryParams,
+                        headers
                     );
                 } else if (condition && condition.or && condition.or.length) {
                     stat = await checkOr(
@@ -1140,10 +1150,24 @@ module.exports = {
         return { eventOccurred, matchedCriterion };
     },
 
+    toArray: function(params) {
+        const array = [];
+        if (Object.keys(params).length > 0) {
+            for (const [key, value] of Object.entries(params)) {
+                array.push(key + '=' + value);
+            }
+            return array;
+        }
+        return null;
+    },
+
     processHttpRequest: async function(data) {
         try {
             const _this = this;
             const { monitor, body } = data;
+            let { queryParams, headers } = data;
+            queryParams = _this.toArray(queryParams);
+            headers = _this.toArray(headers);
             let status, reason;
             let matchedCriterion;
             const lastPingTime = monitor.lastPingTime;
@@ -1156,6 +1180,8 @@ module.exports = {
             } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? _this.conditions(monitor.type, monitor.criteria.up, payload, {
                       body,
+                      queryParams,
+                      headers,
                   })
                 : { stat: false, successReasons: [], failedReasons: [] });
             const {
@@ -1168,7 +1194,11 @@ module.exports = {
                       monitor.type,
                       monitor.criteria.degraded,
                       payload,
-                      { body }
+                      {
+                          body,
+                          queryParams,
+                          headers,
+                      }
                   )
                 : { stat: false, successReasons: [], failedReasons: [] });
             const {
@@ -1181,7 +1211,11 @@ module.exports = {
                       monitor.type,
                       monitor.criteria.down,
                       payload,
-                      { body }
+                      {
+                          body,
+                          queryParams,
+                          headers,
+                      }
                   )
                 : { stat: false, successReasons: [], failedReasons: [] });
 
@@ -1655,7 +1689,9 @@ const checkAnd = async (
     response,
     successReasons,
     failedReasons,
-    type
+    type,
+    queryParams,
+    headers
 ) => {
     let validity = true;
     for (let i = 0; i < con.length; i++) {
@@ -3382,6 +3418,26 @@ const checkAnd = async (
                         `${criteriaStrings.response} \`${JSON.stringify(
                             responseDisplay
                         )}\` caused an error`
+                    );
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'queryString') {
+            if (con[i] && con[i].filter && con[i].filter === 'contains') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        queryParams &&
+                        queryParams.includes(con[i].field1)
+                    )
+                ) {
+                    validity = false;
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
                     );
                 }
             }
