@@ -35173,6 +35173,13 @@ span.CodeMirror-selectedtext {
   text-transform: capitalize;
 }
 
+.bs-duty-span {
+  text-decoration: underline;
+  cursor: pointer;
+  margin-right: 6px;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .bs-thread-container {
     margin-top: 20px
@@ -35222,6 +35229,9 @@ span.CodeMirror-selectedtext {
   .bs-thread-display {
     display: block;
   }
+  .bs-timeline-date {
+    margin-top: -15px;
+  }
 }
 .email-smt-row{
   justify-content: center;
@@ -35267,6 +35277,10 @@ span.CodeMirror-selectedtext {
 }
 .bs-timeline-date {
   margin-top: -28px
+}
+.bs-schedule-div {
+  flex-direction: row;
+  justify-content: space-between;
 }
 }
 @media screen and (max-width: 500px){
