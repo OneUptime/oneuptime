@@ -6,23 +6,6 @@ let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
 
-if (
-    window &&
-    window.location &&
-    window.location.host &&
-    (window.location.host.includes('localhost:') ||
-        window.location.host.includes('0.0.0.0:') ||
-        window.location.host.includes('127.0.0.1:'))
-) {
-    apiUrl = window.location.protocol + '//localhost:3002/api';
-    dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
-    accountsUrl = window.location.protocol + '//localhost:3003/accounts';
-} else if (env('FYIPE_HOST')) {
-    apiUrl = window.location.protocol + `//${env('FYIPE_HOST')}/api`;
-    dashboardUrl =
-        window.location.protocol + `//${env('FYIPE_HOST')}/dashboard`;
-    accountsUrl = window.location.protocol + `//${env('FYIPE_HOST')}/accounts`;
-}
 
 export function env(value) {
     const { _env } = window;
@@ -31,6 +14,31 @@ export function env(value) {
         process.env[`REACT_APP_${value}`]
     );
 }
+
+let protocol = window.location.protocol;
+if(env('FYIPE_HOST') && env('FYIPE_HOST').includes("fyipe.com")){
+    protocol = "http:";
+}
+
+
+if (
+    window &&
+    window.location &&
+    window.location.host &&
+    (window.location.host.includes('localhost:') ||
+        window.location.host.includes('0.0.0.0:') ||
+        window.location.host.includes('127.0.0.1:'))
+) {
+    apiUrl = protocol + '//localhost:3002/api';
+    dashboardUrl = protocol + '//localhost:3000/dashboard';
+    accountsUrl = protocol + '//localhost:3003/accounts';
+} else if (env('FYIPE_HOST')) {
+    apiUrl = protocol + `//${env('FYIPE_HOST')}/api`;
+    dashboardUrl =
+        protocol + `//${env('FYIPE_HOST')}/dashboard`;
+    accountsUrl = protocol + `//${env('FYIPE_HOST')}/accounts`;
+}
+
 
 export const API_URL = apiUrl;
 
