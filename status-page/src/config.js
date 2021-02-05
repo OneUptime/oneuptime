@@ -6,7 +6,6 @@ let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
 
-
 export function env(value) {
     const { _env } = window;
     return (
@@ -17,7 +16,7 @@ export function env(value) {
 
 let protocol = window.location.protocol;
 if(env('FYIPE_HOST') && env('FYIPE_HOST').includes("fyipe.com")){
-    protocol = "http:";
+    protocol = "https:";
 }
 
 
@@ -38,7 +37,6 @@ if (
         protocol + `//${env('FYIPE_HOST')}/dashboard`;
     accountsUrl = protocol + `//${env('FYIPE_HOST')}/accounts`;
 }
-
 
 export const API_URL = apiUrl;
 
