@@ -1011,7 +1011,86 @@ export class IncidentMessageThread extends Component {
                                                             <div className="bs-thread-line-down bs-ex-down"></div>
                                                         </ShouldRender>
                                                     </>
-                                                ) : (
+                                                ) : typeof incidentMessage.schedule === 'object' ?
+                                                <div>
+                                                    <ShouldRender
+                                                            if={i !== 0}
+                                                        >
+                                                        <div className="bs-thread-line-up bs-ex-up"></div>
+                                                    </ShouldRender>
+                                                    <div className="bs-note-display-flex">
+                                                        <div className={`bs-incident-notes 
+                                                            ${
+                                                                incidentMessage.isOnDuty ? 
+                                                                'bs-note-acknowleged' :
+                                                                'bs-note-offline'
+                                                            }`}></div>
+                                                        <div className="bs-incident-notes-content">
+                                                        <div className="bs-note-display-flex bs-mob-block bs-desktop-in bs-schedule-div">
+                                                            <div className="bs-desktop-div">
+                                                                {
+                                                                    incidentMessage.isOnDuty ?
+                                                                    <>
+                                                                    <span
+                                                                    className="bs-duty-span"
+                                                                    onClick={() => {
+                                                                        history.push(
+                                                                            `/dashboard/project/${
+                                                                                incidentMessage
+                                                                                    .project
+                                                                            }/sub-project/${incidentMessage.project &&
+                                                                                incidentMessage
+                                                                                    .project
+                                                                                    }/schedule/${incidentMessage.schedule &&
+                                                                                incidentMessage
+                                                                                    .schedule
+                                                                                    ._id}`
+                                                                        );
+                                                                    }}
+                                                                >{incidentMessage.schedule.name} </span>
+                                                                <span>was executed for this monitor</span>
+                                                                    </>
+                                                                    :
+                                                                    <span>
+                                                                        No call schedule was executed for this monitor
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                            <div>
+                                                                    <span>
+                                                                        {currentTimeZone
+                                                                            ? momentTz(
+                                                                                  incidentMessage.createdAt
+                                                                              )
+                                                                                  .tz(
+                                                                                      currentTimeZone
+                                                                                  )
+                                                                                  .format(
+                                                                                      'lll'
+                                                                                  )
+                                                                            : moment(
+                                                                                  incidentMessage.createdAt
+                                                                              ).format(
+                                                                                  'lll'
+                                                                              )}
+                                                                    </span>
+                                                                </div>
+                                                        </div>
+                                                        </div>
+                                                    </div>
+                                                    <ShouldRender
+                                                        if={
+                                                            incidentMessages
+                                                                .incidentMessages
+                                                                .length -
+                                                                1 !==
+                                                            i
+                                                        }
+                                                    >
+                                                        <div className="bs-thread-line-down bs-ex-down"></div>
+                                                    </ShouldRender>
+                                                </div> :
+                                                (
                                                     <>
                                                         <ShouldRender
                                                             if={i !== 0}
@@ -1086,7 +1165,7 @@ export class IncidentMessageThread extends Component {
                                                                     </div>
                                                                     <div>
                                                                         is 
-                                                                        {incidentMessage.error && ' not '}
+                                                                        {(incidentMessage.error || incidentMessage.alertStatus !== 'Success') && ' not '}
                                                                         {' notified by '}
                                                                         {incidentMessage.alertVia ===
                                                                         'email'
@@ -1099,7 +1178,8 @@ export class IncidentMessageThread extends Component {
                                                                                 fontWeight:
                                                                                     '600',
                                                                                 textTransform:
-                                                                                    'capitalize',
+                                                                                incidentMessage.alertVia === 'sms' ?
+                                                                                 'uppercase' : 'capitalize'
                                                                             }}
                                                                         >
                                                                             {
