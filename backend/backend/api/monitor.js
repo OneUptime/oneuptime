@@ -290,6 +290,35 @@ router.post('/:projectId/identityFile', async function(req, res) {
     }
 });
 
+router.post('/:projectId/configurationFile', async function(req, res) {
+    try {
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'configurationFile',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            let configurationFile;
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            if (
+                req.files &&
+                req.files.configurationFile &&
+                req.files.configurationFile[0].filename
+            ) {
+                configurationFile = req.files.configurationFile[0].filename;
+            }
+            return sendItemResponse(req, res, { configurationFile });
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.put(
     '/:projectId/:monitorId',
     getUser,
