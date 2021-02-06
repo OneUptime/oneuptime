@@ -359,6 +359,34 @@ const MonitorCriteriaService = {
                 degraded_1000_autoResolve: true,
                 type_1000: 'script',
             },
+            kubernetes: {
+                up_1000: [
+                    {
+                        match: 'all',
+                        responseType: 'podStatus',
+                        filter: 'equalTo',
+                        field1: 'running',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                up_1000_createAlert: false,
+                up_1000_autoAcknowledge: false,
+                up_1000_autoResolve: false,
+                down_1000: [
+                    {
+                        match: 'all',
+                        responseType: 'podStatus',
+                        filter: 'notEqualTo',
+                        field1: 'running',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                down_1000_createAlert: true,
+                down_1000_autoAcknowledge: true,
+                down_1000_autoResolve: true,
+            },
         };
     },
 
