@@ -78,6 +78,7 @@ const placeholders = {
         memoryUsage: '20',
         storageUsage: '20',
         temperature: '20',
+        podRestarts: '0',
     },
     lessThan: {
         responseTime: '4000',
@@ -86,6 +87,7 @@ const placeholders = {
         memoryUsage: '100',
         storageUsage: '100',
         temperature: '100',
+        podRestarts: '0',
     },
     inBetween: {
         responseTime: '2000',
@@ -102,6 +104,8 @@ const placeholders = {
         memoryUsage: '20',
         storageUsage: '20',
         temperature: '20',
+        podStatus: 'running',
+        podRestarts: '0',
     },
     notEqualTo: {
         responseTime: '2000',
@@ -110,6 +114,8 @@ const placeholders = {
         memoryUsage: '20',
         storageUsage: '20',
         temperature: '20',
+        podStatus: 'running',
+        podRestarts: '0',
     },
     gtEqualTo: {
         responseTime: '2000',
@@ -118,6 +124,7 @@ const placeholders = {
         memoryUsage: '20',
         storageUsage: '20',
         temperature: '20',
+        podRestarts: '0',
     },
     ltEqualTo: {
         responseTime: '2000',
@@ -126,6 +133,7 @@ const placeholders = {
         memoryUsage: '20',
         storageUsage: '20',
         temperature: '20',
+        podRestarts: '0',
     },
     contains: {
         responseBody: 'Contains',
@@ -215,14 +223,16 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
-                                        type !== 'incomingHttpRequest',
+                                        type !== 'incomingHttpRequest' &&
+                                        type !== 'kubernetes',
                                 },
                                 {
                                     value: 'doesRespond',
                                     label: 'Is Online',
                                     show:
                                         type !== 'script' &&
-                                        type !== 'incomingHttpRequest',
+                                        type !== 'incomingHttpRequest' &&
+                                        type !== 'kubernetes',
                                 },
                                 {
                                     value: 'statusCode',
@@ -230,7 +240,8 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
-                                        type !== 'incomingHttpRequest',
+                                        type !== 'incomingHttpRequest' &&
+                                        type !== 'kubernetes',
                                 },
                                 {
                                     value: 'responseBody',
@@ -240,7 +251,8 @@ export class RenderOption extends Component {
                                             : 'Request Body',
                                     show:
                                         type !== 'script' &&
-                                        type !== 'server-monitor',
+                                        type !== 'server-monitor' &&
+                                        type !== 'kubernetes',
                                 },
                                 {
                                     value: 'ssl',
@@ -248,7 +260,8 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
-                                        type !== 'incomingHttpRequest',
+                                        type !== 'incomingHttpRequest' &&
+                                        type !== 'kubernetes',
                                 },
                                 {
                                     value: 'executes',
@@ -289,6 +302,16 @@ export class RenderOption extends Component {
                                     value: 'incomingTime',
                                     label: 'Request Incoming Time',
                                     show: type === 'incomingHttpRequest',
+                                },
+                                {
+                                    value: 'podStatus',
+                                    label: 'Pod Status',
+                                    show: type === 'kubernetes',
+                                },
+                                {
+                                    value: 'podRestarts',
+                                    label: 'Pod Restarts',
+                                    show: type === 'kubernetes',
                                 },
                             ]}
                         />
@@ -385,7 +408,9 @@ export class RenderOption extends Component {
                                                     'statusCode' ||
                                                 bodyfield.responseType ===
                                                     'incomingTime' ||
-                                                type === 'server-monitor'),
+                                                type === 'server-monitor' ||
+                                                bodyfield.responseType ===
+                                                    'podRestarts'),
                                     },
                                     {
                                         value: 'lessThan',
@@ -398,7 +423,9 @@ export class RenderOption extends Component {
                                                     'statusCode' ||
                                                 bodyfield.responseType ===
                                                     'incomingTime' ||
-                                                type === 'server-monitor'),
+                                                type === 'server-monitor' ||
+                                                bodyfield.responseType ===
+                                                    'podRestarts'),
                                     },
                                     {
                                         value: 'inBetween',
@@ -440,7 +467,8 @@ export class RenderOption extends Component {
                                                     'statusCode' ||
                                                 bodyfield.responseType ===
                                                     'incomingTime' ||
-                                                type === 'server-monitor'),
+                                                type === 'server-monitor' ||
+                                                type === 'kubernetes'),
                                     },
                                     {
                                         value: 'notEqualTo',
@@ -453,7 +481,8 @@ export class RenderOption extends Component {
                                                     'statusCode' ||
                                                 bodyfield.responseType ===
                                                     'incomingTime' ||
-                                                type === 'server-monitor'),
+                                                type === 'server-monitor' ||
+                                                type === 'kubernetes'),
                                     },
                                     {
                                         value: 'gtEqualTo',
@@ -466,7 +495,9 @@ export class RenderOption extends Component {
                                                     'statusCode' ||
                                                 bodyfield.responseType ===
                                                     'incomingTime' ||
-                                                type === 'server-monitor'),
+                                                type === 'server-monitor' ||
+                                                bodyfield.responseType ===
+                                                    'podRestarts'),
                                     },
                                     {
                                         value: 'ltEqualTo',
@@ -479,7 +510,9 @@ export class RenderOption extends Component {
                                                     'statusCode' ||
                                                 bodyfield.responseType ===
                                                     'incomingTime' ||
-                                                type === 'server-monitor'),
+                                                type === 'server-monitor' ||
+                                                bodyfield.responseType ===
+                                                    'podRestarts'),
                                     },
                                     {
                                         value: 'contains',
@@ -640,6 +673,9 @@ export class RenderOption extends Component {
                                                   'evaluateResponse' ||
                                               filterval === 'contains' ||
                                               filterval === 'doesNotContain'
+                                                ? ValidateField.required
+                                                : bodyfield.responseType ===
+                                                  'podStatus'
                                                 ? ValidateField.required
                                                 : [
                                                       ValidateField.required,
