@@ -103,12 +103,13 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             data.type !== 'api' &&
             data.type !== 'server-monitor' &&
             data.type !== 'script' &&
-            data.type !== 'incomingHttpRequest'
+            data.type !== 'incomingHttpRequest' &&
+            data.type !== 'kubernetes'
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message:
-                    'Monitor type should be url, manual, device or script.',
+                    'Monitor type should be url, manual, device, script, api, server-monitor, incomingHttpRequest or kubernetes.',
             });
         }
         if (!data.data) {
@@ -224,6 +225,16 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                         'Monitor should have an `Identity File` property of type string.',
                 });
             }
+        }
+
+        if (
+            data.type === 'kubernetes' &&
+            (!data.kubernetesConfig || !data.kubernetesConfig.trim())
+        ) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor should have a configuration file',
+            });
         }
 
         if (data.type === 'script') {

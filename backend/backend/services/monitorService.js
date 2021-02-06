@@ -120,12 +120,18 @@ module.exports = {
                         data.type === 'api' ||
                         data.type === 'server-monitor' ||
                         data.type === 'script' ||
-                        data.type === 'incomingHttpRequest'
+                        data.type === 'incomingHttpRequest' ||
+                        data.type === 'kubernetes'
                     ) {
                         monitor.criteria = _.isEmpty(data.criteria)
                             ? MonitorCriteriaService.create(data.type)
                             : data.criteria;
                     }
+
+                    if (data.type === 'kubernetes') {
+                        monitor.kubernetesConfig = data.kubernetesConfig;
+                    }
+
                     if (data.type === 'api') {
                         if (data.method && data.method.length)
                             monitor.method = data.method;
@@ -195,9 +201,9 @@ module.exports = {
                     }
                 );
             }
-            query.deleted = false
+            query.deleted = false;
             const monitor = await this.findOneBy(query);
-           await RealTimeService.monitorEdit(monitor);
+            await RealTimeService.monitorEdit(monitor);
 
             return monitor;
         } catch (error) {
