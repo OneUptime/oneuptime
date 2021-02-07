@@ -3385,6 +3385,59 @@ const checkAnd = async (
                     );
                 }
             }
+        } else if (con[i] && con[i].responseType === 'podStatus') {
+            /**
+             *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
+             *  Pod Status can be:
+             *      - Pending
+             *      - Running
+             *      - Succeeded
+             *      - Failed
+             */
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.podOutput.forEach(pod => {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            pod.podStatus &&
+                            pod.podStatus.toLowerCase() ===
+                                con[i].field1.toLowerCase()
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(`${pod.podName} is not online`);
+                    } else {
+                        successReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.podOutput.forEach(pod => {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            pod.podStatus &&
+                            pod.podStatus !== con[i].field1
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(`${pod.podName} is not online`);
+                    } else {
+                        successReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    }
+                });
+            }
         }
         if (
             con[i] &&
@@ -5039,7 +5092,56 @@ const checkOr = async (
                     );
                 }
             }
+        } else if (con[i] && con[i].responseType === 'podStatus') {
+            /**
+             *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
+             *  Pod Status can be:
+             *      - Pending
+             *      - Running
+             *      - Succeeded
+             *      - Failed
+             */
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.podOutput.forEach(pod => {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        pod.podStatus &&
+                        pod.podStatus === con[i].field1
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    } else {
+                        failedReasons.push(`${pod.podName} is not online`);
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.podOutput.forEach(pod => {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        pod.podStatus &&
+                        pod.podStatus !== con[i].field1
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    } else {
+                        failedReasons.push(`${pod.podName} is not online`);
+                    }
+                });
+            }
         }
+
         if (
             con[i] &&
             con[i].collection &&
