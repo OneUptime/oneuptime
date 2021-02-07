@@ -308,9 +308,10 @@ router.post(
                 projectId,
             });
             const subAlerts = deduplicate(subscriberAlerts);
-            const callScheduleStatus = await onCallScheduleStatusService.findBy({
+            let callScheduleStatus = await onCallScheduleStatusService.findBy({
                 query: {incident: incident._id}
             })
+            callScheduleStatus = checkCallSchedule(callScheduleStatus);
             incidentMessages = [
                 ...incidentMessages,
                 ...timeline,
@@ -373,9 +374,10 @@ router.post(
                 projectId,
             });
             const subAlerts = deduplicate(subscriberAlerts);
-            const callScheduleStatus = await onCallScheduleStatusService.findBy({
+            let callScheduleStatus = await onCallScheduleStatusService.findBy({
                 query: {incident: incident._id}
             })
+            callScheduleStatus = checkCallSchedule(callScheduleStatus);
             incidentMessages = [
                 ...incidentMessages,
                 ...timeline,
@@ -635,9 +637,10 @@ router.post(
                         incidentId: incident._id,
                     });
                     const subAlerts = deduplicate(subscriberAlerts);
-                    const callScheduleStatus = await onCallScheduleStatusService.findBy({
+                    let callScheduleStatus = await onCallScheduleStatusService.findBy({
                         query: {incident: incident._id}
                     })
+                    callScheduleStatus = checkCallSchedule(callScheduleStatus);
                     incidentMessages = [
                         ...incidentMessages,
                         ...timeline,
@@ -731,9 +734,10 @@ router.delete(
                 });
 
                 await RealTimeService.deleteIncidentNote(incidentMessage);
-                const callScheduleStatus = await onCallScheduleStatusService.findBy({
+                let callScheduleStatus = await onCallScheduleStatusService.findBy({
                     query: {incident: incidentId}
                 })
+                callScheduleStatus = checkCallSchedule(callScheduleStatus);
                 if (checkMsg.type === 'investigation') {
                     result = incidentMessage;
                 } else {
@@ -822,9 +826,10 @@ router.get(
                 result = incidentMessages;
             } else {
                 const subAlerts = deduplicate(subscriberAlerts);
-                const callScheduleStatus = await onCallScheduleStatusService.findBy({
+                let callScheduleStatus = await onCallScheduleStatusService.findBy({
                     query: {incident: incidentId}
                 })
+                callScheduleStatus = checkCallSchedule(callScheduleStatus);
                 incidentMessages = [
                     ...incidentMessages,
                     ...timeline,
@@ -963,6 +968,14 @@ function rearrangeDuty(main = []) {
    main.push(main[closeStringId])
    main.splice(closeStringId, 1)
    return main;
+}
+
+function checkCallSchedule(arr) {
+    const isAllFalse = arr.every(a => !a.isOnDuty);
+    
+    if(isAllFalse) return [arr[0]];
+    
+    return arr.filter(a => a.isOnDuty)
 }
 
 module.exports = router;
