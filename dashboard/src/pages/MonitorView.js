@@ -603,7 +603,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'incomingHttpRequest')
+                                                                                        'incomingHttpRequest' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'kubernetes')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
@@ -840,7 +845,8 @@ const mapStateToProps = (state, props) => {
             initialValues.monitorSla = monitor.monitorSla._id;
         }
         if (monitor.type === 'kubernetes') {
-            initialValues[`configurationFile_${monitor._id}`] = monitor.kubernetesConfig;
+            initialValues[`configurationFile_${monitor._id}`] =
+                monitor.kubernetesConfig;
         }
         if (
             monitor.type === 'url' ||
