@@ -508,6 +508,7 @@ module.exports = {
                                                 'device',
                                                 'api',
                                                 'incomingHttpRequest',
+                                                'kubernetes',
                                             ],
                                         },
                                     },
