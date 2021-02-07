@@ -545,6 +545,7 @@ module.exports = {
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
                         eventType: 'identified',
+                        alertProgress: alertProgress.callProgress,
                     });
                 }
                 if (escalation.email && shouldSendEmailReminder) {
@@ -559,6 +560,7 @@ module.exports = {
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
                         eventType: 'identified',
+                        alertProgress: alertProgress.emailProgress,
                     });
                 }
                 if (escalation.sms && shouldSendSMSReminder) {
@@ -573,6 +575,7 @@ module.exports = {
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
                         eventType: 'identified',
+                        alertProgress: alertProgress.smsProgress,
                     });
                 }
 
