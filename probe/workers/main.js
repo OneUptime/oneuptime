@@ -13,7 +13,7 @@ const ErrorService = require('../utils/errorService');
 const ApplicationSecurity = require('./applicationSecurity');
 const ContainerSecurity = require('./containerSecurity');
 const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
-const KubernetesMonitors = require('./kubernetesMonitors')
+const KubernetesMonitors = require('./kubernetesMonitors');
 
 module.exports = {
     runJob: async function() {
