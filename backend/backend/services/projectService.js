@@ -707,8 +707,8 @@ module.exports = {
         });
         await componentService.restoreBy({
             projectId: projectId,
-            deleted: true
-        })
+            deleted: true,
+        });
         return project;
     },
 
@@ -768,3 +768,5 @@ const generate = require('nanoid/generate');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const componentService = require('./componentService');
 const SsoDefaultRolesService = require('./ssoDefaultRolesService');
+const incidentService = require('./incidentService');
+

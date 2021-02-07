@@ -327,11 +327,27 @@ module.exports = {
             callProgress: null,
         };
         const emailRem = currentEscalationStatus.emailRemindersSent + 1;
+        const smsRem = currentEscalationStatus.smsRemindersSent + 1;
+        const callRem = currentEscalationStatus.callRemindersSent + 1;
         if (emailRem > 1) {
             alertProgress.emailProgress = {
                 current: emailRem,
                 total: escalation.emailReminders,
             };
+        }
+
+        if (callRem > 1) {
+            alertProgress.callProgress = {
+                current: callRem,
+                total: escalation.callReminders
+            }
+        }
+
+        if (smsRem > 1) {
+            alertProgress.smsProgress = {
+                current: smsRem,
+                total: escalation.smsReminders
+            }
         }
 
         shouldSendSMSReminder =
@@ -562,6 +578,7 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
+                        smsProgress: alertProgress.smsProgress
                     });
                 }
 
@@ -589,6 +606,7 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
+                        callProgress: alertProgress.callProgress
                     });
                 }
             }
@@ -835,6 +853,7 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
+        callProgress
     }) {
         const _this = this;
         let alert;
@@ -970,7 +989,8 @@ module.exports = {
             accessToken,
             incident._id,
             incident.projectId,
-            incident.incidentType
+            incident.incidentType,
+            callProgress
         );
         if (alertStatus && alertStatus.code && alertStatus.code === 400) {
             return await _this.create({
@@ -1032,6 +1052,7 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
+        smsProgress
     }) {
         const _this = this;
         let alert;
@@ -1168,7 +1189,8 @@ module.exports = {
             user._id,
             user.name,
             incident.incidentType,
-            projectId
+            projectId,
+            smsProgress
         );
 
         if (sendResult && sendResult.code && sendResult.code === 400) {

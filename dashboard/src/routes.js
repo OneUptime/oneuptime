@@ -287,6 +287,35 @@ export const groups = [
         ],
     },
     {
+        group: 'StatusPages',
+        visible: true,
+        visibleForProjectViewer: true,
+        routes: [
+            {
+                title: 'Status Pages',
+                path: '/dashboard/project/:projectId/status-pages',
+                icon: 'radar',
+                visible: true,
+                shortcut: 'f+p',
+                subRoutes: [
+                    {
+                        title: 'Status Page',
+                        path:
+                            '/dashboard/project/:projectId/sub-project/:subProjectId/status-page/:scheduleId',
+                        icon: 'radar',
+                        visible: true,
+                        subRoutes: [],
+                        component: StatusPage,
+                        index: 1,
+                        shortcut: 'g+s',
+                    },
+                ],
+                component: StatusPages,
+                index: 1,
+            },
+        ],
+    },
+    {
         group: 'Products',
         visible: true,
         routes: [

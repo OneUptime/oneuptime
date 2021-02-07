@@ -479,10 +479,10 @@ router.get(
     isAuthorized,
     getSubProjects,
     async function(req, res) {
-        const subProjectIds = req.user.subProjects
-            ? req.user.subProjects.map(project => project._id)
-            : null;
         try {
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map(project => project._id)
+                : null;
             const statusPages = await StatusPageService.getSubProjectStatusPages(
                 subProjectIds
             );
