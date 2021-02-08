@@ -34,7 +34,7 @@ class ResourceTabularList extends Component {
             case 'server monitor':
             case 'script monitor':
             case 'incomingHttpRequest monitor':
-            case 'ip monitor':
+            case 'IP monitor':
                 route = 'monitoring';
                 break;
             case 'application security':
@@ -72,7 +72,7 @@ class ResourceTabularList extends Component {
             case 'server monitor':
             case 'script monitor':
             case 'incomingHttpRequest monitor':
-            case 'ip monitor':
+            case 'IP monitor':
                 // get monitor status
                 monitor = monitors.filter(
                     monitor => monitor._id === componentResource._id
