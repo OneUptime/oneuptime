@@ -339,15 +339,15 @@ module.exports = {
         if (callRem > 1) {
             alertProgress.callProgress = {
                 current: callRem,
-                total: escalation.callReminders
-            }
+                total: escalation.callReminders,
+            };
         }
 
         if (smsRem > 1) {
             alertProgress.smsProgress = {
                 current: smsRem,
-                total: escalation.smsReminders
-            }
+                total: escalation.smsReminders,
+            };
         }
 
         shouldSendSMSReminder =
@@ -578,7 +578,7 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
-                        smsProgress: alertProgress.smsProgress
+                        smsProgress: alertProgress.smsProgress,
                     });
                 }
 
@@ -606,7 +606,7 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
-                        callProgress: alertProgress.callProgress
+                        callProgress: alertProgress.callProgress,
                     });
                 }
             }
@@ -853,7 +853,7 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
-        callProgress
+        callProgress,
     }) {
         const _this = this;
         let alert;
@@ -1052,7 +1052,7 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
-        smsProgress
+        smsProgress,
     }) {
         const _this = this;
         let alert;
@@ -1642,6 +1642,14 @@ module.exports = {
                     downtime / 60
                 )} hours ${Math.floor(downtime % 60)} minutes`;
             }
+
+            console.log(
+                'initial reason',
+                incident.reason
+                    ? incident.reason
+                    : `This incident was created by ${incidentcreatedBy}`
+            );
+
             await MailService.sendIncidentAcknowledgedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
@@ -1649,10 +1657,11 @@ module.exports = {
                     monitor && monitor.data && monitor.data.url
                         ? monitor.data.url
                         : null,
+
                 incidentId: `#${incident.idNumber}`,
                 reason: incident.reason
-                    ? incident.reason
-                    : `This incident was created by ${incidentcreatedBy}`,
+                    ? incident.reason.split('\n')
+                    : [`This incident was created by ${incidentcreatedBy}`],
                 view_url,
                 method:
                     monitor.data && monitor.data.url
@@ -1949,8 +1958,8 @@ module.exports = {
                         : null,
                 incidentId: `#${incident.idNumber}`,
                 reason: incident.reason
-                    ? incident.reason
-                    : `This incident was created by ${incidentcreatedBy}`,
+                    ? incident.reason.split('\n')
+                    : [`This incident was created by ${incidentcreatedBy}`],
                 view_url,
                 method:
                     monitor.data && monitor.data.url
