@@ -1217,6 +1217,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                         monitorSla: action.payload.monitorSla,
                         incidentCommunicationSla:
                             action.payload.incidentCommunicationSla,
+                        kubernetesNamespace_1000:
+                            action.payload.kubernetesNamespace || 'default',
                     },
                 },
             });

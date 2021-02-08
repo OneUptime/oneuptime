@@ -847,6 +847,8 @@ const mapStateToProps = (state, props) => {
         if (monitor.type === 'kubernetes') {
             initialValues[`configurationFile_${monitor._id}`] =
                 monitor.kubernetesConfig;
+            initialValues[`kubernetesNamespace_${monitor._id}`] =
+                monitor.kubernetesNamespace || 'default';
         }
         if (
             monitor.type === 'url' ||

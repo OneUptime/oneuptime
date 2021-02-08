@@ -402,6 +402,8 @@ class NewMonitor extends Component {
 
         if (postObj.type === 'kubernetes') {
             postObj.kubernetesConfig = this.props.configurationFile;
+            postObj.kubernetesNamespace =
+                values[`kubernetesNamespace_${this.props.index}`];
         }
 
         if (postObj.type === 'incomingHttpRequest')
@@ -1517,6 +1519,33 @@ class NewMonitor extends Component {
                                                     {this.renderMonitorConfiguration(
                                                         'Kubernetes'
                                                     )}
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
+                                                            Kubernetes Namespace
+                                                        </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name={`kubernetesNamespace_${this.props.index}`}
+                                                                id="kubernetesNamespace"
+                                                                placeholder="default"
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                validate={[
+                                                                    ValidateField.required,
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
                                                     <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
                                                         <label className="new-monitor-label">
