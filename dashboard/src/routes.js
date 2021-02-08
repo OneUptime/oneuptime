@@ -488,7 +488,7 @@ export const groups = [
                         path:
                             '/dashboard/project/:projectId/settings/resources',
                         icon: 'monitor',
-                        visible: false,
+                        visible: true,
                         subRoutes: [],
                         component: Resources,
                         index: 2,
