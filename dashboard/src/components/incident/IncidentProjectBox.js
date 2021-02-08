@@ -12,6 +12,7 @@ const IncidentProjectBox = props => {
     const [filteredIncidents, setFilteredIncidents] = useState([]);
     const [filterOption, setFilterOption] = useState('Filter By');
     const [isFiltered, setIsFiltered] = useState(false);
+    const [page,setPage] = useState(1)
 
     const filterIncidentLogs = status => {
         const unFilteredIncidents = props.subProjectIncident;
@@ -202,6 +203,8 @@ const IncidentProjectBox = props => {
                     nextClicked={props.nextClicked}
                     filteredIncidents={filteredIncidents}
                     isFiltered={isFiltered}
+                    page={page}
+                    setPage={setPage}
                 />
             </div>
         </div>

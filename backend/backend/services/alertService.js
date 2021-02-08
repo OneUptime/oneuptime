@@ -118,8 +118,12 @@ module.exports = {
         error,
         errorMessage,
         eventType,
+        alertProgress,
     }) {
         try {
+            alertProgress =
+                alertProgress &&
+                `${alertProgress.current}/${alertProgress.total}`;
             const alert = new AlertModel();
             alert.projectId = projectId;
             alert.onCallScheduleStatus = onCallScheduleStatus;
@@ -131,6 +135,7 @@ module.exports = {
             alert.incidentId = incidentId;
             alert.alertStatus = alertStatus;
             alert.eventType = eventType;
+            alert.alertProgress = alertProgress;
 
             if (error) {
                 alert.error = error;
@@ -508,6 +513,17 @@ module.exports = {
                 teamMember.endTime
             );
 
+            if (
+                (JSON.stringify(escalation.scheduleId._id) ==
+                    JSON.stringify(onCallScheduleStatus.schedule._id) ||
+                    JSON.stringify(escalation.scheduleId._id) ==
+                        JSON.stringify(onCallScheduleStatus.schedule)) &&
+                isOnDuty
+            ) {
+                onCallScheduleStatus.isOnDuty = true;
+                onCallScheduleStatus.save();
+            }
+
             const user = await UserService.findOneBy({
                 _id: teamMember.userId,
             });
@@ -529,6 +545,7 @@ module.exports = {
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
                         eventType: 'identified',
+                        alertProgress: alertProgress.callProgress,
                     });
                 }
                 if (escalation.email && shouldSendEmailReminder) {
@@ -543,6 +560,7 @@ module.exports = {
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
                         eventType: 'identified',
+                        alertProgress: alertProgress.emailProgress,
                     });
                 }
                 if (escalation.sms && shouldSendSMSReminder) {
@@ -557,6 +575,7 @@ module.exports = {
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
                         eventType: 'identified',
+                        alertProgress: alertProgress.smsProgress,
                     });
                 }
 
@@ -687,6 +706,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: errorMessageText,
+                    alertProgress: emailProgress,
                 });
             }
             const incidentcreatedBy =
@@ -739,6 +759,7 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Success',
+                alertProgress: emailProgress,
             });
         } catch (e) {
             return await _this.create({
@@ -754,6 +775,7 @@ module.exports = {
                 alertStatus: 'Cannot Send',
                 error: true,
                 errorMessage: e.message,
+                alertProgress: emailProgress,
             });
         }
     },
@@ -877,6 +899,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: 'No phone number',
+                callProgress,
             });
         }
 
@@ -921,6 +944,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: errorMessageText,
+                callProgress,
             });
         }
 
@@ -955,6 +979,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: errorMessageText,
+                    callProgress,
                 });
             }
 
@@ -979,6 +1004,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: status.message,
+                    callProgress,
                 });
             }
         }
@@ -1006,6 +1032,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: alertStatus.message,
+                callProgress,
             });
         } else if (alertStatus) {
             alert = await _this.create({
@@ -1019,6 +1046,7 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Success',
+                callProgress,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
@@ -1073,6 +1101,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: 'No phone number',
+                alertProgress: smsProgress,
             });
         }
 
@@ -1119,6 +1148,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: errorMessageText,
+                alertProgress: smsProgress,
             });
         }
 
@@ -1153,6 +1183,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: errorMessageText,
+                    alertProgress: smsProgress,
                 });
             }
 
@@ -1177,6 +1208,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: status.message,
+                    alertProgress: smsProgress,
                 });
             }
         }
@@ -1207,6 +1239,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: sendResult.message,
+                alertProgress: smsProgress,
             });
         } else if (sendResult) {
             const alertStatus = 'Success';
@@ -1221,6 +1254,7 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus,
+                alertProgress: smsProgress,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 // calculate charge per 160 chars
