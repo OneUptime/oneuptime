@@ -30,6 +30,8 @@ export class IncidentMessageThread extends Component {
             editMessageModalId,
             deleteMessageModalId,
             deleteIncidentMessage,
+            page,
+            numberOfPages
         } = this.props;
         return (
             <div className="Box-root">
@@ -1354,14 +1356,27 @@ export class IncidentMessageThread extends Component {
                         <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {incidentMessages.incidentMessages.length
+                                    {numberOfPages >0 ?
+                                   `Page ${page} of ${numberOfPages} (${
+                                    incidentMessages.incidentMessages && incidentMessages.incidentMessages.length
+                                    ? incidentMessages.incidentMessages
+                                          .length +
+                                      (incidentMessages.incidentMessages
+                                          .length > 1
+                                          ? ' Messages'
+                                          : ' Message')
+                                    : '0 Messages'
+                                  })`
+                                  : 
+                                  incidentMessages.incidentMessages && incidentMessages.incidentMessages.length
                                         ? incidentMessages.incidentMessages
                                               .length +
                                           (incidentMessages.incidentMessages
                                               .length > 1
                                               ? ' Messages'
                                               : ' Message')
-                                        : '0 Messages'}
+                                        : '0 Messages'
+                                }
                                 </span>
                             </span>
                         </div>
