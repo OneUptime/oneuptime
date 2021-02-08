@@ -215,14 +215,16 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
-                                        type !== 'incomingHttpRequest',
+                                        type !== 'incomingHttpRequest' &&
+                                        type !== 'ip',
                                 },
                                 {
                                     value: 'doesRespond',
                                     label: 'Is Online',
                                     show:
                                         type !== 'script' &&
-                                        type !== 'incomingHttpRequest',
+                                        type !== 'incomingHttpRequest' &&
+                                        type !== 'ip',
                                 },
                                 {
                                     value: 'statusCode',
@@ -230,7 +232,8 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
-                                        type !== 'incomingHttpRequest',
+                                        type !== 'incomingHttpRequest' &&
+                                        type !== 'ip',
                                 },
                                 {
                                     value: 'responseBody',
@@ -240,7 +243,8 @@ export class RenderOption extends Component {
                                             : 'Request Body',
                                     show:
                                         type !== 'script' &&
-                                        type !== 'server-monitor',
+                                        type !== 'server-monitor' &&
+                                        type !== 'ip',
                                 },
                                 {
                                     value: 'ssl',
@@ -248,7 +252,8 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
-                                        type !== 'incomingHttpRequest',
+                                        type !== 'incomingHttpRequest' &&
+                                        type !== 'ip',
                                 },
                                 {
                                     value: 'executes',
@@ -291,8 +296,8 @@ export class RenderOption extends Component {
                                     show: type === 'incomingHttpRequest',
                                 },
                                 {
-                                    value: 'responseToPing',
-                                    label: 'Response To Ping',
+                                    value: 'respondsToPing',
+                                    label: 'Responds To Ping',
                                     show: type === 'ip',
                                 },
                             ]}
@@ -424,7 +429,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             (bodyfield.responseType ===
-                                                'responseToPing' ||
+                                                'respondsToPing' ||
                                                 type === 'ip'),
                                     },
                                     {
@@ -433,7 +438,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             (bodyfield.responseType ===
-                                                'responseToPing' ||
+                                                'respondsToPing' ||
                                                 type === 'ip'),
                                     },
                                     {

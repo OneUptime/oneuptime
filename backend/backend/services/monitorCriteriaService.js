@@ -363,7 +363,7 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
-                        responseType: 'responseToPing',
+                        responseType: 'respondsToPing',
                         filter: 'isUp',
                         field1: '',
                         field2: '',
@@ -376,14 +376,14 @@ const MonitorCriteriaService = {
                 down_1000: [
                     {
                         match: 'any',
-                        responseType: 'responseToPing',
+                        responseType: 'respondsToPing',
                         filter: 'isUp',
                         field1: '',
                         field2: '',
                         field3: false,
                     },
                     {
-                        responseType: 'responseToPing',
+                        responseType: 'respondsToPing',
                         filter: 'isUp',
                         field1: '',
                         field2: '',
