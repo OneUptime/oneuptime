@@ -49,6 +49,7 @@ const {
     ComponentSettings,
     ComponentSettingsAdvanced,
     MonitorSettings,
+    CallRouting,
 } = pages;
 
 export const groups = [
@@ -286,6 +287,35 @@ export const groups = [
         ],
     },
     {
+        group: 'StatusPages',
+        visible: true,
+        visibleForProjectViewer: true,
+        routes: [
+            {
+                title: 'Status Pages',
+                path: '/dashboard/project/:projectId/status-pages',
+                icon: 'radar',
+                visible: true,
+                shortcut: 'f+p',
+                subRoutes: [
+                    {
+                        title: 'Status Page',
+                        path:
+                            '/dashboard/project/:projectId/sub-project/:subProjectId/status-page/:scheduleId',
+                        icon: 'radar',
+                        visible: true,
+                        subRoutes: [],
+                        component: StatusPage,
+                        index: 1,
+                        shortcut: 'g+s',
+                    },
+                ],
+                component: StatusPages,
+                index: 1,
+            },
+        ],
+    },
+    {
         group: 'Products',
         visible: true,
         routes: [
@@ -506,13 +536,24 @@ export const groups = [
                         shortcut: 's+c',
                     },
                     {
+                        title: 'Call Routing',
+                        path:
+                            '/dashboard/project/:projectId/settings/callRouting',
+                        icon: 'callrouting',
+                        visible: true,
+                        subRoutes: [],
+                        component: CallRouting,
+                        index: 8,
+                        shortcut: 's+c+r',
+                    },
+                    {
                         title: 'Webhooks',
                         path: '/dashboard/project/:projectId/settings/webhooks',
                         icon: 'integration',
                         visible: true,
                         subRoutes: [],
                         component: WebhookSettings,
-                        index: 7,
+                        index: 9,
                         shortcut: 's+w',
                     },
                     {
@@ -522,7 +563,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: Probe,
-                        index: 8,
+                        index: 10,
                         shortcut: 's+p',
                     },
                     {
@@ -533,7 +574,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: GitCredential,
-                        index: 9,
+                        index: 11,
                         shortcut: 's+g',
                     },
                     {
@@ -544,7 +585,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: DockerCredential,
-                        index: 10,
+                        index: 12,
                         shortcut: 's+d',
                     },
                     {
@@ -554,7 +595,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: FyipeApi,
-                        index: 11,
+                        index: 13,
                         shortcut: 's+a',
                     },
                     {
@@ -564,7 +605,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: Advanced,
-                        index: 12,
+                        index: 14,
                         shortcut: 's+v',
                     },
                 ],

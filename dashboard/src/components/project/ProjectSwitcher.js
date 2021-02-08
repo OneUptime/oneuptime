@@ -8,9 +8,11 @@ import {
     switchProject,
     hideProjectSwitcher,
     showForm,
+    switchToProjectViewerNav,
 } from '../../actions/project';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+import { getSubProjects } from '../../actions/subProject';
 
 export class ProjectSwitcher extends Component {
     constructor(props) {
@@ -33,7 +35,15 @@ export class ProjectSwitcher extends Component {
         } = this.props;
 
         if (project._id !== currentProject._id) {
-            switchProject(dispatch, project);
+            this.props.getSubProjects(project._id).then(res => {
+                const { data: subProjects } = res.data;
+                switchProject(dispatch, project, subProjects);
+                this.props.switchToProjectViewerNav(
+                    User.getUserId(),
+                    subProjects,
+                    project
+                );
+            });
             if (SHOULD_LOG_ANALYTICS) {
                 logEvent('EVENT: DASHBOARD > PROJECT > SWITCH PROJECT');
             }
@@ -206,6 +216,8 @@ const mapDispatchToProps = dispatch =>
             hideProjectSwitcher,
             dispatch,
             showForm,
+            switchToProjectViewerNav,
+            getSubProjects,
         },
         dispatch
     );
@@ -218,6 +230,8 @@ ProjectSwitcher.propTypes = {
     project: PropTypes.object.isRequired,
     currentProject: PropTypes.object,
     visible: PropTypes.bool,
+    switchToProjectViewerNav: PropTypes.func,
+    getSubProjects: PropTypes.func,
 };
 
 export default withRouter(

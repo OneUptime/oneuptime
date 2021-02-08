@@ -20,54 +20,7 @@ const AirtableService = require('../backend/services/airtableService');
 
 const LoginIPLog = require('../backend/models/loginIPLog');
 const VerificationTokenModel = require('../backend/models/verificationToken');
-
-const fetchIdpSAMLResponse = async function({
-    SAMLRequest,
-    username,
-    password,
-}) {
-    let firstIdpResponse;
-    try {
-        const response = await chai
-            .request(SAMLRequest)
-            .get('')
-            .redirects(0);
-        expect(response).to.have.status(302);
-        firstIdpResponse = response;
-    } catch (error) {
-        expect(error.response).to.have.status(302);
-        firstIdpResponse = error.response;
-    }
-
-    const {
-        headers: { location, 'set-cookie': cookies },
-    } = firstIdpResponse;
-    const [postSubmissionUrl, AuthState] = location.split('AuthState=');
-
-    const samlResponsePage = await chai
-        .request(postSubmissionUrl)
-        .post('')
-        .set('Referer', SAMLRequest)
-        .set('Content-Type', 'application/x-www-form-urlencoded')
-        .set('Cookie', cookies[0])
-        .send({
-            username,
-            password,
-            AuthState: decode(AuthState),
-        });
-
-    const {
-        res: { text: html },
-    } = samlResponsePage;
-    const { parse } = require('node-html-parser');
-    const root = parse(html);
-    // const form = root.querySelector('form');
-    // const callbackUrl = form.rawAttrs.split('\"')[3]
-    const input = root.querySelectorAll('input')[1];
-    const value = input.rawAttrs.split(' ')[2];
-    const SAMLResponse = value.split('"')[1];
-    return SAMLResponse;
-};
+const { fetchIdpSAMLResponse } = require('./utils/test-utils');
 
 let projectId, userId, token;
 const deleteAccountConfirmation = { deleteMyAccount: 'DELETE MY ACCOUNT' };

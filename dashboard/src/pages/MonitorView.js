@@ -73,7 +73,7 @@ class MonitorView extends React.Component {
 
     componentDidUpdate(prevProps) {
         const { monitor } = this.props;
-        if (!prevProps.monitor && monitor) {
+        if (String(prevProps.monitor._id) !== String(this.props.monitor._id)) {
             const subProjectId = monitor.projectId._id || monitor.projectId;
             this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
             if (monitor.type === 'url') {
@@ -215,9 +215,11 @@ class MonitorView extends React.Component {
             );
         }
 
-        const subProjectId = this.props.monitor
-            ? this.props.monitor.projectId._id || this.props.monitor.projectId
-            : null;
+        const subProjectId =
+            this.props.monitor && this.props.monitor.projectId
+                ? this.props.monitor.projectId._id ||
+                  this.props.monitor.projectId
+                : null;
         const componentName = component ? component.name : '';
         const monitorName = monitor ? monitor.name : '';
         const monitorType = monitor && monitor.type ? monitor.type : '';
@@ -798,14 +800,19 @@ const mapStateToProps = (state, props) => {
             }
         });
     });
-    const monitor = state.monitor.monitorsList.monitors
-        .map(monitor =>
-            monitor.monitors.find(monitor => monitor._id === monitorId)
-        )
-        .filter(monitor => monitor)[0];
+
+    let monitor = {};
+    state.monitor.monitorsList.monitors.forEach(item => {
+        item.monitors.forEach(monitorItem => {
+            if (String(monitorItem._id) === String(monitorId)) {
+                monitor = monitorItem;
+            }
+        });
+    });
+
     const initialValues = {};
     let currentMonitorCriteria = [];
-    if (monitor) {
+    if (monitor && monitor._id) {
         initialValues[`name_${monitor._id}`] = monitor.name;
         initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
         initialValues[`deviceId_${monitor._id}`] =

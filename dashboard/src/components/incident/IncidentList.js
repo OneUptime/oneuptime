@@ -8,6 +8,7 @@ import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
 import { markAsRead } from '../../actions/notification';
 import { animateSidebar } from '../../actions/animateSidebar';
+import { API_URL } from '../../config';
 
 export class IncidentList extends Component {
     render() {
@@ -168,6 +169,29 @@ export class IncidentList extends Component {
                         <tbody className="Table-body">
                             {incidents && incidents.length > 0 ? (
                                 incidents.map((incident, i) => {
+                                    let probeName = 'Fyipe';
+                                    let probeImage =
+                                        '/dashboard/assets/img/Fyipe.svg';
+
+                                    if (
+                                        incident.probes &&
+                                        incident.probes[0] &&
+                                        incident.probes[0].probeId &&
+                                        incident.probes[0].probeId.probeName
+                                    ) {
+                                        probeName =
+                                            incident.probes[0].probeId
+                                                .probeName;
+
+                                        if (
+                                            incident.probes[0].probeId &&
+                                            incident.probes[0].probeId
+                                                .probeImage
+                                        ) {
+                                            probeImage = `${API_URL}/file/${incident.probes[0].probeId.probeImage}`;
+                                        }
+                                    }
+
                                     return (
                                         <tr
                                             id={`incident_${
@@ -288,26 +312,33 @@ export class IncidentList extends Component {
                                                                 </div>
                                                             ) : (
                                                                 <div className="Box-root Margin-right--16">
-                                                                    <img
-                                                                        src="/dashboard/assets/img/Fyipe.svg"
-                                                                        style={{
-                                                                            display:
-                                                                                'inline-block',
-                                                                            height:
-                                                                                '20px',
-                                                                            width:
-                                                                                '20px',
-                                                                            borderRadius:
-                                                                                '50%',
-                                                                            margin:
-                                                                                '5px 10px -4px 0px',
-                                                                            backgroundColor:
-                                                                                '#14AAD9',
-                                                                        }}
-                                                                        alt=""
-                                                                    />
+                                                                    {
+                                                                        <img
+                                                                            src={
+                                                                                probeImage
+                                                                            }
+                                                                            style={{
+                                                                                display:
+                                                                                    'inline-block',
+                                                                                height:
+                                                                                    '20px',
+                                                                                width:
+                                                                                    '20px',
+                                                                                borderRadius:
+                                                                                    '50%',
+                                                                                margin:
+                                                                                    '-1px 5px -5px -7px',
+                                                                                backgroundColor:
+                                                                                    '#14AAD9',
+                                                                            }}
+                                                                            alt=""
+                                                                        />
+                                                                    }
+
                                                                     <span>
-                                                                        Fyipe
+                                                                        {
+                                                                            probeName
+                                                                        }
                                                                     </span>
                                                                 </div>
                                                             )

@@ -15,6 +15,7 @@ const probeSchema = new Schema({
     lastAlive: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
+    probeImage: { type: String },
 });
 
 module.exports = mongoose.model('Probe', probeSchema);

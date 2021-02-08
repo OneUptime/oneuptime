@@ -2438,6 +2438,21 @@ class NewMonitor extends Component {
                                                                                         )}`}{' '}
                                                                                     Criteria
                                                                                 </span>
+                                                                                <p>
+                                                                                    <span className="Margin-left--16">
+                                                                                        This
+                                                                                        is
+                                                                                        where
+                                                                                        you
+                                                                                        describe
+                                                                                        when
+                                                                                        your
+                                                                                        monitor
+                                                                                        is
+                                                                                        considered
+                                                                                        {` ${criterionType.type.toLowerCase()}`}
+                                                                                    </span>
+                                                                                </p>
                                                                             </div>
                                                                             <button
                                                                                 className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"

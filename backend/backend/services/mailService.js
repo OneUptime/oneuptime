@@ -1271,6 +1271,7 @@ const _this = {
         projectName,
         criterionName,
         probeName,
+        emailProgress,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1278,6 +1279,7 @@ const _this = {
             const accountMail = await _this.getProjectSmtpSettings(projectId);
             let iconColor = '#94c800';
             let incidentShow = 'Offline';
+            let subject;
             if (incidentType && incidentType === 'online') {
                 iconColor = '#75d380';
                 incidentShow = 'Online';
@@ -1288,11 +1290,16 @@ const _this = {
                 iconColor = '#ffde24';
                 incidentShow = 'Degraded';
             }
+            if (emailProgress) {
+                subject = `Reminder ${emailProgress.current}/${emailProgress.total}: Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
+            } else {
+                subject = `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
+            }
             const iconStyle = `display:inline-block;width:16px;height:16px;background:${iconColor};border-radius:16px`;
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
-                subject: `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`,
+                subject: subject,
                 template: 'new_incident_created',
                 context: {
                     homeURL: global.homeHost,

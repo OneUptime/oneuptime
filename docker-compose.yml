@@ -144,6 +144,7 @@ services:
 
     ##IMPORTANT:
     ## This container is an SMTP server used to send emails.
+    ## Setup private, tls_cert and tls_key keys before running this part
     haraka:
         ports:
             # port 25 is usually blocked or only accessible by root user
@@ -155,8 +156,12 @@ services:
             args:
                 PORT: '2525'
         environment:
-            - SMTP_USER="user@hackerbay.io"
-            - SMTP_PASSWORD="hackerbay"
+            - SMTP_USER=user@hackerbay.io
+            - SMTP_PASSWORD=hackerbay
+            - DOMAIN=globalminimalism.com
+            - PRIVATE_KEY="${PRIVATE_KEY}"
+            - TLS_CERT="${TLS_CERT}"
+            - TLS_KEY="${TLS_KEY}"
 
 volumes:
     mongodata:

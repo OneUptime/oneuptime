@@ -6,11 +6,13 @@ if ('function' === typeof importScripts) {
     
     /* global workbox */
     if (workbox) {
-        const {skipWaiting} = workbox.core;
+        const {skipWaiting, clientsClaim} = workbox.core;
         const {precacheAndRoute, cleanupOutdatedCaches} = workbox.precaching;
 
         // skip waiting and switch to activating stage
-        skipWaiting(); 
+        skipWaiting();
+        // control webpage as soon as possible
+        clientsClaim();
         // try to clean up old caches from previous versions
         cleanupOutdatedCaches();
         

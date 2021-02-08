@@ -18,35 +18,55 @@ class ErrorEventStackTrace extends Component {
                     errorEventDetails.content
                 }
             >
-                <div className="Box-divider--border-top-1 Padding-vertical--20">
-                    <div>
-                        <p className="SubHeader">Exception</p>
-                    </div>
-                    <div>
-                        <span className="Text-fontSize--14 Text-fontWeight--bold">
-                            {errorEventDetails &&
-                                errorEventDetails.content &&
-                                errorEventDetails.content.type}
-                        </span>
-                        <span>
-                            {' '}
-                            {errorEventDetails &&
-                                errorEventDetails.content &&
-                                errorEventDetails.content.message}
-                        </span>
+                <div className="ContentHeader Box-divider--border-top-1 Box-root Box-background--white Flex-flex Flex-direction--column Padding-vertical--16">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span>Exception</span>
+                            </span>
+                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                <span className="Text-fontWeight--medium">
+                                    {errorEventDetails &&
+                                        errorEventDetails.content &&
+                                        errorEventDetails.content.type}
+                                    {': '}
+                                </span>
+                                <span>
+                                    {errorEventDetails &&
+                                        errorEventDetails.content &&
+                                        errorEventDetails.content.message}
+                                    .
+                                </span>
+                            </span>
+                        </div>
                     </div>
                     {errorEventDetails &&
                         errorEventDetails.content &&
                         errorEventDetails.content.stacktrace &&
                         errorEventDetails.content.stacktrace.frames && (
                             <div className="Flex-flex Flex-wrap--wrap">
-                                <div className="Tag-Pill">
-                                    <div className="Tag-Title">function</div>
-                                    <div className="Tag-Content">
-                                        {
-                                            errorEventDetails.content.stacktrace
-                                                .frames[0].methodName
-                                        }
+                                <div className="Flex-flex Flex-alignItems--center Margin-right--12 Margin-top--12">
+                                    <label
+                                        style={{
+                                            color: '#4c4c4c',
+                                            marginRight: '5px',
+                                        }}
+                                    >
+                                        function
+                                    </label>
+                                    <div>
+                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span>
+                                                    {
+                                                        errorEventDetails
+                                                            .content.stacktrace
+                                                            .frames[0]
+                                                            .methodName
+                                                    }
+                                                </span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

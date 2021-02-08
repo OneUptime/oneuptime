@@ -14,16 +14,23 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Notification from '../basic/Notification';
 import ShouldRender from '../basic/ShouldRender';
+import ErrorTrackerIssueTimeline from './ErrorTrackerIssueTimeline';
 
 class ErrorEventDetail extends Component {
-    ignoreErrorEvent = issueId => {
+    ignoreErrorEvent = (issueId, unIgnore = false) => {
         const {
             projectId,
             componentId,
             errorTrackerId,
             ignoreErrorEvent,
         } = this.props;
-        ignoreErrorEvent(projectId, componentId, errorTrackerId, [issueId]);
+        ignoreErrorEvent(
+            projectId,
+            componentId,
+            errorTrackerId,
+            [issueId],
+            unIgnore
+        );
     };
     unresolveErrorEvent = issueId => {
         const {
@@ -103,6 +110,10 @@ class ErrorEventDetail extends Component {
                     </div>
                 </div>
                 <ErrorEventTimeline errorEvent={errorEvent} />
+                <ErrorTrackerIssueTimeline
+                    errorEvent={errorEvent}
+                    errorTrackerIssue={errorTrackerIssue}
+                />
             </div>
         );
     }
@@ -153,6 +164,7 @@ const mapStateToProps = (state, ownProps) => {
         errorTrackerIssue: errorTrackerIssueStatus,
         ignored: errorTrackerIssueStatus.ignored,
         resolved: errorTrackerIssueStatus.resolved,
+        timeline: errorTrackerIssueStatus.timeline,
         errorTrackerStatus,
     };
 };

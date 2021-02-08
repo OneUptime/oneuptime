@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import { fetchSsos, deleteSso, fetchSso } from '../../actions/sso';
+import { fetchSsoDefaultRoles } from '../../actions/ssoDefaultRoles';
 import moment from 'moment';
 import { openModal } from '../../actions/modal';
 import SsoDeleteModal from './sso/SsoDeleteModal';
@@ -56,6 +57,7 @@ export class Component extends React.Component {
             id: ssoId,
             onConfirm: async () => {
                 await this.props.deleteSso(ssoId);
+                await this.props.fetchSsoDefaultRoles();
                 return this.props.fetchSsos();
             },
             content: SsoDeleteModal,
@@ -423,6 +425,7 @@ const mapDispatchToProps = dispatch => {
             fetchSso,
             deleteSso,
             openModal,
+            fetchSsoDefaultRoles,
         },
         dispatch
     );

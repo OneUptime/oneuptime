@@ -34798,8 +34798,7 @@ span.CodeMirror-selectedtext {
 }
 
 .bs-content-create {
-  font-size: 16px;
-  margin-left: 4px;
+    font-size: 16px;
 }
 
 .bs-value {
@@ -34814,6 +34813,7 @@ span.CodeMirror-selectedtext {
   height: 15px;
   width: 15px;
   border-radius: 50%;
+  min-width:15px;
 }
 
 .bs-circle-span-yellow {
@@ -34824,6 +34824,8 @@ span.CodeMirror-selectedtext {
 .bs-circle-span-green {
   background-color: #24b47e;
   margin-top: 2px;
+  min-height: 15px;
+  min-width: 15px;
 }
 
 .bs-resolved-green {
@@ -34866,6 +34868,7 @@ span.CodeMirror-selectedtext {
 
 .bs-circle {
   opacity: 0.7;
+  min-width:15px;
   background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgMzQxLjMzMyAzNDEuMzMzIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAzNDEuMzMzIDM0MS4zMzM7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNMTcwLjY2NywwQzc2LjQxLDAsMCw3Ni40MSwwLDE3MC42NjdzNzYuNDEsMTcwLjY2NywxNzAuNjY3LDE3MC42NjdzMTcwLjY2Ny03Ni40MSwxNzAuNjY3LTE3MC42NjdTMjY0LjkyMywwLDE3MC42NjcsMHoNCgkJCSBNMTcwLjY2NywyOTguNjY3Yy03MC42OTIsMC0xMjgtNTcuMzA4LTEyOC0xMjhzNTcuMzA4LTEyOCwxMjgtMTI4czEyOCw1Ny4zMDgsMTI4LDEyOFMyNDEuMzU5LDI5OC42NjcsMTcwLjY2NywyOTguNjY3eiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjwvc3ZnPg0K");
 }
 
@@ -34892,7 +34895,8 @@ span.CodeMirror-selectedtext {
 
 .bs-ack-yellow {
   fill: #e39f48;
-  margin-left: -3px;
+  min-height:18px;
+  min-width:18px; 
 }
 
 .bs-padding-x {
@@ -34998,6 +35002,25 @@ span.CodeMirror-selectedtext {
   margin-top: 7px;
 }
 
+.bs-margin-bottom {
+  margin-bottom: 5px;
+}
+
+
+.bs-bullet-container {
+    display: flex;
+    align-items: flex-start;
+    min-width: 15px;
+    height: 15px;
+    margin-top: 9px;
+    padding-left: 3px;
+}
+
+.bs-dark-bullet{
+  width: 5px;
+  height: 5px;
+  background-color: black;
+}
 .bs-btn-extra {
   margin-top: 12px;
   transition: 0.3s;

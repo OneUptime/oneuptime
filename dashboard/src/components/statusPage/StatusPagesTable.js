@@ -103,7 +103,11 @@ class StatusPagesTable extends Component {
                         subProjectId={subProjectStatusPage._id}
                         key={i}
                     >
-                        <div className="bs-BIM" key={i}>
+                        <div
+                            id={'statusPageTable_' + i}
+                            className="bs-BIM"
+                            key={i}
+                        >
                             <div className="Box-root Margin-bottom--12">
                                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                                     <ShouldRender if={subProjects.length > 0}>
@@ -140,6 +144,7 @@ class StatusPagesTable extends Component {
                                             subProjectStatusPages.length
                                         }
                                         modalList={this.props.modalList}
+                                        project={subProject}
                                     />
                                 </div>
                             </div>
@@ -208,6 +213,7 @@ class StatusPagesTable extends Component {
                                         subProjectStatusPages.length
                                     }
                                     modalList={this.props.modalList}
+                                    project={currentProject}
                                 />
                             </div>
                         </div>

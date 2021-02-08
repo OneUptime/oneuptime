@@ -179,7 +179,6 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             await this.updateMonitorSlaStat(query);
-
             if (data) {
                 await MonitorModel.findOneAndUpdate(
                     query,
@@ -199,6 +198,7 @@ module.exports = {
                     }
                 );
             }
+            query.deleted = false;
             const monitor = await this.findOneBy(query);
             await RealTimeService.monitorEdit(monitor);
 
@@ -1021,7 +1021,7 @@ module.exports = {
         const _this = this;
         query.deleted = true;
         const monitor = await _this.findBy(query);
-        if (monitor && monitor.length > 1) {
+        if (monitor && monitor.length > 0) {
             const monitors = await Promise.all(
                 monitor.map(async monitor => {
                     const monitorId = monitor._id;
