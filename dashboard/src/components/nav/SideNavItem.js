@@ -23,7 +23,7 @@ export class SidebarNavItem extends Component {
         navKeyBind(route, path);
 
         route.subRoutes.map(subRoute => {
-            const link = this.subRoute(subRoute, route.title);
+            const link = this.subRoute(subRoute);
 
             navKeyBind(subRoute, link);
             return subRoute;
