@@ -168,7 +168,9 @@ module.exports = {
                 confirmBuy &&
                 confirmBuy.sid
             ) {
-                const project = ProjectService.findOneBy({ _id: projectId });
+                const project = await ProjectService.findOneBy({
+                    _id: projectId,
+                });
                 let owner = project.users.filter(user => user.role === 'Owner');
                 owner = owner && owner.length ? owner[0] : owner;
                 const user = await UserService.findOneBy({ _id: owner.userId });
@@ -308,7 +310,49 @@ module.exports = {
         }
     },
 
-    getCallResponse: async function(data, fromNumber, to) {
+    chargeRoutedCall: async function(projectId, CallSid) {
+        try {
+            const callDetails = await TwilioService.getCallDetails(
+                projectId,
+                CallSid
+            );
+
+            if (callDetails && callDetails.price) {
+                let price = callDetails.price;
+                if (price && price.includes('-')) {
+                    price = price.replace('-', '');
+                }
+                price = price * 10;
+                const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
+                    projectId
+                );
+                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                    const project = await ProjectService.findOneBy({
+                        _id: projectId,
+                    });
+                    let owner = project.users.filter(
+                        user => user.role === 'Owner'
+                    );
+                    owner = owner && owner.length ? owner[0] : owner;
+                    await PaymentService.chargeAlert(
+                        owner.userId,
+                        projectId,
+                        price
+                    );
+                }
+                await CallRoutingLogService.updateOneBy(
+                    { callSid: CallSid },
+                    { price }
+                );
+            }
+            return 'Customer has been successfully charged for the call.';
+        } catch (error) {
+            ErrorService.log('callRoutingService.chargeRoutedCall', error);
+            throw error;
+        }
+    },
+
+    getCallResponse: async function(data, fromNumber, to, callSid) {
         try {
             let memberId = null;
             const response = new twilio.twiml.VoiceResponse();
@@ -332,6 +376,16 @@ module.exports = {
                 if (userId) {
                     memberId = userId;
                 }
+                const hasEnoughBalance = await PaymentService.hasEnoughBalance(
+                    data.projectId,
+                    forwardingNumber,
+                    memberId,
+                    'callRouting'
+                );
+                if (!hasEnoughBalance) {
+                    response.reject();
+                    return response;
+                }
                 if (forwardingNumber && (!error || (error && error.length))) {
                     response.dial(forwardingNumber);
                 } else if (!forwardingNumber && error && error.length) {
@@ -346,6 +400,7 @@ module.exports = {
                     calledFrom: fromNumber,
                     calledTo: to,
                     userId: memberId,
+                    callSid: callSid,
                     scheduleId:
                         data &&
                         data.routingSchema &&

@@ -82,6 +82,29 @@ module.exports = {
                     minimumBalance: 50,
                 };
             } else return {};
+        } else if (type === 'callRouting') {
+            if (country === 'us') {
+                return {
+                    alertType: 'callRouting',
+                    category: 'us',
+                    price: 0.085,
+                    minimumBalance: 5,
+                };
+            } else if (country === 'non-us') {
+                return {
+                    alertType: 'callRouting',
+                    category: 'non-us',
+                    price: 0.1,
+                    minimumBalance: 10,
+                };
+            } else if (country === 'risk') {
+                return {
+                    alertType: 'callRouting',
+                    category: 'risk',
+                    price: 0.1,
+                    minimumBalance: 20,
+                };
+            } else return {};
         } else return {};
     },
     getCountryType: function(phoneNumber) {
