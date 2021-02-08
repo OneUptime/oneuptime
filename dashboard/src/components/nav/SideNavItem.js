@@ -499,11 +499,6 @@ export class SidebarNavItem extends Component {
                                             <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
                                                 <div
                                                     className="Box-root Flex-flex Flex-alignItems--center Padding-left--32 tooltip"
-                                                    style={{
-                                                        paddingLeft: moreRoutes
-                                                            ? '40px'
-                                                            : '32',
-                                                    }}
                                                 >
                                                     <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <span
