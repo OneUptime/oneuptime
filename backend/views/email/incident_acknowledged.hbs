@@ -501,6 +501,8 @@
                                             <span><code>{{method}} <a href={{monitorUrl}} target="_blank"><u>{{monitorUrl}}</u></a></code></span><br>{{/if}}
                                             <strong>Started at:</strong> <span><span
                                                 style="white-space:nowrap">{{incidentTime}}</span></span><br>
+                                            <strong>Acknowledged by:</strong> <span><span
+                                                style="white-space:nowrap">{{acknowledgedBy}}</span></span><br>
                                             <strong>Acknowledged at:</strong> <span><span
                                                 style="white-space:nowrap">{{acknowledgeTime}}</span></span><br>
                                             <strong>Length:</strong> <span><span
@@ -509,8 +511,8 @@
                                               <ul style="list-style-type: square;">
                                                 {{#each reason}}                                                                                               
                                                   <li>{{this}}</li>      
-                                                  {{/each}}                                         
-                                              </ul>
+                                                {{/each}}                                         
+                                              </ul><br>
                                             {{#if criterionName}}
                                             <strong>Criterion:</strong> <span>{{criterionName}}</span>
                                             {{/if}}

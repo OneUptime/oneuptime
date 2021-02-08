@@ -1506,6 +1506,7 @@ const _this = {
         acknowledgeTime,
         length,
         criterionName,
+        acknowledgedBy,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1537,6 +1538,7 @@ const _this = {
                     projectName,
                     dashboardURL: global.dashboardHost,
                     criterionName,
+                    acknowledgedBy,
                 },
             };
             const mailer = await _this.createMailer(accountMail);
@@ -1598,6 +1600,7 @@ const _this = {
         resolveTime,
         length,
         criterionName,
+        resolvedBy,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1628,6 +1631,7 @@ const _this = {
                     projectName,
                     dashboardURL: global.dashboardHost,
                     criterionName,
+                    resolvedBy,
                 },
             };
             const mailer = await _this.createMailer(accountMail);
