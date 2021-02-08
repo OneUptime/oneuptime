@@ -130,6 +130,7 @@ module.exports = {
 
                     if (data.type === 'kubernetes') {
                         monitor.kubernetesConfig = data.kubernetesConfig;
+                        monitor.kubernetesNamespace = data.kubernetesNamespace;
                     }
 
                     if (data.type === 'api') {
