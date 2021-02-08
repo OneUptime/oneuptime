@@ -35180,7 +35180,7 @@ span.CodeMirror-selectedtext {
 }
 
 .bs-ex-up, .bs-ex-down {
-  height: 20px;
+  height: 22px;
 }
 
 .bs-note-offline-o {
@@ -35189,6 +35189,18 @@ span.CodeMirror-selectedtext {
 
 .bs-custom-incident-tab, .bs-custom-incident-slider {
   width: 20% !important
+}
+
+.bs-in-style {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.bs-duty-span {
+  text-decoration: underline;
+  cursor: pointer;
+  margin-right: 6px;
+  font-weight: 600;
 }
 
 @media (max-width: 768px) {
@@ -35240,6 +35252,9 @@ span.CodeMirror-selectedtext {
   .bs-thread-display {
     display: block;
   }
+  .bs-timeline-date {
+    margin-top: -15px;
+  }
 }
 .email-smt-row{
   justify-content: center;
@@ -35267,6 +35282,28 @@ span.CodeMirror-selectedtext {
   
 .bs-action-side {
   width: 35%;
+}
+.bs-desktop-in {
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.bs-desktop-div {
+  display: flex;
+}
+.bs-desk-list {
+  margin-top: -11px
+}
+.bs-incident-notes-cont {
+  margin-top: 7px;
+}
+.bs-timeline-date {
+  margin-top: -28px
+}
+.bs-schedule-div {
+  flex-direction: row;
+  justify-content: space-between;
 }
 }
 @media screen and (max-width: 500px){

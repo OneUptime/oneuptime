@@ -19,6 +19,7 @@ export class MonitorViewLogsBox extends Component {
             probeValue: { value: '', label: 'All Probes' },
             startDate: startDate,
             endDate: endDate,
+            page: 1
         };
     }
 
@@ -38,6 +39,7 @@ export class MonitorViewLogsBox extends Component {
             incidentId,
             this.props.monitorType
         );
+        this.setState({page: this.state.page -1 })
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Previous Incident Requested', {
                 projectId: currentProject._id,
@@ -61,6 +63,7 @@ export class MonitorViewLogsBox extends Component {
             incidentId,
             this.props.monitorType
         );
+        this.setState({page: this.state.page + 1})
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Next Incident Requested', {
                 projectId: currentProject._id,
@@ -235,6 +238,7 @@ export class MonitorViewLogsBox extends Component {
                         agentless={this.props.agentless}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
+                        page={this.state.page}
                     />
                 </div>
             </div>

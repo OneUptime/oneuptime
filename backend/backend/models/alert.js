@@ -29,6 +29,7 @@ const alertSchema = new Schema({
     escalation: { type: Schema.Types.ObjectId, ref: 'Escalation', index: true },
     error: { type: Boolean, default: false },
     errorMessage: String,
+    alertProgress: { type: String },
     deleted: { type: Boolean, default: false },
 
     deletedAt: {

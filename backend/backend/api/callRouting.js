@@ -19,13 +19,15 @@ const callForward = async (req, res) => {
         const body = req.body;
         const to = body['To'];
         const fromNumber = body['From'];
+        const CallSid = body['CallSid'];
         const data = await CallRoutingService.findOneBy({
             phoneNumber: to,
         });
         const response = await CallRoutingService.getCallResponse(
             data,
             fromNumber,
-            to
+            to,
+            CallSid
         );
         res.set('Content-Type', 'text/xml');
         return res.send(response.toString());
@@ -34,9 +36,31 @@ const callForward = async (req, res) => {
     }
 };
 
+const callStatus = async (req, res) => {
+    try {
+        const body = req.body;
+        const to = body['To'];
+        const CallSid = body['CallSid'];
+        const data = await CallRoutingService.findOneBy({
+            phoneNumber: to,
+        });
+        const response = await CallRoutingService.chargeRoutedCall(
+            data.projectId,
+            CallSid
+        );
+        return res.send(response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+};
+
 // Route for connecting caller to specific team member.
 router.get('/routeCalls', callForward);
 router.post('/routeCalls', callForward);
+
+// Route for status callback from twilio.
+router.get('/statusCallback', callStatus);
+router.post('/statusCallback', callStatus);
 
 router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
     try {

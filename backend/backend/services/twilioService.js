@@ -1102,6 +1102,8 @@ const _this = {
                 phoneNumber: phoneNumber,
                 voiceUrl: `${global.apiHost}/callRouting/routeCalls`,
                 voiceMethod: 'POST',
+                statusCallback: `${global.apiHost}/callRouting/statusCallback`,
+                statusCallbackMethod: 'POST',
             });
             return numbers;
         } catch (error) {
@@ -1131,9 +1133,35 @@ const _this = {
             const numbers = await twilioClient
                 .incomingPhoneNumbers(sid)
                 .remove();
-            return { numbers };
+            return numbers;
         } catch (error) {
             ErrorService.log('twillioService.releasePhoneNumber', error);
+            throw error;
+        }
+    },
+
+    getCallDetails: async (projectId, CallSid) => {
+        let accountSid = null;
+        let authToken = null;
+        try {
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (customTwilioSettings) {
+                accountSid = customTwilioSettings.accountSid;
+                authToken = customTwilioSettings.authToken;
+            } else {
+                const creds = await _this.getSettings();
+                accountSid = creds['account-sid'];
+                authToken = creds['authentication-token'];
+            }
+            const twilioClient = _this.getClient(accountSid, authToken);
+
+            const details = await twilioClient.calls(CallSid).fetch();
+            return details;
+        } catch (error) {
+            ErrorService.log('twillioService.getCallDetails', error);
             throw error;
         }
     },
