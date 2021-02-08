@@ -45,6 +45,7 @@ const monitorSchema = new Schema({
     }, //type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
     agentlessConfig: Object,
     kubernetesConfig: Schema.Types.Mixed,
+    kubernetesNamespace: { type: String, default: 'default' },
     resourceCategory: {
         type: String,
         ref: 'ResourceCategory',
