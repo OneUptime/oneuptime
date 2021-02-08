@@ -109,7 +109,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             return sendErrorResponse(req, res, {
                 code: 400,
                 message:
-                    'Monitor type should be url, manual, device, edge or script.',
+                    'Monitor type should be url, manual, device, IP or script.',
             });
         }
         if (!data.data) {

@@ -373,7 +373,7 @@ class NewMonitor extends Component {
             postObj.data.script = thisObj.state.script;
         }
         if (postObj.type === 'ip')
-            postObj.data.IPAddress = values[`edge_${this.props.index}`];
+            postObj.data.IPAddress = values[`ip_${this.props.index}`];
 
         if (
             postObj.type === 'server-monitor' &&
@@ -1600,7 +1600,7 @@ class NewMonitor extends Component {
                                                     if={type === 'ip'}
                                                 >
                                                     {this.renderMonitorConfiguration(
-                                                        'Monitor Edge'
+                                                        'IP Monitor'
                                                     )}
                                                     <div className="nm-Fieldset-row">
                                                         <label className="bs-Fieldset-label" />
@@ -1616,7 +1616,7 @@ class NewMonitor extends Component {
                                                                 component={
                                                                     RenderField
                                                                 }
-                                                                name={`edge_${this.props.index}`}
+                                                                name={`ip_${this.props.index}`}
                                                                 id="IPAddress"
                                                                 placeholder="192.168.1.1"
                                                                 disabled={
