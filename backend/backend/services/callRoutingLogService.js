@@ -32,6 +32,7 @@ module.exports = {
             callRoutingLogModel.calledTo = data.calledTo;
             callRoutingLogModel.userId = data.userId;
             callRoutingLogModel.scheduleId = data.scheduleId;
+            callRoutingLogModel.callSid = data.callSid;
 
             const logs = await callRoutingLogModel.save();
             return logs;
