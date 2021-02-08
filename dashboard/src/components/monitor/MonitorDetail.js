@@ -323,7 +323,8 @@ export class MonitorDetail extends Component {
                                     <ShouldRender if={monitor && monitor.type}>
                                         {monitor.type === 'url' ||
                                         monitor.type === 'api' ||
-                                        monitor.type === 'script' ? (
+                                        monitor.type === 'script' ||
+                                        monitor.type === 'ip' ? (
                                             <ShouldRender
                                                 if={
                                                     probes && !probes.length > 0
@@ -613,7 +614,8 @@ export class MonitorDetail extends Component {
                 {monitor && monitor.type ? (
                     monitor.type === 'url' ||
                     monitor.type === 'api' ||
-                    monitor.type === 'script' ? (
+                    monitor.type === 'script' ||
+                    monitor.type === 'ip' ? (
                         <div>
                             <ShouldRender if={probes && probes.length > 0}>
                                 {monitor && probes && probes.length < 2 ? (

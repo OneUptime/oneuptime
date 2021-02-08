@@ -179,7 +179,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             const probeId = req.probe && req.probe.id ? req.probe.id : null;
             log = await ProbeService.probeHttpRequest(newMonitor, probeId);
         } else {
-            if (type === 'api' || type === 'url') {
+            if (type === 'api' || type === 'url' || type === 'ip') {
                 const {
                     stat: validUp,
                     successReasons: upSuccessReasons,

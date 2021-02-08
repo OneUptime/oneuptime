@@ -447,7 +447,10 @@ class MonitorView extends React.Component {
                                                             .type === 'url' ||
                                                             this.props.monitor
                                                                 .type ===
-                                                                'api') &&
+                                                                'api' ||
+                                                            this.props.monitor
+                                                                .type ===
+                                                                'ip') &&
                                                             !this.props
                                                                 .probeList
                                                                 .requesting) ||
@@ -457,7 +460,11 @@ class MonitorView extends React.Component {
                                                                 this.props
                                                                     .monitor
                                                                     .type !==
-                                                                    'api')) ? (
+                                                                    'api' &&
+                                                                this.props
+                                                                    .monitor
+                                                                    .type !==
+                                                                    'ip')) ? (
                                                             <Fragment>
                                                                 <TabPanel>
                                                                     <Fade>
