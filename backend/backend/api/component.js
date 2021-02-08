@@ -331,6 +331,8 @@ router.get(
                             ? 'server monitor'
                             : elem.type === 'url'
                             ? 'website monitor'
+                            : elem.type === 'ip'
+                            ? 'IP monitor'
                             : elem.type + ` monitor`
                     }`,
                     createdAt: elem.createdAt,
