@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import PropTypes from 'prop-types';
 import { IS_LOCALHOST } from '../../config';
 import { fetchIncidentStatusPages } from '../../actions/statusPage';
@@ -16,16 +16,20 @@ const IncidentStatusPages = ({
     count,
     limit,
 }) => {
+    const [page, setPage] = useState(1)
+    const numberOfPages = Math.ceil(parseInt(count) / 10)
     const nextPage = () => {
         const nextSkip = skip + limit;
         if (nextSkip < count) {
             fetchIncidentStatusPages(projectId, incidentId, nextSkip, limit);
+            setPage(page + 1)
         }
     };
     const previousPage = () => {
         const nextSkip = skip - limit;
         if (nextSkip >= 0) {
             fetchIncidentStatusPages(projectId, incidentId, nextSkip, limit);
+            setPage(page - 1)
         }
     };
 
@@ -179,7 +183,9 @@ const IncidentStatusPages = ({
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                            <span> {statusPages.length} Status Pages</span>
+                            <span> 
+                                {numberOfPages > 0 ? `Page ${page} of ${numberOfPages} (${count} Status Page${count === 1 ? "" : "s"})` : count + " Status Page" + count === 1 ? "" : "s"}
+                            </span>
                         </span>
                     </div>
                     <div className="Box-root Padding-horizontal--20 Padding-vertical--16">

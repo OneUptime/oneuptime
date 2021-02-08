@@ -41,6 +41,8 @@ class Incident extends React.Component {
         this.props = props;
         this.state = {
             tabIndex: 0,
+            alertLogPage: 1,
+            subscribeAlertPage: 1,
         };
     }
 
@@ -67,6 +69,9 @@ class Incident extends React.Component {
             parseInt(this.props.skip, 10) + parseInt(this.props.limit, 10),
             parseInt(this.props.limit, 10)
         );
+        this.setState({
+            alertLogPage: this.state.alertLogPage + 1
+        })
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT ALERT CLICKED',
@@ -85,6 +90,9 @@ class Incident extends React.Component {
             parseInt(this.props.skip, 10) - parseInt(this.props.limit, 10),
             parseInt(this.props.limit, 10)
         );
+        this.setState({
+            alertLogPage: this.state.alertLogPage - 1
+        })
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS ALERT CLICKED',
@@ -142,6 +150,9 @@ class Incident extends React.Component {
                 parseInt(this.props.subscribersAlerts.limit, 10),
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
+        this.setState({
+            subscribeAlertPage: this.state.subscribeAlertPage  + 1
+        })
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT SUBSCRIBER CLICKED',
@@ -161,6 +172,9 @@ class Incident extends React.Component {
                 parseInt(this.props.subscribersAlerts.limit, 10),
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
+        this.setState({
+            subscribeAlertPage: this.state.subscribeAlertPage  - 1
+        })
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS SUBSCRIBER CLICKED',
@@ -503,12 +517,14 @@ class Incident extends React.Component {
                                 <IncidentAlert
                                     next={this.nextAlerts}
                                     previous={this.previousAlerts}
+                                    page={this.state.alertLogPage}
                                 />
 
                                 <SubscriberAlert
                                     next={this.nextSubscribers}
                                     previous={this.previousSubscribers}
                                     incident={this.props.incident}
+                                    page={this.state.subscribeAlertPage}
                                 />
                             </Fade>
                         </TabPanel>
