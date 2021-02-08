@@ -21,6 +21,7 @@ module.exports = {
                     process.cwd(),
                     configurationFile
                 );
+                const namespace = monitor.kubernetesNamespace || 'default';
 
                 let podOutput = '';
                 await fetch(`${serverUrl}/file/${configurationFile}`).then(
@@ -30,7 +31,7 @@ module.exports = {
                             res.body.pipe(dest);
                             // writing of the file content to the new destination is done
                             res.body.on('end', () => {
-                                const scanCommand = `kubectl get pods -o json --kubeconfig ${configPath}`;
+                                const scanCommand = `kubectl get pods -o json --kubeconfig ${configPath} --namespace ${namespace}`;
                                 const output = spawn(scanCommand, {
                                     cwd: process.cwd(),
                                     shell: true,
