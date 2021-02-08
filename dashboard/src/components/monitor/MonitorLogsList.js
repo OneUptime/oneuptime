@@ -23,7 +23,7 @@ export class MonitorLogsList extends Component {
         let limit = monitorLogs && monitorLogs.limit ? monitorLogs.limit : null;
         const count =
             monitorLogs && monitorLogs.count ? monitorLogs.count : null;
-        let numberOfPages = Math.ceil(parseInt(count) / 10)
+        const numberOfPages = Math.ceil(parseInt(count) / 10)
         if (skip && typeof skip === 'string') {
             skip = parseInt(skip, 10);
         }
