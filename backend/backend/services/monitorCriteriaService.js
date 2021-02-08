@@ -414,6 +414,7 @@ const MonitorCriteriaService = {
                 down_1000_createAlert: true,
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
+                degraded_1000: [],
                 type_1000: 'ip',
             },
         };
