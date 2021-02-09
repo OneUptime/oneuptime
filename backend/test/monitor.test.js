@@ -21,8 +21,9 @@ const uuid = require('uuid');
 let VerificationTokenModel = require('../backend/models/verificationToken');
 let ComponentModel = require('../backend/models/component');
 
-let token, userId, projectId, monitorId, resourceCategoryId;
+let token, userId, projectId, monitorId, resourceCategoryId, monitor2Id;
 const httpMonitorId = uuid.v4();
+const httpMonitor2Id = uuid.v4();
 let resourceCategory = {
     resourceCategoryName: 'New Monitor Category',
 };
@@ -695,6 +696,7 @@ describe('IncomingHttpRequest Monitor', function() {
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
+        await MonitorService.hardDeleteBy({ _id: monitor2Id });
         await UserService.hardDeleteBy({
             email: userData.user.email,
         });
@@ -763,6 +765,64 @@ describe('IncomingHttpRequest Monitor', function() {
             .send({ id: '123456' })
             .end(function(err, res) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
+                expect(res.body.status).to.be.equal('online');
+                done();
+            });
+    });
+
+    it('should create a new IncomingHttpRequest monitor with query params and request headers', function(done) {
+        let authorization = `Basic ${token}`;
+        const criteria = { ...httpMonitorCriteria };
+        criteria.up.and.push({
+            responseType: 'queryString',
+            filter: 'contains',
+            field1: 'abc=xyz',
+        });
+        criteria.up.and.push({
+            responseType: 'headers',
+            filter: 'contains',
+            field1: 'Cache-Control=no-cache',
+        });
+
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Monitor 121',
+                projectId,
+                criteria: criteria,
+                type: 'incomingHttpRequest',
+                data: {
+                    link: `${global.apiHost}/incomingHttpRequest/${httpMonitor2Id}`,
+                },
+                componentId,
+            })
+            .end(function(err, res) {
+                monitor2Id = res.body._id;
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.be.equal('New Monitor 121');
+                done();
+            });
+    });
+
+    it('should report monitor offline when api has no query param and request headers in post request', function(done) {
+        request
+            .post(`/incomingHttpRequest/${httpMonitor2Id}`)
+            .send({ id: '123456' })
+            .end(function(err, res) {
+                expect(res.body.monitorId).to.be.equal(monitor2Id);
+                expect(res.body.status).to.be.equal('offline');
+                done();
+            });
+    });
+
+    it('should report monitor up when api has the query param and request headers', function(done) {
+        request
+            .post(`/incomingHttpRequest/${httpMonitor2Id}?abc=xyz`)
+            .set('Cache-Control', 'no-cache')
+            .send({ id: '123456' })
+            .end(function(err, res) {
+                expect(res.body.monitorId).to.be.equal(monitor2Id);
                 expect(res.body.status).to.be.equal('online');
                 done();
             });
