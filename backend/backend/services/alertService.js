@@ -1677,13 +1677,6 @@ module.exports = {
                 )} hours ${Math.floor(downtime % 60)} minutes`;
             }
 
-            console.log(
-                'initial reason',
-                incident.reason
-                    ? incident.reason
-                    : `This incident was created by ${incidentcreatedBy}`
-            );
-
             await MailService.sendIncidentAcknowledgedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
@@ -1767,7 +1760,6 @@ module.exports = {
                 const projectId = incident.projectId._id
                     ? incident.projectId._id
                     : incident.projectId;
-                console.log(incident);
 
                 const schedules = await this.getSchedulesForAlerts(incident);
 
