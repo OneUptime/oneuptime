@@ -10,6 +10,11 @@ import sortByName from '../../utils/sortByName';
 
 const StatusPageProjectBox = props => {
     const statusPages = props.statusPages ? sortByName(props.statusPages) : [];
+    const numberOfPages = Math.ceil(
+        parseInt(
+            props.subProjectStatusPage && props.subProjectStatusPage.count
+        ) / 10
+    );
 
     const handleKeyboard = event => {
         const { modalList, allStatusPageLength } = props;
@@ -37,12 +42,10 @@ const StatusPageProjectBox = props => {
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyboard);
-
         return () => {
             window.removeEventListener('keydown', handleKeyboard);
         };
     });
-
     return (
         <div className="Box-root">
             <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
@@ -197,10 +200,23 @@ const StatusPageProjectBox = props => {
                                 id={`status_page_count_${props.subProjectName}`}
                                 className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                             >
-                                {props.subProjectStatusPage.count} Status Page
-                                {props.subProjectStatusPage.count === 1
-                                    ? ''
-                                    : 's'}
+                                {numberOfPages > 0
+                                    ? `Page ${
+                                          props.pages
+                                      } of ${numberOfPages} (${
+                                          props.subProjectStatusPage.count
+                                      } Status Page${
+                                          props.subProjectStatusPage.count === 1
+                                              ? ''
+                                              : 's'
+                                      })`
+                                    : `${
+                                          props.subProjectStatusPage.count
+                                      } Status Page${
+                                          props.subProjectStatusPage.count === 1
+                                              ? ''
+                                              : 's'
+                                      }`}
                             </span>
                         </span>
                     </span>
@@ -293,6 +309,7 @@ StatusPageProjectBox.propTypes = {
     allStatusPageLength: PropTypes.number,
     modalList: PropTypes.array,
     project: PropTypes.object,
+    pages: PropTypes.number,
 };
 
 export default StatusPageProjectBox;
