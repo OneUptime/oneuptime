@@ -165,7 +165,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             serverData,
             type,
             retryCount,
-            podResult,
+            kubernetesData,
         } = req.body;
 
         let status,
@@ -451,7 +451,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 data.response = rawResp;
             }
             if (type === 'kubernetes') {
-                data = podResult;
+                data = kubernetesData;
 
                 const {
                     stat: validUp,
@@ -462,6 +462,21 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     ? ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.up,
+                          data
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+
+                const {
+                    stat: validDegraded,
+                    successReasons: degradedSuccessReasons,
+                    failedReasons: degradedFailedReasons,
+                    matchedCriterion: matchedDegradedCriterion,
+                } = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.degraded
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.degraded,
                           data
                       )
                     : { stat: false, successReasons: [], failedReasons: [] });
@@ -487,13 +502,28 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     data.status = 'online';
                     data.reason = upSuccessReasons;
                     matchedCriterion = matchedUpCriterion;
+                } else if (validDegraded) {
+                    data.status = 'degraded';
+                    data.reason = [
+                        ...degradedSuccessReasons,
+                        ...upFailedReasons,
+                    ];
+                    matchedCriterion = matchedDegradedCriterion;
                 } else if (validDown) {
                     data.status = 'offline';
-                    data.reason = [...downSuccessReasons, ...upFailedReasons];
+                    data.reason = [
+                        ...downSuccessReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
                     matchedCriterion = matchedDownCriterion;
                 } else {
                     data.status = 'offline';
-                    data.reason = [...downFailedReasons, ...upFailedReasons];
+                    data.reason = [
+                        ...downFailedReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
                     if (monitor.criteria.down) {
                         matchedCriterion = monitor.criteria.down.find(
                             criterion => criterion.default === true
