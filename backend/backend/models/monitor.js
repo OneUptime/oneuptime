@@ -34,7 +34,6 @@ const monitorSchema = new Schema({
         type: String,
         enum: [
             'url',
-            'device',
             'manual',
             'api',
             'server-monitor',
