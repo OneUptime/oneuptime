@@ -97,7 +97,7 @@ export class IncidentInvestigation extends Component {
             editMessageModalId,
             deleteMessageModalId,
         } = this.state;
-        const numberOfPages = Math.ceil(parseInt(incidentMessages.count) / 10)
+        const numberOfPages = Math.ceil(parseInt(incidentMessages && incidentMessages.count) / 10)
         if (incidentMessages) {
             count = incidentMessages.count;
             skip = incidentMessages.skip;

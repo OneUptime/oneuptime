@@ -1358,7 +1358,7 @@ export class IncidentMessageThread extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages >0 ?
                                    `Page ${page} of ${numberOfPages} (${
-                                    incidentMessages.incidentMessages && incidentMessages.incidentMessages.length
+                                    incidentMessages && incidentMessages.incidentMessages.length
                                     ? incidentMessages.incidentMessages
                                           .length +
                                       (incidentMessages.incidentMessages
@@ -1368,7 +1368,7 @@ export class IncidentMessageThread extends Component {
                                     : '0 Messages'
                                   })`
                                   : 
-                                  incidentMessages.incidentMessages && incidentMessages.incidentMessages.length
+                                  incidentMessages && incidentMessages.incidentMessages.length
                                         ? incidentMessages.incidentMessages
                                               .length +
                                           (incidentMessages.incidentMessages
