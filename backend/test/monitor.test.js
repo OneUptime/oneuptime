@@ -270,7 +270,7 @@ describe('Monitor API', function() {
             .send({
                 name: 'New Monitor 4',
                 type: 'url',
-                callScheduleId: scheduleId,
+                callScheduleIds: [scheduleId],
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
@@ -297,7 +297,7 @@ describe('Monitor API', function() {
                     .send({
                         name: 'New Monitor 5',
                         type: 'url',
-                        callScheduleId: scheduleId,
+                        callScheduleIds: [scheduleId],
                         data: { url: 'http://www.tests.org' },
                         componentId,
                     })
@@ -338,7 +338,7 @@ describe('Monitor API', function() {
                     .send({
                         name: 'New Monitor 6',
                         type: 'url',
-                        callScheduleId: scheduleId,
+                        callScheduleIds: [scheduleId],
                         data: { url: 'http://www.tests.org' },
                         componentId,
                     })
@@ -350,7 +350,7 @@ describe('Monitor API', function() {
                             .send({
                                 name: 'New Monitor 7',
                                 type: 'url',
-                                callScheduleId: scheduleId,
+                                callScheduleIds: [scheduleId],
                                 data: { url: 'http://www.tests.org' },
                                 componentId,
                             })
