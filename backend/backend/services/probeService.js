@@ -3386,17 +3386,9 @@ const checkAnd = async (
                 }
             }
         } else if (con[i] && con[i].responseType === 'podStatus') {
-            /**
-             *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
-             *  Pod Status can be:
-             *      - Pending
-             *      - Running
-             *      - Succeeded
-             *      - Failed
-             */
             if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 // eslint-disable-next-line no-loop-func
-                payload.podOutput.forEach(pod => {
+                payload.podData.allPods.forEach(pod => {
                     if (
                         !(
                             con[i] &&
@@ -3407,7 +3399,9 @@ const checkAnd = async (
                         )
                     ) {
                         validity = false;
-                        failedReasons.push(`${pod.podName} is not online`);
+                        failedReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
                     } else {
                         successReasons.push(
                             `${pod.podName} status is ${pod.podStatus}`
@@ -3420,17 +3414,20 @@ const checkAnd = async (
                 con[i].filter === 'notEqualTo'
             ) {
                 // eslint-disable-next-line no-loop-func
-                payload.podOutput.forEach(pod => {
+                payload.podData.allPods.forEach(pod => {
                     if (
                         !(
                             con[i] &&
                             con[i].field1 &&
                             pod.podStatus &&
-                            pod.podStatus !== con[i].field1
+                            pod.podStatus.toLowerCase() !==
+                                con[i].field1.toLowerCase()
                         )
                     ) {
                         validity = false;
-                        failedReasons.push(`${pod.podName} is not online`);
+                        failedReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
                     } else {
                         successReasons.push(
                             `${pod.podName} status is ${pod.podStatus}`
@@ -3438,7 +3435,138 @@ const checkAnd = async (
                     }
                 });
             }
+        } else if (con[i] && con[i].responseType === 'jobStatus') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.jobData.allJobs.forEach(job => {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            job.jobStatus &&
+                            job.jobStatus.toLowerCase() ===
+                                con[i].field1.toLowerCase()
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    } else {
+                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.jobData.allJobs.forEach(job => {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            job.jobStatus &&
+                            job.jobStatus.toLowerCase() !==
+                                con[i].field1.toLowerCase()
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    } else {
+                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'desiredDeployment') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.deploymentData.allDeployments.forEach(deployment => {
+                    if (
+                        !(
+                            deployment.desiredDeployment ===
+                            deployment.readyDeployment
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.deploymentData.allDeployments.forEach(deployment => {
+                    if (
+                        !(
+                            deployment.desiredDeployment !==
+                            deployment.readyDeployment
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'desiredStatefulset') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.statefulsetData.allStatefulset.forEach(statefulset => {
+                    if (
+                        !(
+                            statefulset.desiredStatefulset ===
+                            statefulset.readyStatefulset
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulset}/${statefulset.desiredStatefulset}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulset}/${statefulset.desiredStatefulset}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.statefulsetData.allStatefulset.forEach(statefulset => {
+                    if (
+                        !(
+                            statefulset.desiredStatefulset !==
+                            statefulset.readyStatefulset
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulset}/${statefulset.desiredStatefulset}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulset}/${statefulset.desiredStatefulset}`
+                        );
+                    }
+                });
+            }
         }
+
         if (
             con[i] &&
             con[i].collection &&
@@ -5093,29 +5221,24 @@ const checkOr = async (
                 }
             }
         } else if (con[i] && con[i].responseType === 'podStatus') {
-            /**
-             *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
-             *  Pod Status can be:
-             *      - Pending
-             *      - Running
-             *      - Succeeded
-             *      - Failed
-             */
             if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 // eslint-disable-next-line no-loop-func
-                payload.podOutput.forEach(pod => {
+                payload.podData.allPods.forEach(pod => {
                     if (
                         con[i] &&
                         con[i].field1 &&
                         pod.podStatus &&
-                        pod.podStatus === con[i].field1
+                        pod.podStatus.toLowerCase() ===
+                            con[i].field1.toLowerCase()
                     ) {
                         validity = true;
                         successReasons.push(
                             `${pod.podName} status is ${pod.podStatus}`
                         );
                     } else {
-                        failedReasons.push(`${pod.podName} is not online`);
+                        failedReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
                     }
                 });
             } else if (
@@ -5124,19 +5247,140 @@ const checkOr = async (
                 con[i].filter === 'notEqualTo'
             ) {
                 // eslint-disable-next-line no-loop-func
-                payload.podOutput.forEach(pod => {
+                payload.podData.allPods.forEach(pod => {
                     if (
                         con[i] &&
                         con[i].field1 &&
                         pod.podStatus &&
-                        pod.podStatus !== con[i].field1
+                        pod.podStatus.toLowerCase() !==
+                            con[i].field1.toLowerCase()
                     ) {
                         validity = true;
                         successReasons.push(
                             `${pod.podName} status is ${pod.podStatus}`
                         );
                     } else {
-                        failedReasons.push(`${pod.podName} is not online`);
+                        failedReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'jobStatus') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.jobData.allJobs.forEach(job => {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        job.jobStatus &&
+                        job.jobStatus.toLowerCase() ===
+                            con[i].field1.toLowerCase()
+                    ) {
+                        validity = true;
+                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    } else {
+                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.jobData.allJobs.forEach(job => {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        job.jobStatus &&
+                        job.jobStatus.toLowerCase() !==
+                            con[i].field1.toLowerCase()
+                    ) {
+                        validity = true;
+                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    } else {
+                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'desiredDeployment') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.deploymentData.allDeployments.forEach(deployment => {
+                    if (
+                        deployment.desiredDeployment ===
+                        deployment.readyDeployment
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.deploymentData.allDeployments.forEach(deployment => {
+                    if (
+                        deployment.desiredDeployment !==
+                        deployment.readyDeployment
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'desiredStatefulset') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.statefulsetData.allStatefulset.forEach(statefulset => {
+                    if (
+                        statefulset.desiredStatefulset ===
+                        statefulset.readyStatefulset
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulset}/${statefulset.desiredStatefulset}`
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulset}/${statefulset.desiredStatefulset}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.statefulsetData.allStatefulset.forEach(statefulset => {
+                    if (
+                        statefulset.desiredStatefulset !==
+                        statefulset.readyStatefulset
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulset}/${statefulset.desiredStatefulset}`
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulset}/${statefulset.desiredStatefulset}`
+                        );
                     }
                 });
             }
