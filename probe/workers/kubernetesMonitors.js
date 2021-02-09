@@ -23,82 +23,221 @@ module.exports = {
                 );
                 const namespace = monitor.kubernetesNamespace || 'default';
 
-                let podOutput = '';
                 await fetch(`${serverUrl}/file/${configurationFile}`).then(
-                    res =>
-                        new Promise((resolve, reject) => {
-                            const dest = fs.createWriteStream(configPath);
-                            res.body.pipe(dest);
-                            // writing of the file content to the new destination is done
-                            res.body.on('end', () => {
-                                const scanCommand = `kubectl get pods -o json --kubeconfig ${configPath} --namespace ${namespace}`;
-                                const output = spawn(scanCommand, {
-                                    cwd: process.cwd(),
-                                    shell: true,
-                                });
+                    res => {
+                        const dest = fs.createWriteStream(configPath);
+                        res.body.pipe(dest);
+                        // at this point, writing to the specified file is complete
+                        res.body.on('end', async () => {
+                            const [
+                                podOutput,
+                                jobOutput,
+                                serviceOutput,
+                                deploymentOutput,
+                                statefulsetOutput,
+                            ] = await Promise.all([
+                                loadPodOutput(configPath, namespace),
+                                loadJobOutput(configPath, namespace),
+                                loadServiceOutput(configPath, namespace),
+                                loadDeploymentOutput(configPath, namespace),
+                                loadStatefulsetOutput(configPath, namespace),
+                            ]);
 
-                                output.on('error', async error => {
-                                    await deleteFile(configPath);
+                            // remove the config file
+                            await deleteFile(configPath);
 
-                                    const errorMessage =
-                                        'Scanning failed please check your kubernetes config';
-                                    error.code = 400;
-                                    error.message = errorMessage;
-                                    reject(error);
-                                });
+                            // handle pod output
+                            const healthyPods = [],
+                                unhealthyPods = [];
+                            let pendingPods = 0,
+                                runningPods = 0,
+                                completedPods = 0,
+                                failedPods = 0;
+                            podOutput.items.forEach(item => {
+                                /**
+                                 *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
+                                 */
+                                if (
+                                    item.status.phase !== 'Running' &&
+                                    item.status.phase !== 'Pending' &&
+                                    item.status.phase !== 'Succeeded'
+                                ) {
+                                    unhealthyPods.push({
+                                        podName: item.metadata.name,
+                                        podStatus: item.status.phase,
+                                        podRestart:
+                                            item.status.containerStatuses[0]
+                                                .restartCount,
+                                    });
+                                    failedPods += 1;
+                                } else {
+                                    healthyPods.push({
+                                        podName: item.metadata.name,
+                                        podStatus: item.status.phase,
+                                        podRestart:
+                                            item.status.containerStatuses[0]
+                                                .restartCount,
+                                    });
+                                    if (item.status.phase === 'Pending')
+                                        ++pendingPods;
+                                    if (item.status.phase === 'Running')
+                                        ++runningPods;
+                                    if (item.status.phase === 'Succeeded')
+                                        ++completedPods;
+                                }
+                            });
+                            const podData = {
+                                podStat: {
+                                    healthy: healthyPods.length,
+                                    unhealthy: unhealthyPods.length,
+                                    pendingPods,
+                                    runningPods,
+                                    completedPods,
+                                    failedPods,
+                                    totalPods: podOutput.items.length,
+                                },
+                                healthyPods,
+                                unhealthyPods,
+                                allPods: [...healthyPods, ...unhealthyPods],
+                            };
 
-                                output.stdout.on('data', data => {
-                                    const strData = data.toString();
-                                    podOutput += strData;
-                                });
+                            // handle job output
+                            const runningJobs = [],
+                                succeededJobs = [],
+                                failedJobs = [];
+                            jobOutput.items.forEach(item => {
+                                /**
+                                 * https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#job-v1-batch
+                                 */
+                                if (item.status.active > 0) {
+                                    runningJobs.push({
+                                        jobName: item.metadata.name,
+                                        jobStatus: 'running',
+                                    });
+                                }
+                                if (item.status.succeeded > 0) {
+                                    succeededJobs.push({
+                                        jobName: item.metadata.name,
+                                        jobStatus: 'succeeded',
+                                    });
+                                }
+                                if (item.status.failed > 0) {
+                                    failedJobs.push({
+                                        jobName: item.metadata.name,
+                                        jobStatus: 'failed',
+                                    });
+                                }
+                            });
+                            const jobData = {
+                                jobStat: {
+                                    runningJobs: runningJobs.length,
+                                    succeededJobs: succeededJobs.length,
+                                    failedJobs: failedJobs.length,
+                                },
+                                runningJobs,
+                                succeededJobs,
+                                failedJobs,
+                                allJobs: [
+                                    ...runningJobs,
+                                    ...succeededJobs,
+                                    ...failedJobs,
+                                ],
+                            };
 
-                                output.on('close', async () => {
-                                    if (podOutput) {
-                                        podOutput = JSON.parse(podOutput);
-                                    }
-                                    await deleteFile(configPath);
-                                    resolve(podOutput);
+                            // handle services output
+                            const serviceData = {
+                                runningServices: serviceOutput.items.length,
+                            };
+
+                            // handle deployment output
+                            let desiredDeployment = 0,
+                                readyDeployment = 0;
+                            const lessDeployment = [],
+                                allDeployments = [];
+                            deploymentOutput.items.forEach(item => {
+                                readyDeployment += item.status.readyReplicas;
+                                desiredDeployment += item.status.replicas;
+
+                                if (
+                                    item.status.readyReplicas !==
+                                    item.status.replicas
+                                ) {
+                                    lessDeployment.push({
+                                        deploymentName: item.metadata.name,
+                                        readyDeployment:
+                                            item.status.readyReplicas,
+                                        desiredDeployment: item.status.replicas,
+                                    });
+                                }
+
+                                allDeployments.push({
+                                    deploymentName: item.metadata.name,
+                                    readyDeployment: item.status.readyReplicas,
+                                    desiredDeployment: item.status.replicas,
                                 });
                             });
-                            dest.on('error', reject);
-                        })
-                );
+                            const deploymentData = {
+                                desiredDeployment,
+                                readyDeployment,
+                                lessDeployment,
+                                allDeployments,
+                            };
 
-                podOutput = podOutput.items.map(item => ({
-                    podName: item.metadata.name,
-                    podNamespace: item.metadata.namespace,
-                    podStatus: item.status.phase,
-                    podRestart: item.status.containerStatuses[0].restartCount,
-                    podReady: item.status.containerStatuses[0].ready,
-                }));
+                            // handle statefulset output
+                            let desiredStatefulsets = 0,
+                                readyStatefulsets = 0;
+                            const lessStatefulset = [],
+                                allStatefulset = [];
+                            statefulsetOutput.items.forEach(item => {
+                                readyStatefulsets += item.status.readyReplicas;
+                                desiredStatefulsets += item.status.replicas;
 
-                /**
-                 *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
-                 *  Pod Status can be:
-                 *      - Pending
-                 *      - Running
-                 *      - Succeeded
-                 *      - Failed
-                 */
-                // For now, let's only consider the case when the monitor is not running
-                const podsWithError = [];
-                podOutput.forEach(pod => {
-                    if (
-                        pod.podStatus !== 'Running' &&
-                        pod.podStatus !== 'Pending' &&
-                        pod.podStatus !== 'Succeeded'
-                    ) {
-                        // at this point it is considered that there's error/issue with the pod
-                        podsWithError.push(pod);
+                                if (
+                                    item.status.readyReplicas !==
+                                    item.status.replicas
+                                ) {
+                                    lessStatefulset.push({
+                                        statefulsetName: item.metadata.name,
+                                        readyStatefulsets:
+                                            item.status.readyReplicas,
+                                        desiredStatefulsets:
+                                            item.status.replicas,
+                                    });
+                                }
+
+                                allStatefulset.push({
+                                    statefulsetName: item.metadata.name,
+                                    readyStatefulsets:
+                                        item.status.readyReplicas,
+                                    desiredStatefulsets: item.status.replicas,
+                                });
+                            });
+                            const statefulsetData = {
+                                readyStatefulsets,
+                                desiredStatefulsets,
+                                lessStatefulset,
+                                allStatefulset,
+                            };
+
+                            const data = {
+                                podData,
+                                jobData,
+                                serviceData,
+                                deploymentData,
+                                statefulsetData,
+                            };
+                            await ApiService.ping(monitor._id, {
+                                monitor,
+                                kubernetesData: data,
+                                type: monitor.type,
+                            });
+                        });
+                        dest.on('error', async error => {
+                            await deleteFile(configPath);
+                            throw error;
+                        });
                     }
-                });
-
-                const podResult = { podOutput, podsWithError };
-                await ApiService.ping(monitor._id, {
-                    monitor,
-                    podResult,
-                    type: monitor.type,
-                });
+                );
             }
         } catch (error) {
             ErrorService.log('kubernetesMonitors.run', error);
@@ -106,3 +245,118 @@ module.exports = {
         }
     },
 };
+
+function loadPodOutput(configPath, namespace) {
+    return new Promise(resolve => {
+        let podOutput = '';
+        const podCommand = `kubectl get pods -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+
+        const podCommandOutput = spawn(podCommand, {
+            cwd: process.cwd(),
+            shell: true,
+        });
+        podCommandOutput.stdout.on('data', data => {
+            const strData = data.toString();
+            podOutput += strData;
+        });
+        podCommandOutput.on('close', () => {
+            if (podOutput) {
+                podOutput = JSON.parse(podOutput);
+            }
+
+            resolve(podOutput);
+        });
+    });
+}
+
+function loadJobOutput(configPath, namespace) {
+    return new Promise(resolve => {
+        let jobOutput = '';
+        const jobCommand = `kubectl get jobs -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+
+        const jobCommandOutput = spawn(jobCommand, {
+            cwd: process.cwd(),
+            shell: true,
+        });
+        jobCommandOutput.stdout.on('data', data => {
+            const strData = data.toString();
+            jobOutput += strData;
+        });
+        jobCommandOutput.on('close', () => {
+            if (jobOutput) {
+                jobOutput = JSON.parse(jobOutput);
+            }
+
+            resolve(jobOutput);
+        });
+    });
+}
+
+function loadServiceOutput(configPath, namespace) {
+    return new Promise(resolve => {
+        let serviceOutput = '';
+        const serviceCommand = `kubectl get services -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+
+        const serviceCommandOutput = spawn(serviceCommand, {
+            cwd: process.cwd(),
+            shell: true,
+        });
+        serviceCommandOutput.stdout.on('data', data => {
+            const strData = data.toString();
+            serviceOutput += strData;
+        });
+        serviceCommandOutput.on('close', () => {
+            if (serviceOutput) {
+                serviceOutput = JSON.parse(serviceOutput);
+            }
+
+            resolve(serviceOutput);
+        });
+    });
+}
+
+function loadDeploymentOutput(configPath, namespace) {
+    return new Promise(resolve => {
+        let deploymentOutput = '';
+        const deploymentCommand = `kubectl get deployments -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+
+        const deploymentCommandOutput = spawn(deploymentCommand, {
+            cwd: process.cwd(),
+            shell: true,
+        });
+        deploymentCommandOutput.stdout.on('data', data => {
+            const strData = data.toString();
+            deploymentOutput += strData;
+        });
+        deploymentCommandOutput.on('close', () => {
+            if (deploymentOutput) {
+                deploymentOutput = JSON.parse(deploymentOutput);
+            }
+
+            resolve(deploymentOutput);
+        });
+    });
+}
+
+function loadStatefulsetOutput(configPath, namespace) {
+    return new Promise(resolve => {
+        let statefulsetOutput = '';
+        const statefulsetCommand = `kubectl get statefulsets -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+
+        const statefulsetCommandOutput = spawn(statefulsetCommand, {
+            cwd: process.cwd(),
+            shell: true,
+        });
+        statefulsetCommandOutput.stdout.on('data', data => {
+            const strData = data.toString();
+            statefulsetOutput += strData;
+        });
+        statefulsetCommandOutput.on('close', () => {
+            if (statefulsetOutput) {
+                statefulsetOutput = JSON.parse(statefulsetOutput);
+            }
+
+            resolve(statefulsetOutput);
+        });
+    });
+}
