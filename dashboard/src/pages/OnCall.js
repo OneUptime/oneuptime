@@ -64,6 +64,7 @@ export class OnCall extends Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
+        this.setState({ [subProjectId]: this.state[subProjectId] - 1 });
         paginate('prev');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: CALL SCHEDULE > PREVIOUS PAGE');
@@ -74,6 +75,11 @@ export class OnCall extends Component {
         const { fetchProjectSchedule, paginate } = this.props;
 
         fetchProjectSchedule(subProjectId, skip + limit, 10);
+        this.setState({
+            [subProjectId]: !this.state[subProjectId]
+                ? 2
+                : this.state[subProjectId] + 1,
+        });
         paginate('next');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: CALL SCHEDULE > NEXT PAGE');
@@ -188,6 +194,7 @@ export class OnCall extends Component {
                                             subProjectSchedules.length
                                         }
                                         modalList={this.props.modalList}
+                                        page={this.state[subProject._id]}
                                     />
                                 </div>
                             </div>
@@ -258,6 +265,7 @@ export class OnCall extends Component {
                                         subProjectSchedules.length
                                     }
                                     modalList={this.props.modalList}
+                                    page={this.state[currentProject._id]}
                                 />
                             </div>
                         </div>
