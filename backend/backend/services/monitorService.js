@@ -96,9 +96,6 @@ module.exports = {
                         monitor.data = {};
                         monitor.data.description =
                             data.data.description || null;
-                    } else if (data.type === 'device') {
-                        monitor.data = {};
-                        monitor.data.deviceId = data.data.deviceId;
                     } else if (data.type === 'script') {
                         monitor.data = {};
                         monitor.data.script = data.data.script;
@@ -502,7 +499,6 @@ module.exports = {
                                         type: {
                                             $in: [
                                                 'url',
-                                                'device',
                                                 'api',
                                                 'incomingHttpRequest',
                                                 'ip',

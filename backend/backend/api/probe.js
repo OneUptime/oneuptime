@@ -339,13 +339,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 data.status = status;
                 data.reason = reason;
             }
-            if (type === 'device') {
-                if (res) {
-                    status = 'online';
-                } else {
-                    status = 'offline';
-                }
-            }
             if (type === 'server-monitor') {
                 data = serverData;
                 const {

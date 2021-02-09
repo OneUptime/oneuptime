@@ -98,7 +98,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         if (
             data.type !== 'url' &&
-            data.type !== 'device' &&
             data.type !== 'manual' &&
             data.type !== 'api' &&
             data.type !== 'server-monitor' &&
@@ -189,27 +188,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                             'Monitor url did not return a valid response.',
                     });
                 }
-            }
-        }
-
-        if (data.type === 'device') {
-            if (data.type === 'deviceId' && !data.data.deviceId) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Monitor data should have a `url` property of type string.',
-                });
-            }
-
-            if (
-                data.type === 'deviceId' &&
-                typeof data.data.deviceId !== 'string'
-            ) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Monitor data should have a `Device ID` property of type string.',
-                });
             }
         }
 

@@ -82,9 +82,6 @@ export class MonitorTitle extends Component {
             case 'manual':
                 badgeColor = 'red';
                 break;
-            case 'device':
-                badgeColor = 'green';
-                break;
             default:
                 badgeColor = 'blue';
                 break;

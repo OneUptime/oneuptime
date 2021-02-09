@@ -712,12 +712,7 @@ export function MonitorChart({
                     </ShouldRender>
                 </>
             );
-    } else if (
-        type === 'url' ||
-        type === 'api' ||
-        type === 'device' ||
-        type === 'ip'
-    ) {
+    } else if (type === 'url' || type === 'api' || type === 'ip') {
         monitorInfo = (
             <>
                 <div className="db-Trend">

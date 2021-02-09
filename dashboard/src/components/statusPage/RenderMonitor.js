@@ -237,13 +237,6 @@ let RenderMonitor = ({
                                             />
                                         </Fragment>
                                     )}
-                                    {type === 'device' && (
-                                        <Checkbox
-                                            label="Uptime"
-                                            name={`${monitor}.uptime`}
-                                            disabled={!shouldEdit}
-                                        />
-                                    )}
                                     {type === 'api' && (
                                         <Fragment>
                                             <Checkbox
