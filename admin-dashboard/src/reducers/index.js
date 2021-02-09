@@ -15,6 +15,7 @@ import settings from './settings';
 import license from './license';
 import page from './page';
 import sso from './sso';
+import ssoDefaultRoles from './ssoDefaultRoles';
 import version from './version';
 
 const appReducer = combineReducers({
@@ -34,6 +35,7 @@ const appReducer = combineReducers({
     license,
     page,
     sso,
+    ssoDefaultRoles,
     version,
 });
 

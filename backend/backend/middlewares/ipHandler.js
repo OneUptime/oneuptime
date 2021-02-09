@@ -9,14 +9,28 @@ const _this = {
         const statusPageUrl = apiMiddleware.getStatusPageUrl(req);
         let statusPage;
 
-        if (statusPageId && statusPageId.length && statusPageId !== 'null') {
-            statusPage = await StatusPageService.findOneBy({
-                _id: statusPageId,
-            });
-        } else {
-            statusPage = await StatusPageService.findOneBy({
-                domains: { $elemMatch: { domain: statusPageUrl } },
-            });
+        try {
+            if (
+                statusPageId &&
+                statusPageId.length &&
+                statusPageId !== 'null'
+            ) {
+                statusPage = await StatusPageService.findOneBy({
+                    _id: statusPageId,
+                });
+            } else {
+                statusPage = await StatusPageService.findOneBy({
+                    domains: { $elemMatch: { domain: statusPageUrl } },
+                });
+            }
+            if (statusPage === null) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status Page name is null',
+                });
+            }
+        } catch (error) {
+            return next();
         }
 
         if (!statusPage.enableIpWhitelist) {

@@ -26,8 +26,8 @@ export const fetchProjectsError = error => {
 
 // Calls the API to fetch all projects.
 export const fetchProjects = (skip, limit) => async dispatch => {
-    skip = skip ? parseInt(skip) : 0;
-    limit = limit ? parseInt(limit) : 10;
+    skip = skip ?? 0;
+    limit = limit ?? 10;
 
     dispatch(fetchProjectsRequest());
 
@@ -100,6 +100,59 @@ export const fetchProject = projectId => async dispatch => {
     }
 };
 
+// Team create
+export function userCreateRequest() {
+    return {
+        type: types.USER_CREATE_REQUEST,
+    };
+}
+
+export function userCreateSuccess(team) {
+    return {
+        type: types.USER_CREATE_SUCCESS,
+        payload: team,
+    };
+}
+
+export function userCreateError(error) {
+    return {
+        type: types.USER_CREATE_FAILURE,
+        payload: error,
+    };
+}
+
+// Calls the API to add users to project.
+export function userCreate(projectId, values) {
+    return function(dispatch) {
+        const promise = postApi(`team/${projectId}`, values);
+        dispatch(userCreateRequest());
+        promise.then(
+            function(response) {
+                const data = response.data;
+                const projectUsers = data.filter(
+                    team => team.projectId === projectId
+                )[0];
+                dispatch(userCreateSuccess(projectUsers.team));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(userCreateError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
 export const fetchUserProjectsRequest = () => {
     return {
         type: types.FETCH_USER_PROJECTS_REQUEST,
@@ -119,6 +172,198 @@ export const fetchUserProjectsError = error => {
         payload: error,
     };
 };
+
+// Calls the API to fetch users belonging to a particular project
+export const fetchProjectTeam = projectId => async dispatch => {
+    dispatch(fetchProjectTeamRequest());
+    try {
+        const response = await getApi(`team/${projectId}/teamMembers`);
+        const team = response.data;
+        const projectTeam = team.filter(team => team._id === projectId)[0];
+        dispatch(fetchProjectTeamSuccess(projectTeam));
+        return response;
+    } catch (error) {
+        let errorMsg;
+        if (error && error.response && error.response.data)
+            errorMsg = error.response.data;
+        if (error && error.data) {
+            errorMsg = error.data;
+        }
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else {
+            errorMsg = 'Network Error';
+        }
+        dispatch(fetchProjectTeamError(errors(errorMsg)));
+    }
+};
+
+export const fetchProjectTeamRequest = () => {
+    return {
+        type: types.FETCH_PROJECT_TEAM_REQUEST,
+    };
+};
+
+export const fetchProjectTeamSuccess = payload => {
+    return {
+        type: types.FETCH_PROJECT_TEAM_SUCCESS,
+        payload,
+    };
+};
+
+export const fetchProjectTeamError = error => {
+    return {
+        type: types.FETCH_PROJECT_TEAM_ERROR,
+        payload: error,
+    };
+};
+export function userUpdateRoleRequest(id) {
+    return {
+        type: types.USER_UPDATE_ROLE_REQUEST,
+        payload: id,
+    };
+}
+
+export function userUpdateRoleSuccess(team) {
+    return {
+        type: types.USER_UPDATE_ROLE_SUCCESS,
+        payload: team,
+    };
+}
+
+export function userUpdateRoleError(error) {
+    return {
+        type: types.USER_UPDATE_ROLE_FAILURE,
+        payload: error,
+    };
+}
+
+export function changeUserProjectRole(team) {
+    return {
+        type: types.CHANGE_USER_PROJECT_ROLES,
+        payload: team,
+    };
+}
+// Calls the API to update user role.
+export function userUpdateRole(projectId, values) {
+    return function(dispatch) {
+        const promise = putApi(
+            `team/${projectId}/${values.teamMemberId}/changerole`,
+            values
+        );
+        dispatch(userUpdateRoleRequest(values.teamMemberId));
+
+        promise.then(
+            function(response) {
+                const data = response.data;
+                const projectUsers = data.filter(
+                    user => user.projectId === projectId
+                )[0];
+                dispatch(userUpdateRoleSuccess(projectUsers));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(userUpdateRoleError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+//userlist pagination
+export function paginateNext() {
+    return {
+        type: types.PAGINATE_USERS_NEXT,
+    };
+}
+
+export function paginatePrev() {
+    return {
+        type: types.PAGINATE_USERS_PREV,
+    };
+}
+
+export function paginate(type) {
+    return function(dispatch) {
+        type === 'next' && dispatch(paginateNext());
+        type === 'prev' && dispatch(paginatePrev());
+    };
+}
+// Calls the API to delete user from project
+export function teamDelete(projectId, teamMemberId) {
+    return function(dispatch) {
+        const promise = deleteApi(`team/${projectId}/${teamMemberId}`, null);
+        dispatch(teamDeleteRequest(teamMemberId));
+
+        promise.then(
+            function(response) {
+                const team = response.data;
+                const projectTeam = team.filter(
+                    team => team.projectId === projectId
+                )[0];
+                dispatch(teamDeleteSuccess(projectTeam.team));
+                return { team };
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(teamDeleteError(errors(error)));
+                return { error };
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function teamDeleteRequest(id) {
+    return {
+        type: types.TEAM_DELETE_REQUEST,
+        payload: id,
+    };
+}
+export function teamDeleteSuccess(team) {
+    return {
+        type: types.TEAM_DELETE_SUCCESS,
+        payload: team,
+    };
+}
+
+export function teamDeleteError(error) {
+    return {
+        type: types.TEAM_DELETE_FAILURE,
+        payload: error,
+    };
+}
+
+export function teamDeleteReset() {
+    return {
+        type: types.TEAM_DELETE_RESET,
+    };
+}
+export function resetTeamDelete() {
+    return function(dispatch) {
+        dispatch(teamDeleteReset());
+    };
+}
 
 // Calls the API to fetch all user projects.
 export const fetchUserProjects = (userId, skip, limit) => async dispatch => {

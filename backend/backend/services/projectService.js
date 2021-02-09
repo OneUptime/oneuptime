@@ -161,7 +161,13 @@ module.exports = {
                         );
                     })
                 );
-
+                const ssoDefaultRoles = await SsoDefaultRolesService.findBy({
+                    project: project._id,
+                });
+                for (const ssoDefaultRole of ssoDefaultRoles) {
+                    const { _id } = ssoDefaultRole;
+                    await SsoDefaultRolesService.deleteBy({ _id });
+                }
                 project = await ProjectModel.findOneAndUpdate(
                     query,
                     {
@@ -182,7 +188,6 @@ module.exports = {
             throw error;
         }
     },
-
     findOneBy: async function(query) {
         try {
             if (!query) {
@@ -298,7 +303,7 @@ module.exports = {
             projectId,
             data.alertOptions
         );
-        if (chargeForBalance) {
+        if (chargeForBalance && !chargeForBalance.client_secret) {
             const newBalance = rechargeToBalance + currentBalance;
             updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,
@@ -700,6 +705,10 @@ module.exports = {
             projectId,
             deleted: true,
         });
+        await componentService.restoreBy({
+            projectId: projectId,
+            deleted: true,
+        });
         return project;
     },
 
@@ -758,3 +767,6 @@ const slugify = require('slugify');
 const generate = require('nanoid/generate');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const componentService = require('./componentService');
+const SsoDefaultRolesService = require('./ssoDefaultRolesService');
+const incidentService = require('./incidentService');
+

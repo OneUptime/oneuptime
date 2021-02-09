@@ -11,6 +11,7 @@ import Monitors from '../components/statusPage/Monitors';
 import Branding from '../components/statusPage/Branding';
 import Links from '../components/statusPage/Links';
 import DeleteBox from '../components/statusPage/DeleteBox';
+import DuplicateStatusBox from '../components/statusPage/DuplicateStatusPage';
 import PrivateStatusPage from '../components/statusPage/PrivateStatusPage';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { LoadingState } from '../components/basic/Loader';
@@ -30,6 +31,17 @@ import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 
 class StatusPage extends Component {
+    state = {
+        tabIndex: 0,
+    };
+    tabSelected = index => {
+        const tabSlider = document.getElementById('tab-slider');
+        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        this.setState({
+            tabIndex: index,
+        });
+    };
+
     async componentDidMount() {
         if (!this.props.statusPage.status._id) {
             const projectId = history.location.pathname
@@ -66,10 +78,14 @@ class StatusPage extends Component {
     componentWillMount() {
         resetIdCounter();
     }
-    tabSelected = index => {
-        const tabSlider = document.getElementById('tab-slider');
-        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
-    };
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.statusPage.status._id !== this.props.statusPage.status._id
+        ) {
+            this.tabSelected(0);
+        }
+    }
 
     render() {
         const {
@@ -94,6 +110,7 @@ class StatusPage extends Component {
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
                         onSelect={tabIndex => this.tabSelected(tabIndex)}
+                        selectedIndex={this.state.tabIndex}
                     >
                         <div className="Flex-flex Flex-direction--columnReverse">
                             <TabList
@@ -219,6 +236,37 @@ class StatusPage extends Component {
                                                                         <div className="Box-root Margin-bottom--12">
                                                                             <PrivateStatusPage />
                                                                         </div>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            {this
+                                                                                .props
+                                                                                .showDuplicateStatusPage ? (
+                                                                                <DuplicateStatusBox
+                                                                                    statusPageId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .statusPage
+                                                                                            .status
+                                                                                            ._id
+                                                                                    }
+                                                                                    subProjectId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .match
+                                                                                            .params
+                                                                                            .subProjectId
+                                                                                    }
+                                                                                    projectId={
+                                                                                        history.location.pathname
+                                                                                            .split(
+                                                                                                'project/'
+                                                                                            )[1]
+                                                                                            .split(
+                                                                                                '/'
+                                                                                            )[0]
+                                                                                    }
+                                                                                />
+                                                                            ) : null}
+                                                                        </div>
                                                                     </RenderIfSubProjectAdmin>
                                                                     <RenderIfSubProjectAdmin
                                                                         subProjectId={
@@ -278,6 +326,7 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         statusPage: state.statusPage,
+        showDuplicateStatusPage: state.statusPage.showDuplicateStatusPage,
     };
 }
 
@@ -286,6 +335,7 @@ StatusPage.propTypes = {
     switchStatusPage: PropTypes.func,
     fetchProjectStatusPage: PropTypes.func,
     fetchSubProjectStatusPages: PropTypes.func,
+    showDuplicateStatusPage: PropTypes.bool,
     match: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,

@@ -381,7 +381,7 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector('#incident_0', { visible: true });
                 // click on incident notes tab
                 await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
 
                 for (let i = 0; i < 10; i++) {
                     await page.$eval(`#add-${type}-message`, e => e.click());

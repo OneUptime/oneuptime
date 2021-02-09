@@ -218,8 +218,6 @@ module.exports = {
                 await MonitorService.updateMonitorPingTime(data.monitorId);
             }
 
-            const { matchedCriterion } = data;
-
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
@@ -229,19 +227,22 @@ module.exports = {
                     if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
 
-                    const autoAcknowledge =
-                        lastStatus && lastStatus === 'degraded'
-                            ? matchedCriterion.autoAcknowledge
-                            : lastStatus === 'offline' && true; // automatically acknowledge offline monitors
-                    const autoResolve =
-                        lastStatus === 'degraded'
-                            ? matchedCriterion.autoResolve
-                            : lastStatus === 'offline' && true; // automatically resolve offline monitors
+                    // grab all the criteria in a monitor
+                    const allCriteria = [];
+                    data.matchedUpCriterion.forEach(criteria =>
+                        allCriteria.push(criteria)
+                    );
+                    data.matchedDownCriterion.forEach(criteria =>
+                        allCriteria.push(criteria)
+                    );
+                    data.matchedDegradedCriterion.forEach(criteria =>
+                        allCriteria.push(criteria)
+                    );
+
                     await _this.incidentResolveOrAcknowledge(
                         data,
                         lastStatus,
-                        autoAcknowledge,
-                        autoResolve
+                        allCriteria
                     );
                 }
 
@@ -474,8 +475,7 @@ module.exports = {
     incidentResolveOrAcknowledge: async function(
         data,
         lastStatus,
-        autoAcknowledge,
-        autoResolve
+        allCriteria
     ) {
         try {
             const incidents = await IncidentService.findBy({
@@ -484,8 +484,24 @@ module.exports = {
                 resolved: false,
                 manuallyCreated: false,
             });
+            // should grab all the criterion for the monitor and put them into one array
+            // check the id of each criteria against the id of criteria attached to an incident
+            // ack / resolve according to the criteria
+            let autoAcknowledge, autoResolve;
+            if (incidents && incidents.length > 0) {
+                incidents.forEach(incident => {
+                    const criteriaId = String(incident.criterionCause._id);
+                    allCriteria.forEach(criteria => {
+                        if (String(criteria._id) === criteriaId) {
+                            autoAcknowledge = criteria.autoAcknowledge;
+                            autoResolve = criteria.autoResolve;
+                        }
+                    });
+                });
+            }
             const incidentsV1 = [];
             const incidentsV2 = [];
+
             if (incidents && incidents.length) {
                 if (lastStatus && lastStatus !== data.status) {
                     incidents.forEach(incident => {
@@ -542,7 +558,7 @@ module.exports = {
                 })
             );
 
-            incidentsV2.forEach(async incident => {
+            await forEach(incidentsV2, async incident => {
                 const trueArray = [];
                 const falseArray = [];
                 incident.probes.forEach(probe => {
@@ -880,7 +896,7 @@ module.exports = {
             // update container security to scanning true
             // so the cron job does not pull it multiple times due to network delays
             // since the cron job runs every minute
-            let containerSecurity = await ContainerSecurityService.updateOneBy(
+            const containerSecurity = await ContainerSecurityService.updateOneBy(
                 {
                     _id: security._id,
                 },
@@ -890,7 +906,6 @@ module.exports = {
                 `security_${containerSecurity._id}`,
                 containerSecurity
             );
-
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
                 const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
@@ -907,19 +922,13 @@ module.exports = {
                 });
 
                 output.on('error', async error => {
-                    error.code = 400;
-                    error.message =
+                    const errorMessage =
                         'Scanning failed please check your docker credential or image path/tag';
-                    containerSecurity = await ContainerSecurityService.updateOneBy(
-                        {
-                            _id: security._id,
-                        },
-                        { scanning: false }
-                    );
-                    global.io.emit(
-                        `security_${containerSecurity._id}`,
-                        containerSecurity
-                    );
+                    error.code = 400;
+                    error.message = errorMessage;
+                    await ContainerSecurityService.updateScanTime({
+                        _id: security._id,
+                    });
                     await deleteFile(exactFilePath);
                     return reject(error);
                 });
@@ -928,21 +937,18 @@ module.exports = {
                     let auditLogs = await readFileContent(exactFilePath);
                     // if auditLogs is empty, then scanning was unsuccessful
                     // the provided credentials or image path must have been wrong
-                    if (!auditLogs) {
+                    if (
+                        !auditLogs ||
+                        (typeof auditLogs === 'string' &&
+                            !JSON.stringify(auditLogs).trim())
+                    ) {
                         const error = new Error(
                             'Scanning failed please check your docker credential or image path/tag'
                         );
                         error.code = 400;
-                        containerSecurity = await ContainerSecurityService.updateOneBy(
-                            {
-                                _id: security._id,
-                            },
-                            { scanning: false }
-                        );
-                        global.io.emit(
-                            `security_${containerSecurity._id}`,
-                            containerSecurity
-                        );
+                        await ContainerSecurityService.updateScanTime({
+                            _id: security._id,
+                        });
                         await deleteFile(exactFilePath);
                         return reject(error);
                     }
@@ -988,40 +994,46 @@ module.exports = {
                                 vulnerabilities: [],
                             };
 
-                            auditLog.Vulnerabilities.map(vulnerability => {
-                                let severity;
-                                if (vulnerability.Severity === 'LOW') {
-                                    counter.low += 1;
-                                    severity = 'low';
-                                }
-                                if (vulnerability.Severity === 'MEDIUM') {
-                                    counter.moderate += 1;
-                                    severity = 'moderate';
-                                }
-                                if (vulnerability.Severity === 'HIGH') {
-                                    counter.high += 1;
-                                    severity = 'high';
-                                }
-                                if (vulnerability.Severity === 'CRITICAL') {
-                                    counter.critical += 1;
-                                    severity = 'critical';
-                                }
+                            if (
+                                auditLog.Vulnerabilities &&
+                                auditLog.Vulnerabilities.length > 0
+                            ) {
+                                auditLog.Vulnerabilities.map(vulnerability => {
+                                    let severity;
+                                    if (vulnerability.Severity === 'LOW') {
+                                        counter.low += 1;
+                                        severity = 'low';
+                                    }
+                                    if (vulnerability.Severity === 'MEDIUM') {
+                                        counter.moderate += 1;
+                                        severity = 'moderate';
+                                    }
+                                    if (vulnerability.Severity === 'HIGH') {
+                                        counter.high += 1;
+                                        severity = 'high';
+                                    }
+                                    if (vulnerability.Severity === 'CRITICAL') {
+                                        counter.critical += 1;
+                                        severity = 'critical';
+                                    }
 
-                                const vulObj = {
-                                    vulnerabilityId:
-                                        vulnerability.VulnerabilityID,
-                                    library: vulnerability.PkgName,
-                                    installedVersion:
-                                        vulnerability.InstalledVersion,
-                                    fixedVersions: vulnerability.FixedVersion,
-                                    title: vulnerability.Title,
-                                    description: vulnerability.Description,
-                                    severity,
-                                };
-                                log.vulnerabilities.push(vulObj);
+                                    const vulObj = {
+                                        vulnerabilityId:
+                                            vulnerability.VulnerabilityID,
+                                        library: vulnerability.PkgName,
+                                        installedVersion:
+                                            vulnerability.InstalledVersion,
+                                        fixedVersions:
+                                            vulnerability.FixedVersion,
+                                        title: vulnerability.Title,
+                                        description: vulnerability.Description,
+                                        severity,
+                                    };
+                                    log.vulnerabilities.push(vulObj);
 
-                                return vulnerability;
-                            });
+                                    return vulnerability;
+                                });
+                            }
 
                             auditData.vulnerabilityData.push(log);
                             return auditLog;
@@ -5408,4 +5420,4 @@ const { promisify } = require('util');
 const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
-const { some } = require('p-iteration');
+const { some, forEach } = require('p-iteration');

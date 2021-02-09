@@ -63,7 +63,7 @@ describe('Login API', () => {
         await page.click('input[name=password]');
         await page.type('input[name=password]', user.password);
         await page.click('button[type=submit]');
-        await page.waitFor(10000);
+        await page.waitForTimeout(10000);
         const html = await page.$eval('#main-body', e => {
             return e.innerHTML;
         });

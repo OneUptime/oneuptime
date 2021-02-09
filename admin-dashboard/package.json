@@ -4,6 +4,7 @@
     "private": true,
     "dependencies": {
         "@beam-australia/react-env": "^2.1.2",
+        "@trendmicro/react-dropdown": "^1.4.0",
         "acorn": "^7.1.1",
         "axios": "^0.21.1",
         "browserslist": "^4.6.1",
@@ -33,6 +34,7 @@
         "react-router-dom": "^4.2.2",
         "react-router-redux": "^4.0.8",
         "react-scripts": "^3.4.4",
+        "react-select": "^3.2.0",
         "react-select-fyipe": "^2.1.8",
         "react-widgets": "^4.4.9",
         "redux": "^3.7.2",

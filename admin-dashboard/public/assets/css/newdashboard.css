@@ -1,3 +1,36 @@
+.db-select-nw {
+  width: 250px;
+  font-size: 14px;
+}
+.db-select-nw-180 {
+  width: 180px;
+}
+
+.db-select-nw-100 {
+  width: 100px;
+}
+.db-select-nw-300 {
+  width: 300px;
+  font-size: 14px;
+}
+
+.db-select-nw > div,
+.db-select-ne > div,
+.db-select-pr > div,
+.db-select-nw-300 > div {
+  -webkit-flex-flow: unset;
+  -ms-flex-flow: unset;
+  flex-flow: unset;
+  cursor: pointer;
+}
+
+.db-select-nw > span + div,
+.db-select-pr > span + div {
+  border: none;
+  box-shadow: 0 0 0 1px rgba(50, 50, 93, 0), 0 0 0 1px rgba(50, 151, 211, 0.2),
+      0 0 0 2px rgba(50, 151, 211, 0.25), 0 1px 1px rgba(0, 0, 0, 0.08);
+}
+
 .db-FlashingBackground {
   position: absolute;
   left: 0;
@@ -9865,13 +9898,12 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 }
 .db-World-topContent {
   height: 68px;
-  left: calc((50vw - 1390px / 2 + 278px) - 4px);
   right: 0;
-  padding-left: 8px;
-  padding-right: 8px;
   position: absolute;
   top: 0;
   z-index: 1;
+  padding-right: calc((50vw - 1390px / 2));
+
 }
 .db-World-topContent--left {
   left: 0;
@@ -9913,6 +9945,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   overflow-x: hidden;
   overflow-y: auto;
   padding-left: calc((50vw - 1390px / 2 + 278px));
+  padding-right: calc((50vw - 1390px / 2 ));
   position: absolute;
   right: 0;
   top: 0;
@@ -9921,6 +9954,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 .db-World-contentPane {
   padding-top: 68px;
   position: relative;
+  padding-right: calc((50vw - 1390px / 2 ));
 }
 @media only screen and (max-width: 1410px) {
   .db-World-sideNavContainer {
@@ -9928,6 +9962,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   }
   .db-World-topContent {
     left: 274px;
+    padding-right: 20px;
   }
   .db-World-mainPane {
     padding-left: 278px;
@@ -9942,6 +9977,17 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   }
   .db-World-mainPane {
     padding-left: 244px;
+  }
+}
+@media only screen and (min-width: 1440px) {
+  .db-World-topContent {
+      height: 68px;
+      right: 0;
+      position: absolute;
+      top: 0;
+      z-index: 1;
+      padding-left: calc((50vw - 1390px / 278px));
+      padding-right: calc((50vw - 1390px / 2 + 20px ));
   }
 }
 @media only print {

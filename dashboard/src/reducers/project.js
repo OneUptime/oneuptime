@@ -83,6 +83,7 @@ const initialState = {
         success: false,
         error: null,
     },
+    switchToProjectViewerNav: false,
 };
 
 export default function project(state = initialState, action) {
@@ -722,6 +723,11 @@ export default function project(state = initialState, action) {
                     error: action.payload,
                 },
             };
+
+        case types.SHOW_VIEWER_MENU:
+            return Object.assign({}, state, {
+                switchToProjectViewerNav: action.payload,
+            });
 
         default:
             return state;

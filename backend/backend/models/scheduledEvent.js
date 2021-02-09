@@ -7,16 +7,22 @@ const scheduledEventsSchema = new Schema(
             type: String,
             ref: 'Project',
             alias: 'project',
+            index: true,
         },
         monitors: [
             {
-                monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor' },
+                monitorId: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'Monitor',
+                    index: true,
+                },
             },
         ],
         name: String,
         createdById: {
             type: String,
             ref: 'User',
+            index: true,
         },
         deleted: {
             type: Boolean,
@@ -28,6 +34,7 @@ const scheduledEventsSchema = new Schema(
         deletedById: {
             type: String,
             ref: 'User',
+            index: true,
         },
         startDate: {
             type: Date,
@@ -55,7 +62,7 @@ const scheduledEventsSchema = new Schema(
             default: false,
         },
         resolved: { type: Boolean, default: false },
-        resolvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+        resolvedBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
         resolvedAt: Date,
     },
     { timestamps: true }

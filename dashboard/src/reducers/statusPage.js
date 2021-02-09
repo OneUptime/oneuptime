@@ -74,6 +74,11 @@ import {
     RESET_STATUSPAGE_EMBEDDED_CSS_REQUEST,
     RESET_STATUSPAGE_EMBEDDED_CSS_SUCCESS,
     RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE,
+    SHOW_DUPLICATE_STATUSPAGE,
+    DUPLICATE_STATUSPAGE_REQUEST,
+    DUPLICATE_STATUSPAGE_SUCCESS,
+    DUPLICATE_STATUSPAGE_FAILURE,
+    DUPLICATE_STATUSPAGE_RESET,
 } from '../constants/statusPage';
 
 import {
@@ -99,12 +104,19 @@ import {
 
 const INITIAL_STATE = {
     addMoreDomain: false,
+    showDuplicateStatusPage: false,
     setting: {
         error: null,
         requesting: false,
         success: false,
     },
     newStatusPage: {
+        error: null,
+        requesting: false,
+        success: false,
+        statusPage: null,
+    },
+    duplicateStatusPage: {
         error: null,
         requesting: false,
         success: false,
@@ -286,6 +298,45 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case CREATE_STATUSPAGE_RESET:
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
+            });
+
+        //Duplicate statuspage
+        case DUPLICATE_STATUSPAGE_REQUEST:
+            return Object.assign({}, state, {
+                duplicateStatusPage: {
+                    ...state.duplicateStatusPage,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case DUPLICATE_STATUSPAGE_SUCCESS:
+            return Object.assign({}, state, {
+                duplicateStatusPage: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status: action.payload,
+            });
+
+        case DUPLICATE_STATUSPAGE_FAILURE:
+            return Object.assign({}, state, {
+                duplicateStatusPage: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case DUPLICATE_STATUSPAGE_RESET:
+            return Object.assign({}, state, {
+                duplicateStatusPage: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
             });
 
         //handle domain
@@ -1148,6 +1199,11 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: action.payload,
                     success: false,
                 },
+            });
+
+        case SHOW_DUPLICATE_STATUSPAGE:
+            return Object.assign({}, state, {
+                showDuplicateStatusPage: action.payload,
             });
 
         default:

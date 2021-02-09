@@ -34,6 +34,10 @@ module.exports = {
                 page,
             });
             feedback.airtableId = record.id || null;
+            feedback.userName = user.name;
+            feedback.email = user.email;
+            feedback.phone = user.companyPhoneNumber;
+            feedback.templateName = 'User Feedback';
 
             MailService.sendLeadEmailToFyipeTeam(feedback);
             MailService.sendUserFeedbackResponse(user.email, user.name);

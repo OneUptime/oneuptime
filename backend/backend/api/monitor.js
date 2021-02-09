@@ -338,12 +338,15 @@ router.put(
                         });
                     }
                 } catch (err) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message:
-                            (err.response && err.response.statusText) ||
-                            'Monitor url did not return a valid response.',
-                    });
+                    // skip errors with a response, reject those without
+                    if (!err.response) {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message:
+                                (err.response && err.response.statusText) ||
+                                'Monitor url did not return a valid response.',
+                        });
+                    }
                 }
             }
 

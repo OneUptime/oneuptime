@@ -101,12 +101,12 @@ describe('Scheduled event', () => {
                 // await page.click(
                 //     'div.MuiDialogActions-root button:nth-child(2)'
                 // );
-                // await page.waitFor(1000); // needed because of the date picker
+                // await page.waitForTimeout(1000); // needed because of the date picker
                 // await page.click('input[name=endDate]');
                 // await page.click(
                 //     'div.MuiDialogActions-root button:nth-child(2)'
                 // );
-                // await page.waitFor(1000); // needed because of the date picker
+                // await page.waitForTimeout(1000); // needed because of the date picker
                 await page.click('#createScheduledEventButton');
                 const monitorError = await page.waitForSelector(
                     '#monitorError',
@@ -159,12 +159,12 @@ describe('Scheduled event', () => {
                 // await page.click(
                 //     'div.MuiDialogActions-root button:nth-child(2)'
                 // );
-                // await page.waitFor(1000); // needed because of the date picker
+                // await page.waitForTimeout(1000); // needed because of the date picker
                 // await page.click('input[name=endDate]');
                 // await page.click(
                 //     'div.MuiDialogActions-root button:nth-child(2)'
                 // );
-                // await page.waitFor(1000); // needed because of the date picker
+                // await page.waitForTimeout(1000); // needed because of the date picker
                 await page.click('#createScheduledEventButton');
                 await page.waitForSelector('#scheduledEventForm', {
                     hidden: true,

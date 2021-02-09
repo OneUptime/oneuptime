@@ -152,6 +152,19 @@ module.exports = {
         }
     },
 
+    getReserveNumberProductId() {
+        //if in testing.
+        if (
+            !process.env['STRIPE_PRIVATE_KEY'] ||
+            (process.env['STRIPE_PRIVATE_KEY'] &&
+                process.env['STRIPE_PRIVATE_KEY'].startsWith('sk_test'))
+        ) {
+            return 'prod_IrghVi0HPtZB95'; //test
+        } else {
+            return 'prod_IsoDG7l9a8t3s4'; //production
+        }
+    },
+
     getPlanById(id) {
         const plans = this.getPlans();
         if (id) return plans.find(plan => plan.planId === id) || null;

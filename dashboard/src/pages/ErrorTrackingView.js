@@ -13,6 +13,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import ErrorTrackerDetail from '../components/errorTracker/ErrorTrackerDetail';
 import ErrorTrackerViewDeleteBox from '../components/errorTracker/ErrorTrackerViewDeleteBox';
+import LibraryList from '../components/application/LibraryList';
 
 class ErrorTrackingView extends Component {
     componentDidMount() {
@@ -63,6 +64,11 @@ class ErrorTrackingView extends Component {
                         <LoadingState />
                     </ShouldRender>
                     <ShouldRender if={errorTracker && errorTracker[0]}>
+                        <LibraryList
+                            title="Error Tracking"
+                            type="errorTracking"
+                            errorTracker={errorTracker[0]}
+                        />
                         <div>
                             <ErrorTrackerDetail
                                 componentId={component?._id}

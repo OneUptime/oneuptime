@@ -164,6 +164,7 @@ const StatusPageProjectBox = props => {
                                     switchStatusPages={props.switchStatusPages}
                                     key={i}
                                     statusPage={o}
+                                    project={props.project}
                                 />
                             );
                         })}
@@ -291,6 +292,7 @@ StatusPageProjectBox.propTypes = {
     subProjects: PropTypes.array,
     allStatusPageLength: PropTypes.number,
     modalList: PropTypes.array,
+    project: PropTypes.object,
 };
 
 export default StatusPageProjectBox;

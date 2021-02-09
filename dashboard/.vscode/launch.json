@@ -18,7 +18,7 @@
                 "--runInBand",
                 "./src/test/puppeteer/Monitor.test.js", ///change this to any other file you like to debug.
                 "-t",
-                "should show specific property, button and modal for evaluate response"
+                "should delete API monitors"
             ],
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",

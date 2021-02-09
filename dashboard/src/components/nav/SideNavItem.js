@@ -8,10 +8,11 @@ import { loadPage } from '../../actions/page';
 import { navKeyBind, cleanBind } from '../../utils/keybinding';
 import { animateSidebar } from '../../actions/animateSidebar';
 import { history } from '../../store';
+import { toggleProjectSettingsMore } from '../../actions/page';
+
 export class SidebarNavItem extends Component {
     constructor(props) {
         super(props);
-
         this.RenderListItems = this.RenderListItems.bind(this);
     }
 
@@ -56,10 +57,12 @@ export class SidebarNavItem extends Component {
             .replace(':applicationLogId', match.params.applicationLogId)
             .replace(':errorTrackerId', match.params.errorTrackerId);
     };
-
+    handleShowMore = () => {
+        this.props.toggleProjectSettingsMore(!this.props.toggleMoreBtn);
+    };
     subRoute = subRoute => {
         const { match, currentProject } = this.props;
-        return subRoute.path
+        const subRoutePath = subRoute.path
             .replace(
                 ':projectId',
                 match.params.projectId || (currentProject || {})._id
@@ -69,6 +72,25 @@ export class SidebarNavItem extends Component {
             .replace(/:scheduleId/, match.params.scheduleId)
             .replace(/:incidentId/, match.params.incidentId)
             .replace(/:monitorId/, match.params.monitorId);
+        const projectSettingsSubRoutes =
+            subRoute.title === 'Monitor' ||
+            subRoute.title === 'Incident Settings' ||
+            subRoute.title === 'Email' ||
+            subRoute.title === 'SMS & Calls' ||
+            subRoute.title === 'Call Routing' ||
+            subRoute.title === 'Webhooks' ||
+            subRoute.title === 'Probe' ||
+            subRoute.title === 'Git Credentials' ||
+            subRoute.title === 'Docker Credentials' ||
+            subRoute.title === 'Resources';
+        if (projectSettingsSubRoutes) {
+            if (match.url === subRoutePath) {
+                this.props.toggleProjectSettingsMore(true);
+            }
+        } else {
+            this.props.toggleProjectSettingsMore(false);
+        }
+        return subRoutePath;
     };
 
     camalize = function camalize(str) {
@@ -86,6 +108,7 @@ export class SidebarNavItem extends Component {
             match,
             currentProject,
             loadPage,
+            toggleMoreBtn,
         } = this.props;
         const path = route.path
             .replace(
@@ -236,6 +259,7 @@ export class SidebarNavItem extends Component {
                         id={this.camalize(route.title)}
                         style={{ cursor: 'pointer' }}
                         onClick={() => {
+                            this.props.toggleProjectSettingsMore(false);
                             if (route.title === 'Back to Dashboard') {
                                 this.props.animateSidebar(true);
                                 setTimeout(() => {
@@ -281,7 +305,10 @@ export class SidebarNavItem extends Component {
                                         }
                                     >
                                         <span
-                                            id={`${route.title}-text`}
+                                            id={`${route.title.replace(
+                                                ' ',
+                                                ''
+                                            )}-text`}
                                             style={route.textStyle}
                                         >
                                             {route.title === 'Incident Log'
@@ -315,6 +342,10 @@ export class SidebarNavItem extends Component {
                                 active={match.url}
                                 onLoad={title => loadPage(title)}
                                 componentId={match.params.componentId}
+                                showMore={toggleMoreBtn}
+                                handleShowMore={
+                                    this.props.toggleProjectSettingsMore
+                                }
                             />
                         </ShouldRender>
                     </span>
@@ -323,7 +354,15 @@ export class SidebarNavItem extends Component {
         );
     }
 
-    RenderListItems({ projectId, schedule, active, onLoad, componentId }) {
+    RenderListItems({
+        projectId,
+        schedule,
+        active,
+        onLoad,
+        componentId,
+        showMore,
+        handleShowMore,
+    }) {
         return this.props.route.subRoutes.map((child, index) => {
             const removedLinks = [
                 'Schedule',
@@ -340,7 +379,17 @@ export class SidebarNavItem extends Component {
                 'Error Tracking View',
                 'Error Tracking Detail View',
             ];
-
+            const moreRoutes =
+                child.title === 'Monitor' ||
+                child.title === 'Incident Settings' ||
+                child.title === 'Email' ||
+                child.title === 'SMS & Calls' ||
+                child.title === 'Call Routing' ||
+                child.title === 'Webhooks' ||
+                child.title === 'Probe' ||
+                child.title === 'Git Credentials' ||
+                child.title === 'Docker Credentials' ||
+                child.title === 'Resources';
             if (removedLinks.some(link => link === child.title)) return null;
 
             if (child.visible) {
@@ -388,14 +437,16 @@ export class SidebarNavItem extends Component {
                         : false;
 
                 const routes = child.shortcut && child.shortcut.split('+');
-
-                return (
-                    <ul key={`nav ${index}`}>
-                        <li id={this.camalize(child.title)}>
-                            <div style={{ position: 'relative' }}>
-                                <Link
-                                    to={link}
-                                    onClick={() => onLoad(child.title)}
+                if (child.title === 'More') {
+                    return (
+                        <ul key={`nav ${index}`}>
+                            <li id={this.camalize(child.title)}>
+                                <div
+                                    style={{
+                                        position: 'relative',
+                                        cursor: 'pointer',
+                                    }}
+                                    onClick={() => handleShowMore(!showMore)}
                                 >
                                     <div style={{ outline: 'none' }}>
                                         <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
@@ -403,42 +454,93 @@ export class SidebarNavItem extends Component {
                                                 <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <span
                                                         className={
-                                                            link === active ||
-                                                            incidentLogLink ===
-                                                                active ||
-                                                            isSubrouteActive
+                                                            showMore
                                                                 ? 'Text-color--fyipeblue Text-fontWeight--bold'
                                                                 : ''
                                                         }
                                                     >
-                                                        {child.title ===
-                                                        'Incident Settings'
-                                                            ? 'Incidents'
-                                                            : child.title}
+                                                        {child.title}
                                                     </span>
                                                 </span>
-                                                {child.shortcut && (
-                                                    <span className="tooltiptext">
-                                                        <strong>
-                                                            {routes[0]}
-                                                        </strong>
-                                                        <span> then </span>
-                                                        <strong>
-                                                            {routes[1]}
-                                                        </strong>
-                                                    </span>
-                                                )}
+                                                <div className="Box-root Margin-left--8">
+                                                    {showMore ? (
+                                                        <div className="db-AccountSwitcherX-chevron"></div>
+                                                    ) : (
+                                                        <div className="more-btn-chevron-right"></div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </Link>
-                                <div className="db-SideNav-item--root">
-                                    <span></span>
+                                    <div className="db-SideNav-item--root">
+                                        <span></span>
+                                    </div>
                                 </div>
-                            </div>
-                        </li>
-                    </ul>
-                );
+                            </li>
+                        </ul>
+                    );
+                } else {
+                    if (!showMore && moreRoutes) {
+                        return null;
+                    }
+                    return (
+                        <ul key={`nav ${index}`}>
+                            <li id={this.camalize(child.title)}>
+                                <div style={{ position: 'relative' }}>
+                                    <Link
+                                        to={link}
+                                        onClick={() => {
+                                            !moreRoutes &&
+                                                handleShowMore(false);
+                                            onLoad(child.title);
+                                        }}
+                                    >
+                                        <div style={{ outline: 'none' }}>
+                                            <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--center Padding-left--32 tooltip"
+                                                >
+                                                    <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <span
+                                                            className={
+                                                                link ===
+                                                                    active ||
+                                                                incidentLogLink ===
+                                                                    active ||
+                                                                isSubrouteActive
+                                                                    ? 'Text-color--fyipeblue Text-fontWeight--bold'
+                                                                    : ''
+                                                            }
+                                                        >
+                                                            {child.title ===
+                                                            'Incident Settings'
+                                                                ? 'Incidents'
+                                                                : child.title}
+                                                        </span>
+                                                    </span>
+                                                    {child.shortcut && (
+                                                        <span className="tooltiptext">
+                                                            <strong>
+                                                                {routes[0]}
+                                                            </strong>
+                                                            <span> then </span>
+                                                            <strong>
+                                                                {routes[1]}
+                                                            </strong>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                    <div className="db-SideNav-item--root">
+                                        <span></span>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    );
+                }
             } else {
                 return null;
             }
@@ -456,10 +558,14 @@ const mapStateToProps = state => ({
         state.schedule.schedules &&
         state.schedule.schedules.data &&
         state.schedule.schedules.data[0],
+    toggleMoreBtn: state.page.toggleProjectSettingsMore,
 });
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ loadPage, animateSidebar }, dispatch);
+    bindActionCreators(
+        { loadPage, animateSidebar, toggleProjectSettingsMore },
+        dispatch
+    );
 
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,
@@ -473,6 +579,9 @@ SidebarNavItem.propTypes = {
     component: PropTypes.object, // eslint-disable-line
     loadPage: PropTypes.func.isRequired,
     animateSidebar: PropTypes.func,
+    toggleProjectSettingsMore: PropTypes.func.isRequired,
+    closeMoreRoute: PropTypes.func.isRequired,
+    toggleMoreBtn: PropTypes.bool.isRequired,
 };
 
 export default withRouter(

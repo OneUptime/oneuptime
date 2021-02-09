@@ -31,6 +31,12 @@ const ComponentModel = require('../backend/models/component');
 const moment = require('moment');
 const SubscriberService = require('../backend/services/subscriberService');
 const AlertVia = require('../backend/config/alertType');
+const {
+    markIncidentAsResolved,
+    markIncidentAsAcknowledged,
+    markSubprojectIncidentAsAcknowledged,
+    markSubprojectIncidentAsResolved,
+} = require('./utils/test-utils');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
@@ -287,10 +293,12 @@ describe('Incident API', function() {
 
     it('should acknowledge an incident and send email to users', async function() {
         const authorization = `Basic ${token}`;
-        const res = await request
-            .post(`/incident/${projectId}/acknowledge/${incidentId}`)
-            .set('Authorization', authorization)
-            .send({});
+        const res = await markIncidentAsAcknowledged({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
         const date = moment().subtract(1, 'minutes');
         const emailStatus = await EmailStatusService.findBy({
             template: 'incident_acknowledged',
@@ -298,16 +306,18 @@ describe('Incident API', function() {
         });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
-        expect(res.body.acknowledged).to.be.equal(true);
+        expect(res.body.incident.acknowledged).to.be.equal(true);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
     it('should resolve an incident and send email to users', async function() {
         const authorization = `Basic ${token}`;
-        const res = await request
-            .post(`/incident/${projectId}/resolve/${incidentId}`)
-            .set('Authorization', authorization)
-            .send({});
+        const res = await markIncidentAsResolved({
+            request,
+            authorization,
+            projectId,
+            incidentId,
+        });
         const date = moment().subtract(1, 'minutes');
         const emailStatus = await EmailStatusService.findBy({
             template: 'incident_resolved',
@@ -315,7 +325,7 @@ describe('Incident API', function() {
         });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
-        expect(res.body.resolved).to.be.equal(true);
+        expect(res.body.incident.resolved).to.be.equal(true);
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
@@ -412,11 +422,13 @@ describe('Incident API', function() {
                 type: 'internal',
                 incident_state: 'just test',
             });
-        internalMessageId = res.body._id;
+        internalMessageId = res.body.data[0]._id;
         expect(res).to.have.status(200);
-        expect(res.body.incidentId._id).to.be.equal(incidentId);
+        expect(res.body.data[0].incidentId._id.toString()).to.be.equal(
+            incidentId
+        );
         expect(res.body.type).to.be.equal('internal');
-        expect(res.body.incident_state).to.be.equal('just test');
+        expect(res.body.data[0].incident_state).to.be.equal('just test');
     });
 
     it('should update an investigation incident message', async function() {
@@ -447,6 +459,7 @@ describe('Incident API', function() {
                 id: internalMessageId,
                 incident_state: 'update',
             });
+
         expect(res).to.have.status(200);
         expect(res.body._id).to.be.equal(internalMessageId);
         expect(res.body.type).to.be.equal('internal');
@@ -463,6 +476,7 @@ describe('Incident API', function() {
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
             .set('Authorization', authorization);
+
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
@@ -493,7 +507,11 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
         expect(res.body.count).to.be.equal(1);
-        expect(res.body.data[0].type).to.be.equal(type);
+
+        const sameType = res.body.data.filter(function(e) {
+            return e.type === 'internal';
+        });
+        expect(sameType[0].type).to.be.equal(type);
     });
 
     it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function() {
@@ -779,23 +797,29 @@ describe('Incident API with Sub-Projects', function() {
 
     it('should acknowledge subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
-        const res = await request
-            .post(`/incident/${subProjectId}/acknowledge/${incidentId}`)
-            .set('Authorization', authorization)
-            .send({});
+        const res = await markSubprojectIncidentAsAcknowledged({
+            request,
+            authorization,
+            subProjectId,
+            incidentId,
+        });
+
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
-        expect(res.body.acknowledged).to.be.equal(true);
+        expect(res.body.incident.acknowledged).to.be.equal(true);
     });
 
     it('should resolve subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
-        const res = await request
-            .post(`/incident/${subProjectId}/resolve/${incidentId}`)
-            .set('Authorization', authorization)
-            .send({});
+        const res = await markSubprojectIncidentAsResolved({
+            request,
+            authorization,
+            subProjectId,
+            incidentId,
+        });
+
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
-        expect(res.body.resolved).to.be.equal(true);
+        expect(res.body.incident.resolved).to.be.equal(true);
     });
 });

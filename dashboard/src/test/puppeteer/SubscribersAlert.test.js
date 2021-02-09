@@ -163,7 +163,7 @@ describe('Subscribers Alert logs API', () => {
                 await page.click('#viewIncident-0');
                 await page.waitForSelector('#incident_0');
 
-                await page.waitFor(10000);
+                await page.waitForTimeout(10000);
                 await page.reload({ waitUntil: 'networkidle0' });
                 await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
                 await page.waitForSelector('#subscriberAlertTable tbody tr');

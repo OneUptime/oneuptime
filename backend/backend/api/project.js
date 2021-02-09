@@ -165,14 +165,9 @@ router.get('/projects', getUser, async function(req, res) {
     try {
         const userId = req.user ? req.user.id : null;
         // find user subprojects and parent projects
-        let userProjects = await ProjectService.findBy({
+        const userProjects = await ProjectService.findBy({
             'users.userId': userId,
         });
-        userProjects = userProjects.filter(project =>
-            project.users.find(
-                user => user.userId === userId && user.role !== 'Viewer'
-            )
-        );
         let parentProjectIds = [];
         let projectIds = [];
         if (userProjects.length > 0) {

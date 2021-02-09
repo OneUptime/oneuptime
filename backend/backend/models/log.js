@@ -6,6 +6,7 @@ const logSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'ApplicationLog',
         alias: 'applicationLog',
+        index: true,
     }, //which application log this content log belongs to.
     content: Object,
     stringifiedContent: String,
@@ -19,7 +20,7 @@ const logSchema = new Schema({
             type: String,
         },
     ],
-    createdById: { type: String, ref: 'User' }, //userId.
+    createdById: { type: String, ref: 'User', index: true }, //userId.
     createdAt: {
         type: Date,
         default: Date.now,
@@ -30,7 +31,7 @@ const logSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: String, ref: 'User', index: true },
 });
 
 logSchema.virtual('applicationLog', {

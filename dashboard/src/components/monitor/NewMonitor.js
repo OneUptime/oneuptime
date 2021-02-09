@@ -130,6 +130,7 @@ class NewMonitor extends Component {
                     type: CRITERIA_TYPES.DOWN.type,
                     id: uuid.v4(),
                     default: true,
+                    name: CRITERIA_TYPES.DOWN.name,
                 };
                 this.addCriterionFieldsToReduxForm(defaultDownCriterion);
                 criteria.push(defaultDownCriterion);
@@ -171,20 +172,11 @@ class NewMonitor extends Component {
         const { change } = this.props;
 
         /** @type {{bodyField:Object[] | undefined, createAlert:boolean, autoAcknowledge: boolean, autoResolve:boolean}} */
-        let criterionValues;
         const criterionFieldName = `${criterion.type}_${criterion.id}`;
         // add filter criteria if the criterion is not default
 
-        if (criterion.default) {
-            criterionValues = {
-                createAlert: false,
-                autoAcknowledge: false,
-                autoResolve: false,
-            };
-        } else {
-            criterionValues = this.getCriterionInitialValue(criterion.type);
-            change(criterionFieldName, criterionValues.bodyField);
-        }
+        const criterionValues = this.getCriterionInitialValue(criterion.type);
+        change(criterionFieldName, criterionValues.bodyField);
 
         change(`name_${criterionFieldName}`, criterion.name);
         change(
@@ -251,6 +243,15 @@ class NewMonitor extends Component {
                     initialCriterionValue.autoResolve =
                         initialValues.degraded_1000_autoResolve;
                     break;
+                default:
+                    initialCriterionValue.bodyField = initialValues.up_1000;
+                    initialCriterionValue.createAlert =
+                        initialValues.up_1000_createAlert;
+                    initialCriterionValue.autoAcknowledge =
+                        initialValues.up_1000_autoAcknowledge;
+                    initialCriterionValue.autoResolve =
+                        initialValues.up_1000_autoResolve;
+                    break;
             }
             return initialCriterionValue;
         } catch (error) {
@@ -291,7 +292,6 @@ class NewMonitor extends Component {
                 return (
                     acc +
                     (criterion.id !== criterionItem.id &&
-                    !criterionItem.default &&
                     criterion.type === criterionItem.type
                         ? 1
                         : 0)
@@ -1740,6 +1740,7 @@ class NewMonitor extends Component {
                                                                             this
                                                                                 .scriptTextChange
                                                                         }
+                                                                        fontSize="14px"
                                                                     />
                                                                 </span>
                                                             </span>
@@ -2343,52 +2344,119 @@ class NewMonitor extends Component {
 
                                                                 {criteria.length ===
                                                                     0 && (
-                                                                    <div
-                                                                        className="bs-ContentSection Card-root Card-shadow--clear Padding-all--16 Margin-vertical--16"
-                                                                        style={{
-                                                                            borderRadius:
-                                                                                '0',
-                                                                            boxShadow:
-                                                                                'none',
-                                                                        }}
-                                                                    >
-                                                                        <div className="Margin-bottom--16">
-                                                                            <span className="Text-fontSize--15">
-                                                                                There
-                                                                                are
-                                                                                no
-                                                                                {` ${criterionType.type.toLowerCase()} `}
-                                                                                criteria
-                                                                                specified
-                                                                                for
-                                                                                this
-                                                                                monitor
-                                                                                event
-                                                                            </span>
-                                                                        </div>
-                                                                        <button
-                                                                            className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
-                                                                            type="button"
-                                                                            onClick={() =>
-                                                                                this.addCriterion(
-                                                                                    {
-                                                                                        type:
-                                                                                            criterionType.type,
-                                                                                        id: uuid.v4(),
-                                                                                    }
-                                                                                )
-                                                                            }
+                                                                    <div>
+                                                                        <div
+                                                                            className="bs-ContentSection Card-root Card-shadow--clear Padding-all--16 Margin-vertical--16"
+                                                                            style={{
+                                                                                borderRadius:
+                                                                                    '0',
+                                                                                boxShadow:
+                                                                                    'none',
+                                                                                display:
+                                                                                    'flex',
+                                                                                justifyContent:
+                                                                                    'space-between',
+                                                                                alignContent:
+                                                                                    'center',
+                                                                            }}
                                                                         >
-                                                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                                                <span>
-                                                                                    {`Add ${criterionType.type[0].toUpperCase()}${criterionType.type
-                                                                                        .substr(
-                                                                                            1
+                                                                            <div className="Margin-bottom--16">
+                                                                                <span
+                                                                                    style={{
+                                                                                        display:
+                                                                                            'inline-block',
+                                                                                        borderRadius:
+                                                                                            '2px',
+                                                                                        height:
+                                                                                            '8px',
+                                                                                        width:
+                                                                                            '8px',
+                                                                                        margin:
+                                                                                            '0 8px 1px 0',
+                                                                                        backgroundColor:
+                                                                                            criterionType.type ===
+                                                                                            'up'
+                                                                                                ? 'rgb(117, 211, 128)'
+                                                                                                : 'rgb(255, 222, 36)',
+                                                                                    }}
+                                                                                ></span>
+                                                                                <span className="Text-fontSize--16 Text-fontWeight--medium">
+                                                                                    Monitor{' '}
+                                                                                    {`${criterionType.type
+                                                                                        .charAt(
+                                                                                            0
                                                                                         )
-                                                                                        .toLocaleLowerCase()} Criteria`}
+                                                                                        .toUpperCase() +
+                                                                                        criterionType.type.slice(
+                                                                                            1
+                                                                                        )}`}{' '}
+                                                                                    Criteria
                                                                                 </span>
-                                                                            </span>
-                                                                        </button>
+                                                                                <p>
+                                                                                    <span className="Margin-left--16">
+                                                                                        This
+                                                                                        is
+                                                                                        where
+                                                                                        you
+                                                                                        describe
+                                                                                        when
+                                                                                        your
+                                                                                        monitor
+                                                                                        is
+                                                                                        considered
+                                                                                        {` ${criterionType.type.toLowerCase()}`}
+                                                                                    </span>
+                                                                                </p>
+                                                                            </div>
+                                                                            <button
+                                                                                className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
+                                                                                id="Add-Criteria-Button"
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    this.addCriterion(
+                                                                                        {
+                                                                                            type:
+                                                                                                criterionType.type,
+                                                                                            id: uuid.v4(),
+                                                                                        }
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                    <span>
+                                                                                        {`Add ${criterionType.type[0].toUpperCase()}${criterionType.type
+                                                                                            .substr(
+                                                                                                1
+                                                                                            )
+                                                                                            .toLocaleLowerCase()} Criteria`}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </button>
+                                                                        </div>
+                                                                        <div className="bs-ContentSection-content Box-root Box-background--offset  Padding-horizontal--8 Padding-vertical--16">
+                                                                            <p className="Flex-flex Flex-justifyContent--center Text-fontSize--15">
+                                                                                You
+                                                                                do
+                                                                                not
+                                                                                have
+                                                                                any
+                                                                                Monitor{' '}
+                                                                                {`${criterionType.type
+                                                                                    .charAt(
+                                                                                        0
+                                                                                    )
+                                                                                    .toUpperCase() +
+                                                                                    criterionType.type.slice(
+                                                                                        1
+                                                                                    )}`}{' '}
+                                                                                Criteria,
+                                                                                feel
+                                                                                free
+                                                                                to
+                                                                                add
+                                                                                one
+                                                                            </p>
+                                                                        </div>
                                                                     </div>
                                                                 )}
                                                             </div>

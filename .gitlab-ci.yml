@@ -100,7 +100,7 @@ include:
   - '/ci/spec/zapier/build-n-test.yaml'
 
   # E2E
-  - '/ci/spec/e2e/docker-compose-entreprise-test.yaml'
+  - '/ci/spec/e2e/docker-compose-enterprise-test.yaml'
   - '/ci/spec/e2e/docker-compose-test.yaml'
   - '/ci/spec/e2e/kubernetes-enterprise-test.yaml'
   - '/ci/spec/e2e/kubernetes-test.yaml'
@@ -124,3 +124,5 @@ include:
   - '/ci/spec/java-sdk/build-n-test.yaml'
   - '/ci/spec/java-sdk/deploy.yaml'
 
+  # HARAKA
+  - '/ci/spec/haraka/deploy.yaml'

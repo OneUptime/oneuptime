@@ -1,0 +1,59 @@
+# DEPLOYMENT STAGE - Haraka
+deploy_staging_haraka:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - chmod +x ./ci/scripts/version-setup.sh
+        - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/deployment-setup.sh
+        - ./ci/scripts/deployment-setup.sh
+        - chmod +x ./ci/scripts/deployment-staging-setup.sh
+        - ./ci/scripts/deployment-staging-setup.sh
+        # Build and deploy haraka.
+        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker build --build-arg PORT="2525" ./haraka -t fyipeproject/haraka:master
+        - sudo docker tag fyipeproject/haraka:master fyipeproject/haraka:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/haraka:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/haraka:master
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-haraka fi-haraka=fyipeproject/haraka:3.0.$CI_PIPELINE_IID
+        # Cleanup
+        - chmod +x ./ci/scripts/deployment-cleanup.sh
+        - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - master
+            - hotfix-master
+    environment:
+        name: staging
+
+deploy_production_haraka:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - chmod +x ./ci/scripts/version-setup.sh
+        - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/deployment-setup.sh
+        - ./ci/scripts/deployment-setup.sh
+        - chmod +x ./ci/scripts/deployment-production-setup.sh
+        - ./ci/scripts/deployment-production-setup.sh
+        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker build --build-arg PORT="2525" ./haraka -t fyipeproject/haraka:latest
+        - sudo docker tag fyipeproject/haraka:latest fyipeproject/haraka:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/haraka:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/haraka:latest
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-haraka fi-haraka=fyipeproject/haraka:3.0.$CI_PIPELINE_IID
+        # Cleanup
+        - chmod +x ./ci/scripts/deployment-cleanup.sh
+        - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
+            - hotfix-release
+    environment:
+        name: production

@@ -36,7 +36,7 @@ const createSso = async (page, data) => {
     await page.type('#ipRanges', data.ipRanges);
 
     await page.click('#save-button');
-    await page.waitFor(2000);
+    await page.waitForTimeout(2000);
 };
 
 describe('SSO API', () => {
@@ -179,7 +179,7 @@ describe('SSO API', () => {
                 await page.type('#domain', 'updated.test.hackerbay.io');
                 await page.click('#save-button');
 
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
 
                 const tbody = await page.$eval('tbody', e => {
                     return e.innerHTML;
@@ -232,7 +232,7 @@ describe('SSO API', () => {
                 await page.waitForSelector('#confirmDelete');
                 await page.click('#confirmDelete');
 
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
 
                 const ssoCountAfterDeletion = await page.$eval(
                     '#sso-count',
@@ -306,7 +306,7 @@ describe('SSO API', () => {
                 );
 
                 await page.click('#next-button');
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
 
                 const secondPageTbody = await page.$eval('tbody', e => {
                     return e.innerHTML;
@@ -319,7 +319,7 @@ describe('SSO API', () => {
                 );
 
                 await page.click('#previous-button');
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
 
                 const initalPageTbody = await page.$eval('tbody', e => {
                     return e.innerHTML;

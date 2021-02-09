@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
-import { FormLoader } from '../basic/Loader';
+import { FormLoader2 } from '../basic/Loader';
 
 class ErrorEventIssueMember extends Component {
     componentDidMount() {
@@ -206,7 +206,7 @@ class ErrorEventIssueMember extends Component {
                                                                                                         .props
                                                                                                         .deleting
                                                                                                 }
-                                                                                                className="bs-Button bs-Button--blue"
+                                                                                                className="bs-Button"
                                                                                                 type="button"
                                                                                                 onClick={() =>
                                                                                                     this.manageMemberInIssue(
@@ -224,7 +224,7 @@ class ErrorEventIssueMember extends Component {
                                                                                                         .userId
                                                                                                 ]
                                                                                                     .requesting ? (
-                                                                                                    <FormLoader />
+                                                                                                    <FormLoader2 />
                                                                                                 ) : (
                                                                                                     <span>
                                                                                                         {this.isTeamMemberAssigned(

@@ -38,6 +38,7 @@ const ssoSchema = new Schema({
     deletedById: {
         type: String,
         ref: 'User',
+        index: true,
     },
 });
 

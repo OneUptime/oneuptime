@@ -5,6 +5,25 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     require('custom-env').env();
 }
 
+process.on('exit', () => {
+    /* eslint-disable no-console */
+    console.log('Probe Shutting Shutdown');
+});
+
+process.on('unhandledRejection', err => {
+    /* eslint-disable no-console */
+    console.error('Unhandled rejection in probe process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
+process.on('uncaughtException', err => {
+    /* eslint-disable no-console */
+    console.error('Uncaught exception in probe process occurred');
+    /* eslint-disable no-console */
+    console.error(err);
+});
+
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);

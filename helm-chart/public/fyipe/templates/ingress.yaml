@@ -47,6 +47,10 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "status"  }}
               servicePort: 80
+          - path: /haraka
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "haraka"  }}
+              servicePort: 80
           {{- range $probeKey, $probeValue := $.Values.probes }}
           - path: {{ printf "/%s" $probeKey }}
             backend:
