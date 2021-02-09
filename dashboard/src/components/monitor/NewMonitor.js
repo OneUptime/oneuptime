@@ -2287,9 +2287,23 @@ class NewMonitor extends Component {
                                                     ).map(criterionType => {
                                                         const criteria = [
                                                             ...this.state.criteria.filter(
-                                                                criterion =>
-                                                                    criterion.type ===
-                                                                    criterionType.type
+                                                                criterion => {
+                                                                    if (
+                                                                        criterionType.type ===
+                                                                            criterion.type &&
+                                                                        type ===
+                                                                            'ip' &&
+                                                                        criterionType.type ===
+                                                                            'degraded'
+                                                                    )
+                                                                        return false;
+                                                                    else {
+                                                                        return (
+                                                                            criterionType.type ===
+                                                                            criterion.type
+                                                                        );
+                                                                    }
+                                                                }
                                                             ),
                                                         ];
                                                         return (
