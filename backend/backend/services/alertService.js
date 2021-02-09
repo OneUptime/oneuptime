@@ -722,8 +722,8 @@ module.exports = {
                         : null,
                 incidentId: `#${incident.idNumber}`,
                 reason: incident.reason
-                    ? incident.reason
-                    : `This incident was created by ${incidentcreatedBy}`,
+                    ? incident.reason.split('\n')
+                    : [`This incident was created by ${incidentcreatedBy}`],
                 view_url,
                 method:
                     monitor.data && monitor.data.url
@@ -1676,6 +1676,7 @@ module.exports = {
                     downtime / 60
                 )} hours ${Math.floor(downtime % 60)} minutes`;
             }
+
             await MailService.sendIncidentAcknowledgedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
@@ -1683,10 +1684,11 @@ module.exports = {
                     monitor && monitor.data && monitor.data.url
                         ? monitor.data.url
                         : null,
+
                 incidentId: `#${incident.idNumber}`,
                 reason: incident.reason
-                    ? incident.reason
-                    : `This incident was created by ${incidentcreatedBy}`,
+                    ? incident.reason.split('\n')
+                    : [`This incident was created by ${incidentcreatedBy}`],
                 view_url,
                 method:
                     monitor.data && monitor.data.url
@@ -1709,6 +1711,13 @@ module.exports = {
                     !incident.manuallyCreated && incident.criterionCause
                         ? incident.criterionCause.name
                         : '',
+                acknowledgedBy: incident.acknowledgedByZapier
+                    ? 'Zapier'
+                    : incident.acknowledgedByIncomingHttpRequest
+                    ? 'Incoming HTTP Request'
+                    : incident.acknowledgedBy && incident.acknowledgedBy.name
+                    ? incident.acknowledgedBy.name
+                    : 'Unknown User',
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -1983,8 +1992,8 @@ module.exports = {
                         : null,
                 incidentId: `#${incident.idNumber}`,
                 reason: incident.reason
-                    ? incident.reason
-                    : `This incident was created by ${incidentcreatedBy}`,
+                    ? incident.reason.split('\n')
+                    : [`This incident was created by ${incidentcreatedBy}`],
                 view_url,
                 method:
                     monitor.data && monitor.data.url
@@ -2006,6 +2015,13 @@ module.exports = {
                     !incident.manuallyCreated && incident.criterionCause
                         ? incident.criterionCause.name
                         : '',
+                resolvedBy: incident.resolvedByZapier
+                    ? 'Zapier'
+                    : incident.resolvedByIncomingHttpRequest
+                    ? 'Incoming HTTP Request'
+                    : incident.resolvedBy
+                    ? incident.resolvedBy.name
+                    : 'Unknown User',
             });
             return await _this.create({
                 projectId: incident.projectId,
