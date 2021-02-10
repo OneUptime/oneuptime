@@ -157,6 +157,7 @@ describe('Enterprise Dashboard API', () => {
                 await page.$('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
+                await page.waitForTimeout(3000)
 
                 let spanElement;
                 spanElement = await page.$(
