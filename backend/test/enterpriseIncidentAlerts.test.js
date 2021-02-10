@@ -81,10 +81,10 @@ describe('Incident Alerts', function () {
                     .send({
                       componentId,
                       projectId,
-                      type: "device",
+                      type: "ip",
                       name: "test monitor ",
-                      data: { deviceId: "abcdef" },
-                      deviceId: "abcdef",
+                      data: { IPAddress: "216.58.223.196" }, // www.google.com
+                     // deviceId: "abcdef", IOT device has been replaced with IP
                       criteria: {},
                     })
                   monitorId = monitor.body._id;
@@ -200,6 +200,7 @@ describe('Incident Alerts', function () {
           incidentType: "offline",
           description: 'Incident description',
         });
+        
       expect(incidentCreationEndpointResponse).to.have.status(200);
 
       const { _id: incidentId } = incidentCreationEndpointResponse.body
@@ -207,7 +208,6 @@ describe('Incident Alerts', function () {
       const incidentResolveEndpointResponse = await request
         .post(`/incident/${projectId}/resolve/${incidentId}`)
         .set('Authorization', authorization);
-
       expect(incidentResolveEndpointResponse).to.have.status(200);
 
       await sleep(10 * 1000);
