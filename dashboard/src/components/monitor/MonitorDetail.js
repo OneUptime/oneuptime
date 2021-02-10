@@ -251,9 +251,6 @@ export class MonitorDetail extends Component {
             case 'manual':
                 badgeColor = 'red';
                 break;
-            case 'device':
-                badgeColor = 'green';
-                break;
             default:
                 badgeColor = 'blue';
                 break;
@@ -323,7 +320,8 @@ export class MonitorDetail extends Component {
                                     <ShouldRender if={monitor && monitor.type}>
                                         {monitor.type === 'url' ||
                                         monitor.type === 'api' ||
-                                        monitor.type === 'script' ? (
+                                        monitor.type === 'script' ||
+                                        monitor.type === 'ip' ? (
                                             <ShouldRender
                                                 if={
                                                     probes && !probes.length > 0
@@ -464,24 +462,6 @@ export class MonitorDetail extends Component {
                             />
                         </div>
                         <div>
-                            {monitor.type === 'device' && (
-                                <button
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--eye"
-                                    type="button"
-                                    onClick={() =>
-                                        this.props.openModal({
-                                            id: monitor._id,
-                                            onClose: () => '',
-                                            content: DataPathHoC(
-                                                MonitorUrl,
-                                                monitor
-                                            ),
-                                        })
-                                    }
-                                >
-                                    <span>Show URL</span>
-                                </button>
-                            )}
                             <button
                                 className={
                                     creating && activeIncident === monitor._id
@@ -553,7 +533,6 @@ export class MonitorDetail extends Component {
                     <ShouldRender
                         if={
                             monitor.type !== 'manual' &&
-                            monitor.type !== 'device' &&
                             !(
                                 !monitor.agentlessConfig &&
                                 monitor.type === 'server-monitor'
@@ -613,7 +592,8 @@ export class MonitorDetail extends Component {
                 {monitor && monitor.type ? (
                     monitor.type === 'url' ||
                     monitor.type === 'api' ||
-                    monitor.type === 'script' ? (
+                    monitor.type === 'script' ||
+                    monitor.type === 'ip' ? (
                         <div>
                             <ShouldRender if={probes && probes.length > 0}>
                                 {monitor && probes && probes.length < 2 ? (

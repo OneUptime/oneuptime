@@ -194,6 +194,20 @@ let RenderMonitor = ({
                                             disabled={!shouldEdit}
                                         />
                                     )}
+                                    {type === 'ip' && (
+                                        <Fragment>
+                                            <Checkbox
+                                                label="Uptime"
+                                                name={`${monitor}.uptime`}
+                                                disabled={!shouldEdit}
+                                            />
+                                            <Checkbox
+                                                label="Response Time"
+                                                name={`${monitor}.responseTime`}
+                                                disabled={!shouldEdit}
+                                            />
+                                        </Fragment>
+                                    )}
                                     {type === 'server-monitor' && (
                                         <Fragment>
                                             <Checkbox
@@ -222,13 +236,6 @@ let RenderMonitor = ({
                                                 disabled={!shouldEdit}
                                             />
                                         </Fragment>
-                                    )}
-                                    {type === 'device' && (
-                                        <Checkbox
-                                            label="Uptime"
-                                            name={`${monitor}.uptime`}
-                                            disabled={!shouldEdit}
-                                        />
                                     )}
                                     {type === 'api' && (
                                         <Fragment>

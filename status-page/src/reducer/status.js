@@ -857,7 +857,7 @@ export default (state = INITIAL_STATE, action) => {
                             const isValidProbe =
                                 (monitor.type === 'url' ||
                                     monitor.type === 'api' ||
-                                    monitor.type === 'device') &&
+                                    monitor.type === 'ip') &&
                                 probes &&
                                 probes.length > 0;
 

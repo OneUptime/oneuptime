@@ -363,15 +363,14 @@ class NewMonitor extends Component {
             postObj.data.description =
                 values[`description_${this.props.index}`] || null;
 
-        if (postObj.type === 'device')
-            postObj.data.deviceId = values[`deviceId_${this.props.index}`];
-
         if (postObj.type === 'url' || postObj.type === 'api')
             postObj.data.url = values[`url_${this.props.index}`];
 
         if (postObj.type === 'script') {
             postObj.data.script = thisObj.state.script;
         }
+        if (postObj.type === 'ip')
+            postObj.data.IPAddress = values[`ip_${this.props.index}`];
 
         if (
             postObj.type === 'server-monitor' &&
@@ -401,7 +400,8 @@ class NewMonitor extends Component {
             postObj.type === 'api' ||
             postObj.type === 'server-monitor' ||
             postObj.type === 'script' ||
-            postObj.type === 'incomingHttpRequest'
+            postObj.type === 'incomingHttpRequest' ||
+            postObj.type === 'ip'
         ) {
             // collect and organize all criteria data
             const criteria = { up: [], down: [], degraded: [] };
@@ -801,12 +801,12 @@ class NewMonitor extends Component {
                     'data:image/svg+xml;base64,PHN2ZyBpZD0iX3gzMV9weCIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMjQgMjQiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSI1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTE5LjUgMjRoLTE1Yy0xLjM3OCAwLTIuNS0xLjEyMi0yLjUtMi41di0xOWMwLTEuMzc4IDEuMTIyLTIuNSAyLjUtMi41aDE1YzEuMzc4IDAgMi41IDEuMTIyIDIuNSAyLjV2MTljMCAxLjM3OC0xLjEyMiAyLjUtMi41IDIuNXptLTE1LTIzYy0uODI3IDAtMS41LjY3My0xLjUgMS41djE5YzAgLjgyNy42NzMgMS41IDEuNSAxLjVoMTVjLjgyNyAwIDEuNS0uNjczIDEuNS0xLjV2LTE5YzAtLjgyNy0uNjczLTEuNS0xLjUtMS41eiIvPjxwYXRoIGQ9Im04LjUgMTZjLS4xNjIgMC0uMzItLjA3OC0uNDE3LS4yMjNsLTItM2MtLjExMi0uMTY4LS4xMTItLjM4NyAwLS41NTVsMi0zYy4xNTItLjIzLjQ2Mi0uMjkyLjY5My0uMTM5LjIzLjE1My4yOTIuNDYzLjEzOS42OTNsLTEuODE0IDIuNzI0IDEuODE1IDIuNzIzYy4xNTMuMjMuMDkxLjU0LS4xMzkuNjkzLS4wODUuMDU3LS4xODEuMDg0LS4yNzcuMDg0eiIvPjxwYXRoIGQ9Im0xNS41IDE2Yy0uMDk1IDAtLjE5MS0uMDI3LS4yNzctLjA4NC0uMjMtLjE1My0uMjkyLS40NjMtLjEzOS0uNjkzbDEuODE1LTIuNzIzLTEuODE1LTIuNzIzYy0uMTUzLS4yMy0uMDkxLS41NC4xMzktLjY5M3MuNTQtLjA5Mi42OTMuMTM5bDIgM2MuMTEyLjE2OC4xMTIuMzg3IDAgLjU1NWwtMiAzYy0uMDk2LjE0NC0uMjU1LjIyMi0uNDE2LjIyMnoiLz48cGF0aCBkPSJtMTAuNSAxN2MtLjA1OSAwLS4xMTgtLjAxLS4xNzYtLjAzMi0uMjU4LS4wOTctLjM4OS0uMzg1LS4yOTItLjY0NGwzLThjLjA5Ny0uMjU5LjM4NS0uMzg4LjY0NC0uMjkyLjI1OC4wOTcuMzg5LjM4NS4yOTIuNjQ0bC0zIDhjLS4wNzUuMi0uMjY2LjMyNC0uNDY4LjMyNHoiLz48L3N2Zz4=',
             },
             {
-                value: 'device',
-                label: 'IoT Device',
+                value: 'ip',
+                label: 'IP',
                 description:
-                    'Monitor IoT devices constantly and notify your team when they do not behave the way you want.',
+                    'Monitor routers, IoT devices, or any device which has an IP address.',
                 icon:
-                    'data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgNDgwLjA2NSA0ODAuMDY1IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQ4MC4wNjUgNDgwLjA2NSIgd2lkdGg9IjUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtMjI1Ljg4OCAyODMuODVjMCA3LjgxNyA2LjMyNSAxNC4xNDQgMTQuMTQ0IDE0LjE0NCA3LjgxNyAwIDE0LjE0NC02LjMyNSAxNC4xNDQtMTQuMTQ0IDAtNy44MTctNi4zMjUtMTQuMTQ1LTE0LjE0NC0xNC4xNDUtNy44MTcuMDAxLTE0LjE0NCA2LjMyNi0xNC4xNDQgMTQuMTQ1em00MC0yNS44NTZjLTE0LjI1Ny0xNC4yNTctMzcuNDU1LTE0LjI1Ny01MS43MTIgMC0zLjEyNCAzLjEyNC04LjE4OSAzLjEyNC0xMS4zMTMgMC0zLjEyNS0zLjEyNC0zLjEyNS04LjE4OSAwLTExLjMxMyAyMC40OTUtMjAuNDk1IDUzLjg0NC0yMC40OTUgNzQuMzM5IDAgNS4wNTYgNS4wNTUgMS40MDUgMTMuNjU3LTUuNjU3IDEzLjY1Ny0yLjA0Ny0uMDAxLTQuMDk1LS43ODItNS42NTctMi4zNDR6bTMwLjA4LTMwLjA4Yy0zMC45MTYtMzAuOTE2LTgwLjk1NC0zMC45MTgtMTExLjg3MiAwLTMuMTI0IDMuMTI0LTguMTg5IDMuMTI0LTExLjMxMyAwLTMuMTI1LTMuMTI0LTMuMTI1LTguMTg5IDAtMTEuMzEzIDM3LjE2OC0zNy4xNjkgOTcuMzI3LTM3LjE3MyAxMzQuNDk5IDAgNS4wNTYgNS4wNTUgMS40MDUgMTMuNjU3LTUuNjU3IDEzLjY1Ny0yLjA0OC0uMDAxLTQuMDk1LS43ODEtNS42NTctMi4zNDR6bS01NS45MzYtMTAzLjg4MmMtNjMuOTYyIDAtMTE2IDUyLjAzOC0xMTYgMTE2czUyLjAzOCAxMTYgMTE2IDExNmM0Ny45NzYgMCA5MS41OTktMzAuMTQzIDEwOC41NTEtNzUuMDA2IDEuNTYyLTQuMTMyIDYuMTc3LTYuMjE5IDEwLjMxMS00LjY1NiA0LjEzMyAxLjU2MiA2LjIxOCA2LjE3OCA0LjY1NiAxMC4zMTEtMTkuMDUgNTAuNDE3LTY3LjUyNiA4NS4zNTEtMTIzLjUxOCA4NS4zNTEtNzIuNzg1IDAtMTMyLTU5LjIxNS0xMzItMTMyczU5LjIxNS0xMzIgMTMyLTEzMiAxMzIgNTkuMjE1IDEzMiAxMzJjMCA0LjQxOC0zLjU4MiA4LTggOHMtOC0zLjU4Mi04LThjMC02My45NjMtNTIuMDM3LTExNi0xMTYtMTE2em0tMTg3LjM1NSAyMzguODE1Yy00OC44NjYtNzQuMzMzLTQ4LjkzMi0xNzEuMjAxLS4wMDEtMjQ1LjYzMiAzMS4wNzkgMTguOTA5IDcxLjM1Ny0zLjUyNiA3MS4zNTctNDAuMTg0IDAtOC45MS0yLjQ5Mi0xNy4yNDktNi44MTYtMjQuMzU3IDY0LjgwMi00Mi42MDIgMTQ2LjM1Ni00Ny45MSAyMTUuMDM0LTE2Ljg0MyA0LjAyNiAxLjgyMiA4Ljc2Ni4wMzQgMTAuNTg2LTMuOTkyIDEuODIxLTQuMDI2LjAzNC04Ljc2Ni0zLjk5Mi0xMC41ODYtNzQuMTkyLTMzLjU2LTE2Mi40MTktMjcuNTUyLTIzMi4yNDkgMTkuMjc1LTguMDgxLTYuNTU3LTE4LjM2OS0xMC40OTctMjkuNTYzLTEwLjQ5Ny0zOS41NzggMC02MS4yMzkgNDYuMDc4LTM2LjUwMyA3Ni41NjMtNTQuMDI0IDgwLjU2Ni01NC4wNTQgMTg2LjI2NCAwIDI2Ni44NzUtMjQuNzM2IDMwLjQ4Ni0zLjA3NiA3Ni41NjMgMzYuNTAzIDc2LjU2MyAyNS45MTYgMCA0Ny0yMS4wODQgNDctNDctLjAwMS0zNi42NzMtNDAuMjkzLTU5LjA4MS03MS4zNTYtNDAuMTg1em0yNC4zNTUtMzE2LjgxNWMxNy4wOTMgMCAzMSAxMy45MDcgMzEgMzFzLTEzLjkwNyAzMS0zMSAzMS0zMS0xMy45MDctMzEtMzEgMTMuOTA3LTMxIDMxLTMxem0wIDM4OGMtMTcuMDkzIDAtMzEtMTMuOTA3LTMxLTMxczEzLjkwNy0zMSAzMS0zMSAzMSAxMy45MDcgMzEgMzEtMTMuOTA2IDMxLTMxIDMxem0zNjIuNTAzLTMyNy40MzhjMjQuNzM2LTMwLjQ4MyAzLjA3OC03Ni41NjMtMzYuNTAzLTc2LjU2My0yNS45MTYgMC00NyAyMS4wODQtNDcgNDcgMCAzNi42NzQgNDAuMjk0IDU5LjA4MiA3MS4zNTYgNDAuMTg0IDQ4Ljg2NCA3NC4zMjggNDguOTMxIDE3MS4yMDIgMCAyNDUuNjMyLTMxLjA3OS0xOC45MDgtNzEuMzU2IDMuNTI2LTcxLjM1NiA0MC4xODQgMCA4LjkxIDIuNDkyIDE3LjI0OCA2LjgxNiAyNC4zNTUtNjUuNjQzIDQzLjE1My0xNDguNTQ1IDQ4LjEwNi0yMTcuOTQ3IDE1LjUwMS00LTEuODc4LTguNzY0LS4xNi0xMC42NDMgMy44MzlzLS4xNiA4Ljc2NCAzLjgzOSAxMC42NDNjNzUuMDk0IDM1LjI3OSAxNjQuNzgzIDI5LjQ5OSAyMzUuMzczLTE3LjgzNCAzMC40ODYgMjQuNzM2IDc2LjU2MiAzLjA3NCA3Ni41NjItMzYuNTAzIDAtMTEuMTk0LTMuOTQtMjEuNDgxLTEwLjQ5Ny0yOS41NjMgNTQuMDI1LTgwLjU2NSA1NC4wNTUtMTg2LjI2NSAwLTI2Ni44NzV6bS02Ny41MDMtMjkuNTYyYzAtMTcuMDkzIDEzLjkwNy0zMSAzMS0zMXMzMSAxMy45MDcgMzEgMzEtMTMuOTA3IDMxLTMxIDMxLTMxLTEzLjkwNy0zMS0zMXptMzEgMzU3Yy0xNy4wOTMgMC0zMS0xMy45MDctMzEtMzFzMTMuOTA3LTMxIDMxLTMxIDMxIDEzLjkwNyAzMSAzMS0xMy45MDYgMzEtMzEgMzF6Ii8+PC9zdmc+',
+                    'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjUxMnB0IiB2aWV3Qm94PSItNDEgMCA1MTIgNTEyIiB3aWR0aD0iNTEycHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTM2Ny4yNjU2MjUgNjMuMDExNzE5Yy00MC42MzI4MTMtNDAuNjMyODEzLTk0LjY2MDE1Ni02My4wMTE3MTktMTUyLjEyNS02My4wMTE3MTktNTcuNDY4NzUgMC0xMTEuNDkyMTg3IDIyLjM3ODkwNi0xNTIuMTI4OTA2IDYzLjAxMTcxOS00MC42MzI4MTMgNDAuNjM2NzE5LTYzLjAxMTcxOSA5NC42NjQwNjItNjMuMDExNzE5IDE1Mi4xMjg5MDYgMCA1MC4yNSAxNy43MDMxMjUgOTkuMTUyMzQ0IDQ5Ljg0NzY1NiAxMzcuNjk5MjE5di4wMDM5MDZjOC4xNzk2ODggOS44MDQ2ODggMTcuMjgxMjUgMTguOTMzNTk0IDI3LjA2MjUgMjcuMTQ0NTMxbDEyNy42MDkzNzUgMTI3LjYxMzI4MWMyLjkzMzU5NCAyLjkzMzU5NCA2Ljc3NzM0NCA0LjM5ODQzOCAxMC42MjEwOTQgNC4zOTg0MzhzNy42ODc1LTEuNDY0ODQ0IDEwLjYxNzE4Ny00LjM5ODQzOGwxMjcuNjEzMjgyLTEyNy42MTMyODFjOS43ODEyNS04LjIxMDkzNyAxOC44ODI4MTItMTcuMzM5ODQzIDI3LjA1ODU5NC0yNy4xNDg0MzcgMzIuMTQ4NDM3LTM4LjU0Njg3NSA0OS44NTE1NjItODcuNDQ5MjE5IDQ5Ljg1MTU2Mi0xMzcuNjk5MjE5IDAtNTcuNDY0ODQ0LTIyLjM3ODkwNi0xMTEuNDkyMTg3LTYzLjAxNTYyNS0xNTIuMTI4OTA2em0tMzQuNjYwMTU2IDI5NS4yNjU2MjUtMTE3LjQ2NDg0NCAxMTcuNDY0ODQ0LTExNy40NjQ4NDQtMTE3LjQ2NDg0NGMtLjMyMDMxMi0uMzE2NDA2LS42NTIzNDMtLjYyNS0xLS45MTQwNjMtOC41OTc2NTYtNy4xNjc5NjktMTYuNTg5ODQzLTE1LjE2MDE1Ni0yMy43NjE3MTktMjMuNzU3ODEyLTI3LjY0ODQzNy0zMy4xNTYyNS00Mi44Nzg5MDYtNzUuMjMwNDY5LTQyLjg3ODkwNi0xMTguNDY0ODQ0IDAtMTAyLjA2NjQwNiA4My4wMzkwNjMtMTg1LjEwNTQ2OSAxODUuMTA1NDY5LTE4NS4xMDU0NjlzMTg1LjEwNTQ2OSA4My4wMzkwNjMgMTg1LjEwNTQ2OSAxODUuMTA1NDY5YzAgNDMuMjM0Mzc1LTE1LjIzMDQ2OSA4NS4zMDQ2ODctNDIuODgyODEzIDExOC40NjQ4NDQtNy4xNjc5NjkgOC41OTc2NTYtMTUuMTY0MDYyIDE2LjU4OTg0My0yMy43NTc4MTIgMjMuNzU3ODEyLS4zNDc2NTcuMjg5MDYzLS42Nzk2ODguNTk3NjU3LTEgLjkxNDA2M3ptMCAwIi8+PHBhdGggZD0ibTI2Mi4xNTYyNSAxNjUuODc1aC01My4zMzk4NDRjLTguMjkyOTY4IDAtMTUuMDE5NTMxIDYuNzIyNjU2LTE1LjAxOTUzMSAxNS4wMTU2MjV2OTIuOTg4MjgxYzAgOC4yOTY4NzUgNi43MjY1NjMgMTUuMDE5NTMyIDE1LjAxOTUzMSAxNS4wMTk1MzIgOC4yOTI5NjkgMCAxNS4wMTk1MzItNi43MjI2NTcgMTUuMDE5NTMyLTE1LjAxOTUzMnYtMzEuNDc2NTYyaDM4LjMyMDMxMmMyMS4xMDE1NjIgMCAzOC4yNjU2MjUtMTcuMTY0MDYzIDM4LjI2NTYyNS0zOC4yNjU2MjUgMC0yMS4wOTc2NTctMTcuMTY0MDYzLTM4LjI2MTcxOS0zOC4yNjU2MjUtMzguMjYxNzE5em0wIDQ2LjQ5MjE4OGgtMzguMzIwMzEydi0xNi40NTcwMzJoMzguMzIwMzEyYzQuNTM5MDYyIDAgOC4yMzA0NjkgMy42OTE0MDYgOC4yMzA0NjkgOC4yMzA0NjkgMCA0LjUzNTE1Ni0zLjY5MTQwNyA4LjIyNjU2My04LjIzMDQ2OSA4LjIyNjU2M3ptMCAwIi8+PHBhdGggZD0ibTE2NC4zODY3MTkgMTY1Ljg3NWMtOC4yOTI5NjkgMC0xNS4wMTk1MzEgNi43MjI2NTYtMTUuMDE5NTMxIDE1LjAxNTYyNXY5Mi45ODgyODFjMCA4LjI5Njg3NSA2LjcyNjU2MiAxNS4wMTk1MzIgMTUuMDE5NTMxIDE1LjAxOTUzMnMxNS4wMTk1MzEtNi43MjI2NTcgMTUuMDE5NTMxLTE1LjAxOTUzMnYtOTIuOTg4MjgxYzAtOC4yOTI5NjktNi43MjY1NjItMTUuMDE1NjI1LTE1LjAxOTUzMS0xNS4wMTU2MjV6bTAgMCIvPjwvc3ZnPg==',
             },
         ];
 
@@ -948,7 +948,7 @@ class NewMonitor extends Component {
                                                                             this
                                                                                 .state
                                                                                 .showAllMonitors
-                                                                                ? 7
+                                                                                ? 8
                                                                                 : 4
                                                                         )
                                                                         .map(
@@ -1586,6 +1586,39 @@ class NewMonitor extends Component {
                                                     </div>
                                                 </ShouldRender>
                                                 <ShouldRender
+                                                    if={type === 'ip'}
+                                                >
+                                                    {this.renderMonitorConfiguration(
+                                                        'IP Monitor'
+                                                    )}
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
+                                                            IP Address
+                                                        </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name={`ip_${this.props.index}`}
+                                                                id="IPAddress"
+                                                                placeholder="192.168.1.1"
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                validate={
+                                                                    ValidateField.required
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
                                                     if={
                                                         type ===
                                                         'incomingHttpRequest'
@@ -1653,40 +1686,6 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-                                                {type === 'device' && (
-                                                    <div>
-                                                        {this.renderMonitorConfiguration(
-                                                            'IOT Device'
-                                                        )}
-                                                        <div className="nm-Fieldset-row">
-                                                            <label className="bs-Fieldset-label" />
-                                                            <label className="new-monitor-label">
-                                                                Device ID
-                                                            </label>
-                                                        </div>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label" />
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderField
-                                                                    }
-                                                                    type="deviceId"
-                                                                    name={`deviceId_${this.props.index}`}
-                                                                    id="deviceId"
-                                                                    placeholder="of234dfgqwe"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    validate={
-                                                                        ValidateField.required
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
                                                 <ShouldRender
                                                     if={type === 'script'}
                                                 >
@@ -2215,7 +2214,8 @@ class NewMonitor extends Component {
                                                                 'server-monitor' ||
                                                             type === 'script' ||
                                                             type ===
-                                                                'incomingHttpRequest') &&
+                                                                'incomingHttpRequest' ||
+                                                            type === 'ip') &&
                                                         !this.state.advance
                                                     }
                                                 >
@@ -2264,7 +2264,8 @@ class NewMonitor extends Component {
                                                                 'server-monitor' ||
                                                             type === 'script' ||
                                                             type ===
-                                                                'incomingHttpRequest')
+                                                                'incomingHttpRequest' ||
+                                                            type === 'ip')
                                                     }
                                                 >
                                                     <ShouldRender
@@ -2286,9 +2287,23 @@ class NewMonitor extends Component {
                                                     ).map(criterionType => {
                                                         const criteria = [
                                                             ...this.state.criteria.filter(
-                                                                criterion =>
-                                                                    criterion.type ===
-                                                                    criterionType.type
+                                                                criterion => {
+                                                                    if (
+                                                                        criterionType.type ===
+                                                                            criterion.type &&
+                                                                        type ===
+                                                                            'ip' &&
+                                                                        criterionType.type ===
+                                                                            'degraded'
+                                                                    )
+                                                                        return false;
+                                                                    else {
+                                                                        return (
+                                                                            criterionType.type ===
+                                                                            criterion.type
+                                                                        );
+                                                                    }
+                                                                }
                                                             ),
                                                         ];
                                                         return (
