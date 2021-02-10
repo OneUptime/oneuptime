@@ -15,6 +15,8 @@ import EditNoteModal from './EditNoteModal';
 import {
     fetchScheduledEventNotesInternal,
     fetchScheduledEventNotesInvestigation,
+    nextPage,
+    prevPage,
 } from '../../actions/scheduledEvent';
 
 export class ScheduledEventNote extends Component {
@@ -78,6 +80,7 @@ export class ScheduledEventNote extends Component {
                 this.limit,
                 skip ? Number(skip) - this.limit : this.limit
             );
+            this.props.prevPage(scheduledEventId + 'internal');
         }
 
         if (type.toLowerCase() === 'investigation') {
@@ -87,6 +90,7 @@ export class ScheduledEventNote extends Component {
                 this.limit,
                 skip ? Number(skip) - this.limit : this.limit
             );
+            this.props.prevPage(scheduledEventId + 'investigation');
         }
     };
 
@@ -107,6 +111,7 @@ export class ScheduledEventNote extends Component {
                 this.limit,
                 skip ? Number(skip) + this.limit : this.limit
             );
+            this.props.nextPage(scheduledEventId + 'internal');
         }
 
         if (type.toLowerCase() === 'investigation') {
@@ -116,6 +121,7 @@ export class ScheduledEventNote extends Component {
                 this.limit,
                 skip ? Number(skip) + this.limit : this.limit
             );
+            this.props.nextPage(scheduledEventId + 'investigation');
         }
     };
 
@@ -123,7 +129,13 @@ export class ScheduledEventNote extends Component {
         const { type, count, notes, skip, limit } = this.props;
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
-
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const page =
+            type.toLowerCase() === 'investigation'
+                ? this.props.pages[
+                      this.props.scheduledEventId + 'investigation'
+                  ]
+                : this.props.pages[this.props.scheduledEventId + 'internal'];
         return (
             <div className="Box-root">
                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -420,9 +432,13 @@ export class ScheduledEventNote extends Component {
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                {count
-                                    ? count + (count > 1 ? ' Notes' : ' Note')
-                                    : '0 Notes'}
+                                {numberOfPages > 0
+                                    ? `Page ${
+                                          !page ? 1 : page
+                                      } of ${numberOfPages} (${count} Note${
+                                          count === 1 ? '' : 's'
+                                      })`
+                                    : `${count} Note${count === 1 ? '' : 's'}`}
                             </span>
                         </span>
                     </div>
@@ -491,6 +507,12 @@ ScheduledEventNote.propTypes = {
     fetchScheduledEventNotesInvestigation: PropTypes.func,
     skip: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     limit: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    prevPage: PropTypes.func,
+    nextPage: PropTypes.func,
+    pages: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 const mapDispatchToProps = dispatch =>
@@ -499,8 +521,15 @@ const mapDispatchToProps = dispatch =>
             openModal,
             fetchScheduledEventNotesInternal,
             fetchScheduledEventNotesInvestigation,
+            prevPage,
+            nextPage,
         },
         dispatch
     );
+const mapStateToProps = state => {
+    return {
+        pages: state.scheduledEvent.pages,
+    };
+};
 
-export default connect(null, mapDispatchToProps)(ScheduledEventNote);
+export default connect(mapStateToProps, mapDispatchToProps)(ScheduledEventNote);
