@@ -130,6 +130,7 @@ class RoutingNumberModal extends React.Component {
             fetchNumber && fetchNumber.numbers && fetchNumber.numbers.price
                 ? fetchNumber.numbers.price
                 : 'Not available';
+        const countryCodes = countryCode();
         return (
             <div
                 className="ModalLayer-contents"
@@ -155,7 +156,7 @@ class RoutingNumberModal extends React.Component {
                             <form>
                                 <div className="bs-Modal-content">
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                        <fieldset className="Margin-bottom--16">
+                                        <fieldset>
                                             <div className="bs-Fieldset-rows">
                                                 <div
                                                     className="bs-Fieldset-row"
@@ -168,12 +169,7 @@ class RoutingNumberModal extends React.Component {
                                                         <span>Country</span>
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <div
-                                                            className="bs-Fieldset-field"
-                                                            style={{
-                                                                width: '250px',
-                                                            }}
-                                                        >
+                                                        <div className="bs-Fieldset-field">
                                                             <Field
                                                                 component={
                                                                     RenderSelect
@@ -192,35 +188,31 @@ class RoutingNumberModal extends React.Component {
                                                                 validate={
                                                                     ValidateField.select
                                                                 }
-                                                                options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select country',
-                                                                    },
-                                                                    ...(Object.keys(
-                                                                        countryCode
-                                                                    ) &&
-                                                                    Object.keys(
-                                                                        countryCode
-                                                                    ).length > 0
-                                                                        ? Object.keys(
-                                                                              countryCode
-                                                                          ).map(
-                                                                              cc => ({
-                                                                                  value: cc,
+                                                                options={
+                                                                    countryCodes &&
+                                                                    countryCodes.length >
+                                                                        0
+                                                                        ? countryCodes
+                                                                        : [
+                                                                              {
+                                                                                  value:
+                                                                                      '',
                                                                                   label:
-                                                                                      countryCode[
-                                                                                          cc
-                                                                                      ],
-                                                                              })
-                                                                          )
-                                                                        : []),
-                                                                ]}
+                                                                                      'Select a country',
+                                                                              },
+                                                                          ]
+                                                                }
                                                                 className="db-select-nw db-MultiSelect-input"
                                                             />
                                                         </div>
+                                                        <p className="bs-Fieldset-explanation">
+                                                            <span>
+                                                                Pick a country
+                                                                to get number
+                                                                registered in
+                                                                that country.
+                                                            </span>
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -288,6 +280,13 @@ class RoutingNumberModal extends React.Component {
                                                                 className="db-select-nw db-MultiSelect-input"
                                                             />
                                                         </div>
+                                                        <p className="bs-Fieldset-explanation">
+                                                            <span>
+                                                                Type of phone
+                                                                number
+                                                                local/Mobile/TollFree.
+                                                            </span>
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
