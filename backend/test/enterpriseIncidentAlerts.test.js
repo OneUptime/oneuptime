@@ -199,8 +199,7 @@ describe('Incident Alerts', function () {
           title: "test monitor  is offline.",
           incidentType: "offline",
           description: 'Incident description',
-        });
-        
+        }); 
       expect(incidentCreationEndpointResponse).to.have.status(200);
 
       const { _id: incidentId } = incidentCreationEndpointResponse.body
@@ -208,6 +207,7 @@ describe('Incident Alerts', function () {
       const incidentResolveEndpointResponse = await request
         .post(`/incident/${projectId}/resolve/${incidentId}`)
         .set('Authorization', authorization);
+        
       expect(incidentResolveEndpointResponse).to.have.status(200);
 
       await sleep(10 * 1000);
