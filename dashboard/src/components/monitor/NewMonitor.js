@@ -59,9 +59,7 @@ import { history } from '../../store';
 import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../../actions/monitorSla';
 import { UploadFile } from '../basic/UploadFile';
-import CRITERIA_TYPES, {
-    KUBERNETES_CRITERIA_TYPES,
-} from '../../constants/CRITERIA_TYPES';
+import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 import ScheduleInput from '../schedule/ScheduleInput';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
@@ -84,7 +82,19 @@ class NewMonitor extends Component {
             authentication: props.edit
                 ? props.editMonitorProp.authentication
                 : props.authentication,
-            criteria: props.currentMonitorCriteria || [],
+            criteria:
+                (props.currentMonitorCriteria &&
+                    props.currentMonitorCriteria.filter(cr => {
+                        if (
+                            props.type == 'kubernetes' &&
+                            cr.type === 'degraded' &&
+                            !props.edit
+                        ) {
+                            return false;
+                        }
+                        return true;
+                    })) ||
+                [],
             tabValidity: {
                 up: true,
                 degraded: true,
@@ -144,18 +154,25 @@ class NewMonitor extends Component {
 
                 [CRITERIA_TYPES.UP, CRITERIA_TYPES.DEGRADED].forEach(
                     criterion => {
-                        const id = uuid.v4();
+                        if (
+                            this.props.type === 'kubernetes' &&
+                            criterion.type === 'degraded'
+                        ) {
+                            // do nothing
+                        } else {
+                            const id = uuid.v4();
 
-                        const newCriterion = {
-                            id,
-                            type: criterion.type,
-                            name:
-                                CRITERIA_TYPES[criterion.type.toUpperCase()]
-                                    .name,
-                        };
-                        criteria.push(newCriterion);
+                            const newCriterion = {
+                                id,
+                                type: criterion.type,
+                                name:
+                                    CRITERIA_TYPES[criterion.type.toUpperCase()]
+                                        .name,
+                            };
+                            criteria.push(newCriterion);
 
-                        this.addCriterionFieldsToReduxForm(newCriterion);
+                            this.addCriterionFieldsToReduxForm(newCriterion);
+                        }
                     }
                 );
 
@@ -400,10 +417,17 @@ class NewMonitor extends Component {
             }
         }
 
-        if (postObj.type === 'kubernetes') {
+        if (postObj.type === 'kubernetes' && !this.props.edit) {
             postObj.kubernetesConfig = this.props.configurationFile;
             postObj.kubernetesNamespace =
                 values[`kubernetesNamespace_${this.props.index}`];
+        }
+        if (
+            postObj.type === 'kubernetes' &&
+            this.props.edit &&
+            this.props.configurationFile
+        ) {
+            postObj.kubernetesConfig = this.props.configurationFile;
         }
 
         if (postObj.type === 'incomingHttpRequest')
@@ -419,73 +443,58 @@ class NewMonitor extends Component {
         ) {
             // collect and organize all criteria data
             const criteria = { up: [], down: [], degraded: [] };
-            this.state.criteria
-                .filter(cr => {
+            this.state.criteria.forEach(criterion => {
+                const criterionData = {};
+
+                const criterionFieldName = `${criterion.type}_${criterion.id}`;
+
+                // add conditions only if the criterion isn't a default one
+                if (criterion.default) {
+                    criterionData.default = true;
+                } else {
+                    const conditions = makeCriteria(
+                        values[`${criterionFieldName}`]
+                    );
+
+                    // pass the criterion if no 'and' and 'or' conditions are set
                     if (
-                        postObj.type === 'kubernetes' &&
-                        cr.type === 'degraded'
+                        conditions.and.length === 0 &&
+                        conditions.or.length === 0
                     ) {
-                        return false;
-                    }
-                    return true;
-                })
-                .forEach(criterion => {
-                    const criterionData = {};
-
-                    const criterionFieldName = `${criterion.type}_${criterion.id}`;
-
-                    // add conditions only if the criterion isn't a default one
-                    if (criterion.default) {
-                        criterionData.default = true;
-                    } else {
-                        const conditions = makeCriteria(
-                            values[`${criterionFieldName}`]
-                        );
-
-                        // pass the criterion if no 'and' and 'or' conditions are set
-                        if (
-                            conditions.and.length === 0 &&
-                            conditions.or.length === 0
-                        ) {
-                            return;
-                        }
-
-                        criterionData.and = conditions.and;
-                        criterionData.or = conditions.or;
+                        return;
                     }
 
-                    const criterionSchedules =
-                        values[`criterion_${criterion.id}_schedules`];
-                    const schedules = criterionSchedules
-                        ? criterionSchedules
-                              .filter(scheduleObject => {
-                                  return (
-                                      Object.values(scheduleObject)[0] === true
-                                  );
-                              })
-                              .map(
-                                  scheduleObject =>
-                                      Object.keys(scheduleObject)[0]
-                              )
-                        : [];
+                    criterionData.and = conditions.and;
+                    criterionData.or = conditions.or;
+                }
 
-                    criterionData.scheduleIds = schedules;
-                    criterionData.name = values[`name_${criterionFieldName}`];
-                    criterionData.createAlert =
-                        values[`createAlert_${criterionFieldName}`];
-                    criterionData.autoAcknowledge =
-                        values[`autoAcknowledge_${criterionFieldName}`];
-                    criterionData.autoResolve =
-                        values[`autoResolve_${criterionFieldName}`];
-                    criterionData.title =
-                        values[`incidentTitle_${criterionFieldName}`];
-                    criterionData.description =
-                        values[`incidentDescription_${criterionFieldName}`];
+                const criterionSchedules =
+                    values[`criterion_${criterion.id}_schedules`];
+                const schedules = criterionSchedules
+                    ? criterionSchedules
+                          .filter(scheduleObject => {
+                              return Object.values(scheduleObject)[0] === true;
+                          })
+                          .map(scheduleObject => Object.keys(scheduleObject)[0])
+                    : [];
 
-                    if (Array.isArray(criteria[criterion.type])) {
-                        criteria[criterion.type].push(criterionData);
-                    }
-                });
+                criterionData.scheduleIds = schedules;
+                criterionData.name = values[`name_${criterionFieldName}`];
+                criterionData.createAlert =
+                    values[`createAlert_${criterionFieldName}`];
+                criterionData.autoAcknowledge =
+                    values[`autoAcknowledge_${criterionFieldName}`];
+                criterionData.autoResolve =
+                    values[`autoResolve_${criterionFieldName}`];
+                criterionData.title =
+                    values[`incidentTitle_${criterionFieldName}`];
+                criterionData.description =
+                    values[`incidentDescription_${criterionFieldName}`];
+
+                if (Array.isArray(criteria[criterion.type])) {
+                    criteria[criterion.type].push(criterionData);
+                }
+            });
             postObj.criteria = criteria;
         }
         if (postObj.type === 'api') {
@@ -2477,7 +2486,9 @@ class NewMonitor extends Component {
                                                                 'server-monitor' ||
                                                             type === 'script' ||
                                                             type ===
-                                                                'incomingHttpRequest')
+                                                                'incomingHttpRequest' ||
+                                                            type ===
+                                                                'kubernetes')
                                                     }
                                                 >
                                                     <ShouldRender
@@ -2625,188 +2636,15 @@ class NewMonitor extends Component {
                                                                                 className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
                                                                                 id="Add-Criteria-Button"
                                                                                 type="button"
-                                                                                onClick={() =>
+                                                                                onClick={() => {
                                                                                     this.addCriterion(
                                                                                         {
                                                                                             type:
                                                                                                 criterionType.type,
                                                                                             id: uuid.v4(),
                                                                                         }
-                                                                                    )
-                                                                                }
-                                                                            >
-                                                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                                                    <span>
-                                                                                        {`Add ${criterionType.type[0].toUpperCase()}${criterionType.type
-                                                                                            .substr(
-                                                                                                1
-                                                                                            )
-                                                                                            .toLocaleLowerCase()} Criteria`}
-                                                                                    </span>
-                                                                                </span>
-                                                                            </button>
-                                                                        </div>
-                                                                        <div className="bs-ContentSection-content Box-root Box-background--offset  Padding-horizontal--8 Padding-vertical--16">
-                                                                            <p className="Flex-flex Flex-justifyContent--center Text-fontSize--15">
-                                                                                You
-                                                                                do
-                                                                                not
-                                                                                have
-                                                                                any
-                                                                                Monitor{' '}
-                                                                                {`${criterionType.type
-                                                                                    .charAt(
-                                                                                        0
-                                                                                    )
-                                                                                    .toUpperCase() +
-                                                                                    criterionType.type.slice(
-                                                                                        1
-                                                                                    )}`}{' '}
-                                                                                Criteria,
-                                                                                feel
-                                                                                free
-                                                                                to
-                                                                                add
-                                                                                one
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </ShouldRender>
-                                                <ShouldRender
-                                                    if={
-                                                        this.state.advance &&
-                                                        type === 'kubernetes'
-                                                    }
-                                                >
-                                                    {Object.values(
-                                                        KUBERNETES_CRITERIA_TYPES
-                                                    ).map(criterionType => {
-                                                        const criteria = [
-                                                            ...this.state.criteria.filter(
-                                                                criterion =>
-                                                                    criterion.type ===
-                                                                    criterionType.type
-                                                            ),
-                                                        ];
-                                                        return (
-                                                            <div
-                                                                key={
-                                                                    criterionType.type
-                                                                }
-                                                            >
-                                                                {[
-                                                                    criteria.map(
-                                                                        (
-                                                                            criterion,
-                                                                            index
-                                                                        ) => {
-                                                                            return (
-                                                                                <ResponseComponent
-                                                                                    key={
-                                                                                        index
-                                                                                    }
-                                                                                    type={
-                                                                                        this
-                                                                                            .state
-                                                                                            .type
-                                                                                    }
-                                                                                    addCriterion={data =>
-                                                                                        this.addCriterion(
-                                                                                            data
-                                                                                        )
-                                                                                    }
-                                                                                    removeCriterion={id =>
-                                                                                        this.removeCriterion(
-                                                                                            id
-                                                                                        )
-                                                                                    }
-                                                                                    criterion={
-                                                                                        criterion
-                                                                                    }
-                                                                                    schedules={
-                                                                                        this
-                                                                                            .props
-                                                                                            .schedules
-                                                                                    }
-                                                                                    edit={
-                                                                                        this
-                                                                                            .props
-                                                                                            .edit
-                                                                                    }
-                                                                                />
-                                                                            );
-                                                                        }
-                                                                    ),
-                                                                ]}
-
-                                                                {criteria.length ===
-                                                                    0 && (
-                                                                    <div>
-                                                                        <div
-                                                                            className="bs-ContentSection Card-root Card-shadow--clear Padding-all--16 Margin-vertical--16"
-                                                                            style={{
-                                                                                borderRadius:
-                                                                                    '0',
-                                                                                boxShadow:
-                                                                                    'none',
-                                                                                display:
-                                                                                    'flex',
-                                                                                justifyContent:
-                                                                                    'space-between',
-                                                                                alignContent:
-                                                                                    'center',
-                                                                            }}
-                                                                        >
-                                                                            <div className="Margin-bottom--16">
-                                                                                <span
-                                                                                    style={{
-                                                                                        display:
-                                                                                            'inline-block',
-                                                                                        borderRadius:
-                                                                                            '2px',
-                                                                                        height:
-                                                                                            '8px',
-                                                                                        width:
-                                                                                            '8px',
-                                                                                        margin:
-                                                                                            '0 8px 1px 0',
-                                                                                        backgroundColor:
-                                                                                            criterionType.type ===
-                                                                                            'up'
-                                                                                                ? 'rgb(117, 211, 128)'
-                                                                                                : 'rgb(255, 222, 36)',
-                                                                                    }}
-                                                                                ></span>
-                                                                                <span className="Text-fontSize--16 Text-fontWeight--medium">
-                                                                                    Monitor{' '}
-                                                                                    {`${criterionType.type
-                                                                                        .charAt(
-                                                                                            0
-                                                                                        )
-                                                                                        .toUpperCase() +
-                                                                                        criterionType.type.slice(
-                                                                                            1
-                                                                                        )}`}{' '}
-                                                                                    Criteria
-                                                                                </span>
-                                                                            </div>
-                                                                            <button
-                                                                                className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
-                                                                                id="Add-Criteria-Button"
-                                                                                type="button"
-                                                                                onClick={() =>
-                                                                                    this.addCriterion(
-                                                                                        {
-                                                                                            type:
-                                                                                                criterionType.type,
-                                                                                            id: uuid.v4(),
-                                                                                        }
-                                                                                    )
-                                                                                }
+                                                                                    );
+                                                                                }}
                                                                             >
                                                                                 <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                                                                                     <span>
