@@ -234,7 +234,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncident: async function (incident, subscription) {
+    sendCreatedIncident: async function(incident, subscription) {
         try {
             if (incident) {
                 const _this = this;
@@ -245,7 +245,7 @@ module.exports = {
                     _this.sendAlertsToTeamMembersInSchedule({
                         schedule,
                         incident,
-                        subscription
+                        subscription,
                     });
                 }
             }
@@ -255,7 +255,11 @@ module.exports = {
         }
     },
 
-    sendAlertsToTeamMembersInSchedule: async function ({ schedule, incident, subscription }) {
+    sendAlertsToTeamMembersInSchedule: async function({
+        schedule,
+        incident,
+        subscription,
+    }) {
         const _this = this;
         const monitorId = incident.monitorId._id
             ? incident.monitorId._id
@@ -267,6 +271,18 @@ module.exports = {
 
         if (!schedule || !incident) {
             return;
+        }
+
+        // storing the subscription in the DB
+        if (typeof subscription === 'object') {
+            IncidentService.updateOneBy(
+                {
+                    _id: incident._id,
+                },
+                {
+                    subscription,
+                }
+            );
         }
 
         //scheudle has no escalations. Skip.
@@ -294,7 +310,7 @@ module.exports = {
                 callRemindersSent: 0,
                 emailRemindersSent: 0,
                 smsRemindersSent: 0,
-                pushRemindersSent: 0
+                pushRemindersSent: 0,
             };
 
             //create new onCallScheduleStatus
@@ -333,10 +349,13 @@ module.exports = {
             emailProgress: null,
             smsProgress: null,
             callProgress: null,
+            pushProgress: null,
         };
         const emailRem = currentEscalationStatus.emailRemindersSent + 1;
         const smsRem = currentEscalationStatus.smsRemindersSent + 1;
         const callRem = currentEscalationStatus.callRemindersSent + 1;
+        const pushRem = currentEscalationStatus.pushRemindersSent + 1;
+
         if (emailRem > 1) {
             alertProgress.emailProgress = {
                 current: emailRem,
@@ -355,6 +374,13 @@ module.exports = {
             alertProgress.smsProgress = {
                 current: smsRem,
                 total: escalation.smsReminders,
+            };
+        }
+
+        if (pushRem > 1) {
+            alertProgress.pushProgress = {
+                current: pushRem,
+                total: escalation.pushReminders,
             };
         }
 
@@ -390,7 +416,12 @@ module.exports = {
         }
     },
 
-    escalate: async function({ schedule, incident, subscription, alertProgress }) {
+    escalate: async function({
+        schedule,
+        incident,
+        subscription,
+        alertProgress,
+    }) {
         const _this = this;
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
@@ -595,7 +626,7 @@ module.exports = {
                         alertProgress: alertProgress.smsProgress,
                     });
                 }
-                if (escalation.sms && shouldSendSMSReminder) {
+                if (escalation.push && shouldSendPushReminder) {
                     await _this.create({
                         projectId: incident.projectId,
                         monitorId,
@@ -664,46 +695,94 @@ module.exports = {
                     await _this.sendPushAlert({
                         incident,
                         user,
-                        project,
                         monitor,
                         schedule,
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
-                        subscription
+                        subscription,
+                        pushProgress: alertProgress.pushProgress,
                     });
                 }
             }
         }
     },
 
-    sendPushAlert: async function ({
+    sendPushAlert: async function({
         incident,
         user,
-        project,
         monitor,
         schedule,
         escalation,
         onCallScheduleStatus,
         eventType,
-        subscription
+        subscription,
+        pushProgress,
     }) {
-        const vapidKeys = {
-            privateKey: "8aXTsH48-cegK-xBApLxxOezCOZIjaWpg81Dny2zbio",
-            publicKey: "BFAPbOTTU14VbTe_dnoYlVnOPLKUNm8GYmC50n3i4Ps64sk1Xqx8e894Clrscn1L2PsQ8-l4SsJVw7NRg4cx69Y"
-        };
+        const _this = this;
+        let pushMessage;
+        if (!subscription) {
+            const findIncident = await IncidentService.findOneBy({
+                _id: incident._id,
+            });
+            subscription = findIncident.subscription;
+        }
 
-        webpush.setVapidDetails("mailto:augustine.igwe@hackerbay.io", vapidKeys.publicKey, vapidKeys.privateKey);
+        webpush.setVapidDetails(
+            process.env.WEBPUSH_EMAIL,
+            process.env.VAPID_PUBLIC_KEY,
+            process.env.VAPID_PRIVATE_KEY
+        );
+
+        if (pushProgress) {
+            pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
+        } else {
+            pushMessage = '';
+        }
+
         // Create payload
-        const payload = JSON.stringify({ title: "Push Test" });
+        const title = `${pushMessage}Incident #${incident.idNumber} is created`;
+        const body = `Please acknowledge or resolve this incident on Fyipe Dashboard.`;
+        const payload = JSON.stringify({ title, body });
 
         // Pass object into sendNotification
         webpush
             .sendNotification(subscription, payload)
-            .catch(err => console.error(err));
+            .then(async () => {
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId: monitor._id,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: `${AlertType.Push} Notification`,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    eventType,
+                    alertStatus: 'Success',
+                    alertProgress: pushProgress,
+                });
+            })
+            .catch(async e => {
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId: monitor._id,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: `${AlertType.Push} Notification`,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    eventType,
+                    alertStatus: 'Cannot Send',
+                    error: true,
+                    errorMessage: e.message,
+                    alertProgress: pushProgress,
+                });
+            });
     },
 
-    sendEmailAlert: async function ({
+    sendEmailAlert: async function({
         incident,
         user,
         project,
@@ -3293,8 +3372,9 @@ const {
     INCIDENT_ACKNOWLEDGED,
 } = require('../constants/incidentEvents');
 const componentService = require('./componentService');
-const webpush = require("web-push");
+const webpush = require('web-push');
 const {
     calculateHumanReadableDownTime,
     getIncidentLength,
 } = require('../utils/incident');
+const IncidentService = require('./incidentService');
