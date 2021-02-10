@@ -72,6 +72,16 @@ router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
     }
 });
 
+router.get('/:projectId/logs', getUser, isAuthorized, async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const logs = await CallRoutingService.getCallRoutingLogs(projectId);
+        return sendItemResponse(req, res, logs);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get(
     '/:projectId/routingNumbers',
     getUser,
