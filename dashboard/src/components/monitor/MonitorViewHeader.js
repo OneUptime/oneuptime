@@ -335,7 +335,6 @@ export class MonitorViewHeader extends Component {
                         <ShouldRender
                             if={
                                 monitor.type !== 'manual' &&
-                                monitor.type !== 'device' &&
                                 !(
                                     !monitor.agentlessConfig &&
                                     monitor.type === 'server-monitor'

@@ -54,5 +54,5 @@ replicaCount: 1
 encryptionKey: pg#K^C$-)IGOg6DYXDGq2jdmfws0MiR7
 
 haraka:
-  user: "noreply@fyipe.com"
-  password: "tX8z_bDEcRdRHnyKxAHYEQk_B"
+    user: 'noreply@fyipe.com'
+    password: 'tX8z_bDEcRdRHnyKxAHYEQk_B'
