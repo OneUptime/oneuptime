@@ -451,7 +451,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 data.response = rawResp;
             }
             if (type === 'kubernetes') {
-                data = kubernetesData;
+                data = { kubernetesData };
 
                 const {
                     stat: validUp,
@@ -462,7 +462,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     ? ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.up,
-                          data
+                          data.kubernetesData
                       )
                     : { stat: false, successReasons: [], failedReasons: [] });
 
@@ -477,7 +477,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     ? ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.degraded,
-                          data
+                          data.kubernetesData
                       )
                     : { stat: false, successReasons: [], failedReasons: [] });
 
@@ -494,7 +494,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                                   criterion => criterion.default !== true
                               ),
                           ],
-                          data
+                          data.kubernetesData
                       )
                     : { stat: false, successReasons: [], failedReasons: [] });
 
