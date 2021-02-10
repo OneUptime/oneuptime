@@ -21,6 +21,8 @@ const isLocalhost = Boolean(
         )
 );
 
+let registerService;
+
 export function register(config) {
     if ('serviceWorker' in navigator) {
         // The URL constructor is available in all browsers that support SW.
@@ -34,6 +36,19 @@ export function register(config) {
 
         window.addEventListener('load', () => {
             const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
+            const pushSW = `${process.env.PUBLIC_URL}/sw.js`;
+
+            navigator.serviceWorker
+                .register(pushSW, { scope: `${process.env.PUBLIC_URL}/` })
+                .then(registration => {
+                    registerService = registration;
+                })
+                .catch(err => {
+                    console.log(
+                        'Error ocurred while registering this service worker: ',
+                        err
+                    );
+                });
 
             if (isLocalhost) {
                 // This is running on localhost. Let's check if a service worker still exists or not.
@@ -46,6 +61,7 @@ export function register(config) {
                             'worker. To learn more, visit https://bit.ly/CRA-PWA'
                     );
                 });
+                registerValidSW(swUrl, config);
             } else {
                 // Is not localhost. Just register service worker
                 registerValidSW(swUrl, config);
@@ -116,7 +132,10 @@ function registerValidSW(swUrl, config) {
             };
         })
         .catch(error => {
-            console.error('Error during service worker registration: ', error);
+            console.error(
+                'response Error during service worker registration: ',
+                error
+            );
         });
 }
 
@@ -131,20 +150,24 @@ function checkValidServiceWorker(swUrl, config) {
                 (contentType != null &&
                     contentType.indexOf('javascript') === -1)
             ) {
+                console.log(
+                    'This registers the sw file for the push notification'
+                );
                 // No service worker found. Probably a different app. Reload the page.
-                navigator.serviceWorker.ready.then(registration => {
-                    registration.unregister().then(() => {
-                        window.location.reload();
-                    });
-                });
+                // navigator.serviceWorker.ready.then(registration => {
+                //     registration.unregister().then(() => {
+                // window.location.reload();
+                //     });
+                // });
             } else {
                 // Service worker found. Proceed as normal.
                 registerValidSW(swUrl, config);
             }
         })
-        .catch(() => {
+        .catch(err => {
             console.log(
-                'No internet connection found. App is running in offline mode.'
+                'No internet connection found. App is running in offline mode.',
+                err
             );
         });
 }
@@ -157,26 +180,4 @@ export function unregister() {
     }
 }
 
-// function registerServiceWorker() {
-//     return navigator.serviceWorker.register("/sw.js");
-// }
-
-// async function askUserPermission() {
-//     return await Notification.requestPermission();
-// }
-
-// function isPushNotificationSupported() {
-//     return "serviceWorker" in navigator && "PushManager" in window;
-// }
-
-// console.log('isPushNotificationSupported', isPushNotificationSupported())
-
-// askUserPermission().then(consent => {
-//     console.log('consent', consent)
-// })
-
-// registerServiceWorker();
-
-// export {
-//     askUserPermission
-// }
+export { registerService };
