@@ -29,5 +29,6 @@ const monitorLogByHourSchema = new Schema({
     maxStorageUsed: Number,
     maxMainTemp: Number,
     sslCertificate: Object,
+    kubernetesLog: Object,
 });
 module.exports = mongoose.model('MonitorLogByHour', monitorLogByHourSchema);
