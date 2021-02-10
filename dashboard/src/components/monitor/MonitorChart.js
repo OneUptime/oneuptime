@@ -715,10 +715,10 @@ export function MonitorChart({
     } else if (type === 'kubernetes') {
         monitorInfo = (
             <>
-                <div className="db-Trend">
-                    <div className="block-chart-side line-chart">
-                        <div className="db-TrendRow">
-                            {isCurrentlyNotMonitoring ? (
+                {isCurrentlyNotMonitoring ? (
+                    <div className="db-Trend">
+                        <div className="block-chart-side line-chart">
+                            <div className="db-TrendRow">
                                 <div className="db-Trend-colInformation probe-offline">
                                     <div
                                         className="db-Trend-rowTitle"
@@ -745,41 +745,22 @@ export function MonitorChart({
                                         </div>
                                     </div>
                                 </div>
-                            ) : (
-                                <>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="db-Trend">
+                            <div className="block-chart-side line-chart">
+                                <div className="db-TrendRow">
                                     <div className="db-Trend-colInformation">
                                         <div
                                             className="db-Trend-rowTitle"
-                                            title="Monitor Status"
+                                            title="All Pods"
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Monitor Status
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
-                                                    <span
-                                                        id={`monitor-status-${monitor.name}`}
-                                                        className={`chart-font Text-color--${statusColor}`}
-                                                    >
-                                                        {monitorStatus}
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="db-Trend-colInformation">
-                                        <div
-                                            className="db-Trend-rowTitle"
-                                            title="Uptime Stats"
-                                        >
-                                            <div className="db-Trend-title">
-                                                <span className="chart-font">
-                                                    Uptime Stats
+                                                    All Pods
                                                 </span>
                                             </div>
                                         </div>
@@ -788,22 +769,452 @@ export function MonitorChart({
                                                 <span>
                                                     {' '}
                                                     <span className="chart-font">
-                                                        {uptime} %
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .podData
+                                                                  .podStat
+                                                                  .totalPods
+                                                            : 0}
                                                     </span>
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
-                                </>
-                            )}
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Healthy Pods"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Healthy Pods
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .podData
+                                                                  .podStat
+                                                                  .healthy
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Unhealthy Pods"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Unhealthy Pods
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .podData
+                                                                  .podStat
+                                                                  .unhealthy
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="block-chart-main line-chart">
+                                <AreaChart
+                                    type={type}
+                                    data={data}
+                                    name={'pod'}
+                                    symbol={'%'}
+                                />
+                            </div>
                         </div>
-                    </div>
-                    <ShouldRender if={block && block.length > 0}>
-                        <div className="block-chart-main">
-                            <div className="block-chart">{block}</div>
+                        <div className="db-Trend">
+                            <div className="block-chart-side line-chart">
+                                <div className="db-TrendRow">
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="All Jobs"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    All Jobs
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .jobData
+                                                                  .jobStat
+                                                                  .totalJobs
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Running Jobs"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Running Jobs
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .jobData
+                                                                  .jobStat
+                                                                  .runningJobs
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Succeeded Jobs"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Succeeded Jobs
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .jobData
+                                                                  .jobStat
+                                                                  .succeededJobs
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Failed Jobs"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Failed Jobs
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .jobData
+                                                                  .jobStat
+                                                                  .failedJobs
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="block-chart-main line-chart">
+                                <AreaChart
+                                    type={type}
+                                    data={data}
+                                    name={'job'}
+                                    symbol={'%'}
+                                />
+                            </div>
                         </div>
-                    </ShouldRender>
-                </div>
+                        <div className="db-Trend">
+                            <div className="block-chart-side line-chart">
+                                <div className="db-TrendRow">
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="All Deployments"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    All Deployments
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .deploymentData
+                                                                  .allDeployments
+                                                                  .length
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Ready Deployments"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Ready Deployments
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .deploymentData
+                                                                  .readyDeployment
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Desired Deployment"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Desired Deployment
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .deploymentData
+                                                                  .desiredDeployment
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="block-chart-main line-chart">
+                                <AreaChart
+                                    type={type}
+                                    data={data}
+                                    name={'deployment'}
+                                    symbol={'%'}
+                                />
+                            </div>
+                        </div>
+                        <div className="db-Trend">
+                            <div className="block-chart-side line-chart">
+                                <div className="db-TrendRow">
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="All Statefulset"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    All Statefulset
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .statefulsetData
+                                                                  .allStatefulset
+                                                                  .length
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Ready Statefulset"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Ready Statefulset
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .statefulsetData
+                                                                  .readyStatefulsets
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Desired Statefulset"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Desired Statefulset
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .statefulsetData
+                                                                  .desiredStatefulsets
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="block-chart-main line-chart">
+                                <AreaChart
+                                    type={type}
+                                    data={data}
+                                    name={'statefulset'}
+                                    symbol={'%'}
+                                />
+                            </div>
+                        </div>
+                        <div className="db-Trend">
+                            <div className="block-chart-side line-chart">
+                                <div className="db-TrendRow">
+                                    <div className="db-Trend-colInformation">
+                                        <div
+                                            className="db-Trend-rowTitle"
+                                            title="Running Services"
+                                        >
+                                            <div className="db-Trend-title">
+                                                <span className="chart-font">
+                                                    Running Services
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-row">
+                                            <div className="db-Trend-col db-Trend-colValue">
+                                                <span>
+                                                    {' '}
+                                                    <span className="chart-font">
+                                                        {checkLogs &&
+                                                        data[0].kubernetesLog
+                                                            ? data[0]
+                                                                  .kubernetesLog
+                                                                  .serviceData
+                                                                  .runningServices
+                                                            : 0}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
             </>
         );
     } else if (type === 'url' || type === 'api' || type === 'device') {
