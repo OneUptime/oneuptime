@@ -23,6 +23,7 @@ describe('Check Enterprise Server', () => {
             return e.innerHTML;
         });
         expect(response).toBe('{"result":false}');
+        await page.waitForTimeout(70000);
         done();
     });
 });

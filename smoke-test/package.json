@@ -5,7 +5,7 @@
     "main": "index.test.js",
     "scripts": {
         "test": "jest --forceExit --runInBand ./*.test.js",
-        "enterprise-test": "jest --forceExit --runInBand ./*.test.enterprise.js"
+        "enterprise-test": "jest --forceExit --runInBand ./**/*.test.enterprise.js"
     },
     "keywords": [],
     "author": "",
@@ -23,7 +23,7 @@
     "jest": {
         "testMatch": [
             "<rootDir>/**/*.test.js",
-            "<rootDir>/**/*.test.enterprise.js"
+            "**/dashboard.test.enterprise.js"
         ]
     }
 }
