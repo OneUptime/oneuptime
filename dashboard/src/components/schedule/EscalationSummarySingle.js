@@ -83,7 +83,8 @@ const EscalationSummarySingle = ({
                             let membersFromList = teamMemberList.filter(
                                 memberFromList => {
                                     return (
-                                        memberFromList.userId === member.userId
+                                        memberFromList.userId ===
+                                        member.userId._id
                                     );
                                 }
                             );
@@ -210,7 +211,7 @@ const EscalationSummarySingle = ({
                                         memberFromList => {
                                             return (
                                                 memberFromList.userId ===
-                                                member.userId
+                                                member.userId._id
                                             );
                                         }
                                     );
