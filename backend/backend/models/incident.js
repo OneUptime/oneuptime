@@ -100,5 +100,6 @@ const monitorSchema = new Schema({
     acknowledgedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
     resolvedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
     createdByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
+    subscription: Object
 });
 module.exports = mongoose.model('Incident', monitorSchema);
