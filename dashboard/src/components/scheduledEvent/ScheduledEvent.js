@@ -5,6 +5,8 @@ import PropTypes from 'prop-types';
 import {
     fetchscheduledEvents,
     fetchSubProjectScheduledEvents,
+    nextPage,
+    prevPage,
 } from '../../actions/scheduledEvent';
 import { fetchMonitors } from '../../actions/monitor';
 import EventBox from './EventBox';
@@ -13,6 +15,7 @@ class ScheduledEventBox extends Component {
     constructor(props) {
         super(props);
         this.limit = 10;
+        this.state = {};
     }
 
     componentDidMount() {
@@ -34,6 +37,10 @@ class ScheduledEventBox extends Component {
             skip ? Number(skip) - this.limit : this.limit,
             this.limit
         );
+        this.setState({
+            [projectId]: this.state[projectId] - 1,
+        });
+        this.props.prevPage(projectId);
     };
 
     nextClicked = (projectId, skip) => {
@@ -43,6 +50,10 @@ class ScheduledEventBox extends Component {
             skip ? Number(skip) + this.limit : this.limit,
             this.limit
         );
+        this.props.nextPage(projectId)
+        this.setState({
+            [projectId]: this.state[projectId] ? this.state[projectId] + 1 : 2,
+        });
     };
 
     render() {
@@ -99,6 +110,7 @@ class ScheduledEventBox extends Component {
                                 allScheduleEventLength={
                                     subProjectScheduledEvents.length
                                 }
+                                page={this.state[project]}
                             />
                         ) : null;
                 }
@@ -131,6 +143,7 @@ class ScheduledEventBox extends Component {
                         allScheduleEventLength={
                             subProjectScheduledEvents.length
                         }
+                        page={this.state[projectId]}
                     />
                 )}
                 {subProjectEvents}
@@ -154,6 +167,8 @@ ScheduledEventBox.propTypes = {
     subProjects: PropTypes.array,
     subProjectScheduledEvents: PropTypes.array,
     modalList: PropTypes.array,
+    nextPage: PropTypes.func,
+    prevPage: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -162,6 +177,8 @@ const mapDispatchToProps = dispatch =>
             fetchscheduledEvents,
             fetchMonitors,
             fetchSubProjectScheduledEvents,
+            nextPage,
+            prevPage,
         },
         dispatch
     );
@@ -195,6 +212,7 @@ const mapStateToProps = state => {
         subProjects,
         subProjectScheduledEvents,
         modalList: state.modal.modals,
+
     };
 };
 
