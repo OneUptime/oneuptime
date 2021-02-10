@@ -133,6 +133,10 @@ module.exports = {
                                     runningJobs: runningJobs.length,
                                     succeededJobs: succeededJobs.length,
                                     failedJobs: failedJobs.length,
+                                    totalJobs:
+                                        runningJobs.length +
+                                        succeededJobs.length +
+                                        failedJobs.length,
                                 },
                                 runningJobs,
                                 succeededJobs,
@@ -152,7 +156,7 @@ module.exports = {
                             // handle deployment output
                             let desiredDeployment = 0,
                                 readyDeployment = 0;
-                            const lessDeployment = [],
+                            const incompleteDeployment = [],
                                 allDeployments = [];
                             deploymentOutput.items.forEach(item => {
                                 readyDeployment += item.status.readyReplicas;
@@ -162,7 +166,7 @@ module.exports = {
                                     item.status.readyReplicas !==
                                     item.status.replicas
                                 ) {
-                                    lessDeployment.push({
+                                    incompleteDeployment.push({
                                         deploymentName: item.metadata.name,
                                         readyDeployment:
                                             item.status.readyReplicas,
@@ -179,14 +183,14 @@ module.exports = {
                             const deploymentData = {
                                 desiredDeployment,
                                 readyDeployment,
-                                lessDeployment,
+                                incompleteDeployment,
                                 allDeployments,
                             };
 
                             // handle statefulset output
                             let desiredStatefulsets = 0,
                                 readyStatefulsets = 0;
-                            const lessStatefulset = [],
+                            const incompleteStatefulset = [],
                                 allStatefulset = [];
                             statefulsetOutput.items.forEach(item => {
                                 readyStatefulsets += item.status.readyReplicas;
@@ -196,7 +200,7 @@ module.exports = {
                                     item.status.readyReplicas !==
                                     item.status.replicas
                                 ) {
-                                    lessStatefulset.push({
+                                    incompleteStatefulset.push({
                                         statefulsetName: item.metadata.name,
                                         readyStatefulsets:
                                             item.status.readyReplicas,
@@ -215,7 +219,7 @@ module.exports = {
                             const statefulsetData = {
                                 readyStatefulsets,
                                 desiredStatefulsets,
-                                lessStatefulset,
+                                incompleteStatefulset,
                                 allStatefulset,
                             };
 
