@@ -320,3 +320,66 @@ export function removeNumbersFailure(error) {
         payload: error,
     };
 }
+
+export function getCallRoutingLogs(projectId, skip, limit) {
+    return function(dispatch) {
+        const promise = getApi(
+            `callRouting/${projectId}/logs?skip=${skip}&limit=${limit}`
+        );
+        dispatch(getCallRoutingLogsRequest());
+
+        promise.then(
+            function(logs) {
+                dispatch(
+                    getCallRoutingLogsSuccess({
+                        logs: logs.data,
+                        count: logs.data.length,
+                        skip,
+                        limit,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(getCallRoutingLogsFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function getCallRoutingLogsSuccess(logs) {
+    return {
+        type: types.GET_CALL_ROUTING_LOGS_SUCCESS,
+        payload: logs,
+    };
+}
+
+export function getCallRoutingLogsRequest() {
+    return {
+        type: types.GET_CALL_ROUTING_LOGS_REQUEST,
+    };
+}
+
+export function getCallRoutingLogsFailure(error) {
+    return {
+        type: types.GET_CALL_ROUTING_LOGS_FAILURE,
+        payload: error,
+    };
+}
+
+export function getCallRoutingLogsReset() {
+    return {
+        type: types.GET_CALL_ROUTING_LOGS_RESET,
+    };
+}

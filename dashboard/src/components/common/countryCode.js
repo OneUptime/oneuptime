@@ -1,4 +1,5 @@
-export const countryCode = {
+import * as _ from 'lodash';
+const codes = {
     AD: 'Andorra',
     AE: 'United Arab Emirates',
     AF: 'Afghanistan',
@@ -248,4 +249,13 @@ export const countryCode = {
     ZA: 'South Africa',
     ZM: 'Zambia',
     ZW: 'Zimbabwe',
+};
+
+export const countryCode = () => {
+    const invertedObject = _.invert(codes);
+    let keys = Object.keys(invertedObject);
+    keys = keys.sort();
+    const data = keys.map(k => ({ label: k, value: invertedObject[k] }));
+    data.unshift({ value: '', label: 'Select a country' });
+    return data;
 };

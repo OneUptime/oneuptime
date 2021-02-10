@@ -155,19 +155,11 @@ module.exports = {
 
     reserveNumber: async function(data, projectId) {
         try {
-            const confirmBuy = await TwilioService.buyPhoneNumber(
-                data.projectId,
-                data.phoneNumber
-            );
+            let confirmBuy = null;
             const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
                 projectId
             );
-            if (
-                IS_SAAS_SERVICE &&
-                !hasCustomTwilioSettings &&
-                confirmBuy &&
-                confirmBuy.sid
-            ) {
+            if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 const project = await ProjectService.findOneBy({
                     _id: projectId,
                 });
@@ -191,8 +183,23 @@ module.exports = {
                     ErrorService.log('callRoutingService.reserveNumber', error);
                     throw error;
                 }
+                if (
+                    data &&
+                    data.stripeSubscriptionId &&
+                    data.stripeSubscriptionId.length
+                ) {
+                    confirmBuy = await TwilioService.buyPhoneNumber(
+                        data.projectId,
+                        data.phoneNumber
+                    );
+                }
+            } else {
+                confirmBuy = await TwilioService.buyPhoneNumber(
+                    data.projectId,
+                    data.phoneNumber
+                );
             }
-            data.sid = confirmBuy.sid;
+            data.sid = confirmBuy && confirmBuy.sid ? confirmBuy.sid : null;
             const CallRouting = await this.create(data);
             return CallRouting;
         } catch (error) {
@@ -316,8 +323,8 @@ module.exports = {
                 projectId,
                 CallSid
             );
-
             if (callDetails && callDetails.price) {
+                const duration = callDetails.duration;
                 let price = callDetails.price;
                 if (price && price.includes('-')) {
                     price = price.replace('-', '');
@@ -342,7 +349,7 @@ module.exports = {
                 }
                 await CallRoutingLogService.updateOneBy(
                     { callSid: CallSid },
-                    { price }
+                    { price, duration }
                 );
             }
             return 'Customer has been successfully charged for the call.';
@@ -356,7 +363,6 @@ module.exports = {
         try {
             let memberId = null;
             const response = new twilio.twiml.VoiceResponse();
-
             if (
                 data &&
                 data.routingSchema &&
@@ -415,6 +421,28 @@ module.exports = {
             return response;
         } catch (error) {
             ErrorService.log('callRoutingService.getCallResponse', error);
+            throw error;
+        }
+    },
+
+    getCallRoutingLogs: async function(projectId) {
+        try {
+            let logs = [];
+            const callRouting = await this.findBy({ projectId });
+            if (callRouting && callRouting.length) {
+                for (let i = 0; i < callRouting.length; i++) {
+                    const callRoutingId = callRouting[i]._id;
+                    const callLogs = await CallRoutingLogService.findBy({
+                        callRoutingId,
+                    });
+                    if (callLogs && callLogs.length) {
+                        logs = logs.concat(callLogs);
+                    }
+                }
+            }
+            return logs;
+        } catch (error) {
+            ErrorService.log('callRoutingService.getCallRoutingLogs', error);
             throw error;
         }
     },
