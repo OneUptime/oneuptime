@@ -260,9 +260,11 @@ module.exports = {
             const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
             });
+            const logData = await this.findOneBy({ _id: data._id });
             if (monitor && monitor.projectId && monitor.projectId._id) {
                 await RealTimeService.updateMonitorLog(
                     data,
+                    logData,
                     monitor.projectId._id
                 );
             }
