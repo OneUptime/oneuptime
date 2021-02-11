@@ -23,6 +23,7 @@ class CreateIncident extends Component {
             monitorName: '',
             titleEdited: false,
             descriptionEdited: false,
+            componentId: null,
         };
     }
 
@@ -169,10 +170,17 @@ class CreateIncident extends Component {
             monitors,
             incidentPriorities,
             customFields,
+            components,
         } = this.props;
         const subProjectMonitor = monitors.find(
             subProjectMonitor => subProjectMonitor._id === data.subProjectId
         );
+
+        const allMonitors =
+            this.state.componentId &&
+            subProjectMonitor.monitors.filter(
+                monitor => monitor.componentId._id === this.state.componentId
+            );
 
         return (
             <div
@@ -214,6 +222,64 @@ class CreateIncident extends Component {
                                                             <label className="bs-Fieldset-label">
                                                                 <span>
                                                                     {' '}
+                                                                    Component{' '}
+                                                                </span>
+                                                            </label>
+                                                            <Field
+                                                                id="componentList"
+                                                                name="componentId"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                className="db-select-nw"
+                                                                validate={
+                                                                    ValidateField.select
+                                                                }
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select a component',
+                                                                    },
+                                                                    ...(components &&
+                                                                    components.length >
+                                                                        0
+                                                                        ? components.map(
+                                                                              component => ({
+                                                                                  value:
+                                                                                      component._id,
+                                                                                  label:
+                                                                                      component.name,
+                                                                              })
+                                                                          )
+                                                                        : []),
+                                                                ]}
+                                                                onChange={(
+                                                                    event,
+                                                                    newValue,
+                                                                    previousValue,
+                                                                    name
+                                                                ) => {
+                                                                    this.setState(
+                                                                        {
+                                                                            ...this
+                                                                                .state,
+                                                                            componentId: newValue,
+                                                                        }
+                                                                    );
+                                                                    this.props.change(
+                                                                        'monitorId',
+                                                                        ''
+                                                                    );
+                                                                }}
+                                                                autoFocus={true}
+                                                            />
+                                                        </div>
+                                                        <div className="bs-Fieldset-row Margin-bottom--12">
+                                                            <label className="bs-Fieldset-label">
+                                                                <span>
+                                                                    {' '}
                                                                     Monitor{' '}
                                                                 </span>
                                                             </label>
@@ -231,29 +297,42 @@ class CreateIncident extends Component {
                                                                     {
                                                                         value:
                                                                             '',
-                                                                        label:
-                                                                            'Select a monitor',
+                                                                        label: !this
+                                                                            .state
+                                                                            .componentId
+                                                                            ? 'No component is selected'
+                                                                            : this
+                                                                                  .state
+                                                                                  .componentId &&
+                                                                              allMonitors.length >
+                                                                                  0
+                                                                            ? 'Select a monitor'
+                                                                            : 'No monitor for this component',
                                                                     },
-                                                                    ...(subProjectMonitor &&
-                                                                    subProjectMonitor
-                                                                        .monitors
-                                                                        .length >
+                                                                    ...(allMonitors &&
+                                                                    allMonitors.length >
                                                                         0
-                                                                        ? subProjectMonitor.monitors.map(
-                                                                              monitor => ({
-                                                                                  value:
-                                                                                      monitor._id,
-                                                                                  label:
-                                                                                      monitor.name,
-                                                                                  show: renderIfUserInSubProject(
-                                                                                      currentProject,
-                                                                                      subProjects,
-                                                                                      monitor
-                                                                                          .projectId
-                                                                                          ._id ||
-                                                                                          monitor.projectId
-                                                                                  ),
-                                                                              })
+                                                                        ? allMonitors.map(
+                                                                              monitor =>
+                                                                                  monitor
+                                                                                      .componentId
+                                                                                      ._id ===
+                                                                                      this
+                                                                                          .state
+                                                                                          .componentId && {
+                                                                                      value:
+                                                                                          monitor._id,
+                                                                                      label:
+                                                                                          monitor.name,
+                                                                                      show: renderIfUserInSubProject(
+                                                                                          currentProject,
+                                                                                          subProjects,
+                                                                                          monitor
+                                                                                              .projectId
+                                                                                              ._id ||
+                                                                                              monitor.projectId
+                                                                                      ),
+                                                                                  }
                                                                           )
                                                                         : []),
                                                                 ]}
@@ -262,13 +341,12 @@ class CreateIncident extends Component {
                                                                     newValue,
                                                                     previousValue,
                                                                     name
-                                                                ) =>
+                                                                ) => {
                                                                     this.substituteVariables(
                                                                         newValue,
                                                                         name
-                                                                    )
-                                                                }
-                                                                autoFocus={true}
+                                                                    );
+                                                                }}
                                                             />
                                                         </div>
                                                         <div className="bs-Fieldset-row Margin-bottom--12">
@@ -647,6 +725,7 @@ function mapStateToProps(state, props) {
     const { subProjectId } = data;
     const { projects } = state.project.projects;
     const { subProjects } = state.subProject.subProjects;
+    const components = state.component.componentList.components[0].components;
     let projectName = '';
     for (const project of projects) {
         if (project._id === subProjectId) projectName = project.name;
@@ -692,6 +771,7 @@ function mapStateToProps(state, props) {
         initialValues,
         projectName,
         customFields: state.customField.customFields.fields,
+        components,
     };
 }
 
