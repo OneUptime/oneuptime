@@ -362,7 +362,7 @@ const MonitorCriteriaService = {
             kubernetes: {
                 up_1000: [
                     {
-                        match: 'all',
+                        match: 'any',
                         responseType: 'podStatus',
                         filter: 'equalTo',
                         field1: 'running',
