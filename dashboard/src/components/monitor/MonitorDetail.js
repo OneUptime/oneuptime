@@ -46,14 +46,33 @@ export class MonitorDetail extends Component {
     }
 
     componentDidMount() {
+        const { fetchMonitorLogs, monitor } = this.props;
+        const { startDate, endDate } = this.state;
+
+        fetchMonitorLogs(
+            monitor.projectId._id || monitor.projectId,
+            monitor._id,
+            startDate,
+            endDate
+        );
         this.setLastAlive();
     }
 
     componentDidUpdate(prevProps) {
+        const { fetchMonitorLogs, monitor } = this.props;
+        const { startDate, endDate } = this.state;
+
         if (prevProps.probes !== this.props.probes) {
             if (this.state.nowHandler) {
                 clearTimeout(this.state.nowHandler);
             }
+
+            fetchMonitorLogs(
+                monitor.projectId._id || monitor.projectId,
+                monitor._id,
+                startDate,
+                endDate
+            );
 
             this.setLastAlive();
         }
