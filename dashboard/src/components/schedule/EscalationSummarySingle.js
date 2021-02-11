@@ -269,6 +269,7 @@ const EscalationSummarySingle = ({
                                         </div>
                                     );
                                 })}
+                                {console.log('escalationxxx', escalation)}
                         {isActiveTeam && (
                             <>
                                 <div>
@@ -297,6 +298,15 @@ const EscalationSummarySingle = ({
                                             <span>
                                                 {escalation.emailReminders}{' '}
                                                 Email reminders
+                                            </span>
+                                        )}{' '}{(escalation.sms || escalation.call ||
+                                            escalation.email) && (
+                                                <span>,</span>
+                                            )}{' '}
+                                        {escalation.push && (
+                                            <span>
+                                                {escalation.pushReminders} Push
+                                                Notification reminders
                                             </span>
                                         )}{' '}
                                         <span>
