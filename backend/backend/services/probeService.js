@@ -492,7 +492,10 @@ module.exports = {
                 incidents.forEach(incident => {
                     const criteriaId = String(incident.criterionCause._id);
                     allCriteria.forEach(criteria => {
-                        if (String(criteria._id) === criteriaId) {
+                        if (
+                            String(criteria._id) === criteriaId ||
+                            criteria.name === incident.criterionCause.name
+                        ) {
                             autoAcknowledge = criteria.autoAcknowledge;
                             autoResolve = criteria.autoResolve;
                         }
