@@ -28,7 +28,7 @@ module.exports = {
                     populate: { path: 'monitorIds', select: 'name' },
                 })
                 .populate({
-                    path: 'teams.teamMembers.userId',
+                    path: 'teams.teamMembers.user',
                     select: 'name email',
                 });
             return escalations;
@@ -53,7 +53,7 @@ module.exports = {
                     populate: { path: 'monitorIds', select: 'name' },
                 })
                 .populate({
-                    path: 'teams.teamMembers.userId',
+                    path: 'teams.teamMembers.user',
                     select: 'name email',
                 })
                 .lean();

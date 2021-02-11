@@ -1716,7 +1716,7 @@ export class IncidentStatus extends Component {
                                                                             className="Box-root Margin-right--16 pointer"
                                                                             key={
                                                                                 member
-                                                                                    .userId
+                                                                                    .user
                                                                                     ._id
                                                                             }
                                                                         >
@@ -1726,11 +1726,12 @@ export class IncidentStatus extends Component {
                                                                                 alt=""
                                                                             />
                                                                             <span>
-                                                                                {
+                                                                                {member
+                                                                                    .user
+                                                                                    .name ??
                                                                                     member
-                                                                                        .userId
-                                                                                        .name
-                                                                                }
+                                                                                        .user
+                                                                                        .email}
                                                                             </span>
                                                                         </div>
                                                                     )
