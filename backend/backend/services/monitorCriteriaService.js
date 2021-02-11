@@ -392,6 +392,43 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
             },
+            ip: {
+                up_1000: [
+                    {
+                        match: 'all',
+                        responseType: 'respondsToPing',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                up_1000_createAlert: true,
+                up_1000_autoAcknowledge: true,
+                up_1000_autoResolve: true,
+                down_1000: [
+                    {
+                        match: 'any',
+                        responseType: 'respondsToPing',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'respondsToPing',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                down_1000_createAlert: true,
+                down_1000_autoAcknowledge: true,
+                down_1000_autoResolve: true,
+                degraded_1000: [],
+                type_1000: 'ip',
+            },
         };
     },
 

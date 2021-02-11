@@ -367,10 +367,11 @@ width:100%
     line-height:28px;
     color:#000000
 }
-.arrow::after{
+.categories-text:hover::after{
+    position: absolute;
     font: normal 16px fyipeIcons;
     content: '\279E';
-    padding-left: 1px;
+    padding-left: 5px;
 }
 
 .font16{

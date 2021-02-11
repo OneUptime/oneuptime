@@ -447,7 +447,10 @@ class MonitorView extends React.Component {
                                                             .type === 'url' ||
                                                             this.props.monitor
                                                                 .type ===
-                                                                'api') &&
+                                                                'api' ||
+                                                            this.props.monitor
+                                                                .type ===
+                                                                'ip') &&
                                                             !this.props
                                                                 .probeList
                                                                 .requesting) ||
@@ -457,7 +460,11 @@ class MonitorView extends React.Component {
                                                                 this.props
                                                                     .monitor
                                                                     .type !==
-                                                                    'api')) ? (
+                                                                    'api' &&
+                                                                this.props
+                                                                    .monitor
+                                                                    .type !==
+                                                                    'ip')) ? (
                                                             <Fragment>
                                                                 <TabPanel>
                                                                     <Fade>
@@ -608,7 +615,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'kubernetes')
+                                                                                        'kubernetes' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'ip')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
@@ -817,6 +829,8 @@ const mapStateToProps = (state, props) => {
         initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
         initialValues[`deviceId_${monitor._id}`] =
             monitor.data && monitor.data.deviceId;
+        initialValues[`IPAddress_${monitor._id}`] =
+            monitor.data && monitor.data.IPAddress;
         initialValues[`description_${monitor._id}`] =
             monitor.data && monitor.data.description;
         initialValues[`subProject_${monitor._id}`] = monitor.projectId._id;
@@ -856,7 +870,8 @@ const mapStateToProps = (state, props) => {
             monitor.type === 'server-monitor' ||
             monitor.type === 'incomingHttpRequest' ||
             monitor.type === 'script' ||
-            monitor.type === 'kubernetes'
+            monitor.type === 'kubernetes' ||
+            monitor.type === 'ip'
         ) {
             // collect all criteria
             if (monitor.criteria) {

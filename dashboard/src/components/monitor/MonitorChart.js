@@ -1217,7 +1217,7 @@ export function MonitorChart({
                 )}
             </>
         );
-    } else if (type === 'url' || type === 'api' || type === 'device') {
+    } else if (type === 'url' || type === 'api' || type === 'ip') {
         monitorInfo = (
             <>
                 <div className="db-Trend">

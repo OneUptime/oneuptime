@@ -14,8 +14,11 @@ const callRoutingLogSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User', index: true },
+    callSid: String,
+    price: String,
     calledFrom: String,
     calledTo: String,
+    duration: String,
     userId: { type: String, ref: 'User', index: true }, // user that call was forwarded to
     scheduleId: { type: String, ref: 'Schedule', index: true }, // scheduleId || ''
 });

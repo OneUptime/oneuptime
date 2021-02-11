@@ -9,9 +9,13 @@ const incomingHttpRequest = async function(req, res) {
     try {
         const monitor = req.monitor;
         const body = req.body;
+        const queryParams = req.query;
+        const headers = req.headers;
         const response = await ProbeService.processHttpRequest({
             monitor,
             body,
+            queryParams,
+            headers,
         });
         return sendItemResponse(req, res, response);
     } catch (error) {

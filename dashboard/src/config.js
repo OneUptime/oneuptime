@@ -908,8 +908,6 @@ export const getMonitorTypeBadgeColor = type => {
     switch (type) {
         case 'manual':
             return 'red';
-        case 'device':
-            return 'green';
         default:
             return 'blue';
     }

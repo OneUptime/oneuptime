@@ -924,7 +924,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                                           const isValidProbe =
                                               (monitor.type === 'url' ||
                                                   monitor.type === 'api' ||
-                                                  monitor.type === 'device') &&
+                                                  monitor.type === 'ip') &&
                                               probes &&
                                               probes.length > 0;
 
@@ -1199,7 +1199,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                         monitorType === 'script' ||
                         monitorType === 'server-monitor' ||
                         monitorType === 'incomingHttpRequest' ||
-                        monitorType === 'kubernetes')
+                        monitorType === 'kubernetes' ||
+                        monitorType === 'ip')
                     ? state.monitorCriteria.criteria[monitorType]
                     : null
             );

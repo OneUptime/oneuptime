@@ -133,6 +133,8 @@ const placeholders = {
     },
     contains: {
         responseBody: 'Contains',
+        queryString: 'abc=xyz',
+        headers: 'Cache-Control=no-cache',
     },
     doesNotContain: {
         responseBody: 'Does not Contain',
@@ -220,7 +222,8 @@ export class RenderOption extends Component {
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
                                         type !== 'incomingHttpRequest' &&
-                                        type !== 'kubernetes',
+                                        type !== 'kubernetes' &&
+                                        type !== 'ip',
                                 },
                                 {
                                     value: 'doesRespond',
@@ -228,7 +231,8 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'incomingHttpRequest' &&
-                                        type !== 'kubernetes',
+                                        type !== 'kubernetes' &&
+                                        type !== 'ip',
                                 },
                                 {
                                     value: 'statusCode',
@@ -237,7 +241,8 @@ export class RenderOption extends Component {
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
                                         type !== 'incomingHttpRequest' &&
-                                        type !== 'kubernetes',
+                                        type !== 'kubernetes' &&
+                                        type !== 'ip',
                                 },
                                 {
                                     value: 'responseBody',
@@ -248,7 +253,8 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
-                                        type !== 'kubernetes',
+                                        type !== 'kubernetes' &&
+                                        type !== 'ip',
                                 },
                                 {
                                     value: 'ssl',
@@ -257,7 +263,8 @@ export class RenderOption extends Component {
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
                                         type !== 'incomingHttpRequest' &&
-                                        type !== 'kubernetes',
+                                        type !== 'kubernetes' &&
+                                        type !== 'ip',
                                 },
                                 {
                                     value: 'executes',
@@ -298,6 +305,21 @@ export class RenderOption extends Component {
                                     value: 'incomingTime',
                                     label: 'Request Incoming Time',
                                     show: type === 'incomingHttpRequest',
+                                },
+                                {
+                                    value: 'queryString',
+                                    label: 'Request Query Param',
+                                    show: type === 'incomingHttpRequest',
+                                },
+                                {
+                                    value: 'headers',
+                                    label: 'Request Headers',
+                                    show: type === 'incomingHttpRequest',
+                                },
+                                {
+                                    value: 'respondsToPing',
+                                    label: 'Responds To Ping',
+                                    show: type === 'ip',
                                 },
                                 {
                                     value: 'podStatus',
@@ -449,16 +471,18 @@ export class RenderOption extends Component {
                                         label: 'True',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType ===
-                                                'doesRespond',
+                                            (bodyfield.responseType ===
+                                                'respondsToPing' ||
+                                                type === 'ip'),
                                     },
                                     {
                                         value: 'isDown',
                                         label: 'False',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType ===
-                                                'doesRespond',
+                                            (bodyfield.responseType ===
+                                                'respondsToPing' ||
+                                                type === 'ip'),
                                     },
                                     {
                                         value: 'equalTo',
@@ -519,8 +543,12 @@ export class RenderOption extends Component {
                                         label: 'Contains',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType ===
-                                                'responseBody',
+                                            (bodyfield.responseType ===
+                                                'responseBody' ||
+                                                bodyfield.responseType ===
+                                                    'queryString' ||
+                                                bodyfield.responseType ===
+                                                    'headers'),
                                     },
                                     {
                                         value: 'doesNotContain',

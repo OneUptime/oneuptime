@@ -98,18 +98,18 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         if (
             data.type !== 'url' &&
-            data.type !== 'device' &&
             data.type !== 'manual' &&
             data.type !== 'api' &&
             data.type !== 'server-monitor' &&
             data.type !== 'script' &&
             data.type !== 'incomingHttpRequest' &&
-            data.type !== 'kubernetes'
+            data.type !== 'kubernetes' &&
+            data.type !== 'ip'
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message:
-                    'Monitor type should be url, manual, device, script, api, server-monitor, incomingHttpRequest or kubernetes.',
+                    'Monitor type should be url, manual, device, script, api, server-monitor, incomingHttpRequest, kubernetes or ip.',
             });
         }
         if (!data.data) {
@@ -192,27 +192,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
 
-        if (data.type === 'device') {
-            if (data.type === 'deviceId' && !data.data.deviceId) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Monitor data should have a `url` property of type string.',
-                });
-            }
-
-            if (
-                data.type === 'deviceId' &&
-                typeof data.data.deviceId !== 'string'
-            ) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Monitor data should have a `Device ID` property of type string.',
-                });
-            }
-        }
-
         if (data.type === 'server-monitor') {
             if (
                 data.agentlessConfig &&
@@ -243,6 +222,15 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     code: 400,
                     message:
                         'Monitor data should have a `script` property of type string.',
+                });
+            }
+        }
+        if (data.type === 'ip') {
+            if (!data.data.IPAddress) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Monitor data should have a `IPAddress` property of type string.',
                 });
             }
         }
