@@ -184,8 +184,8 @@ then
             --set fyipe.admin.email=admin@admin.com \
             --set disableSignup=true \
             --set fyipe.admin.password=$INSTANCEID \
-            --set haraka.domain=globalminimalism.com \
-            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.domain=$DOMAIN \
+            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
             
@@ -196,8 +196,8 @@ then
             --set nginx-ingress-controller.service.type=NodePort \
             --set nginx-ingress-controller.hostNetwork=true \
             --set image.tag=$AVAILABLE_VERSION \
-            --set haraka.domain=globalminimalism.com \
-            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.domain=$DOMAIN \
+            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         fi
@@ -212,14 +212,14 @@ then
         if [[ "$2" == "enterprise" ]]
         then
             sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fyipe ./helm-chart/public/fyipe \
-            --set haraka.domain=globalminimalism.com \
-            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.domain=$DOMAIN \
+            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         else
             sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe \
-            --set haraka.domain=globalminimalism.com \
-            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.domain=$DOMAIN \
+            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         fi
@@ -235,8 +235,8 @@ else
         --set nginx-ingress-controller.service.type=NodePort \
         --set nginx-ingress-controller.hostNetwork=true \
         --set image.tag=$AVAILABLE_VERSION \
-        --set haraka.domain=globalminimalism.com \
-        --set haraka.privateKey=$PRIVATE_KEY \
+        --set haraka.domain=$DOMAIN \
+        --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
         --set haraka.tlsCert=$TLS_CERT \
         --set haraka.tlsKey=$TLS_KEY
     else

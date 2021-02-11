@@ -156,10 +156,10 @@ services:
             args:
                 PORT: '2525'
         environment:
-            - SMTP_USER=user@hackerbay.io
-            - SMTP_PASSWORD=hackerbay
-            - DOMAIN=globalminimalism.com
-            - PRIVATE_KEY="${PRIVATE_KEY}"
+            - SMTP_USER=user@fyipe.com
+            - SMTP_PASSWORD=fyipe
+            - DOMAIN="${DOMAIN}"
+            - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
             - TLS_CERT="${TLS_CERT}"
             - TLS_KEY="${TLS_KEY}"
 

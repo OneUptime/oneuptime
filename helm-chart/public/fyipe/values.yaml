@@ -156,10 +156,10 @@ nginx-ingress-controller:
   ##################################################################################
 
 haraka:
-  user: "sample@company.com"
+  user: "user@fyipe.com"
   password: "fyipe"
   domain:
-  privateKey:
+  dkimPrivateKey:
   tlsCert:
   tlsKey:
 

@@ -29,8 +29,8 @@ spec:
                         value: {{ .Values.haraka.password }}
                       - name: DOMAIN
                         value: {{ .Values.haraka.domain }}
-                      - name: PRIVATE_KEY
-                        value: {{ .Values.haraka.privateKey }}
+                      - name: DKIM_PRIVATE_KEY
+                        value: {{ .Values.haraka.dkimPrivateKey }}
                       - name: TLS_CERT
                         value: {{ .Values.haraka.tlsCert }}
                       - name: TLS_KEY
