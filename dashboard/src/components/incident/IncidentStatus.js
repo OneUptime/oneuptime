@@ -129,6 +129,30 @@ export class IncidentStatus extends Component {
         }
     };
 
+    getOnCallTeamMembers = () => {
+        const monitorId =
+            (this.props.multiple &&
+                this.props.incident &&
+                this.props.incident.monitorId) ||
+            (this.props.incident && this.props.incident.monitorId)
+                ? this.props.incident.monitorId._id
+                : '';
+        const escalation = this.props.escalations
+            ? this.props.escalations.find(
+                  escalation =>
+                      escalation.scheduleId &&
+                      escalation.scheduleId.monitorIds &&
+                      escalation.scheduleId.monitorIds.length > 0 &&
+                      escalation.scheduleId.monitorIds.some(
+                          monitor => monitor._id === monitorId
+                      )
+              )
+            : null;
+        return escalation && escalation.teams && escalation.teams[0]
+            ? escalation.teams[0].teamMembers
+            : null;
+    };
+
     render() {
         const subProject =
             this.props.subProjects &&
@@ -258,6 +282,8 @@ export class IncidentStatus extends Component {
             }
             return valueTxt;
         };
+
+        const team = this.getOnCallTeamMembers();
 
         return (
             <>
@@ -1677,6 +1703,42 @@ export class IncidentStatus extends Component {
                                                                 </div>
                                                             )
                                                         )}
+                                                    {team && team.length > 0 && (
+                                                        <div className="bs-content">
+                                                            <label className="">
+                                                                Members on Call
+                                                                Duty
+                                                            </label>
+                                                            <div className="bs-content-inside">
+                                                                {team.map(
+                                                                    member => (
+                                                                        <div
+                                                                            className="Box-root Margin-right--16 pointer"
+                                                                            key={
+                                                                                member
+                                                                                    .user
+                                                                                    ._id
+                                                                            }
+                                                                        >
+                                                                            <img
+                                                                                src="/dashboard/assets/img/profile-user.svg"
+                                                                                className="userIcon"
+                                                                                alt=""
+                                                                            />
+                                                                            <span>
+                                                                                {member
+                                                                                    .user
+                                                                                    .name ??
+                                                                                    member
+                                                                                        .user
+                                                                                        .email}
+                                                                            </span>
+                                                                        </div>
+                                                                    )
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </fieldset>
@@ -1841,6 +1903,7 @@ const mapStateToProps = state => {
         closeincident: state.incident.closeincident,
         subProjects: state.subProject.subProjects.subProjects,
         incidentRequest: state.incident.incident,
+        escalations: state.schedule.escalations,
     };
 };
 
@@ -1879,6 +1942,7 @@ IncidentStatus.propTypes = {
     markAsRead: PropTypes.func,
     getIncidentTimeline: PropTypes.func,
     animateSidebar: PropTypes.func,
+    escalations: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);

@@ -106,6 +106,7 @@ class EventBox extends Component {
             allScheduleEventLength,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
+        const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
@@ -165,6 +166,7 @@ class EventBox extends Component {
                                                         CreateSchedule,
                                                         {
                                                             projectId,
+                                                        
                                                         }
                                                     ),
                                                 });
@@ -484,12 +486,25 @@ class EventBox extends Component {
                                                 id="scheduledEventCount"
                                                 className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                             >
-                                                {this.props.count
-                                                    ? this.props.count +
-                                                      (this.props.count > 1
-                                                          ? '  Events'
-                                                          : ' Event')
-                                                    : '0 Events'}
+                                                {numberOfPages > 0
+                                                    ? `Page ${
+                                                          !this.props.pages[projectId]
+                                                              ? 1
+                                                              : this.props.pages[projectId]
+                                                      } of ${numberOfPages} (${
+                                                          this.props.count
+                                                      } Event${
+                                                          this.props.count === 1
+                                                              ? ''
+                                                              : 's'
+                                                      })`
+                                                    : `${
+                                                          this.props.count
+                                                      } Event${
+                                                          this.props.count === 1
+                                                              ? ''
+                                                              : 's'
+                                                      }`}
                                             </span>
                                         </span>
                                     </span>
@@ -585,6 +600,10 @@ EventBox.propTypes = {
     ]),
     modalList: PropTypes.array,
     allScheduleEventLength: PropTypes.number,
+    pages: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 const mapDispatchToProps = dispatch =>
@@ -603,6 +622,7 @@ const mapStateToProps = (state, ownProps) => {
 
     return {
         monitors,
+        pages: state.scheduledEvent.pages,
     };
 };
 

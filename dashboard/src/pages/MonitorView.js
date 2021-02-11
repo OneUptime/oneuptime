@@ -615,6 +615,11 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
+                                                                                        'kubernetes' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
                                                                                         'ip')
                                                                             }
                                                                         >
@@ -853,12 +858,19 @@ const mapStateToProps = (state, props) => {
         if (monitor.monitorSla && monitor.monitorSla._id) {
             initialValues.monitorSla = monitor.monitorSla._id;
         }
+        if (monitor.type === 'kubernetes') {
+            initialValues[`configurationFile_${monitor._id}`] =
+                monitor.kubernetesConfig;
+            initialValues[`kubernetesNamespace_${monitor._id}`] =
+                monitor.kubernetesNamespace || 'default';
+        }
         if (
             monitor.type === 'url' ||
             monitor.type === 'api' ||
             monitor.type === 'server-monitor' ||
             monitor.type === 'incomingHttpRequest' ||
             monitor.type === 'script' ||
+            monitor.type === 'kubernetes' ||
             monitor.type === 'ip'
         ) {
             // collect all criteria

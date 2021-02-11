@@ -26,6 +26,7 @@ module.exports = {
             LogHour.maxMainTemp = data.mainTemp;
             LogHour.intervalDate = data.intervalDate;
             LogHour.sslCertificate = data.sslCertificate;
+            LogHour.kubernetesLog = data.kubernetesData || {};
 
             const savedLogHour = await LogHour.save();
 

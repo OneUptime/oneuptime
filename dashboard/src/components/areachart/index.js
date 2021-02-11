@@ -78,10 +78,91 @@ class AreaChart extends Component {
                           data.maxResponseTime || data.responseTime || 0
                       )} ${symbol || 'ms'}`
                     : data.maxResponseTime || data.responseTime || 0;
+            case 'pod':
+                return data.kubernetesLog
+                    ? display
+                        ? `${Math.round(
+                              this.calcPercent(
+                                  data.kubernetesLog.podData.podStat.healthy,
+                                  data.kubernetesLog.podData.podStat.totalPods
+                              ) || 0
+                          )} ${symbol || '%'}`
+                        : this.calcPercent(
+                              data.kubernetesLog.podData.podStat.healthy,
+                              data.kubernetesLog.podData.podStat.totalPods
+                          ) || 0
+                    : 0;
+            case 'job':
+                return data.kubernetesLog
+                    ? display
+                        ? `${Math.round(
+                              this.calcPercent(
+                                  data.kubernetesLog.jobData.jobStat
+                                      .succeededJobs,
+                                  data.kubernetesLog.jobData.jobStat.totalJobs
+                              ) || 0
+                          )} ${symbol || '%'}`
+                        : this.calcPercent(
+                              data.kubernetesLog.jobData.jobStat.succeededJobs,
+                              data.kubernetesLog.jobData.jobStat.totalJobs
+                          ) || 0
+                    : 0;
+            case 'deployment':
+                return data.kubernetesLog
+                    ? display
+                        ? `${Math.round(
+                              this.calcPercent(
+                                  data.kubernetesLog.deploymentData
+                                      .readyDeployment,
+                                  data.kubernetesLog.deploymentData
+                                      .desiredDeployment
+                              ) || 0
+                          )} ${symbol || '%'}`
+                        : this.calcPercent(
+                              data.kubernetesLog.deploymentData.readyDeployment,
+                              data.kubernetesLog.deploymentData
+                                  .desiredDeployment
+                          ) || 0
+                    : 0;
+            case 'statefulset':
+                return data.kubernetesLog
+                    ? display
+                        ? `${Math.round(
+                              this.calcPercent(
+                                  data.kubernetesLog.statefulsetData
+                                      .readyStatefulsets,
+                                  data.kubernetesLog.statefulsetData
+                                      .desiredStatefulsets
+                              ) || 0
+                          )} ${symbol || '%'}`
+                        : this.calcPercent(
+                              data.kubernetesLog.statefulsetData
+                                  .readyStatefulsets,
+                              data.kubernetesLog.statefulsetData
+                                  .desiredStatefulsets
+                          ) || 0
+                    : 0;
             default:
                 return display ? `${data || 0} ${symbol || ''}` : data || 0;
         }
     }
+
+    calcPercent = (val, total) => {
+        val = parseFloat(val);
+        total = parseFloat(total);
+
+        if (isNaN(val) || isNaN(total)) {
+            return 0;
+        }
+        if (!total || total === 0) {
+            return 0;
+        }
+        if (!val || val === 0) {
+            return 0;
+        }
+
+        return (val / total) * 100;
+    };
 
     parseDate(a) {
         return new Date(a).toLocaleString();

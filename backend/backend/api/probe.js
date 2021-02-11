@@ -165,7 +165,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             serverData,
             type,
             retryCount,
+            kubernetesData,
         } = req.body;
+
         let status,
             log,
             reason,
@@ -441,6 +443,88 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 data.reason = reason;
                 data.response = rawResp;
             }
+            if (type === 'kubernetes') {
+                data = { kubernetesData };
+
+                const {
+                    stat: validUp,
+                    successReasons: upSuccessReasons,
+                    failedReasons: upFailedReasons,
+                    matchedCriterion: matchedUpCriterion,
+                } = await (monitor && monitor.criteria && monitor.criteria.up
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.up,
+                          data.kubernetesData
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+
+                const {
+                    stat: validDegraded,
+                    successReasons: degradedSuccessReasons,
+                    failedReasons: degradedFailedReasons,
+                    matchedCriterion: matchedDegradedCriterion,
+                } = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.degraded
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.degraded,
+                          data.kubernetesData
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+
+                const {
+                    stat: validDown,
+                    successReasons: downSuccessReasons,
+                    failedReasons: downFailedReasons,
+                    matchedCriterion: matchedDownCriterion,
+                } = await (monitor && monitor.criteria && monitor.criteria.down
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          [
+                              ...monitor.criteria.down.filter(
+                                  criterion => criterion.default !== true
+                              ),
+                          ],
+                          data.kubernetesData
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+
+                if (validUp) {
+                    data.status = 'online';
+                    data.reason = upSuccessReasons;
+                    matchedCriterion = matchedUpCriterion;
+                } else if (validDegraded) {
+                    data.status = 'degraded';
+                    data.reason = [
+                        ...degradedSuccessReasons,
+                        ...upFailedReasons,
+                    ];
+                    matchedCriterion = matchedDegradedCriterion;
+                } else if (validDown) {
+                    data.status = 'offline';
+                    data.reason = [
+                        ...downSuccessReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
+                    matchedCriterion = matchedDownCriterion;
+                } else {
+                    data.status = 'offline';
+                    data.reason = [
+                        ...downFailedReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
+                    if (monitor.criteria.down) {
+                        matchedCriterion = monitor.criteria.down.find(
+                            criterion => criterion.default === true
+                        );
+                    }
+                }
+            }
+
             data.matchedCriterion = matchedCriterion;
             // update monitor to save the last matched criterion
             await MonitorService.updateOneBy(
