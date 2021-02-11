@@ -768,5 +768,3 @@ const generate = require('nanoid/generate');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const componentService = require('./componentService');
 const SsoDefaultRolesService = require('./ssoDefaultRolesService');
-const incidentService = require('./incidentService');
-

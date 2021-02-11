@@ -107,7 +107,7 @@ export class ComponentDetail extends Component {
             this.props.component.projectId;
         const promise = this.props.deleteComponent(componentId, projectId);
         history.push(
-            `/dashboard/project/${this.props.currentProject._id}/components`
+            `/dashboard/project/${this.props.currentProject.slug}/components`
         );
         if (IS_SAAS_SERVICE) {
             logEvent('EVENT: DASHBOARD > COMPONENT > COMPONENT DELETED', {

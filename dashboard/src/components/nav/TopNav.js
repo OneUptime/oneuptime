@@ -194,6 +194,7 @@ class TopContent extends Component {
     renderOnCallSchedule = (
         activeSchedules,
         currentProjectId,
+        currentProjectSlug,
         topNavCardClass
     ) => {
         return (
@@ -207,6 +208,7 @@ class TopContent extends Component {
                             status: 'active',
                             schedules: activeSchedules,
                             currentProjectId: currentProjectId,
+                            currentProjectSlug: currentProjectSlug,
                         }),
                     })
                 }
@@ -417,6 +419,7 @@ class TopContent extends Component {
                                     {this.renderOnCallSchedule(
                                         activeSchedules,
                                         this.props.currentProjectId,
+                                        this.props.currentProjectSlug,
                                         topNavCardClass
                                     )}
                                 </ShouldRender>
@@ -543,6 +546,9 @@ const mapStateToProps = (state, props) => {
     const currentProjectId = state.project.currentProject
         ? state.project.currentProject._id
         : '';
+    const currentProjectSlug = state.project.currentProject
+        ? state.project.currentProject.slug
+        : '';
     return {
         profilePic,
         feedback: state.feedback,
@@ -550,6 +556,7 @@ const mapStateToProps = (state, props) => {
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
         currentProjectId,
+        currentProjectSlug,
         monitors,
         escalation: state.schedule.escalation,
         escalations: state.schedule.escalations,
@@ -608,6 +615,7 @@ TopContent.propTypes = {
     userScheduleRequest: PropTypes.func,
     user: PropTypes.object.isRequired,
     currentProjectId: PropTypes.string.isRequired,
+    currentProjectSlug: PropTypes.string.isRequired,
     updateProfileSetting: PropTypes.func.isRequired,
 };
 
