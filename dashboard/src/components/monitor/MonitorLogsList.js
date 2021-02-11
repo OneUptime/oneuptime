@@ -194,7 +194,9 @@ export class MonitorLogsList extends Component {
                                             if={
                                                 this.props.monitorType &&
                                                 this.props.monitorType !==
-                                                    'incomingHttpRequest'
+                                                    'incomingHttpRequest' &&
+                                                this.props.monitorType !==
+                                                    'kubernetes'
                                             }
                                         >
                                             <td
@@ -732,7 +734,10 @@ export class MonitorLogsList extends Component {
                                                                 .monitorType &&
                                                             this.props
                                                                 .monitorType !==
-                                                                'incomingHttpRequest'
+                                                                'incomingHttpRequest' &&
+                                                            this.props
+                                                                .monitorType !==
+                                                                'kubernetes'
                                                         }
                                                     >
                                                         <td
