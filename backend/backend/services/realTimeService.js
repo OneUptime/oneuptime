@@ -643,7 +643,7 @@ module.exports = {
         }
     },
 
-    updateMonitorLog: async (data, projectId) => {
+    updateMonitorLog: async (data, logData, projectId) => {
         try {
             if (!global || !global.io) {
                 return;
@@ -655,11 +655,11 @@ module.exports = {
                     ? project.parentProjectId._id
                     : project._id
                 : projectId;
-
             global.io.emit(`updateMonitorLog-${parentProjectId}`, {
                 projectId,
                 monitorId: data.monitorId,
                 data,
+                logData,
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateMonitorLog', error);
