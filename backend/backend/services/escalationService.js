@@ -22,7 +22,15 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
-                .populate('scheduleId', 'name');
+                .populate({
+                    path: 'scheduleId',
+                    select: 'name',
+                    populate: { path: 'monitorIds', select: 'name' },
+                })
+                .populate({
+                    path: 'teams.teamMembers.user',
+                    select: 'name email',
+                });
             return escalations;
         } catch (error) {
             ErrorService.log('escalationService.findBy', error);
@@ -39,7 +47,15 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             const escalation = await EscalationModel.findOne(query)
                 .populate('projectId', 'name')
-                .populate('scheduleId', 'name')
+                .populate({
+                    path: 'scheduleId',
+                    select: 'name',
+                    populate: { path: 'monitorIds', select: 'name' },
+                })
+                .populate({
+                    path: 'teams.teamMembers.user',
+                    select: 'name email',
+                })
                 .lean();
 
             const { activeTeam, nextActiveTeam } = computeActiveTeams(
