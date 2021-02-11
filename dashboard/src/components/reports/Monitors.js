@@ -18,6 +18,7 @@ class Monitors extends Component {
             monitors: [],
             skip: 0,
             limit: 10,
+            page: 1,
         };
         this.handleNext = this.handleNext.bind(this);
         this.handlePrevious = this.handlePrevious.bind(this);
@@ -73,6 +74,7 @@ class Monitors extends Component {
         getActiveMonitors(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
+            page: this.state.page + 1,
         });
     }
 
@@ -88,6 +90,7 @@ class Monitors extends Component {
         getActiveMonitors(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
+            page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     }
 
@@ -109,7 +112,11 @@ class Monitors extends Component {
             canNext = false;
             canPrev = false;
         }
-
+        const numberOfPages = Math.ceil(
+            parseInt(
+                this.props.activeMonitors && this.props.activeMonitors.count
+            ) / 10
+        );
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -340,13 +347,19 @@ class Monitors extends Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {this.props.activeMonitors &&
-                                    this.props.activeMonitors.count
-                                        ? this.props.activeMonitors.count +
-                                          (this.props.activeMonitors &&
-                                          this.props.activeMonitors.count > 1
-                                              ? ' Monitors'
-                                              : ' Monitor')
+                                    {numberOfPages > 0
+                                        ? `Page ${
+                                              this.state.page
+                                          } of ${numberOfPages} (${this.props
+                                              .activeMonitors &&
+                                              this.props.activeMonitors
+                                                  .count} Monitor${
+                                              this.props.activeMonitors &&
+                                              this.props.activeMonitors
+                                                  .count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
                                         : null}
                                 </span>
                             </span>
