@@ -6,21 +6,6 @@ echo "${TIMEZONE}" >/etc/TZ
 cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
 
 initDkim() {
-
-  usage() {
-    echo "   usage: ${0} <example.com> [haraka username]" 2>&1
-    echo 2>&1
-    exit 1
-  }
-
-  if [ -z "$DOMAIN" ]; then
-    usage
-  fi
-
-  if [ -z "$SMTPD" ]; then
-    SMTPD="www"
-  fi
-
   # Create a directory for each DKIM signing domain
   mkdir -p "$DOMAIN"
   cd "$DOMAIN" || exit
@@ -35,9 +20,9 @@ initDkim() {
   # rotate your keys frequently, choose 2048, at the expense of more CPU.
   #
   # grab the generated private key and write it to private file
-  # PRIVATE_KEY must be in base64 for this to work
+  # DKIM_PRIVATE_KEY must be in base64 for this to work
   # This is a workaround for issue with passing private key through env
-  (echo $PRIVATE_KEY | base64 -d) >private
+  (echo $DKIM_PRIVATE_KEY | base64 -d) >private
 
   chmod 0400 private
   openssl rsa -in private -out public -pubout
@@ -51,8 +36,11 @@ initDkim() {
 #run if there is no existing haraka config
 if [[ ! -d "${DATADIR}/config" ]]; then
   haraka -i ${DATADIR}
-  echo "$DOMAIN" >${DATADIR}/config/host_list
-  echo "$DOMAIN" >${DATADIR}/config/me
+
+  if [[ -n "$DOMAIN" ]]; then
+    echo "$DOMAIN" >${DATADIR}/config/host_list
+    echo "$DOMAIN" >${DATADIR}/config/me
+  fi
 
   #enable toobusy plugin
   sed -i 's/^#toobusy$\?/toobusy/g' ${DATADIR}/config/plugins
@@ -74,6 +62,9 @@ if [[ ! -d "${DATADIR}/config" ]]; then
     (echo $TLS_KEY | base64 -d) >${DATADIR}/config/tls_key.pem
     (echo $TLS_CERT | base64 -d) >${DATADIR}/config/tls_cert.pem
 
+    #enable tls
+    sed -i "s/^#\s*tls/tls/" ${DATADIR}/config/plugins
+
     cat <<-EOF >>${DATADIR}/config/tls.ini
 	[outbound]
     key=tls_key.pem
@@ -83,7 +74,7 @@ if [[ ! -d "${DATADIR}/config" ]]; then
 
   fi
 
-  if [[ -n "$PRIVATE_KEY" ]]; then
+  if [[ -n "$DKIM_PRIVATE_KEY" ]] && [[ -n "$DOMAIN" ]]; then
     #enable dkim sign
     sed -i 's/^#dkim_sign$\?/dkim_sign/g' ${DATADIR}/config/plugins
 
@@ -142,9 +133,6 @@ if [[ ! -d "${DATADIR}/config" ]]; then
 
   #enable auth_flat_file
   sed -i "s/^#\s*auth\/flat_file/auth\/flat_file/" ${DATADIR}/config/plugins
-
-  #enable tls
-  sed -i "s/^#\s*tls/tls/" ${DATADIR}/config/plugins
 
   cat <<-EOF >>${DATADIR}/config/auth_flat_file.ini
 	[core]
