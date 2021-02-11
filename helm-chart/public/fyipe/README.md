@@ -37,6 +37,70 @@ This chart bootstraps a [Fyipe](https://fyipe.com) deployment on a [Kubernetes](
 - PV provisioner support in the underlying infrastructure
 - ReadWriteMany volumes for deployment scaling
 
+## Setup SMTP Server (Optional)
+
+By default, fyipe will ship with it's own default credential configuration for smtp server.
+
+### Setup Private Key
+
+```
+# Unix machine
+
+
+# generate private key
+
+openssl genrsa -out private 2048
+
+# Encode it to base64 and export it
+
+export DKIM_PRIVATE_KEY=$(cat private | base64)
+
+```
+
+> If you already have a private key, you can point the export command to it, and export as base64 encoded
+
+### Setup DKIM on DNS TXT Record
+
+```
+# Unix machine
+
+# private should point to the private key generated previously
+
+chmod 0400 private
+openssl rsa -in private -out public -pubout
+
+# value of DKIM dns record
+
+echo "v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
+
+```
+
+> When setting up the DKIM dns txt record (recommended), the selector should be `fyipe._domainkey` then the value should be the output of the echo command
+
+### Setup tls Keys
+
+```
+# Unix machine
+
+
+# generate tls_cert.pem and tls_key.pem
+# this command will open a prompt for you to fill in your details
+
+openssl req -x509 -nodes -days 2190 -newkey rsa:2048 -keyout tls_key.pem -out tls_cert.pem
+
+# Encode your tls to base64 and export it
+
+export TLS_KEY=$(cat tls_key.pem | base64)
+export TLS_CERT=$(cat tls_cert.pem | base64)
+
+# DOMAIN should equal your domain
+
+export DOMAIN=$DOMAIN
+
+```
+
+> If you already have tls_key and tls_cert for your domain, you can point the export command to the tls files to generate base64 encoded value
+
 ## Installing the Chart
 
 To install the chart with the release name `fyipe`:
