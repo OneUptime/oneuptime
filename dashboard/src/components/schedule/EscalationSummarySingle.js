@@ -269,7 +269,6 @@ const EscalationSummarySingle = ({
                                         </div>
                                     );
                                 })}
-                                {console.log('escalationxxx', escalation)}
                         {isActiveTeam && (
                             <>
                                 <div>
