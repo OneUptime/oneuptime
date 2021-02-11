@@ -34,6 +34,7 @@ module.exports = {
             Log.mainTemp = data.mainTemp;
             Log.maxTemp = data.maxTemp;
             Log.sslCertificate = data.sslCertificate;
+            Log.kubernetesLog = data.kubernetesData || {};
 
             const savedLog = await Log.save();
 

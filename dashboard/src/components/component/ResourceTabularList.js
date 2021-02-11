@@ -34,6 +34,7 @@ class ResourceTabularList extends Component {
             case 'server monitor':
             case 'script monitor':
             case 'incomingHttpRequest monitor':
+            case 'kubernetes monitor':
             case 'IP monitor':
                 route = 'monitoring';
                 break;
@@ -72,6 +73,7 @@ class ResourceTabularList extends Component {
             case 'server monitor':
             case 'script monitor':
             case 'incomingHttpRequest monitor':
+            case 'kubernetes monitor':
             case 'IP monitor':
                 // get monitor status
                 monitor = monitors.filter(

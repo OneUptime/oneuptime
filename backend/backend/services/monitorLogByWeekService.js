@@ -26,6 +26,7 @@ module.exports = {
             LogWeek.maxMainTemp = data.mainTemp;
             LogWeek.intervalDate = data.intervalDate;
             LogWeek.sslCertificate = data.sslCertificate;
+            LogWeek.kubernetesLog = data.kubernetesData || {};
 
             const savedLogWeek = await LogWeek.save();
 

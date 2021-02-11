@@ -26,6 +26,7 @@ module.exports = {
             LogDay.maxMainTemp = data.mainTemp;
             LogDay.intervalDate = data.intervalDate;
             LogDay.sslCertificate = data.sslCertificate;
+            LogDay.kubernetesLog = data.kubernetesData || {};
 
             const savedLogDay = await LogDay.save();
 

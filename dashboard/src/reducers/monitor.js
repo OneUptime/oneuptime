@@ -62,6 +62,10 @@ import {
     UPLOAD_IDENTITY_FILE_REQUEST,
     UPLOAD_IDENTITY_FILE_SUCCESS,
     RESET_UPLOAD_IDENTITY_FILE,
+    UPLOAD_CONFIGURATION_FILE_REQUEST,
+    UPLOAD_CONFIGURATION_FILE_SUCCESS,
+    RESET_UPLOAD_CONFIGURATION_FILE,
+    SET_CONFIGURATION_FILE_INPUT_KEY,
 } from '../constants/monitor';
 import moment from 'moment';
 
@@ -123,6 +127,9 @@ const INITIAL_STATE = {
     file: null,
     fileInputKey: null,
     uploadFileRequest: false,
+    configFile: null,
+    uploadConfigRequest: false,
+    configFileInputKey: null,
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
@@ -180,6 +187,32 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 fileInputKey: action.payload,
             });
+
+        case SET_CONFIGURATION_FILE_INPUT_KEY:
+            return {
+                ...state,
+                configFileInputKey: action.payload,
+            };
+
+        case UPLOAD_CONFIGURATION_FILE_REQUEST:
+            return {
+                ...state,
+                uploadConfigRequest: true,
+            };
+
+        case UPLOAD_CONFIGURATION_FILE_SUCCESS:
+            return {
+                ...state,
+                configFile: action.payload,
+                uploadConfigRequest: false,
+            };
+
+        case RESET_UPLOAD_CONFIGURATION_FILE:
+            return {
+                ...state,
+                configFile: null,
+                uploadConfigRequest: false,
+            };
 
         case CREATE_MONITOR_SUCCESS:
         case 'CREATE_MONITOR': {
@@ -1166,6 +1199,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                         monitorType === 'script' ||
                         monitorType === 'server-monitor' ||
                         monitorType === 'incomingHttpRequest' ||
+                        monitorType === 'kubernetes' ||
                         monitorType === 'ip')
                     ? state.monitorCriteria.criteria[monitorType]
                     : null
@@ -1184,6 +1218,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                         monitorSla: action.payload.monitorSla,
                         incidentCommunicationSla:
                             action.payload.incidentCommunicationSla,
+                        kubernetesNamespace_1000:
+                            action.payload.kubernetesNamespace || 'default',
                     },
                 },
             });
