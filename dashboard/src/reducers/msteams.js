@@ -46,7 +46,7 @@ const initialState = {
         success: false,
     },
     pages: {
-        counter: 0,
+        counter: 1,
     },
 };
 
