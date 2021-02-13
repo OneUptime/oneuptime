@@ -53,7 +53,7 @@ class ApplicationLog extends Component {
                 `createApplicationLog-${this.props.componentId}`,
                 data => {
                     history.push(
-                        `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-logs/${data._id}`
+                        `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/application-logs/${data._id}`
                     );
                 }
             );

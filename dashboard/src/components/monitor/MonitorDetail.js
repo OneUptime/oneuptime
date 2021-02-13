@@ -248,7 +248,7 @@ export class MonitorDetail extends Component {
                 : monitor && monitor.data && monitor.data.link
                 ? monitor.data.link
                 : null;
-        const probeUrl = `/dashboard/project/${monitor.projectId._id}/settings/probe`;
+        const probeUrl = `/dashboard/project/${monitor.projectId.slug}/settings/probe`;
 
         monitor.error = null;
         if (
