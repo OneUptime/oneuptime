@@ -241,10 +241,22 @@ module.exports = {
 
                 const schedules = await this.getSchedulesForAlerts(incident);
 
-                for (const schedule of schedules) {
-                    _this.sendAlertsToTeamMembersInSchedule({
-                        schedule,
-                        incident,
+                if(schedules.length > 0) {
+                    for (const schedule of schedules) {
+                        _this.sendAlertsToTeamMembersInSchedule({
+                            schedule,
+                            incident,
+                        });
+                    }
+                } else {
+                    OnCallScheduleStatusService.create({
+                        project: incident.projectId,
+                        incident: incident._id,
+                        activeEscalation: null,
+                        schedule: null,
+                        incidentAcknowledged: false,
+                        escalations: [],
+                        isOnDuty: false
                     });
                 }
             }

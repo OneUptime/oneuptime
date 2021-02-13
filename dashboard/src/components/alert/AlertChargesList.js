@@ -12,6 +12,7 @@ export class AlertChargesList extends Component {
     constructor(props) {
         super(props);
         this.props = props;
+        this.state = {};
     }
     componentDidMount() {
         const { fetchAlertCharges, getProjectBalance } = this.props;
@@ -30,11 +31,15 @@ export class AlertChargesList extends Component {
     prevClicked = () => {
         const { fetchAlertCharges, projectId, skip } = this.props;
         fetchAlertCharges(projectId, skip ? parseInt(skip, 10) - 5 : 5, 5);
+        this.setState({
+            page: this.state.page === 1 ? 1 : this.state.page - 1,
+        });
     };
 
     nextClicked = () => {
         const { fetchAlertCharges, projectId, skip } = this.props;
         fetchAlertCharges(projectId, skip ? parseInt(skip, 10) + 5 : 5, 5);
+        this.setState({ page: !this.state.page ? 2 : this.state.page + 1 });
     };
 
     render() {
@@ -49,6 +54,7 @@ export class AlertChargesList extends Component {
         } = this.props;
         const canNext = count > parseInt(skip) + parseInt(limit) ? true : false;
         const canPrev = parseInt(skip) <= 0 ? false : true;
+        const numberOfPages = Math.ceil(parseInt(count) / 5);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -349,12 +355,17 @@ export class AlertChargesList extends Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {count
-                                        ? count +
-                                          (count && count > 1
-                                              ? ' Alerts'
-                                              : ' Alert ')
-                                        : null}
+                                    {numberOfPages > 0
+                                        ? `Page ${
+                                              !this.state.page
+                                                  ? 1
+                                                  : this.state.page
+                                          } of ${numberOfPages} (${count} Alert${
+                                              count === 1 ? '' : 's'
+                                          })`
+                                        : `${count} Alert${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </span>
                         </span>

@@ -17,7 +17,7 @@ import Unauthorised from '../modals/Unauthorised';
 export class SubProjects extends Component {
     constructor(props) {
         super(props);
-        this.state = { subProjectModalId: uuid.v4() };
+        this.state = { subProjectModalId: uuid.v4(), page: 1 };
     }
 
     componentDidMount() {
@@ -53,11 +53,15 @@ export class SubProjects extends Component {
     paginatePrev = () => {
         const { skip, getSubProjects, currentProject } = this.props;
         getSubProjects(currentProject._id, skip ? skip - 10 : 10, 10);
+        this.setState({
+            page: this.state.page === 1 ? 1 : this.state.page - 1,
+        });
     };
 
     paginateNext = () => {
         const { skip, getSubProjects, currentProject } = this.props;
         getSubProjects(currentProject._id, skip ? skip + 10 : 10, 10);
+        this.setState({ page: this.state.page + 1 });
     };
 
     handleAddSubProject = () => {
@@ -85,6 +89,7 @@ export class SubProjects extends Component {
         const canNext = count > skip + limit ? false : true;
         const canPrev = skip <= 0 ? true : false;
         const _this = this;
+        const numbersOfPage = Math.ceil(parseInt(count) / 10);
 
         return (
             <div className="bs-BIM">
@@ -238,8 +243,17 @@ export class SubProjects extends Component {
                                 <ShouldRender if={!subProjects.error}>
                                     <div className="bs-Tail-copy">
                                         <span>
-                                            {count} Sub Project
-                                            {count > 1 ? 's' : ''}
+                                            {numbersOfPage > 0
+                                                ? `Page ${
+                                                      this.state.page
+                                                  } of ${numbersOfPage} (${count} Sub Project${
+                                                      count === 1 ? '' : 's'
+                                                  })`
+                                                : `${
+                                                      this.state.page
+                                                  } of ${numbersOfPage} (${count} Sub Project${
+                                                      count === 1 ? '' : 's'
+                                                  }`}
                                         </span>
                                     </div>
                                 </ShouldRender>
