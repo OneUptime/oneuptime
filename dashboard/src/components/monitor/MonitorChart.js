@@ -839,7 +839,7 @@ export function MonitorChart({
                     if={
                         !isCurrentlyNotMonitoring &&
                         checkLogs &&
-                        (type === 'url' || type === 'api')
+                        (type === 'url' || type === 'api' || type === 'ip')
                     }
                 >
                     <div
