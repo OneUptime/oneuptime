@@ -42,6 +42,16 @@ echo "v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
 
 > When setting up the DKIM dns txt record (recommended), the selector should be `fyipe._domainkey` then the value should be the output of the echo command
 
+### Setup DMARC and SPF DNS TXT Record (Optional)
+
+To setup dmarc for the smtp server, you need to create a new dns record with the following values
+
+| Type | Name    | Content                                                                                  |
+| ---- | ------- | ---------------------------------------------------------------------------------------- |
+| TXT  | \_dmarc | v=DMARC1; p=reject; adkim=s; aspf=r; rua=mailto:youremail; ruf=mailto:youremail; pct=100 |
+
+> For SPF dns record, you need to setup with appropriate values, if the ip of the smtp mail server is static, you can add that to the spf ip list
+
 ### Setup tls Keys (Optional)
 
 ```
