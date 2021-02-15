@@ -11,6 +11,7 @@ const DateTime = require('../utils/DateTime');
 const Path = require('path');
 const fsp = require('fs/promises');
 const moment = require('moment');
+const { settings } = require('cluster');
 
 const helpers = {
     year: DateTime.getCurrentYear,
@@ -30,7 +31,7 @@ const options = {
 
 const _this = {
     getProjectSmtpSettings: async projectId => {
-        let user, pass, host, port, from, name, secure;
+        let user, pass, host, port, from, name, secure, internalSmtp;
         const smtpDb = await EmailSmtpService.findOneBy({
             projectId,
             enabled: true,
@@ -57,9 +58,10 @@ const _this = {
             from = globalSettings.from;
             name = globalSettings.name;
             secure = globalSettings.secure;
+            internalSmtp = globalSettings.internalSmtp;
         }
 
-        return { user, pass, host, port, from, name, secure };
+        return { user, pass, host, port, from, name, secure, internalSmtp };
     },
 
     getEmailBody: async function(mailOptions) {
@@ -81,7 +83,14 @@ const _this = {
         }
     },
 
-    createMailer: async function({ host, port, user, pass, secure }) {
+    createMailer: async function({
+        host,
+        port,
+        user,
+        pass,
+        secure,
+        internalSmtp,
+    }) {
         if (!host || !user || !pass) {
             const settings = await _this.getSmtpSettings();
             host = settings.host;
@@ -95,15 +104,34 @@ const _this = {
             }
         }
 
-        const privateMailer = nodemailer.createTransport({
-            host: host,
-            port: port,
-            secure: secure,
-            auth: {
-                user: user,
-                pass: pass,
-            },
-        });
+        internalSmtp = internalSmtp || settings.internalSmtp;
+        let privateMailer;
+        if (internalSmtp) {
+            privateMailer = nodemailer.createTransport({
+                host: host,
+                port: port,
+                secure: secure,
+                auth: {
+                    user: user,
+                    pass: pass,
+                },
+                tls: {
+                    // do not fail on invalid certs
+                    // also allow self signed certs
+                    rejectUnauthorized: false,
+                },
+            });
+        } else {
+            privateMailer = nodemailer.createTransport({
+                host: host,
+                port: port,
+                secure: secure,
+                auth: {
+                    user: user,
+                    pass: pass,
+                },
+            });
+        }
 
         privateMailer.use('compile', hbs(options));
         return privateMailer;
@@ -111,7 +139,12 @@ const _this = {
 
     getSmtpSettings: async () => {
         const document = await GlobalConfigService.findOneBy({ name: 'smtp' });
-        if (document && document.value) {
+        if (
+            document &&
+            document.value &&
+            (!document.value.internalSmtp ||
+                (document.value.internalSmtp && document.value.backupSmtp))
+        ) {
             return {
                 user: document.value.email,
                 pass: document.value.password,
@@ -121,6 +154,17 @@ const _this = {
                 name: document.value['from-name'] || 'Fyipe',
                 secure: document.value['smtp-secure'],
                 'email-enabled': document.value['email-enabled'],
+            };
+        } else if (document && document.value && document.value.internalSmtp) {
+            return {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASSWORD,
+                host: process.env.SMTP_SERVER,
+                port: process.env.SMTP_PORT,
+                from: process.env.SMTP_FROM,
+                name: process.env.SMTP_NAME,
+                'email-enabled': true,
+                internalSmtp: true,
             };
         }
 
