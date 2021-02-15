@@ -857,11 +857,11 @@ export function MonitorChart({
                                     <div className="db-Trend-colInformation">
                                         <div
                                             className="db-Trend-rowTitle"
-                                            title="All Jobs"
+                                            title="Succeeded Jobs"
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    All Jobs
+                                                    Succeeded Jobs
                                                 </span>
                                             </div>
                                         </div>
@@ -876,7 +876,7 @@ export function MonitorChart({
                                                                   .kubernetesLog
                                                                   .jobData
                                                                   .jobStat
-                                                                  .totalJobs
+                                                                  .succeededJobs
                                                             : 0}
                                                     </span>
                                                 </span>
@@ -906,35 +906,6 @@ export function MonitorChart({
                                                                   .jobData
                                                                   .jobStat
                                                                   .runningJobs
-                                                            : 0}
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="db-Trend-colInformation">
-                                        <div
-                                            className="db-Trend-rowTitle"
-                                            title="Succeeded Jobs"
-                                        >
-                                            <div className="db-Trend-title">
-                                                <span className="chart-font">
-                                                    Succeeded Jobs
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
-                                                    <span className="chart-font">
-                                                        {checkLogs &&
-                                                        data[0].kubernetesLog
-                                                            ? data[0]
-                                                                  .kubernetesLog
-                                                                  .jobData
-                                                                  .jobStat
-                                                                  .succeededJobs
                                                             : 0}
                                                     </span>
                                                 </span>
