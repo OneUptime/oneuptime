@@ -75,7 +75,7 @@ const pingfetch = async (url, method, body, headers) => {
             const payload = {
                 method: method,
                 timeout: 120000,
-                agent: urlObject.protocol === 'https' ? httpsAgent : httpAgent,
+                agent: urlObject.protocol === 'https:' ? httpsAgent : httpAgent,
             };
             if (headers && Object.keys(headers).length) {
                 payload.headers = headers;

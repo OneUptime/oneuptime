@@ -10289,6 +10289,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     flex-direction:row;
     align-items:center;
     padding:5%;
+    width: 100%;
 }
 
 .price-list-item input[name='planId'] {

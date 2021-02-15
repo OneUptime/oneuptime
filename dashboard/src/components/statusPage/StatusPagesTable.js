@@ -25,7 +25,15 @@ class StatusPagesTable extends Component {
     }
 
     componentDidMount() {
-        this.props.fetchSubProjectStatusPages(this.props.projectId);
+        this.props
+            .fetchSubProjectStatusPages(this.props.projectId)
+            .then(res => {
+                if (res.data.length > 0) {
+                    res.data.forEach(proj => {
+                        this.setState({ [proj._id]: 1 });
+                    });
+                }
+            });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE'
@@ -47,6 +55,7 @@ class StatusPagesTable extends Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
+        this.setState({ [projectId]: this.state[projectId] - 1 });
         paginate('prev');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -57,8 +66,8 @@ class StatusPagesTable extends Component {
 
     nextClicked = (projectId, skip, limit) => {
         const { fetchProjectStatusPage, paginate } = this.props;
-
         fetchProjectStatusPage(projectId, false, skip + limit, 10);
+        this.setState({ [projectId]: this.state[projectId] + 1 });
         paginate('next');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -145,6 +154,9 @@ class StatusPagesTable extends Component {
                                         }
                                         modalList={this.props.modalList}
                                         project={subProject}
+                                        pages={
+                                            this.state[subProjectStatusPage._id]
+                                        }
                                     />
                                 </div>
                             </div>
@@ -214,6 +226,7 @@ class StatusPagesTable extends Component {
                                     }
                                     modalList={this.props.modalList}
                                     project={currentProject}
+                                    pages={this.state[projectStatusPage._id]}
                                 />
                             </div>
                         </div>

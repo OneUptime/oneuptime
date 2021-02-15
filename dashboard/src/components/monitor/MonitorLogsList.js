@@ -194,7 +194,9 @@ export class MonitorLogsList extends Component {
                                             if={
                                                 this.props.monitorType &&
                                                 this.props.monitorType !==
-                                                    'incomingHttpRequest'
+                                                    'incomingHttpRequest' &&
+                                                this.props.monitorType !==
+                                                    'kubernetes'
                                             }
                                         >
                                             <td
@@ -732,7 +734,10 @@ export class MonitorLogsList extends Component {
                                                                 .monitorType &&
                                                             this.props
                                                                 .monitorType !==
-                                                                'incomingHttpRequest'
+                                                                'incomingHttpRequest' &&
+                                                            this.props
+                                                                .monitorType !==
+                                                                'kubernetes'
                                                         }
                                                     >
                                                         <td
@@ -1039,6 +1044,7 @@ MonitorLogsList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     openModal: PropTypes.func,
     prevClicked: PropTypes.func.isRequired,
+    page: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorLogsList);

@@ -22,8 +22,11 @@ class RoutingNumberBox extends React.Component {
                                             </span>
                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                 <span>
-                                                    Add or remove phone numbers
-                                                    to be used for call routing.
+                                                    Listed numbers when called
+                                                    will redirect callers to
+                                                    team members or members in
+                                                    schedule, attached to the
+                                                    phone number.
                                                 </span>
                                             </span>
                                         </div>

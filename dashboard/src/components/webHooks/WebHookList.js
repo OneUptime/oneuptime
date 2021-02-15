@@ -107,7 +107,7 @@ class WebHookList extends React.Component {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
-
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
             <React.Fragment>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -179,8 +179,15 @@ class WebHookList extends React.Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {webHooks.length} Webhook
-                                    {numberOfWebHooks === 1 ? '' : 's'}
+                                    {numberOfPages > 0
+                                        ? `Page ${this.props.page &&
+                                              this.props.page
+                                                  .counter} of ${numberOfPages} (${count} Webhook${
+                                              count === 1 ? '' : 's'
+                                          })`
+                                        : `${count} Webhook${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </span>
                         </span>
@@ -242,6 +249,7 @@ WebHookList.displayName = 'WebHookList';
 
 const mapStateToProps = state => ({
     webHook: state.webHooks.webHook,
+    page: state.webHooks.pages,
     isRequesting: state.webHooks.webHook.requesting,
     currentProject: state.project.currentProject,
     projectId: state.project.currentProject && state.project.currentProject._id,
@@ -267,6 +275,7 @@ WebHookList.propTypes = {
     isRequesting: PropTypes.bool,
     webHook: PropTypes.any,
     paginate: PropTypes.func.isRequired,
+    page: PropTypes.any,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookList);

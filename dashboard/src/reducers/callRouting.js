@@ -38,6 +38,15 @@ const initialState = {
         success: false,
         numbers: [],
     },
+    callRoutingLogs: {
+        requesting: false,
+        error: null,
+        success: false,
+        logs: [],
+        count: null,
+        limit: 10,
+        skip: null,
+    },
 };
 
 export default function card(state = initialState, action) {
@@ -290,6 +299,49 @@ export default function card(state = initialState, action) {
                     success: false,
                     error: action.payload,
                 },
+            });
+
+        case types.GET_CALL_ROUTING_LOGS_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+                callRoutingLogs: {
+                    ...state.callRoutingLogs,
+                    error: null,
+                    success: false,
+                    requesting: true,
+                },
+            });
+
+        case types.GET_CALL_ROUTING_LOGS_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+                callRoutingLogs: {
+                    ...state.callRoutingLogs,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    logs: action.payload.logs,
+                    count: action.payload.count,
+                    limit: action.payload.limit,
+                    skip: action.payload.skip,
+                },
+            });
+
+        case types.GET_CALL_ROUTING_LOGS_FAILURE:
+            return Object.assign({}, state, {
+                ...state,
+                callRoutingLogs: {
+                    ...state.callRoutingLogs,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case types.GET_CALL_ROUTING_LOGS_RESET:
+            return Object.assign({}, state, {
+                ...state,
+                callRoutingLogs: initialState.callRoutingLogs,
             });
 
         default:

@@ -121,12 +121,19 @@ module.exports = {
                         data.type === 'server-monitor' ||
                         data.type === 'script' ||
                         data.type === 'incomingHttpRequest' ||
+                        data.type === 'kubernetes' ||
                         data.type === 'ip'
                     ) {
                         monitor.criteria = _.isEmpty(data.criteria)
                             ? MonitorCriteriaService.create(data.type)
                             : data.criteria;
                     }
+
+                    if (data.type === 'kubernetes') {
+                        monitor.kubernetesConfig = data.kubernetesConfig;
+                        monitor.kubernetesNamespace = data.kubernetesNamespace;
+                    }
+
                     if (data.type === 'api') {
                         if (data.method && data.method.length)
                             monitor.method = data.method;
@@ -501,6 +508,7 @@ module.exports = {
                                                 'url',
                                                 'api',
                                                 'incomingHttpRequest',
+                                                'kubernetes',
                                                 'ip',
                                             ],
                                         },

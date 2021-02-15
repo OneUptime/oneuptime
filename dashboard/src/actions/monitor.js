@@ -147,6 +147,71 @@ export function resetFile() {
     };
 }
 
+export function uploadConfigurationFileRequest() {
+    return {
+        type: types.UPLOAD_CONFIGURATION_FILE_REQUEST,
+    };
+}
+
+export function logConfigFile(file) {
+    return dispatch =>
+        dispatch({
+            type: types.UPLOAD_CONFIGURATION_FILE_SUCCESS,
+            payload: file,
+        });
+}
+
+export function resetConfigFile() {
+    return dispatch =>
+        dispatch({
+            type: types.RESET_UPLOAD_CONFIGURATION_FILE,
+        });
+}
+
+export function setConfigInputKey(value) {
+    return {
+        type: types.SET_CONFIGURATION_FILE_INPUT_KEY,
+        payload: value,
+    };
+}
+
+export function uploadConfigurationFile(projectId, file) {
+    return function(dispatch) {
+        const data = new FormData();
+        if (file) {
+            data.append('configurationFile', file);
+
+            const promise = postApi(
+                `monitor/${projectId}/configurationFile`,
+                data
+            );
+            dispatch(uploadConfigurationFileRequest());
+            promise.then(
+                function(response) {
+                    const data = response.data;
+                    dispatch(logConfigFile(data.configurationFile));
+                    return data;
+                },
+                function(error) {
+                    if (error && error.response && error.response.data)
+                        error = error.response.data;
+                    if (error && error.data) {
+                        error = error.data;
+                    }
+                    if (error && error.message) {
+                        error = error.message;
+                    } else {
+                        error = 'Network Error';
+                    }
+                    dispatch(resetConfigFile());
+                }
+            );
+
+            return promise;
+        }
+    };
+}
+
 export function setFileInputKey(value) {
     return {
         type: 'SET_IDENTITY_FILE_INPUT_KEY',

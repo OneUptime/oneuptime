@@ -229,15 +229,21 @@ module.exports = {
 
                     // grab all the criteria in a monitor
                     const allCriteria = [];
-                    data.matchedUpCriterion.forEach(criteria =>
-                        allCriteria.push(criteria)
-                    );
-                    data.matchedDownCriterion.forEach(criteria =>
-                        allCriteria.push(criteria)
-                    );
-                    data.matchedDegradedCriterion.forEach(criteria =>
-                        allCriteria.push(criteria)
-                    );
+                    if (data.matchedUpCriterion) {
+                        data.matchedUpCriterion.forEach(criteria =>
+                            allCriteria.push(criteria)
+                        );
+                    }
+                    if (data.matchedDownCriterion) {
+                        data.matchedDownCriterion.forEach(criteria =>
+                            allCriteria.push(criteria)
+                        );
+                    }
+                    if (data.matchedDegradedCriterion) {
+                        data.matchedDegradedCriterion.forEach(criteria =>
+                            allCriteria.push(criteria)
+                        );
+                    }
 
                     await _this.incidentResolveOrAcknowledge(
                         data,
@@ -492,7 +498,10 @@ module.exports = {
                 incidents.forEach(incident => {
                     const criteriaId = String(incident.criterionCause._id);
                     allCriteria.forEach(criteria => {
-                        if (String(criteria._id) === criteriaId) {
+                        if (
+                            String(criteria._id) === criteriaId ||
+                            criteria.name === incident.criterionCause.name
+                        ) {
                             autoAcknowledge = criteria.autoAcknowledge;
                             autoResolve = criteria.autoResolve;
                         }
@@ -675,6 +684,8 @@ module.exports = {
                 : null
             : null;
         const body = resp && resp.body ? resp.body : null;
+        const queryParams = resp && resp.queryParams ? resp.queryParams : null;
+        const headers = resp && resp.headers ? resp.headers : null;
         const sslCertificate =
             resp && resp.sslCertificate ? resp.sslCertificate : null;
         const successReasons = [];
@@ -696,7 +707,9 @@ module.exports = {
                         response,
                         successReasons,
                         failedReasons,
-                        monitorType
+                        monitorType,
+                        queryParams,
+                        headers
                     );
                 } else if (condition && condition.or && condition.or.length) {
                     stat = await checkOr(
@@ -708,7 +721,9 @@ module.exports = {
                         response,
                         successReasons,
                         failedReasons,
-                        monitorType
+                        monitorType,
+                        queryParams,
+                        headers
                     );
                 }
                 if (stat) {
@@ -1140,10 +1155,24 @@ module.exports = {
         return { eventOccurred, matchedCriterion };
     },
 
+    toArray: function(params) {
+        const array = [];
+        if (Object.keys(params).length > 0) {
+            for (const [key, value] of Object.entries(params)) {
+                array.push(key.toLowerCase() + '=' + value.toLowerCase());
+            }
+            return array;
+        }
+        return null;
+    },
+
     processHttpRequest: async function(data) {
         try {
             const _this = this;
             const { monitor, body } = data;
+            let { queryParams, headers } = data;
+            queryParams = _this.toArray(queryParams);
+            headers = _this.toArray(headers);
             let status, reason;
             let matchedCriterion;
             const lastPingTime = monitor.lastPingTime;
@@ -1156,6 +1185,8 @@ module.exports = {
             } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? _this.conditions(monitor.type, monitor.criteria.up, payload, {
                       body,
+                      queryParams,
+                      headers,
                   })
                 : { stat: false, successReasons: [], failedReasons: [] });
             const {
@@ -1168,7 +1199,11 @@ module.exports = {
                       monitor.type,
                       monitor.criteria.degraded,
                       payload,
-                      { body }
+                      {
+                          body,
+                          queryParams,
+                          headers,
+                      }
                   )
                 : { stat: false, successReasons: [], failedReasons: [] });
             const {
@@ -1181,7 +1216,11 @@ module.exports = {
                       monitor.type,
                       monitor.criteria.down,
                       payload,
-                      { body }
+                      {
+                          body,
+                          queryParams,
+                          headers,
+                      }
                   )
                 : { stat: false, successReasons: [], failedReasons: [] });
 
@@ -1655,7 +1694,9 @@ const checkAnd = async (
     response,
     successReasons,
     failedReasons,
-    type
+    type,
+    queryParams,
+    headers
 ) => {
     let validity = true;
     for (let i = 0; i < con.length; i++) {
@@ -3385,7 +3426,228 @@ const checkAnd = async (
                     );
                 }
             }
+        } else if (con[i] && con[i].responseType === 'queryString') {
+            if (con[i] && con[i].filter && con[i].filter === 'contains') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        queryParams &&
+                        queryParams.includes(con[i].field1.toLowerCase())
+                    )
+                ) {
+                    validity = false;
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                    );
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'headers') {
+            if (con[i] && con[i].filter && con[i].filter === 'contains') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        headers &&
+                        headers.includes(con[i].field1.toLowerCase())
+                    )
+                ) {
+                    validity = false;
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                    );
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'podStatus') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.podData.allPods.forEach(pod => {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            pod.podStatus &&
+                            pod.podStatus.toLowerCase() ===
+                                con[i].field1.toLowerCase()
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.podData.allPods.forEach(pod => {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            pod.podStatus &&
+                            pod.podStatus.toLowerCase() !==
+                                con[i].field1.toLowerCase()
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'jobStatus') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.jobData.allJobs.forEach(job => {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            job.jobStatus &&
+                            job.jobStatus.toLowerCase() ===
+                                con[i].field1.toLowerCase()
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    } else {
+                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.jobData.allJobs.forEach(job => {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            job.jobStatus &&
+                            job.jobStatus.toLowerCase() !==
+                                con[i].field1.toLowerCase()
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    } else {
+                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'desiredDeployment') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.deploymentData.allDeployments.forEach(deployment => {
+                    if (
+                        !(
+                            deployment.desiredDeployment ===
+                            deployment.readyDeployment
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.deploymentData.allDeployments.forEach(deployment => {
+                    if (
+                        !(
+                            deployment.desiredDeployment !==
+                            deployment.readyDeployment
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'desiredStatefulset') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.statefulsetData.allStatefulset.forEach(statefulset => {
+                    if (
+                        !(
+                            statefulset.desiredStatefulsets ===
+                            statefulset.readyStatefulsets
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.statefulsetData.allStatefulset.forEach(statefulset => {
+                    if (
+                        !(
+                            statefulset.desiredStatefulsets !==
+                            statefulset.readyStatefulsets
+                        )
+                    ) {
+                        validity = false;
+                        failedReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                        );
+                    } else {
+                        successReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                        );
+                    }
+                });
+            }
         }
+
         if (
             con[i] &&
             con[i].collection &&
@@ -3438,7 +3700,9 @@ const checkOr = async (
     response,
     successReasons,
     failedReasons,
-    type
+    type,
+    queryParams,
+    headers
 ) => {
     let validity = false;
     for (let i = 0; i < con.length; i++) {
@@ -5039,7 +5303,212 @@ const checkOr = async (
                     );
                 }
             }
+        } else if (con[i] && con[i].responseType === 'queryString') {
+            if (con[i] && con[i].filter && con[i].filter === 'contains') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        queryParams &&
+                        queryParams.includes(con[i].field1.toLowerCase())
+                    )
+                ) {
+                    validity = false;
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                    );
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'headers') {
+            if (con[i] && con[i].filter && con[i].filter === 'contains') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        headers &&
+                        headers.includes(con[i].field1.toLowerCase())
+                    )
+                ) {
+                    validity = false;
+                    failedReasons.push(
+                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                    );
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'podStatus') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.podData.allPods.forEach(pod => {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        pod.podStatus &&
+                        pod.podStatus.toLowerCase() ===
+                            con[i].field1.toLowerCase()
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.podData.allPods.forEach(pod => {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        pod.podStatus &&
+                        pod.podStatus.toLowerCase() !==
+                            con[i].field1.toLowerCase()
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${pod.podName} status is ${pod.podStatus}`
+                        );
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'jobStatus') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.jobData.allJobs.forEach(job => {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        job.jobStatus &&
+                        job.jobStatus.toLowerCase() ===
+                            con[i].field1.toLowerCase()
+                    ) {
+                        validity = true;
+                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    } else {
+                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.jobData.allJobs.forEach(job => {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        job.jobStatus &&
+                        job.jobStatus.toLowerCase() !==
+                            con[i].field1.toLowerCase()
+                    ) {
+                        validity = true;
+                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    } else {
+                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'desiredDeployment') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.deploymentData.allDeployments.forEach(deployment => {
+                    if (
+                        deployment.desiredDeployment ===
+                        deployment.readyDeployment
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.deploymentData.allDeployments.forEach(deployment => {
+                    if (
+                        deployment.desiredDeployment !==
+                        deployment.readyDeployment
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                        );
+                    }
+                });
+            }
+        } else if (con[i] && con[i].responseType === 'desiredStatefulsets') {
+            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
+                // eslint-disable-next-line no-loop-func
+                payload.statefulsetData.allStatefulset.forEach(statefulset => {
+                    if (
+                        statefulset.desiredStatefulsets ===
+                        statefulset.readyStatefulsets
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                        );
+                    }
+                });
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'notEqualTo'
+            ) {
+                // eslint-disable-next-line no-loop-func
+                payload.statefulsetData.allStatefulset.forEach(statefulset => {
+                    if (
+                        statefulset.desiredStatefulsets !==
+                        statefulset.readyStatefulsets
+                    ) {
+                        validity = true;
+                        successReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                        );
+                    } else {
+                        failedReasons.push(
+                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                        );
+                    }
+                });
+            }
         }
+
         if (
             con[i] &&
             con[i].collection &&

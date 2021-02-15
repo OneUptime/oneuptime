@@ -17,7 +17,6 @@ import moment from 'moment';
 import { FormLoader } from '../basic/Loader';
 import CreateManualIncident from '../modals/CreateManualIncident';
 import ShouldRender from '../basic/ShouldRender';
-import MonitorUrl from '../modals/MonitorUrl';
 import DisabledMessage from '../modals/DisabledMessage';
 import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
@@ -46,14 +45,33 @@ export class MonitorDetail extends Component {
     }
 
     componentDidMount() {
+        const { fetchMonitorLogs, monitor } = this.props;
+        const { startDate, endDate } = this.state;
+
+        fetchMonitorLogs(
+            monitor.projectId._id || monitor.projectId,
+            monitor._id,
+            startDate,
+            endDate
+        );
         this.setLastAlive();
     }
 
     componentDidUpdate(prevProps) {
+        const { fetchMonitorLogs, monitor } = this.props;
+        const { startDate, endDate } = this.state;
+
         if (prevProps.probes !== this.props.probes) {
             if (this.state.nowHandler) {
                 clearTimeout(this.state.nowHandler);
             }
+
+            fetchMonitorLogs(
+                monitor.projectId._id || monitor.projectId,
+                monitor._id,
+                startDate,
+                endDate
+            );
 
             this.setLastAlive();
         }

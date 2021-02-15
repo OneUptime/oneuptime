@@ -102,6 +102,8 @@ const placeholders = {
         memoryUsage: '20',
         storageUsage: '20',
         temperature: '20',
+        podStatus: 'running',
+        jobStatus: 'succeeded',
     },
     notEqualTo: {
         responseTime: '2000',
@@ -110,6 +112,8 @@ const placeholders = {
         memoryUsage: '20',
         storageUsage: '20',
         temperature: '20',
+        podStatus: 'running',
+        jobStatus: 'succeeded',
     },
     gtEqualTo: {
         responseTime: '2000',
@@ -129,6 +133,8 @@ const placeholders = {
     },
     contains: {
         responseBody: 'Contains',
+        queryString: 'abc=xyz',
+        headers: 'Cache-Control=no-cache',
     },
     doesNotContain: {
         responseBody: 'Does not Contain',
@@ -216,6 +222,7 @@ export class RenderOption extends Component {
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
                                         type !== 'incomingHttpRequest' &&
+                                        type !== 'kubernetes' &&
                                         type !== 'ip',
                                 },
                                 {
@@ -224,6 +231,7 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'incomingHttpRequest' &&
+                                        type !== 'kubernetes' &&
                                         type !== 'ip',
                                 },
                                 {
@@ -233,6 +241,7 @@ export class RenderOption extends Component {
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
                                         type !== 'incomingHttpRequest' &&
+                                        type !== 'kubernetes' &&
                                         type !== 'ip',
                                 },
                                 {
@@ -244,6 +253,7 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
+                                        type !== 'kubernetes' &&
                                         type !== 'ip',
                                 },
                                 {
@@ -253,6 +263,7 @@ export class RenderOption extends Component {
                                         type !== 'script' &&
                                         type !== 'server-monitor' &&
                                         type !== 'incomingHttpRequest' &&
+                                        type !== 'kubernetes' &&
                                         type !== 'ip',
                                 },
                                 {
@@ -296,9 +307,39 @@ export class RenderOption extends Component {
                                     show: type === 'incomingHttpRequest',
                                 },
                                 {
+                                    value: 'queryString',
+                                    label: 'Request Query Param',
+                                    show: type === 'incomingHttpRequest',
+                                },
+                                {
+                                    value: 'headers',
+                                    label: 'Request Headers',
+                                    show: type === 'incomingHttpRequest',
+                                },
+                                {
                                     value: 'respondsToPing',
                                     label: 'Responds To Ping',
                                     show: type === 'ip',
+                                },
+                                {
+                                    value: 'podStatus',
+                                    label: 'Pod Status',
+                                    show: type === 'kubernetes',
+                                },
+                                {
+                                    value: 'jobStatus',
+                                    label: 'Job Status',
+                                    show: type === 'kubernetes',
+                                },
+                                {
+                                    value: 'desiredDeployment',
+                                    label: 'Desired Deployments',
+                                    show: type === 'kubernetes',
+                                },
+                                {
+                                    value: 'desiredStatefulsets',
+                                    label: 'Desired Statefulset',
+                                    show: type === 'kubernetes',
                                 },
                             ]}
                         />
@@ -395,7 +436,9 @@ export class RenderOption extends Component {
                                                     'statusCode' ||
                                                 bodyfield.responseType ===
                                                     'incomingTime' ||
-                                                type === 'server-monitor'),
+                                                type === 'server-monitor' ||
+                                                bodyfield.responseType ===
+                                                    'podRestarts'),
                                     },
                                     {
                                         value: 'lessThan',
@@ -452,7 +495,8 @@ export class RenderOption extends Component {
                                                     'statusCode' ||
                                                 bodyfield.responseType ===
                                                     'incomingTime' ||
-                                                type === 'server-monitor'),
+                                                type === 'server-monitor' ||
+                                                type === 'kubernetes'),
                                     },
                                     {
                                         value: 'notEqualTo',
@@ -465,7 +509,8 @@ export class RenderOption extends Component {
                                                     'statusCode' ||
                                                 bodyfield.responseType ===
                                                     'incomingTime' ||
-                                                type === 'server-monitor'),
+                                                type === 'server-monitor' ||
+                                                type === 'kubernetes'),
                                     },
                                     {
                                         value: 'gtEqualTo',
@@ -498,8 +543,12 @@ export class RenderOption extends Component {
                                         label: 'Contains',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType ===
-                                                'responseBody',
+                                            (bodyfield.responseType ===
+                                                'responseBody' ||
+                                                bodyfield.responseType ===
+                                                    'queryString' ||
+                                                bodyfield.responseType ===
+                                                    'headers'),
                                     },
                                     {
                                         value: 'doesNotContain',
@@ -638,43 +687,125 @@ export class RenderOption extends Component {
                                     : ''}
                             </label>
                             <div className="bs-Fieldset-fields Flex-direction--row">
-                                <Field
-                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                    id="value"
-                                    type="text"
-                                    name={`${fieldnameprop}.field1`}
-                                    component={RenderField}
-                                    validate={
-                                        filterval !== '' &&
-                                        firstField.indexOf(filterval) > -1
-                                            ? filterval === 'jsExpression' ||
-                                              filterval ===
-                                                  'evaluateResponse' ||
-                                              filterval === 'contains' ||
-                                              filterval === 'doesNotContain'
-                                                ? ValidateField.required
-                                                : [
-                                                      ValidateField.required,
-                                                      ValidateField.maxValue20000,
+                                {type === 'kubernetes' ? (
+                                    <Field
+                                        className="db-select-nw db-select-nw-180"
+                                        component={RenderSelect}
+                                        name={`${fieldnameprop}.field1`}
+                                        id="value"
+                                        validate={ValidateField.select}
+                                        style={{
+                                            width: `${
+                                                level > 1
+                                                    ? 180 - level * 10
+                                                    : 180
+                                            }px`,
+                                        }}
+                                        options={[
+                                            {
+                                                value: 'readyDeployment',
+                                                label: 'Ready Deployments',
+                                                show:
+                                                    bodyfield.responseType ===
+                                                    'desiredDeployment',
+                                            },
+                                            {
+                                                value: 'readyStatefulsets',
+                                                label: 'Ready Statefulsets',
+                                                show:
+                                                    bodyfield.responseType ===
+                                                    'desiredStatefulsets',
+                                            },
+                                            {
+                                                value: 'pending',
+                                                label: 'Pending',
+                                                show:
+                                                    bodyfield.responseType ===
+                                                    'podStatus',
+                                            },
+                                            {
+                                                value: 'running',
+                                                label: 'Running',
+                                                show:
+                                                    bodyfield.responseType ===
+                                                        'podStatus' ||
+                                                    bodyfield.responseType ===
+                                                        'jobStatus',
+                                            },
+                                            {
+                                                value: 'succeeded',
+                                                label: 'Succeeded',
+                                                show:
+                                                    bodyfield.responseType ===
+                                                        'jobStatus' ||
+                                                    bodyfield.responseType ===
+                                                        'podStatus',
+                                            },
+                                            {
+                                                value: 'failed',
+                                                label: 'Failed',
+                                                show:
+                                                    bodyfield.responseType ===
+                                                        'jobStatus' ||
+                                                    bodyfield.responseType ===
+                                                        'podStatus',
+                                            },
+                                            {
+                                                value: 'unknown',
+                                                label: 'Unknown',
+                                                show:
+                                                    bodyfield.responseType ===
+                                                    'podStatus',
+                                            },
+                                        ]}
+                                    />
+                                ) : (
+                                    <Field
+                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                        id="value"
+                                        type="text"
+                                        name={`${fieldnameprop}.field1`}
+                                        component={RenderField}
+                                        validate={
+                                            filterval !== '' &&
+                                            firstField.indexOf(filterval) > -1
+                                                ? filterval ===
+                                                      'jsExpression' ||
+                                                  filterval ===
+                                                      'evaluateResponse' ||
+                                                  filterval === 'contains' ||
+                                                  filterval === 'doesNotContain'
+                                                    ? ValidateField.required
+                                                    : bodyfield.responseType ===
+                                                          'podStatus' ||
+                                                      bodyfield.responseType ===
+                                                          'jobStatus'
+                                                    ? ValidateField.required
+                                                    : [
+                                                          ValidateField.required,
+                                                          ValidateField.maxValue20000,
+                                                      ]
+                                                : undefined
+                                        }
+                                        placeholder={
+                                            bodyfield &&
+                                            filterval &&
+                                            bodyfield.responseType &&
+                                            placeholderfilter.indexOf(
+                                                filterval
+                                            ) <= -1 &&
+                                            placeholders[filterval][
+                                                bodyfield.responseType
+                                            ]
+                                                ? placeholders[filterval][
+                                                      bodyfield.responseType
                                                   ]
-                                            : undefined
-                                    }
-                                    placeholder={
-                                        bodyfield &&
-                                        filterval &&
-                                        bodyfield.responseType &&
-                                        placeholderfilter.indexOf(filterval) <=
-                                            -1 &&
-                                        placeholders[filterval][
-                                            bodyfield.responseType
-                                        ]
-                                            ? placeholders[filterval][
-                                                  bodyfield.responseType
-                                              ]
-                                            : ''
-                                    }
-                                    style={{ width: '220px' }}
-                                />
+                                                : ''
+                                        }
+                                        style={{ width: '220px' }}
+                                    />
+                                )}
+
                                 <ShouldRender
                                     if={
                                         type === 'api' &&

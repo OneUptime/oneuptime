@@ -25,6 +25,10 @@ import {
     resetFile,
     setFileInputKey,
     uploadIdentityFile,
+    uploadConfigurationFile,
+    logConfigFile,
+    setConfigInputKey,
+    resetConfigFile,
 } from '../../actions/monitor';
 import { RenderField } from '../basic/RenderField';
 import { makeCriteria, API_URL } from '../../config';
@@ -78,7 +82,19 @@ class NewMonitor extends Component {
             authentication: props.edit
                 ? props.editMonitorProp.authentication
                 : props.authentication,
-            criteria: props.currentMonitorCriteria || [],
+            criteria:
+                (props.currentMonitorCriteria &&
+                    props.currentMonitorCriteria.filter(cr => {
+                        if (
+                            props.type === 'kubernetes' &&
+                            cr.type === 'degraded' &&
+                            !props.edit
+                        ) {
+                            return false;
+                        }
+                        return true;
+                    })) ||
+                [],
             tabValidity: {
                 up: true,
                 degraded: true,
@@ -90,10 +106,15 @@ class NewMonitor extends Component {
     }
 
     componentDidMount() {
+        const { editMonitorProp } = this.props;
         const userId = User.getUserId();
         const projectMember = this.props.currentProject.users.find(
             user => user.userId === userId
         );
+        const link =
+            editMonitorProp && editMonitorProp.data
+                ? editMonitorProp.data.link
+                : `${API_URL}/incomingHttpRequest/${uuid.v4()}`;
         //load call schedules/duties
         if (projectMember) {
             this.props.fetchMonitorSlas(this.props.currentProject._id);
@@ -102,15 +123,30 @@ class NewMonitor extends Component {
         }
         this.props.fetchMonitorCriteria();
         this.props.setFileInputKey(new Date());
+        this.props.setConfigInputKey(new Date());
+        this.setHttpRequestLink(link);
     }
 
     componentDidUpdate(prevProps) {
-        const { monitor } = this.props;
+        const { monitor, editMonitorProp } = this.props;
+        const link =
+            editMonitorProp && editMonitorProp.data
+                ? editMonitorProp.data.link
+                : `${API_URL}/incomingHttpRequest/${uuid.v4()}`;
         if (
             monitor.newMonitor.error ===
             "You can't add any more monitors. Please upgrade plan."
         ) {
             this.props.showUpgradeForm();
+        }
+        if (
+            prevProps.editMonitorProp &&
+            prevProps.editMonitorProp.data &&
+            editMonitorProp &&
+            editMonitorProp.data &&
+            prevProps.editMonitorProp.data.link !== editMonitorProp.data.link
+        ) {
+            this.setHttpRequestLink(link);
         }
 
         if (!this.props.edit) {
@@ -137,18 +173,25 @@ class NewMonitor extends Component {
 
                 [CRITERIA_TYPES.UP, CRITERIA_TYPES.DEGRADED].forEach(
                     criterion => {
-                        const id = uuid.v4();
+                        if (
+                            this.props.type === 'kubernetes' &&
+                            criterion.type === 'degraded'
+                        ) {
+                            // do nothing
+                        } else {
+                            const id = uuid.v4();
 
-                        const newCriterion = {
-                            id,
-                            type: criterion.type,
-                            name:
-                                CRITERIA_TYPES[criterion.type.toUpperCase()]
-                                    .name,
-                        };
-                        criteria.push(newCriterion);
+                            const newCriterion = {
+                                id,
+                                type: criterion.type,
+                                name:
+                                    CRITERIA_TYPES[criterion.type.toUpperCase()]
+                                        .name,
+                            };
+                            criteria.push(newCriterion);
 
-                        this.addCriterionFieldsToReduxForm(newCriterion);
+                            this.addCriterionFieldsToReduxForm(newCriterion);
+                        }
                     }
                 );
 
@@ -157,6 +200,8 @@ class NewMonitor extends Component {
             }
         }
     }
+
+    setHttpRequestLink = httpRequestLink => this.setState({ httpRequestLink });
 
     /**
      * adds all necessary criterion fields to redux form
@@ -392,6 +437,19 @@ class NewMonitor extends Component {
             }
         }
 
+        if (postObj.type === 'kubernetes' && !this.props.edit) {
+            postObj.kubernetesConfig = this.props.configurationFile;
+            postObj.kubernetesNamespace =
+                values[`kubernetesNamespace_${this.props.index}`];
+        }
+        if (
+            postObj.type === 'kubernetes' &&
+            this.props.edit &&
+            this.props.configurationFile
+        ) {
+            postObj.kubernetesConfig = this.props.configurationFile;
+        }
+
         if (postObj.type === 'incomingHttpRequest')
             postObj.data.link = thisObj.state.httpRequestLink;
 
@@ -401,6 +459,7 @@ class NewMonitor extends Component {
             postObj.type === 'server-monitor' ||
             postObj.type === 'script' ||
             postObj.type === 'incomingHttpRequest' ||
+            postObj.type === 'kubernetes' ||
             postObj.type === 'ip'
         ) {
             // collect and organize all criteria data
@@ -648,6 +707,37 @@ class NewMonitor extends Component {
         }
     };
 
+    changeConfigFile = e => {
+        e.preventDefault();
+
+        const {
+            logConfigFile,
+            uploadConfigurationFile,
+            projectId,
+        } = this.props;
+
+        const reader = new FileReader();
+        const file = e.target.files[0];
+
+        reader.onloadend = () => {
+            const fileResult = reader.result;
+            logConfigFile(fileResult);
+            uploadConfigurationFile(projectId, file);
+        };
+        try {
+            reader.readAsDataURL(file);
+        } catch (error) {
+            return;
+        }
+    };
+
+    removeConfigFile = () => {
+        const { setConfigInputKey, resetConfigFile } = this.props;
+
+        setConfigInputKey(new Date());
+        resetConfigFile();
+    };
+
     removeFile = () => {
         const { setFileInputKey, resetFile } = this.props;
 
@@ -739,6 +829,9 @@ class NewMonitor extends Component {
             identityFile,
             uploadingIdentityFile,
             fileInputKey,
+            uploadingConfigurationFile,
+            configurationFile,
+            configFileInputKey,
         } = this.props;
         const { type, mode, authentication, httpRequestLink } = this.state;
         const unlimitedMonitors = ['Scale', 'Enterprise'];
@@ -807,6 +900,13 @@ class NewMonitor extends Component {
                     'Monitor routers, IoT devices, or any device which has an IP address.',
                 icon:
                     'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjUxMnB0IiB2aWV3Qm94PSItNDEgMCA1MTIgNTEyIiB3aWR0aD0iNTEycHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTM2Ny4yNjU2MjUgNjMuMDExNzE5Yy00MC42MzI4MTMtNDAuNjMyODEzLTk0LjY2MDE1Ni02My4wMTE3MTktMTUyLjEyNS02My4wMTE3MTktNTcuNDY4NzUgMC0xMTEuNDkyMTg3IDIyLjM3ODkwNi0xNTIuMTI4OTA2IDYzLjAxMTcxOS00MC42MzI4MTMgNDAuNjM2NzE5LTYzLjAxMTcxOSA5NC42NjQwNjItNjMuMDExNzE5IDE1Mi4xMjg5MDYgMCA1MC4yNSAxNy43MDMxMjUgOTkuMTUyMzQ0IDQ5Ljg0NzY1NiAxMzcuNjk5MjE5di4wMDM5MDZjOC4xNzk2ODggOS44MDQ2ODggMTcuMjgxMjUgMTguOTMzNTk0IDI3LjA2MjUgMjcuMTQ0NTMxbDEyNy42MDkzNzUgMTI3LjYxMzI4MWMyLjkzMzU5NCAyLjkzMzU5NCA2Ljc3NzM0NCA0LjM5ODQzOCAxMC42MjEwOTQgNC4zOTg0MzhzNy42ODc1LTEuNDY0ODQ0IDEwLjYxNzE4Ny00LjM5ODQzOGwxMjcuNjEzMjgyLTEyNy42MTMyODFjOS43ODEyNS04LjIxMDkzNyAxOC44ODI4MTItMTcuMzM5ODQzIDI3LjA1ODU5NC0yNy4xNDg0MzcgMzIuMTQ4NDM3LTM4LjU0Njg3NSA0OS44NTE1NjItODcuNDQ5MjE5IDQ5Ljg1MTU2Mi0xMzcuNjk5MjE5IDAtNTcuNDY0ODQ0LTIyLjM3ODkwNi0xMTEuNDkyMTg3LTYzLjAxNTYyNS0xNTIuMTI4OTA2em0tMzQuNjYwMTU2IDI5NS4yNjU2MjUtMTE3LjQ2NDg0NCAxMTcuNDY0ODQ0LTExNy40NjQ4NDQtMTE3LjQ2NDg0NGMtLjMyMDMxMi0uMzE2NDA2LS42NTIzNDMtLjYyNS0xLS45MTQwNjMtOC41OTc2NTYtNy4xNjc5NjktMTYuNTg5ODQzLTE1LjE2MDE1Ni0yMy43NjE3MTktMjMuNzU3ODEyLTI3LjY0ODQzNy0zMy4xNTYyNS00Mi44Nzg5MDYtNzUuMjMwNDY5LTQyLjg3ODkwNi0xMTguNDY0ODQ0IDAtMTAyLjA2NjQwNiA4My4wMzkwNjMtMTg1LjEwNTQ2OSAxODUuMTA1NDY5LTE4NS4xMDU0NjlzMTg1LjEwNTQ2OSA4My4wMzkwNjMgMTg1LjEwNTQ2OSAxODUuMTA1NDY5YzAgNDMuMjM0Mzc1LTE1LjIzMDQ2OSA4NS4zMDQ2ODctNDIuODgyODEzIDExOC40NjQ4NDQtNy4xNjc5NjkgOC41OTc2NTYtMTUuMTY0MDYyIDE2LjU4OTg0My0yMy43NTc4MTIgMjMuNzU3ODEyLS4zNDc2NTcuMjg5MDYzLS42Nzk2ODguNTk3NjU3LTEgLjkxNDA2M3ptMCAwIi8+PHBhdGggZD0ibTI2Mi4xNTYyNSAxNjUuODc1aC01My4zMzk4NDRjLTguMjkyOTY4IDAtMTUuMDE5NTMxIDYuNzIyNjU2LTE1LjAxOTUzMSAxNS4wMTU2MjV2OTIuOTg4MjgxYzAgOC4yOTY4NzUgNi43MjY1NjMgMTUuMDE5NTMyIDE1LjAxOTUzMSAxNS4wMTk1MzIgOC4yOTI5NjkgMCAxNS4wMTk1MzItNi43MjI2NTcgMTUuMDE5NTMyLTE1LjAxOTUzMnYtMzEuNDc2NTYyaDM4LjMyMDMxMmMyMS4xMDE1NjIgMCAzOC4yNjU2MjUtMTcuMTY0MDYzIDM4LjI2NTYyNS0zOC4yNjU2MjUgMC0yMS4wOTc2NTctMTcuMTY0MDYzLTM4LjI2MTcxOS0zOC4yNjU2MjUtMzguMjYxNzE5em0wIDQ2LjQ5MjE4OGgtMzguMzIwMzEydi0xNi40NTcwMzJoMzguMzIwMzEyYzQuNTM5MDYyIDAgOC4yMzA0NjkgMy42OTE0MDYgOC4yMzA0NjkgOC4yMzA0NjkgMCA0LjUzNTE1Ni0zLjY5MTQwNyA4LjIyNjU2My04LjIzMDQ2OSA4LjIyNjU2M3ptMCAwIi8+PHBhdGggZD0ibTE2NC4zODY3MTkgMTY1Ljg3NWMtOC4yOTI5NjkgMC0xNS4wMTk1MzEgNi43MjI2NTYtMTUuMDE5NTMxIDE1LjAxNTYyNXY5Mi45ODgyODFjMCA4LjI5Njg3NSA2LjcyNjU2MiAxNS4wMTk1MzIgMTUuMDE5NTMxIDE1LjAxOTUzMnMxNS4wMTk1MzEtNi43MjI2NTcgMTUuMDE5NTMxLTE1LjAxOTUzMnYtOTIuOTg4MjgxYzAtOC4yOTI5NjktNi43MjY1NjItMTUuMDE1NjI1LTE1LjAxOTUzMS0xNS4wMTU2MjV6bTAgMCIvPjwvc3ZnPg==',
+            },
+            {
+                value: 'kubernetes',
+                label: 'Kubernetes',
+                description: 'Monitor kubernete clusters',
+                icon:
+                    'data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciICB2aWV3Qm94PSIwIDAgNTAgNTAiIHdpZHRoPSI1MHB4IiBoZWlnaHQ9IjUwcHgiPjxwYXRoIGQ9Ik0gMjUgMi4yNzczNDM4IEMgMjQuNDc3MjE4IDIuMjc3NTI4OCAyMy45NTQ5NzUgMi4zOTM4MjA4IDIzLjQ3MjY1NiAyLjYyNjk1MzEgTCA4LjAxMTcxODggMTAuMDkxNzk3IEMgNy4wNDk5NzM4IDEwLjU1NTg5NSA2LjM1MDY0NjIgMTEuNDM0OTUgNi4xMTMyODEyIDEyLjQ3NjU2MiBMIDIuMjkyOTY4OCAyOS4yNTk3NjYgQyAyLjA1Njg4NzggMzAuMjk5MDggMi4zMDU2Nzk4IDMxLjM5MTc5MiAyLjk2ODc1IDMyLjIyNjU2MiBMIDEzLjY3MTg3NSA0NS42ODM1OTQgQyAxNC4zMzgwNjYgNDYuNTIxNTY5IDE1LjM1MjEzMyA0Ny4wMDk3NjYgMTYuNDIxODc1IDQ3LjAwOTc2NiBMIDMzLjU3ODEyNSA0Ny4wMDk3NjYgQyAzNC42NDc4NjcgNDcuMDA5NzY2IDM1LjY2MTkzNCA0Ni41MjE1NjkgMzYuMzI4MTI1IDQ1LjY4MzU5NCBMIDQ3LjAzMTI1IDMyLjIyODUxNiBMIDQ3LjAzMTI1IDMyLjIyNjU2MiBDIDQ3LjY5NDE4NSAzMS4zOTI0OCA0Ny45NDQ3MjEgMzAuMzAwOTExIDQ3LjcwODk4NCAyOS4yNjE3MTkgQSAxLjAwMDEgMS4wMDAxIDAgMCAwIDQ3LjcwODk4NCAyOS4yNTk3NjYgTCA0My44ODY3MTkgMTIuNDc2NTYyIEEgMS4wMDAxIDEuMDAwMSAwIDAgMCA0My44ODY3MTkgMTIuNDc0NjA5IEMgNDMuNjQ5NDEyIDExLjQzNDY0NyA0Mi45NTA0NjQgMTAuNTU2ODI5IDQxLjk4ODI4MSAxMC4wOTE3OTcgTCAyNi41MjkyOTcgMi42MjY5NTMxIEEgMS4wMDAxIDEuMDAwMSAwIDAgMCAyNi41MjczNDQgMi42MjUgQyAyNi4wNDQ5ODYgMi4zOTI4ODI4IDI1LjUyMjc4MiAyLjI3NzE1ODcgMjUgMi4yNzczNDM4IHogTSAyNSA0LjI3NzM0MzggQyAyNS4yMjQ2NTMgNC4yNzc0MTQ3IDI1LjQ0ODc4IDQuMzI3Mjk5OSAyNS42NTgyMDMgNC40Mjc3MzQ0IEwgNDEuMTE5MTQxIDExLjg5MjU3OCBDIDQxLjUzNDk1OCAxMi4wOTM1NDYgNDEuODM0ODA3IDEyLjQ2OTg4NSA0MS45Mzc1IDEyLjkxOTkyMiBMIDQ1Ljc1NzgxMiAyOS43MDMxMjUgQyA0NS44NTk5NDMgMzAuMTUzMzQ2IDQ1Ljc1MzAxMiAzMC42MjI2ODQgNDUuNDY2Nzk3IDMwLjk4MjQyMiBMIDM0Ljc2MzY3MiA0NC40Mzk0NTMgQyAzNC40NzU4NjMgNDQuODAxNDc3IDM0LjA0MDM4MyA0NS4wMDk3NjYgMzMuNTc4MTI1IDQ1LjAwOTc2NiBMIDE2LjQyMTg3NSA0NS4wMDk3NjYgQyAxNS45NTk2MTcgNDUuMDA5NzY2IDE1LjUyNjA5MSA0NC44MDE0NzcgMTUuMjM4MjgxIDQ0LjQzOTQ1MyBMIDQuNTM1MTU2MiAzMC45ODI0MjIgQyA0LjI0ODIyNjYgMzAuNjIxMTkzIDQuMTQwMjY4MyAzMC4xNTE4MTEgNC4yNDIxODc1IDI5LjcwMzEyNSBMIDguMDY0NDUzMSAxMi45MjE4NzUgQyA4LjE2NzA4ODIgMTIuNDcxNDg4IDguNDY2NjA0MyAxMi4wOTQ0MzMgOC44ODA4NTk0IDExLjg5NDUzMSBBIDEuMDAwMSAxLjAwMDEgMCAwIDAgOC44ODA4NTk0IDExLjg5MjU3OCBMIDI0LjM0MTc5NyA0LjQyNzczNDQgQyAyNC41NTAxNjkgNC4zMjcwMTYxIDI0Ljc3NTM0NyA0LjI3NzI3MjggMjUgNC4yNzczNDM4IHogTSAyNC45OTIxODggOC40ODQzNzUgQyAyNC44NTEwOTQgOC40ODQ2ODc1IDI0LjcwNzgxMiA4LjUxMjgxMjUgMjQuNTcwMzEyIDguNTcwMzEyNSBDIDI0LjAyMDMxMiA4LjgxMDMxMjUgMjMuNzYgOS40NSAyNCAxMCBDIDI0LjIzIDEwLjU0IDI0LjMwOTE0MSAxMS4wNzkxNDEgMjQuMzY5MTQxIDExLjYxOTE0MSBDIDI0LjM4OTE0MSAxMS44OTkxNDEgMjQuNDAwNjI1IDEyLjE2OTQ1MyAyNC4zOTA2MjUgMTIuNDM5NDUzIEMgMjQuNDIwNjI1IDEyLjcwOTQ1MyAyNC4yODAwNzggMTIuOTggMjQuMDgwMDc4IDEzLjI1IEMgMjMuODcwMDc4IDEzLjUyIDIzLjg1MDMxMiAxMy43OTA1NDcgMjMuODIwMzEyIDE0LjA2MDU0NyBDIDIxLjA3NjA5MSAxNC4zMjk5MDQgMTguNjA1NjE4IDE1LjUzMjUxIDE2LjcxNjc5NyAxNy4zMzk4NDQgTCAxNi42OTkyMTkgMTcuMzMwMDc4IEMgMTYuNDY5MjE5IDE3LjE4MDA3OCAxNi4yNTAzOTEgMTcuMDI5NTMxIDE1LjkwMDM5MSAxNy4wMTk1MzEgQyAxNS41NzAzOTEgMTYuOTk5NTMxIDE1LjI3MDA3OCAxNi45NDAyMzQgMTUuMDgwMDc4IDE2Ljc0MDIzNCBDIDE0Ljg3MDA3OCAxNi41ODAyMzQgMTQuNjYwNzAzIDE2LjQwMDkzOCAxNC40NzA3MDMgMTYuMjEwOTM4IEMgMTQuMDgwNzAzIDE1LjgzMDkzNyAxMy43MDk0NTMgMTUuNDIwMzkxIDEzLjQzOTQ1MyAxNC45MDAzOTEgQyAxMy4zMDk0NTMgMTQuNjUwMzkxIDEzLjA2OTI5NyAxNC40NDkzNzUgMTIuNzc5Mjk3IDE0LjM1OTM3NSBDIDEyLjE5OTI5NyAxNC4xOTkzNzUgMTEuNTk5Njg4IDE0LjUyOTM3NSAxMS40Mjk2ODggMTUuMTA5Mzc1IEMgMTEuMjU5Njg4IDE1LjY3OTM3NSAxMS41OTk2ODcgMTYuMjg5MjE5IDEyLjE3OTY4OCAxNi40NDkyMTkgQyAxMi43Mzk2ODggMTYuNjE5MjE5IDEzLjIwOTkyMiAxNi44OTkyMTkgMTMuNjY5OTIyIDE3LjE5OTIxOSBDIDEzLjg4OTkyMiAxNy4zNDkyMTkgMTQuMTAwNTQ3IDE3LjUwOTQ1MyAxNC4zMTA1NDcgMTcuNjg5NDUzIEMgMTQuNTQwNTQ3IDE3LjgzOTQ1MyAxNC42NiAxOC4xMTk0NTMgMTQuNzUgMTguNDM5NDUzIEMgMTQuODE1OTkyIDE4Ljc1OTk4NCAxNC45OTk5MjEgMTguOTQ1NDE2IDE1LjE3OTY4OCAxOS4xMjUgQyAxMy44MTA4OCAyMS4wNzQyNjkgMTMgMjMuNDQzMTU3IDEzIDI2IEMgMTMgMjYuNDIyOTY0IDEzLjAyMzQ3MiAyNi44NDAxMzkgMTMuMDY2NDA2IDI3LjI1MTk1MyBDIDEyLjg0MjA3MyAyNy4zMzA0NzggMTIuNjIwMDQgMjcuNDE1NjYzIDEyLjQyOTY4OCAyNy42NDA2MjUgQyAxMi4yMDk2ODcgMjcuODkwNjI1IDExLjk2OTIxOSAyOC4wODkzNzUgMTEuNjk5MjE5IDI4LjEwOTM3NSBDIDExLjQzOTIxOSAyOC4xNzkzNzUgMTEuMTcwMzkxIDI4LjIyOTc2NiAxMC45MDAzOTEgMjguMjU5NzY2IEMgMTAuMzYwMzkxIDI4LjMyOTc2NiA5LjgxMDIzNDQgMjguMzcgOS4yNDAyMzQ0IDI4LjI1IEMgOC45NjAyMzQ0IDI4LjIgOC42NTAzOTA2IDI4LjI1OTQ1MyA4LjQwMDM5MDYgMjguNDM5NDUzIEMgNy45MTAzOTA2IDI4Ljc3OTQ1MyA3LjgwMDYyNSAyOS40NTkyMTkgOC4xNDA2MjUgMjkuOTQ5MjE5IEMgOC40OTA2MjUgMzAuNDM5MjE5IDkuMTcwMTU2MiAzMC41NjA5MzcgOS42NjAxNTYyIDMwLjIxMDkzOCBDIDEwLjE0MDE1NiAyOS44NzA5MzggMTAuNjQ5OTIyIDI5LjY3OTc2NiAxMS4xNjk5MjIgMjkuNTA5NzY2IEMgMTEuNDI5OTIyIDI5LjQyOTc2NiAxMS42OTA5MzggMjkuMzYwNTQ3IDExLjk2MDkzOCAyOS4zMTA1NDcgQyAxMi4yMjA5MzcgMjkuMjIwNTQ3IDEyLjUxMDMxMyAyOS4yOTk2ODggMTIuODIwMzEyIDI5LjQyOTY4OCBDIDEzLjA3Nzg5NSAyOS41NjI2MzMgMTMuMzA1OTU0IDI5LjU1MjA0NSAxMy41MzEyNSAyOS41MjkyOTcgQyAxNC40MTE0NzcgMzIuMzgzMDg3IDE2LjMzNjE1NSAzNC43NzM5MjYgMTguODQ5NjA5IDM2LjI4MzIwMyBDIDE4Ljc2MzczMyAzNi41MjM0ODUgMTguNjgzMTY5IDM2Ljc3Mzg4NCAxOC43NTk3NjYgMzcuMDg5ODQ0IEMgMTguODE5NzY2IDM3LjQxOTg0NCAxOC44Mjk0NTMgMzcuNzMwOTM4IDE4LjY4OTQ1MyAzNy45NjA5MzggQyAxOC41Nzk0NTMgMzguMjEwOTM4IDE4LjQ2MDA3OCAzOC40NDk0NTMgMTguMzMwMDc4IDM4LjY4OTQ1MyBDIDE4LjA1MDA3OCAzOS4xNDk0NTMgMTcuNzUwNTQ3IDM5LjYwOTc2NiAxNy4zMTA1NDcgNDAuMDA5NzY2IEMgMTcuMTAwNTQ3IDQwLjE5OTc2NiAxNi45NTkyMTkgNDAuNDY5Mjk3IDE2Ljk0OTIxOSA0MC43NzkyOTcgQyAxNi45MjkyMTkgNDEuMzc5Mjk3IDE3LjQgNDEuODgwMzkxIDE4IDQxLjkwMDM5MSBDIDE4LjYgNDEuOTIwMzkxIDE5LjExMDg1OSA0MS40NDk2MDkgMTkuMTMwODU5IDQwLjg0OTYwOSBDIDE5LjE0MDg1OSA0MC4yNTk2MDkgMTkuMzAwNDY5IDM5Ljc0MDcwMyAxOS40ODA0NjkgMzkuMjIwNzAzIEMgMTkuNTcwNDY5IDM4Ljk3MDcwMyAxOS42ODA3ODEgMzguNzIwNDY5IDE5LjgwMDc4MSAzOC40ODA0NjkgQyAxOS44OTA3ODEgMzguMjIwNDY5IDIwLjEyOTkyMiAzOC4wMjkxNDEgMjAuNDE5OTIyIDM3Ljg2OTE0MSBDIDIwLjcwODc5NiAzNy43MjAwNDQgMjAuODM4NzM5IDM3LjUwOTIyNCAyMC45Njg3NSAzNy4yODcxMDkgQyAyMi4yMzA5OTEgMzcuNzM5NTU2IDIzLjU4NDMgMzggMjUgMzggQyAyNi40Mzk4NjcgMzggMjcuODE1Mjk4IDM3LjczMDk3OSAyOS4wOTU3MDMgMzcuMjYzNjcyIEMgMjkuMjMxMTM1IDM3LjQ5NDgxNSAyOS4zNzAzMjYgMzcuNzE0NTY0IDI5LjY2MDE1NiAzNy44NjkxNDEgQyAyOS45NTAxNTYgMzguMDM5MTQxIDMwLjE4OTI5NyAzOC4yMjA0NjkgMzAuMjc5Mjk3IDM4LjQ4MDQ2OSBDIDMwLjM5OTI5NyAzOC43MzA0NjkgMzAuNDk5ODQ0IDM4Ljk4MDQ2OSAzMC41ODk4NDQgMzkuMjMwNDY5IEMgMzAuNzY5ODQ0IDM5Ljc1MDQ2OSAzMC45MTk0NTMgNDAuMjY5Mzc1IDMwLjkzOTQ1MyA0MC44NTkzNzUgQyAzMC45Mzk0NTMgNDEuMTQ5Mzc1IDMxLjA1OTA2MiA0MS40MzA2MjUgMzEuMjg5MDYyIDQxLjY0MDYyNSBDIDMxLjczOTA2MiA0Mi4wNDA2MjUgMzIuNDIwMDc4IDQyLjAxMDMxMiAzMi44MzAwNzggNDEuNTcwMzEyIEMgMzMuMjMwMDc4IDQxLjEyMDMxMiAzMy4xOTk3NjYgNDAuNDM5Mjk3IDMyLjc1OTc2NiA0MC4wMjkyOTcgQyAzMi4zMTk3NjYgMzkuNjM5Mjk3IDMyLjAyIDM5LjE2OTIxOSAzMS43NSAzOC42OTkyMTkgQyAzMS42MiAzOC40NjkyMTkgMzEuNTAwNjI1IDM4LjIyMDQ2OSAzMS4zOTA2MjUgMzcuOTgwNDY5IEMgMzEuMjUwNjI1IDM3Ljc0MDQ2OSAzMS4yNjAwNzggMzcuNDM5Mzc1IDMxLjMzMDA3OCAzNy4xMDkzNzUgQyAzMS40MTAwNzggMzYuNzY5Mzc1IDMxLjMyMDIzNCAzNi41MTk3NjYgMzEuMjQwMjM0IDM2LjI1OTc2NiBMIDMxLjIzMjQyMiAzNi4yMzQzNzUgQyAzMy43MjU4NjMgMzQuNzEwMDUxIDM1LjYyNTI1MyAzMi4zMTE5MjYgMzYuNDg2MzI4IDI5LjQ1ODk4NCBMIDM2LjUxOTUzMSAyOS40NjA5MzggQyAzNi43OTk1MzEgMjkuNDgwOTM3IDM3LjA2OTE0MSAyOS41MDk4NDQgMzcuMzY5MTQxIDI5LjMzOTg0NCBDIDM3LjY2OTE0MSAyOS4xOTk4NDQgMzcuOTcwNDY5IDI5LjExOTIxOSAzOC4yMzA0NjkgMjkuMTk5MjE5IEMgMzguNDkwNDY5IDI5LjIzOTIxOSAzOC43NTk1MzEgMjkuMjk5MTQxIDM5LjAxOTUzMSAyOS4zNjkxNDEgQyAzOS41Mzk1MzEgMjkuNTE5MTQxIDQwLjA2MDc4MSAyOS42OTkyOTcgNDAuNTUwNzgxIDMwLjAyOTI5NyBDIDQwLjc5MDc4MSAzMC4xNzkyOTcgNDEuMDkwNjI1IDMwLjI0OTY4NyA0MS4zOTA2MjUgMzAuMTc5Njg4IEMgNDEuOTgwNjI1IDMwLjA0OTY4OCA0Mi4zNTA3MDMgMjkuNDcwNjI1IDQyLjIyMDcwMyAyOC44OTA2MjUgQyA0Mi4wOTA3MDMgMjguMzAwNjI1IDQxLjUwOTkyMiAyNy45MzA1NDcgNDAuOTE5OTIyIDI4LjA2MDU0NyBDIDQwLjMzOTkyMiAyOC4xOTA1NDcgMzkuOCAyOC4xNjkxNDEgMzkuMjUgMjguMTE5MTQxIEMgMzguOTggMjguMDg5MTQxIDM4LjcxOTIxOSAyOC4wNTAyMzQgMzguNDQ5MjE5IDI3Ljk5MDIzNCBDIDM4LjE3OTIxOSAyNy45NzAyMzQgMzcuOTQwOTM4IDI3Ljc5MDc4MSAzNy43MTA5MzggMjcuNTUwNzgxIEMgMzcuNDgwOTM4IDI3LjI4MDc4MSAzNy4yMjA5MzcgMjcuMjEwODU5IDM2Ljk2MDkzOCAyNy4xMzA4NTkgTCAzNi45NDMzNTkgMjcuMTI1IEMgMzYuOTc4MDcyIDI2Ljc1NDA3NSAzNyAyNi4zNzk4MjggMzcgMjYgQyAzNyAyMy41MjA3MTQgMzYuMjQzMDgzIDIxLjIxMzY3OSAzNC45NDkyMTkgMTkuMjk4ODI4IEMgMzUuMTM4ODggMTkuMDk5MjE5IDM1LjMzMDUxNSAxOC45MDk3MDcgMzUuNDAwMzkxIDE4LjU3MDMxMiBDIDM1LjQ5MDM5MSAxOC4yNTAzMTIgMzUuNjA5ODQ0IDE3Ljk3MDMxMiAzNS44Mzk4NDQgMTcuODIwMzEyIEMgMzYuMDM5ODQ0IDE3LjY0MDMxMyAzNi4yNjA0NjkgMTcuNDgwMzEyIDM2LjQ4MDQ2OSAxNy4zMjAzMTIgQyAzNi45MzA0NjkgMTcuMDIwMzEyIDM3LjQwMDkzNyAxNi43MzAzMTIgMzcuOTYwOTM4IDE2LjU3MDMxMiBDIDM4LjI0MDkzOCAxNi40OTAzMTMgMzguNDc5MTQxIDE2LjI5OTUzMSAzOC42MTkxNDEgMTYuMDE5NTMxIEMgMzguODk5MTQxIDE1LjQ4OTUzMSAzOC42OTAzOTEgMTQuODMwNTQ3IDM4LjE1MDM5MSAxNC41NjA1NDcgQyAzNy42MjAzOTEgMTQuMjgwNTQ3IDM2Ljk1OTQ1MyAxNC40ODkyOTcgMzYuNjg5NDUzIDE1LjAyOTI5NyBDIDM2LjQxOTQ1MyAxNS41NDkyOTcgMzYuMDQ5OTIyIDE1Ljk1OTg0NCAzNS42Njk5MjIgMTYuMzM5ODQ0IEMgMzUuNDY5OTIyIDE2LjUyOTg0NCAzNS4yNzA1NDcgMTYuNzEwODU5IDM1LjA2MDU0NyAxNi44ODA4NTkgQyAzNC44NzA1NDcgMTcuMDgwODU5IDM0LjU3MDIzNCAxNy4xNDAxNTYgMzQuMjQwMjM0IDE3LjE2MDE1NiBDIDMzLjg5MDIzNCAxNy4xNzAxNTYgMzMuNjY5NDUzIDE3LjMzMDQ2OSAzMy40Mzk0NTMgMTcuNDgwNDY5IEMgMzEuNTMyNTY2IDE1LjU5MTMzOCAyOC45OTc1MTUgMTQuMzM3MTI5IDI2LjE3OTY4OCAxNC4wNjA1NDcgQyAyNi4xNDk2ODcgMTMuNzkwNTQ3IDI2LjEyOTkyMiAxMy41MiAyNS45MTk5MjIgMTMuMjUgQyAyNS43MTk5MjIgMTIuOTggMjUuNTc5Mzc1IDEyLjcwOTQ1MyAyNS42MDkzNzUgMTIuNDM5NDUzIEMgMjUuNTk5Mzc1IDEyLjE2OTQ1MyAyNS42MTA4NTkgMTEuODk5MTQxIDI1LjYzMDg1OSAxMS42MTkxNDEgQyAyNS42OTA4NTkgMTEuMDc5MTQxIDI1Ljc3IDEwLjU0IDI2IDEwIEMgMjYuMTEgOS43NCAyNi4xMiA5LjQzMDYyNSAyNiA5LjE0MDYyNSBDIDI1LjgyIDguNzI4MTI1IDI1LjQxNTQ2OSA4LjQ4MzQzNzUgMjQuOTkyMTg4IDguNDg0Mzc1IHogTSAyMy41NTg1OTQgMTYuMTE1MjM0IEwgMjMuNTA5NzY2IDE2LjUgQyAyMy4zNjk3NjYgMTcuNTggMjMuMjY5OTIyIDE4LjY3IDIzLjE2OTkyMiAxOS43NSBDIDIzLjEwOTkyMiAyMC4zMiAyMy4wNTk1MzEgMjAuOTAwNzAzIDIzLjAxOTUzMSAyMS40NzA3MDMgQyAyMi41Mjk1MzEgMjEuMTIwNzAzIDIyLjAzOTUzMSAyMC43NDk5MjIgMjEuNTE5NTMxIDIwLjQxOTkyMiBDIDIwLjYxOTUzMSAxOS44MDk5MjIgMTkuNzE5MDYyIDE5LjE5OTE0MSAxOC43ODkwNjIgMTguNjE5MTQxIEwgMTguNDc0NjA5IDE4LjQyMzgyOCBDIDE5Ljg4MTA4NCAxNy4yMTE5MzUgMjEuNjI5MDQ5IDE2LjM5MzAzOSAyMy41NTg1OTQgMTYuMTE1MjM0IHogTSAyNi40NDE0MDYgMTYuMTE1MjM0IEMgMjguNDQ5OTUxIDE2LjQwNDQxMyAzMC4yNTg3ODggMTcuMjg0IDMxLjY5MzM1OSAxOC41NzgxMjUgTCAzMS4zNTkzNzUgMTguNzg5MDYyIEMgMzAuNDM5Mzc1IDE5LjM3OTA2MiAyOS41NTAzOTEgMTkuOTg5NjA5IDI4LjY1MDM5MSAyMC41OTk2MDkgQyAyOC4yOTAzOTEgMjAuODM5NjA5IDI3LjkzOTYwOSAyMS4wODk4NDQgMjcuNTk5NjA5IDIxLjMzOTg0NCBDIDI3LjMyOTYwOSAyMS41Mjk4NDQgMjYuOTU5NDUzIDIxLjM1OTI5NyAyNi45Mzk0NTMgMjEuMDI5Mjk3IEMgMjYuOTA5NDUzIDIwLjU5OTI5NyAyNi44NzAwNzggMjAuMTggMjYuODMwMDc4IDE5Ljc1IEMgMjYuNzMwMDc4IDE4LjY3IDI2LjYzMDIzNCAxNy41OCAyNi40OTAyMzQgMTYuNSBMIDI2LjQ0MTQwNiAxNi4xMTUyMzQgeiBNIDE2LjU4MjAzMSAyMC42MDc0MjIgTCAxNi45MDAzOTEgMjAuOTM5NDUzIEMgMTcuNjYwMzkxIDIxLjcyOTQ1MyAxOC40MzA5MzcgMjIuNDg5NzY2IDE5LjIxMDkzOCAyMy4yNTk3NjYgQyAxOS41NDA5MzcgMjMuNTg5NzY2IDE5Ljg3MDkzNyAyMy45MDA5MzcgMjAuMjEwOTM4IDI0LjIxMDkzOCBDIDIwLjQ1MDkzNyAyNC40MzA5MzcgMjAuMzYwNzgxIDI0LjgyMDE1NiAyMC4wNTA3ODEgMjQuOTEwMTU2IEMgMTkuNTYwNzgxIDI1LjA2MDE1NiAxOS4wNzAwNzggMjUuMTk5Mzc1IDE4LjU4MDA3OCAyNS4zNTkzNzUgQyAxNy41NTAwNzggMjUuNjk5Mzc1IDE2LjUxMDQ2OSAyNi4wMjA2MjUgMTUuNDgwNDY5IDI2LjM5MDYyNSBMIDE1LjAyNzM0NCAyNi41NDg4MjggQyAxNS4wMTc0MzkgMjYuMzY1ODU1IDE1IDI2LjE4NTUwNCAxNSAyNiBDIDE1IDI0LjAwOTcwNyAxNS41ODUwOTIgMjIuMTYzMjI0IDE2LjU4MjAzMSAyMC42MDc0MjIgeiBNIDMzLjUzNzEwOSAyMC44MDQ2ODggQyAzNC40NTg5NTUgMjIuMzE5MTc5IDM1IDI0LjA5MjQgMzUgMjYgQyAzNSAyNi4xNjcwMzIgMzQuOTgyNjUgMjYuMzI5MTUgMzQuOTc0NjA5IDI2LjQ5NDE0MSBMIDM0LjYxOTE0MSAyNi4zODA4NTkgQyAzMy41NzkxNDEgMjYuMDQwODU5IDMyLjU0MDIzNCAyNS43NDkyMTkgMzEuNDkwMjM0IDI1LjQ0OTIxOSBDIDMwLjgxMDIzNCAyNS4yNDkyMTkgMzAuMTI5MjE5IDI1LjA3MDM5MSAyOS40NDkyMTkgMjQuOTAwMzkxIEMgMjkuOTU5MjE5IDI0LjQxMDM5MSAzMC40OTA0NjkgMjMuOTI5Njg3IDMwLjk4MDQ2OSAyMy40Mjk2ODggQyAzMS43NTA0NjkgMjIuNjU5Njg4IDMyLjUxOTUzMSAyMS44ODk4NDQgMzMuMjY5NTMxIDIxLjA4OTg0NCBMIDMzLjUzNzEwOSAyMC44MDQ2ODggeiBNIDI0LjM4MDg1OSAyNCBMIDI1LjU5OTYwOSAyNCBDIDI1Ljc4OTYwOSAyNCAyNS45NzAzMTMgMjQuMDkwNDY5IDI2LjA3MDMxMiAyNC4yMzA0NjkgTCAyNi44NDk2MDkgMjUuMjEwOTM4IEMgMjYuOTU5NjA5IDI1LjM0MDkzNyAyNy4wMDA3MDMgMjUuNTI5MjE5IDI2Ljk3MDcwMyAyNS42OTkyMTkgTCAyNi42ODk0NTMgMjYuOTEwMTU2IEMgMjYuNjU5NDUzIDI3LjEwMDE1NiAyNi41MjkxNDEgMjcuMjQ5ODQ0IDI2LjM2OTE0MSAyNy4zMzk4NDQgTCAyNS4yNSAyNy44NTkzNzUgQyAyNS4wOSAyNy45NDkzNzUgMjQuODkwNDY5IDI3Ljk0OTM3NSAyNC43MzA0NjkgMjcuODU5Mzc1IEwgMjMuNjA5Mzc1IDI3LjMzOTg0NCBDIDIzLjQ0OTM3NSAyNy4yNDk4NDQgMjMuMzA5MDYyIDI3LjEwMDE1NiAyMy4yODkwNjIgMjYuOTEwMTU2IEwgMjMuMDA5NzY2IDI1LjY5OTIxOSBDIDIyLjk3OTc2NiAyNS41MjkyMTkgMjMuMDIwODU5IDI1LjM0MDkzOCAyMy4xMzA4NTkgMjUuMjEwOTM4IEwgMjMuOTEwMTU2IDI0LjIzMDQ2OSBDIDI0LjAxMDE1NiAyNC4wOTA0NjkgMjQuMTkwODU5IDI0IDI0LjM4MDg1OSAyNCB6IE0gMjAuNzY5NTMxIDI4Ljc2OTUzMSBDIDIxLjA3OTUzMSAyOC43MTk1MzEgMjEuMzMwOTM4IDI5LjAzMDMxMiAyMS4yMTA5MzggMjkuMzIwMzEyIEMgMjEuMDIwOTM3IDI5LjgyMDMxMiAyMC44Mzk5MjIgMzAuMzEwNTQ3IDIwLjY2OTkyMiAzMC44MTA1NDcgQyAyMC4yOTk5MjIgMzEuODQwNTQ3IDE5LjkzOTYwOSAzMi44NjAzOTEgMTkuNTk5NjA5IDMzLjkwMDM5MSBMIDE5LjQ2Mjg5MSAzNC4zMzAwNzggQyAxNy42ODMwOTUgMzMuMTQ2NjQ3IDE2LjMxNjEyIDMxLjQwNTI1NCAxNS41ODc4OTEgMjkuMzU1NDY5IEwgMTYuMTE5MTQxIDI5LjMxMDU0NyBDIDE3LjIwOTE0MSAyOS4yMTA1NDcgMTguMjc5MTQxIDI5LjA3OTIxOSAxOS4zNjkxNDEgMjguOTQ5MjE5IEMgMTkuODM5MTQxIDI4Ljg5OTIxOSAyMC4yOTk1MzEgMjguODI5NTMxIDIwLjc2OTUzMSAyOC43Njk1MzEgeiBNIDI5LjQxMDE1NiAyOC45MTAxNTYgQyAyOS44ODAxNTYgMjguOTYwMTU2IDMwLjM0MDU0NyAyOS4wMTA3ODEgMzAuODEwNTQ3IDI5LjA1MDc4MSBDIDMxLjkwMDU0NyAyOS4xNTA3ODEgMzIuOTgwMzEyIDI5LjI1MDMxMiAzNC4wNzAzMTIgMjkuMzIwMzEyIEwgMzQuNDE3OTY5IDI5LjMzOTg0NCBDIDMzLjcwMjg2MiAzMS4zNjM0OTQgMzIuMzY1OTMgMzMuMDg4NDM3IDMwLjYyMzA0NyAzNC4yNzM0MzggTCAzMC41MDk3NjYgMzMuOTEwMTU2IEMgMzAuMTc5NzY2IDMyLjg3MDE1NiAyOS44MjA3MDMgMzEuODQwMzEyIDI5LjQ3MDcwMyAzMC44MjAzMTIgQyAyOS4zMTA3MDMgMzAuMzYwMzEyIDI5LjE1MDQ2OSAyOS45MTA5MzggMjguOTgwNDY5IDI5LjQ2MDkzOCBDIDI4Ljg3MDQ2OSAyOS4xNzA5MzggMjkuMTEwMTU2IDI4Ljg3MDE1NiAyOS40MTAxNTYgMjguOTEwMTU2IHogTSAyNS4wNzQyMTkgMzAuODgyODEyIEMgMjUuMjE2NzE5IDMwLjg4MjgxMiAyNS4zNTk0NTMgMzAuOTU0NjA5IDI1LjQzOTQ1MyAzMS4wOTk2MDkgQyAyNS42NTk0NTMgMzEuNTE5NjA5IDI1Ljg5MDg1OSAzMS45Mjk4NDQgMjYuMTMwODU5IDMyLjMzOTg0NCBDIDI2LjY3MDg1OSAzMy4yNzk4NDQgMjcuMjA5MDYzIDM0LjIzMDM5MSAyNy43ODkwNjIgMzUuMTUwMzkxIEwgMjguMDI1MzkxIDM1LjUzMzIwMyBDIDI3LjA3MTI1MiAzNS44MzQ0MyAyNi4wNTU0NzEgMzYgMjUgMzYgQyAyMy45NzYzMTIgMzYgMjIuOTg5NTgxIDM1Ljg0NDU3MiAyMi4wNjA1NDcgMzUuNTYwNTQ3IEwgMjIuMzEwNTQ3IDM1LjE2MDE1NiBDIDIyLjg5MDU0NyAzNC4yNDAxNTYgMjMuNDQwMjM0IDMzLjI5OTM3NSAyMy45OTAyMzQgMzIuMzU5Mzc1IEMgMjQuMjQwMjM0IDMxLjk0OTM3NSAyNC40ODA5MzcgMzEuNTI5NjA5IDI0LjcxMDkzOCAzMS4wOTk2MDkgQyAyNC43OTA5MzcgMzAuOTU0NjA5IDI0LjkzMTcxOSAzMC44ODI4MTIgMjUuMDc0MjE5IDMwLjg4MjgxMiB6Ii8+PC9zdmc+',
             },
         ];
 
@@ -948,7 +1048,7 @@ class NewMonitor extends Component {
                                                                             this
                                                                                 .state
                                                                                 .showAllMonitors
-                                                                                ? 8
+                                                                                ? monitorTypesOptions.length
                                                                                 : 4
                                                                         )
                                                                         .map(
@@ -1443,6 +1543,147 @@ class NewMonitor extends Component {
                                                     </ShouldRender>
                                                 </ShouldRender>
 
+                                                <ShouldRender
+                                                    if={type === 'kubernetes'}
+                                                >
+                                                    {this.renderMonitorConfiguration(
+                                                        'Kubernetes'
+                                                    )}
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
+                                                            Kubernetes Namespace
+                                                        </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                type="text"
+                                                                name={`kubernetesNamespace_${this.props.index}`}
+                                                                id="kubernetesNamespace"
+                                                                placeholder="default"
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                validate={[
+                                                                    ValidateField.required,
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="nm-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <label className="new-monitor-label">
+                                                            Configuration File
+                                                        </label>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label" />
+                                                        <div className="bs-Fieldset-fields">
+                                                            <div
+                                                                className="Box-root Flex-flex Flex-alignItems--center"
+                                                                style={{
+                                                                    flexWrap:
+                                                                        'wrap',
+                                                                }}
+                                                            >
+                                                                <div>
+                                                                    <label
+                                                                        className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                        type="button"
+                                                                    >
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                !configurationFile
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--new"></span>
+                                                                            <span>
+                                                                                Upload
+                                                                                Configuration
+                                                                                File
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                configurationFile
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--edit"></span>
+                                                                            <span>
+                                                                                Change
+                                                                                Configuration
+                                                                                File
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <div className="bs-FileUploadButton-inputWrap">
+                                                                            <Field
+                                                                                className="bs-FileUploadButton-input"
+                                                                                component={
+                                                                                    UploadFile
+                                                                                }
+                                                                                name={`configurationFile_${this.props.index}`}
+                                                                                id="configurationFile"
+                                                                                accept="config"
+                                                                                onChange={
+                                                                                    this
+                                                                                        .changeConfigFile
+                                                                                }
+                                                                                disabled={
+                                                                                    uploadingConfigurationFile
+                                                                                }
+                                                                                fileInputKey={
+                                                                                    configFileInputKey
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        configurationFile
+                                                                    }
+                                                                >
+                                                                    <div
+                                                                        className="bs-Fieldset-fields"
+                                                                        style={{
+                                                                            padding:
+                                                                                '0',
+                                                                        }}
+                                                                    >
+                                                                        <button
+                                                                            className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                            type="button"
+                                                                            onClick={
+                                                                                this
+                                                                                    .removeConfigFile
+                                                                            }
+                                                                            disabled={
+                                                                                uploadingConfigurationFile
+                                                                            }
+                                                                            style={{
+                                                                                margin:
+                                                                                    '10px 10px 0 0',
+                                                                            }}
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                            <span>
+                                                                                Remove
+                                                                                Configuration
+                                                                                File
+                                                                            </span>
+                                                                        </button>
+                                                                    </div>
+                                                                </ShouldRender>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
                                                 <ShouldRender
                                                     if={type === 'api'}
                                                 >
@@ -2215,6 +2456,8 @@ class NewMonitor extends Component {
                                                             type === 'script' ||
                                                             type ===
                                                                 'incomingHttpRequest' ||
+                                                            type ===
+                                                                'kubernetes' ||
                                                             type === 'ip') &&
                                                         !this.state.advance
                                                     }
@@ -2265,6 +2508,8 @@ class NewMonitor extends Component {
                                                             type === 'script' ||
                                                             type ===
                                                                 'incomingHttpRequest' ||
+                                                            type ===
+                                                                'kubernetes' ||
                                                             type === 'ip')
                                                     }
                                                 >
@@ -2427,15 +2672,15 @@ class NewMonitor extends Component {
                                                                                 className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
                                                                                 id="Add-Criteria-Button"
                                                                                 type="button"
-                                                                                onClick={() =>
+                                                                                onClick={() => {
                                                                                     this.addCriterion(
                                                                                         {
                                                                                             type:
                                                                                                 criterionType.type,
                                                                                             id: uuid.v4(),
                                                                                         }
-                                                                                    )
-                                                                                }
+                                                                                    );
+                                                                                }}
                                                                             >
                                                                                 <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                                                                                     <span>
@@ -2606,6 +2851,10 @@ const mapDispatchToProps = dispatch =>
             fetchCommunicationSlas,
             fetchMonitorSlas,
             change,
+            uploadConfigurationFile,
+            logConfigFile,
+            setConfigInputKey,
+            resetConfigFile,
         },
         dispatch
     );
@@ -2682,6 +2931,9 @@ const mapStateToProps = (state, ownProps) => {
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
             fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
             isValid: isValid('NewMonitor')(state),
+            configurationFile: state.monitor.configFile,
+            uploadingConfigurationFile: state.monitor.uploadConfigRequest,
+            configFileInputKey: state.monitor.configFileInputKey,
         };
     } else {
         return {
@@ -2717,6 +2969,9 @@ const mapStateToProps = (state, ownProps) => {
             requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
             fetchMonitorSlaError: state.monitorSla.monitorSlas.error,
             isValid: isValid('NewMonitor')(state),
+            configurationFile: state.monitor.configFile,
+            uploadingConfigurationFile: state.monitor.uploadConfigRequest,
+            configFileInputKey: state.monitor.configFileInputKey,
         };
     }
 };
@@ -2761,7 +3016,9 @@ NewMonitor.propTypes = {
     logFile: PropTypes.func,
     resetFile: PropTypes.func,
     identityFile: PropTypes.string,
+    configurationFile: PropTypes.string,
     uploadingIdentityFile: PropTypes.bool,
+    uploadingConfigurationFile: PropTypes.bool,
     setFileInputKey: PropTypes.func,
     fileInputKey: PropTypes.string,
     uploadIdentityFile: PropTypes.func,
@@ -2776,6 +3033,11 @@ NewMonitor.propTypes = {
     currentMonitorCriteria: PropTypes.arrayOf(
         PropTypes.objectOf(PropTypes.any)
     ),
+    uploadConfigurationFile: PropTypes.func,
+    logConfigFile: PropTypes.func,
+    setConfigInputKey: PropTypes.func,
+    resetConfigFile: PropTypes.func,
+    configFileInputKey: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);
