@@ -12,7 +12,7 @@ const IncidentProjectBox = props => {
     const [filteredIncidents, setFilteredIncidents] = useState([]);
     const [filterOption, setFilterOption] = useState('Filter By');
     const [isFiltered, setIsFiltered] = useState(false);
-    const [page,setPage] = useState(1)
+    const [page, setPage] = useState(1);
 
     const filterIncidentLogs = status => {
         const unFilteredIncidents = props.subProjectIncident;
@@ -171,6 +171,7 @@ const IncidentProjectBox = props => {
                                         content: DataPathHoC(CreateIncident, {
                                             subProjectId:
                                                 props.subProjectIncident._id,
+                                            componentId: props.componentId,
                                         }),
                                     })
                                 }
