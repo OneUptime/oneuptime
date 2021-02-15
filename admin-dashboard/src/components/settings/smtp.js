@@ -127,6 +127,47 @@ const fields = [
     },
 ];
 
+const smtpFields = [
+    {
+        key: 'internalSmtp',
+        label: 'Internal SMTP',
+        // eslint-disable-next-line react/display-name, react/prop-types
+        component: ({ input: { value, onChange } }) => (
+            <label className="Toggler-wrap">
+                <input
+                    className="btn-toggler"
+                    checked={value}
+                    onChange={onChange}
+                    type="checkbox"
+                    name="internalSmtp"
+                    id="internalSmtp"
+                />
+                <span className="TogglerBtn-slider round"></span>
+            </label>
+        ),
+        explanation: 'Use pre-configured internal SMTP server',
+    },
+    {
+        key: 'backupSmtp',
+        label: 'Backup SMTP',
+        // eslint-disable-next-line react/display-name, react/prop-types
+        component: ({ input: { value, onChange } }) => (
+            <label className="Toggler-wrap">
+                <input
+                    className="btn-toggler"
+                    checked={value}
+                    onChange={onChange}
+                    type="checkbox"
+                    name="backupSmtp"
+                    id="backupSmtp"
+                />
+                <span className="TogglerBtn-slider round"></span>
+            </label>
+        ),
+        explanation: 'SMTP server to use if internal SMTP server fails',
+    },
+];
+
 export class Component extends React.Component {
     constructor(props) {
         super(props);
@@ -157,6 +198,8 @@ export class Component extends React.Component {
                     'smtp-secure': secure,
                     from,
                     'from-name': name,
+                    internalSmtp,
+                    backupSmtp,
                 } = smtpForm.values;
 
                 const payload = {
@@ -168,6 +211,8 @@ export class Component extends React.Component {
                     from,
                     name,
                     email,
+                    internalSmtp,
+                    backupSmtp,
                 };
 
                 return testSmtp(payload).then(res => {
@@ -209,7 +254,7 @@ export class Component extends React.Component {
     };
 
     render() {
-        const { settings, handleSubmit } = this.props;
+        const { settings, handleSubmit, smtpForm } = this.props;
         return (
             <div
                 id="fyipeSmtp"
@@ -242,47 +287,108 @@ export class Component extends React.Component {
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
-                                            {fields.map(field => (
-                                                <div
-                                                    key={field.key}
-                                                    className="bs-Fieldset-row"
-                                                >
-                                                    <label className="bs-Fieldset-label">
-                                                        {field.label}
-                                                    </label>
+                                            {smtpFields.map(field => {
+                                                if (
+                                                    smtpForm.values &&
+                                                    field.key ===
+                                                        'backupSmtp' &&
+                                                    !smtpForm.values
+                                                        .internalSmtp
+                                                ) {
+                                                    return null;
+                                                }
+                                                return (
                                                     <div
-                                                        className="bs-Fieldset-fields"
-                                                        style={{
-                                                            paddingTop: 3,
-                                                        }}
+                                                        key={field.key}
+                                                        className="bs-Fieldset-row"
                                                     >
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            type={field.type}
-                                                            name={field.key}
-                                                            id={field.key}
-                                                            placeholder={
-                                                                field.placeholder ||
-                                                                field.label
-                                                            }
-                                                            component={
-                                                                field.component
-                                                            }
-                                                            disabled={
-                                                                settings &&
-                                                                settings.requesting
-                                                            }
-                                                        />
-                                                        {field.explanation && (
-                                                            <p className="bs-Fieldset-explanation">
-                                                                {
-                                                                    field.explanation
+                                                        <label className="bs-Fieldset-label">
+                                                            {field.label}
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop: 3,
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type={
+                                                                    field.type
                                                                 }
-                                                            </p>
-                                                        )}
+                                                                name={field.key}
+                                                                id={field.key}
+                                                                placeholder={
+                                                                    field.placeholder ||
+                                                                    field.label
+                                                                }
+                                                                component={
+                                                                    field.component
+                                                                }
+                                                                disabled={
+                                                                    settings &&
+                                                                    settings.requesting
+                                                                }
+                                                            />
+                                                            {field.explanation && (
+                                                                <p className="bs-Fieldset-explanation">
+                                                                    {
+                                                                        field.explanation
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
+                                            {smtpForm.values &&
+                                                (!smtpForm.values
+                                                    .internalSmtp ||
+                                                    smtpForm.values
+                                                        .backupSmtp) &&
+                                                fields.map(field => (
+                                                    <div
+                                                        key={field.key}
+                                                        className="bs-Fieldset-row"
+                                                    >
+                                                        <label className="bs-Fieldset-label">
+                                                            {field.label}
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop: 3,
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type={
+                                                                    field.type
+                                                                }
+                                                                name={field.key}
+                                                                id={field.key}
+                                                                placeholder={
+                                                                    field.placeholder ||
+                                                                    field.label
+                                                                }
+                                                                component={
+                                                                    field.component
+                                                                }
+                                                                disabled={
+                                                                    settings &&
+                                                                    settings.requesting
+                                                                }
+                                                            />
+                                                            {field.explanation && (
+                                                                <p className="bs-Fieldset-explanation">
+                                                                    {
+                                                                        field.explanation
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
                                         </div>
                                     </fieldset>
                                 </div>
@@ -356,7 +462,7 @@ function mapStateToProps(state) {
     return {
         settings: state.settings,
         initialValues: state.settings[settingsType],
-        smtpForm: state.form['smtp-form'],
+        smtpForm: state.form['smtp-form'] || {},
     };
 }
 
