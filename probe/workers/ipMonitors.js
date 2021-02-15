@@ -67,7 +67,6 @@ const pingfetch = async IPAddress => {
         };
     } catch (error) {
         res = new Date().getTime() - now;
-        console.log('error body', error);
         resp = { status: 408, body: error };
     }
 
