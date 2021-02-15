@@ -169,9 +169,16 @@ class AreaChart extends Component {
     }
 
     render() {
-        const { type, data, name, symbol, requesting } = this.props;
+        const {
+            type,
+            data,
+            name,
+            symbol,
+            requesting,
+            initMonitorScanning,
+        } = this.props;
         let processedData = [{ display: '', name: '', v: '' }];
-        if (requesting) {
+        if (requesting || initMonitorScanning) {
             return (
                 <div style={noDataStyle}>
                     <div
@@ -260,6 +267,10 @@ AreaChart.propTypes = {
     name: PropTypes.string,
     symbol: PropTypes.string,
     requesting: PropTypes.bool,
+    initMonitorScanning: PropTypes.oneOf([
+        PropTypes.bool,
+        PropTypes.oneOfType([null, undefined]),
+    ]),
 };
 
 function mapStateToProps(state) {

@@ -212,6 +212,7 @@ export function MonitorChart({
     probes,
 }) {
     const [now, setNow] = useState(Date.now());
+    const [kubeMonitoring] = useState(true);
 
     const activeProbeObj =
         probes && probes.length > 0 && probes[activeProbe || 0]
@@ -848,6 +849,9 @@ export function MonitorChart({
                                     data={data}
                                     name={'pod'}
                                     symbol={'%'}
+                                    initMonitorScanning={
+                                        kubeMonitoring && data.length === 0
+                                    }
                                 />
                             </div>
                         </div>
@@ -949,6 +953,9 @@ export function MonitorChart({
                                     data={data}
                                     name={'job'}
                                     symbol={'%'}
+                                    initMonitorScanning={
+                                        kubeMonitoring && data.length === 0
+                                    }
                                 />
                             </div>
                         </div>
@@ -1048,6 +1055,9 @@ export function MonitorChart({
                                     data={data}
                                     name={'deployment'}
                                     symbol={'%'}
+                                    initMonitorScanning={
+                                        kubeMonitoring && data.length === 0
+                                    }
                                 />
                             </div>
                         </div>
@@ -1147,6 +1157,9 @@ export function MonitorChart({
                                     data={data}
                                     name={'statefulset'}
                                     symbol={'%'}
+                                    initMonitorScanning={
+                                        kubeMonitoring && data.length === 0
+                                    }
                                 />
                             </div>
                         </div>
