@@ -241,7 +241,7 @@ export class SubProjects extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ShouldRender if={!subProjects.error}>
-                                    <div className="bs-Tail-copy">
+                                    <div className="bs-Tail-copy Text-fontWeight--medium">
                                         <span>
                                             {numbersOfPage > 0
                                                 ? `Page ${
