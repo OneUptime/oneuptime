@@ -113,6 +113,7 @@ class Home extends Component {
     };
 
     render() {
+        console.log("Home Props: ",this.props);
         const {
             escalations,
             location: { pathname },
