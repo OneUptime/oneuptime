@@ -1344,7 +1344,7 @@ export function MonitorChart({
                     if={
                         !isCurrentlyNotMonitoring &&
                         checkLogs &&
-                        (type === 'url' || type === 'api' || type === 'ip')
+                        (type === 'url' || type === 'api')
                     }
                 >
                     <div
