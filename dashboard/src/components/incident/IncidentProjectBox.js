@@ -170,6 +170,7 @@ const IncidentProjectBox = props => {
                                         content: DataPathHoC(CreateIncident, {
                                             subProjectId:
                                                 props.subProjectIncident._id,
+                                            componentId: props.componentId,
                                         }),
                                     })
                                 }
