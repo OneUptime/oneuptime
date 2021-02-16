@@ -362,6 +362,10 @@ const MonitorCriteriaService = {
             kubernetes: {
                 up_1000: [
                     {
+                        match: 'all',
+                        field3: true,
+                    },
+                    {
                         match: 'any',
                         responseType: 'podStatus',
                         filter: 'equalTo',
@@ -380,6 +384,28 @@ const MonitorCriteriaService = {
                         responseType: 'podStatus',
                         filter: 'equalTo',
                         field1: 'pending',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        match: 'any',
+                        responseType: 'jobStatus',
+                        filter: 'equalTo',
+                        field1: 'running',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'jobStatus',
+                        filter: 'equalTo',
+                        field1: 'succeeded',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'jobStatus',
+                        filter: 'equalTo',
+                        field1: 'failed',
                         field2: '',
                         field3: false,
                     },
