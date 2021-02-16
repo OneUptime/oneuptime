@@ -408,9 +408,9 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: true,
                 down_1000: [
                     {
-                        match: 'any',
+                        match: 'all',
                         responseType: 'respondsToPing',
-                        filter: 'isUp',
+                        filter: 'isDown',
                         field1: '',
                         field2: '',
                         field3: false,
