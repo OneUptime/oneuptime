@@ -10,6 +10,8 @@ import {
     fetchMonitorSlas,
     updateMonitorSla,
     setActiveMonitorSla,
+    paginateNext,
+    paginatePrev,
 } from '../../actions/monitorSla';
 import MonitorSlaModal from './MonitorSlaModal';
 import EditMonitorSlaModal from './EditMonitorSlaModal';
@@ -40,6 +42,7 @@ class MonitorSla extends Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             limit
         );
+        this.props.paginatePrev();
     };
 
     nextClicked = (skip, limit) => {
@@ -49,6 +52,7 @@ class MonitorSla extends Component {
         });
 
         fetchMonitorSlas(projectId, skip + limit, limit);
+        this.props.paginateNext();
     };
 
     setAsDefault = ({ projectId, monitorSlaId }) => {
@@ -314,6 +318,7 @@ class MonitorSla extends Component {
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
         const projectName = currentProject ? currentProject.name : '';
+        const numberOfPage = Math.ceil(parseInt(count) / 10);
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
@@ -448,10 +453,21 @@ class MonitorSla extends Component {
                                             id="slaCount"
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            {this.props.count +
-                                                (this.props.count > 1
-                                                    ? '  SLAs'
-                                                    : ' SLA')}
+                                            {numberOfPage > 0
+                                                ? `Page ${
+                                                      this.props.page
+                                                  } of ${numberOfPage} (${
+                                                      this.props.count
+                                                  } SLA${
+                                                      this.props.count > 1
+                                                          ? 's'
+                                                          : ''
+                                                  })`
+                                                : `${this.props.count} SLA${
+                                                      this.props.count > 1
+                                                          ? 's'
+                                                          : ''
+                                                  }`}
                                         </span>
                                     </span>
                                 </span>
@@ -462,10 +478,7 @@ class MonitorSla extends Component {
                                         <button
                                             id="btnPrevMonitorSla"
                                             onClick={() =>
-                                                this.prevClicked(
-                                                    projectId,
-                                                    skip
-                                                )
+                                                this.prevClicked(skip, limit)
                                             }
                                             className={
                                                 'Button bs-ButtonLegacy' +
@@ -486,10 +499,7 @@ class MonitorSla extends Component {
                                         <button
                                             id="btnNextMonitorSla"
                                             onClick={() =>
-                                                this.nextClicked(
-                                                    projectId,
-                                                    skip
-                                                )
+                                                this.nextClicked(skip, limit)
                                             }
                                             className={
                                                 'Button bs-ButtonLegacy' +
@@ -536,6 +546,9 @@ MonitorSla.propTypes = {
     setActiveMonitorSla: PropTypes.func,
     activeSla: PropTypes.string,
     monitors: PropTypes.array,
+    page: PropTypes.number,
+    paginatePrev: PropTypes.func,
+    paginateNext: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -545,6 +558,8 @@ const mapDispatchToProps = dispatch =>
             fetchMonitorSlas,
             updateMonitorSla,
             setActiveMonitorSla,
+            paginateNext,
+            paginatePrev,
         },
         dispatch
     );
@@ -564,6 +579,7 @@ const mapStateToProps = (state, ownProps) => {
         monitorSlas: state.monitorSla.monitorSlas.slas,
         activeSla: state.monitorSla.activeSla,
         monitors,
+        page: state.monitorSla.page,
     };
 };
 

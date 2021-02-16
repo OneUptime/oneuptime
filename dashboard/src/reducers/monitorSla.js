@@ -23,6 +23,7 @@ const initialState = {
         limit: 10,
     },
     activeSla: '',
+    page: 1,
 };
 
 export default function monitorSla(state = initialState, action) {
@@ -47,6 +48,7 @@ export default function monitorSla(state = initialState, action) {
                     error: null,
                     sla: action.payload,
                 },
+                page: 1,
             };
 
         case types.CREATE_MONITOR_SLA_FAILURE:
@@ -216,7 +218,16 @@ export default function monitorSla(state = initialState, action) {
                     error: action.payload,
                 },
             };
-
+        case types.NEXT_MONITOR_SLA_PAGE:
+            return {
+                ...state,
+                page: state.page + 1,
+            };
+        case types.PREV_MONITOR_SLA_PAGE:
+            return {
+                ...state,
+                page: state.page > 1 ?  state.page - 1 : 1,
+            };
         case types.SET_ACTIVE_MONITOR_SLA:
             return {
                 ...state,
