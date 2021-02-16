@@ -339,7 +339,10 @@ export class DashboardApp extends Component {
                         incidentNotifications.length > 0
                     }
                 >
-                    <IncidentCreated notifications={incidentNotifications} />
+                    <IncidentCreated
+                        notifications={incidentNotifications}
+                        slug={currentProject ? currentProject.slug : null}
+                    />
                 </ShouldRender>
             </Fragment>
         );
