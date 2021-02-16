@@ -730,7 +730,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                 : {
                       ...state.monitorLogs,
                       [action.payload.monitorId]: {
-                          logs: action.payload.logData,
+                          logs: [action.payload.logData],
                           error: null,
                           requesting: false,
                           success: false,

@@ -86,7 +86,7 @@ class NewMonitor extends Component {
                 (props.currentMonitorCriteria &&
                     props.currentMonitorCriteria.filter(cr => {
                         if (
-                            props.type == 'kubernetes' &&
+                            props.type === 'kubernetes' &&
                             cr.type === 'degraded' &&
                             !props.edit
                         ) {
