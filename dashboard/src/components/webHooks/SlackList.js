@@ -97,6 +97,7 @@ class SlackList extends React.Component {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
 
         return (
             <React.Fragment>
@@ -175,8 +176,15 @@ class SlackList extends React.Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {webHooks.length} Slack
-                                    {numberOfWebHooks === 1 ? '' : 's'}
+                                    {numberOfPages > 0
+                                        ? `Page ${
+                                              this.props.pages.counter
+                                          } of ${numberOfPages} (${count} Slack${
+                                              count === 1 ? '' : 's'
+                                          })`
+                                        : `${count} Slack${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </span>
                         </span>
@@ -242,6 +250,7 @@ const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
     projectId: state.project.currentProject && state.project.currentProject._id,
     monitor: state.monitor,
+    pages: state.slackWebhooks.pages,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -260,6 +269,7 @@ SlackList.propTypes = {
     isRequesting: PropTypes.bool,
     slacks: PropTypes.object,
     paginate: PropTypes.func.isRequired,
+    pages: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SlackList);
