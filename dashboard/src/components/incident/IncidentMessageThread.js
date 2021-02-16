@@ -31,7 +31,8 @@ export class IncidentMessageThread extends Component {
             deleteMessageModalId,
             deleteIncidentMessage,
             page,
-            numberOfPages
+            numberOfPages,
+            count,
         } = this.props;
         return (
             <div className="Box-root">
@@ -1356,27 +1357,13 @@ export class IncidentMessageThread extends Component {
                         <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {numberOfPages >0 ?
-                                   `Page ${page} of ${numberOfPages} (${
-                                    incidentMessages && incidentMessages.incidentMessages.length
-                                    ? incidentMessages.incidentMessages
-                                          .length +
-                                      (incidentMessages.incidentMessages
-                                          .length > 1
-                                          ? ' Messages'
-                                          : ' Message')
-                                    : '0 Messages'
-                                  })`
-                                  : 
-                                  incidentMessages && incidentMessages.incidentMessages.length
-                                        ? incidentMessages.incidentMessages
-                                              .length +
-                                          (incidentMessages.incidentMessages
-                                              .length > 1
-                                              ? ' Messages'
-                                              : ' Message')
-                                        : '0 Messages'
-                                }
+                                    {numberOfPages > 0
+                                        ? `Page ${page} of ${numberOfPages} (${count} Message${
+                                              count === 1 ? '' : 's'
+                                          })`
+                                        : `${count} Message${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </span>
                         </div>
@@ -1452,6 +1439,9 @@ IncidentMessageThread.propTypes = {
     editMessageModalId: PropTypes.string,
     deleteMessageModalId: PropTypes.string,
     deleteIncidentMessage: PropTypes.func,
+    count: PropTypes.number,
+    numberOfPages: PropTypes.number,
+    page: PropTypes.number,
 };
 
 export default IncidentMessageThread;
