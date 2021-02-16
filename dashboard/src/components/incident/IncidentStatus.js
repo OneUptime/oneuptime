@@ -72,7 +72,7 @@ export class IncidentStatus extends Component {
         })
         if(this.state.FormIcon === 'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjY4MnB0IiB2aWV3Qm94PSItMTAzIC0yMSA2ODIgNjgyLjY2NjY5IiB3aWR0aD0iNjgycHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTQwMy43Njk1MzEgMjQ5LjMzNTkzOHYtNzguOTM3NWMwLTkzLjk1NzAzMi03Ni40NDUzMTItMTcwLjM5ODQzOC0xNzAuNDAyMzQzLTE3MC4zOTg0MzgtOTMuOTU3MDMyIDAtMTcwLjQwMjM0NCA3Ni40NDE0MDYtMTcwLjQwMjM0NCAxNzAuMzk4NDM4djc4LjkzNzVjLTM3LjYwOTM3NS41MjczNDMtNjguMDQ2ODc1IDMxLjI2OTUzMS02OC4wNDY4NzUgNjkuMDAzOTA2djI1Mi42MzI4MTJjMCAzOC4wNTg1OTQgMzAuOTY0ODQzIDY5LjAyNzM0NCA2OS4wMjczNDMgNjkuMDI3MzQ0aDMzOC44NDM3NWMzOC4wNTg1OTQgMCA2OS4wMjczNDQtMzAuOTY4NzUgNjkuMDI3MzQ0LTY5LjAyNzM0NHYtMjUyLjYzMjgxMmMwLTM3LjczNDM3NS0zMC40NDE0MDYtNjguNDc2NTYzLTY4LjA0Njg3NS02OS4wMDM5MDZ6bS0xNzAuNDAyMzQzLTIxMS44MzU5MzhjNzMuMjgxMjUgMCAxMzIuOTAyMzQzIDU5LjYxNzE4OCAxMzIuOTAyMzQzIDEzMi44OTg0Mzh2NzguOTE0MDYyaC0zNi43MzQzNzV2LTc4Ljc4OTA2MmMwLTUzLjA2MjUtNDMuMTQwNjI1LTk2LjIzMDQ2OS05Ni4xNzE4NzUtOTYuMjMwNDY5LTUzLjAyNzM0MyAwLTk2LjE2Nzk2OSA0My4xNjc5NjktOTYuMTY3OTY5IDk2LjIzMDQ2OXY3OC43ODkwNjJoLTM2LjczMDQ2OHYtNzguOTE0MDYyYzAtNzMuMjgxMjUgNTkuNjE3MTg3LTEzMi44OTg0MzggMTMyLjkwMjM0NC0xMzIuODk4NDM4em01OC42Njc5NjggMjExLjgxMjVoLTExNy4zMzk4NDR2LTc4Ljc4OTA2MmMwLTMyLjM4MjgxMyAyNi4zMjAzMTMtNTguNzMwNDY5IDU4LjY3MTg3Ni01OC43MzA0NjkgMzIuMzUxNTYyIDAgNTguNjY3OTY4IDI2LjM0NzY1NiA1OC42Njc5NjggNTguNzMwNDY5em0xNDIuMjgxMjUgMzIxLjY2MDE1NmMwIDE3LjM4MjgxMy0xNC4xNDQ1MzEgMzEuNTI3MzQ0LTMxLjUyNzM0NCAzMS41MjczNDRoLTMzOC44NDM3NWMtMTcuMzgyODEyIDAtMzEuNTI3MzQzLTE0LjE0NDUzMS0zMS41MjczNDMtMzEuNTI3MzQ0di0yNTIuNjMyODEyYzAtMTcuMzgyODEzIDE0LjE0MDYyNS0zMS41MjczNDQgMzEuNTI3MzQzLTMxLjUyNzM0NGgzMzguODQzNzVjMTcuMzgyODEzIDAgMzEuNTI3MzQ0IDE0LjE0NDUzMSAzMS41MjczNDQgMzEuNTI3MzQ0em0wIDAiLz48cGF0aCBkPSJtMzMwLjIwMzEyNSAzNTgtMTM3LjE5NTMxMyAxNDguNTkzNzUtNTYuODc4OTA2LTU3Ljg5ODQzOGMtNy4yNjE3MTgtNy4zODI4MTItMTkuMTMyODEyLTcuNDg4MjgxLTI2LjUxOTUzMS0uMjM0Mzc0LTcuMzgyODEzIDcuMjYxNzE4LTcuNDkyMTg3IDE5LjEzMjgxMi0uMjM0Mzc1IDI2LjUxOTUzMWw3MC42ODM1OTQgNzEuOTMzNTkzYzMuNTIzNDM3IDMuNTkzNzUgOC4zNDM3NSA1LjYwOTM3NiAxMy4zNzUgNS42MDkzNzZoLjI4NTE1NmM1LjEzMjgxMi0uMDgyMDMyIDEwLjAwNzgxMi0yLjI1NzgxMyAxMy40ODgyODEtNi4wMzEyNWwxNTAuNTQ2ODc1LTE2My4wNTg1OTRjNy4wMjczNDQtNy42MDkzNzUgNi41NTA3ODItMTkuNDY4NzUtMS4wNTQ2ODctMjYuNDk2MDk0LTcuNjA5Mzc1LTcuMDE5NTMxLTE5LjQ3MjY1Ny02LjU0Njg3NS0yNi40OTYwOTQgMS4wNjI1em0wIDAiLz48L3N2Zz4='){
             console.log("About To Submit");
-            
+           // this.firstFormSubmit('Soji');
         }
     }
     acknowledge = setLoading => {
@@ -1463,6 +1463,7 @@ export class IncidentStatus extends Component {
                                                                             validate={[
                                                                                 ValidateField.required,
                                                                             ]}
+                                                                            
                                                                             id="title"
                                                                         />
                                                                         <span>
