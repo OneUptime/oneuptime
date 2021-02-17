@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
-import { fetchCustomFields } from '../../actions/customField';
+import { fetchCustomFields, paginate } from '../../actions/customField';
 import DeleteCustomField from '../modals/DeleteCustomField';
 import CreateCustomField from '../modals/CreateCustomField';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
@@ -23,22 +23,20 @@ class IncidentCustomFields extends Component {
         }
     }
 
-    prevClicked = (projectId, skip) => {
-        const { fetchCustomFields } = this.props;
+    prevClicked = projectId => {
+        const { fetchCustomFields, skip, limit } = this.props;
         fetchCustomFields(
             projectId,
-            skip ? Number(skip) - this.limit : this.limit,
-            this.limit
+            skip ? Number(skip) - limit : limit,
+            limit
         );
+        this.props.paginate('prev');
     };
 
-    nextClicked = (projectId, skip) => {
-        const { fetchCustomFields } = this.props;
-        fetchCustomFields(
-            projectId,
-            skip ? Number(skip) + this.limit : this.limit,
-            this.limit
-        );
+    nextClicked = projectId => {
+        const { fetchCustomFields, skip, limit } = this.props;
+        fetchCustomFields(projectId, skip ? Number(skip) + limit : limit, 10);
+        this.props.paginate('next');
     };
 
     render() {
@@ -57,7 +55,7 @@ class IncidentCustomFields extends Component {
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
         const projectName = currentProject ? currentProject.name : '';
-
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
@@ -267,12 +265,15 @@ class IncidentCustomFields extends Component {
                                             id="scheduledEventCount"
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            {this.props.count
-                                                ? this.props.count +
-                                                  (this.props.count > 1
-                                                      ? '  Custom fields'
-                                                      : ' Custom field')
-                                                : '0 Custom field'}
+                                            {numberOfPages > 0
+                                                ? `Page ${
+                                                      this.props.page
+                                                  } of ${numberOfPages} (${count} Custom field${
+                                                      count === 1 ? '' : 's'
+                                                  })`
+                                                : `${count} Custom field${
+                                                      count === 1 ? '' : 's'
+                                                  }`}
                                         </span>
                                     </span>
                                 </span>
@@ -352,6 +353,8 @@ IncidentCustomFields.propTypes = {
     skip: PropTypes.number,
     openModal: PropTypes.func.isRequired,
     fetchCustomFields: PropTypes.func.isRequired,
+    paginate: PropTypes.func,
+    page: PropTypes.number,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -359,6 +362,7 @@ const mapDispatchToProps = dispatch =>
         {
             openModal,
             fetchCustomFields,
+            paginate,
         },
         dispatch
     );
@@ -372,6 +376,7 @@ const mapStateToProps = state => {
         count: state.customField.customFields.count,
         limit: state.customField.customFields.limit,
         skip: state.customField.customFields.skip,
+        page: state.customField.page,
     };
 };
 
