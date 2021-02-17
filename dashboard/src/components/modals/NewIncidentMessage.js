@@ -128,7 +128,6 @@ class NewIncidentMessage extends Component {
         }
     };
     render() {
-        console.log("Zadat: ",this.props)
         const {
             handleSubmit,
             incidentMessageState,

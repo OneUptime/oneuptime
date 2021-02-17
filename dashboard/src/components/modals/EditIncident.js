@@ -48,7 +48,6 @@ class EditIncident extends Component {
     };
 
     render() {
-        console.log("Props: ",this.props);
         const {
             handleSubmit,
             editIncident,
