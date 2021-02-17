@@ -1510,6 +1510,9 @@ export class IncidentStatus extends Component {
                                                                 <label className="">
                                                                     Title
                                                             </label>
+                                                            <ShouldRender
+                                                                if={!this.props.editable}
+                                                            >
                                                                 <div className="bs-content-inside">
                                                                     <span className="value">
                                                                         {
@@ -1520,7 +1523,10 @@ export class IncidentStatus extends Component {
                                                                         }
                                                                     </span>
                                                                 </div>
-
+                                                                </ShouldRender>
+                                                                <ShouldRender 
+                                                                    if={this.props.editable}
+                                                                >
                                                                 <form onSubmit={this.props.handleSubmit(this.firstFormSubmit.bind(this))}>
                                                                     <div className="bs-Fieldset-fields">
                                                                         <Field
@@ -1531,6 +1537,7 @@ export class IncidentStatus extends Component {
                                                                             validate={[
                                                                                 ValidateField.required,
                                                                             ]}
+                                                                            style={{width:212}}
                                                                             onBlur={this.props.handleSubmit(this.firstFormSubmit)}
                                                                             id="title"
                                                                         />
@@ -1548,7 +1555,7 @@ export class IncidentStatus extends Component {
                                                                         </span>
                                                                     </div>
                                                                 </form>
-
+                                                                </ShouldRender>
                                                             </div>
                                                         )}
                                                     {this.props.incident
@@ -1557,6 +1564,7 @@ export class IncidentStatus extends Component {
                                                                 <label className="">
                                                                     Description
                                                             </label>
+                                                            <ShouldRender if={!this.props.editable}>
                                                                 <div className="bs-content-inside">
                                                                     <ReactMarkdown
                                                                         source={
@@ -1567,8 +1575,11 @@ export class IncidentStatus extends Component {
                                                                         }
                                                                     />
                                                                 </div>
+                                                                </ShouldRender>
+                                                                <ShouldRender if={this.props.editable}>
                                                                 <form onSubmit={this.props.handleSubmit(this.secondFormSubmit.bind(this))}>
                                                                     <div className="bs-Fieldset-fields">
+                                                                        
                                                                         <Field
                                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             component={RenderCodeEditor}
@@ -1577,7 +1588,7 @@ export class IncidentStatus extends Component {
                                                                             wrapEnabled ={true}
                                                                             mode="markdown"
                                                                             height="125px"
-                                                                            width="100%"
+                                                                            width="100%"                                                                            
                                                                             placeholder="Please add a description"
                                                                             onBlur={this.secondFormSubmit}
                                                                             id="description"
@@ -1596,6 +1607,7 @@ export class IncidentStatus extends Component {
                                                                         </span>
                                                                     </div>
                                                                 </form>
+                                                                </ShouldRender>
                                                             </div>
                                                             
                                                         )}
@@ -1819,6 +1831,7 @@ export class IncidentStatus extends Component {
                                                                                     '30%',
                                                                             }}
                                                                         ></span>
+                                                                        <ShouldRender if={!this.props.editable}>
                                                                         <span
                                                                             className="Text-fontWeight--medium"
                                                                             style={{
@@ -1833,15 +1846,18 @@ export class IncidentStatus extends Component {
                                                                                     .name
                                                                             }
                                                                         </span>
+                                                                        </ShouldRender>
                                                                     </div>
+                                                                    <ShouldRender if={this.props.editable}>
                                                                     <form onSubmit={this.props.handleSubmit(this.thirdFormSubmit.bind(this))}>
-                                                                    <div className="bs-Fieldset-fields">
+                                                                    <div className="bs-Fieldset-fields" style={{marginTop:2}}>
                                                                         <div>
                                                                         <Field
                                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             component={RenderSelect}
                                                                             name="incidentPriority"
-                                                                            disabled={!this.state.thirdIcon}                                                                                                                                
+                                                                            disabled={!this.state.thirdIcon} 
+                                                                            style={{width:'500px'}}                                                                                                                               
                                                                             id="incidentPriority"s                                                                            
                                                                             options={[                                                                                
                                                                                 ...this.props.incidentPriorities.map(
@@ -1869,6 +1885,7 @@ export class IncidentStatus extends Component {
                                                                         </div>
                                                                     </div>
                                                                 </form>
+                                                                </ShouldRender>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -2096,10 +2113,12 @@ export class IncidentStatus extends Component {
 IncidentStatus.displayName = 'IncidentStatus';
 
 const EditIncidentStatusForm = reduxForm({
-    form: 'IncidentStatus',
+    form: 'IncidentStatusForm',
+    destroyOnUnmount: true,
     enableReinitialize: true
 })(IncidentStatus)
 const mapStateToProps = (state, ownProps) => {
+    console.log("My own Props: ",ownProps)
     const incident = ownProps.incident;
     const initialValues = {
         title: incident.title,
@@ -2156,6 +2175,9 @@ IncidentStatus.propTypes = {
     getIncidentTimeline: PropTypes.func,
     animateSidebar: PropTypes.func,
     escalations: PropTypes.array,
+    editable: PropTypes.bool,
+    form: PropTypes.object,
+    incidentPriorities: PropTypes.array.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(EditIncidentStatusForm);
