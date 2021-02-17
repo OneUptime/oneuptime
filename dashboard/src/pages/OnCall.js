@@ -87,11 +87,11 @@ export class OnCall extends Component {
     };
 
     createSchedule = subProjectId => {
-        const { createSchedule, currentProjectId, history } = this.props;
+        const { createSchedule, history } = this.props;
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({ data }) => {
             history.push(
-                `/dashboard/project/${currentProjectId}/sub-project/${subProjectId}/schedule/${data[0]._id}`
+                `/dashboard/project/${this.props.currentProject.slug}/sub-project/${subProjectId}/schedule/${data[0]._id}`
             );
         });
 

@@ -213,6 +213,11 @@ class DashboardView extends Component {
                                                             currentProjectId={
                                                                 currentProjectId
                                                             }
+                                                            slug={
+                                                                this.props
+                                                                    .currentProject
+                                                                    .slug
+                                                            }
                                                             hideActionButton={
                                                                 true
                                                             }

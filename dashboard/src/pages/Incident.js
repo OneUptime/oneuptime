@@ -70,8 +70,8 @@ class Incident extends React.Component {
             parseInt(this.props.limit, 10)
         );
         this.setState({
-            alertLogPage: this.state.alertLogPage + 1
-        })
+            alertLogPage: this.state.alertLogPage + 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT ALERT CLICKED',
@@ -91,8 +91,8 @@ class Incident extends React.Component {
             parseInt(this.props.limit, 10)
         );
         this.setState({
-            alertLogPage: this.state.alertLogPage - 1
-        })
+            alertLogPage: this.state.alertLogPage - 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS ALERT CLICKED',
@@ -151,8 +151,8 @@ class Incident extends React.Component {
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
         this.setState({
-            subscribeAlertPage: this.state.subscribeAlertPage  + 1
-        })
+            subscribeAlertPage: this.state.subscribeAlertPage + 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT SUBSCRIBER CLICKED',
@@ -173,8 +173,8 @@ class Incident extends React.Component {
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
         this.setState({
-            subscribeAlertPage: this.state.subscribeAlertPage  - 1
-        })
+            subscribeAlertPage: this.state.subscribeAlertPage - 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS SUBSCRIBER CLICKED',
@@ -272,8 +272,8 @@ class Incident extends React.Component {
             scheduleWarning,
             defaultSchedule,
         } = this.props;
-        const projectId = currentProject ? currentProject._id : null;
-        const redirectTo = `/dashboard/project/${projectId}/on-call`;
+        const slug = currentProject ? currentProject.slug : null;
+        const redirectTo = `/dashboard/project/${slug}/on-call`;
         const {
             component,
             location: { pathname },

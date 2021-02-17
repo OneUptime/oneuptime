@@ -23,6 +23,7 @@ const CustomTutorial = ({
     tutorialStat,
     monitors,
     currentProjectId,
+    slug,
     projectTeamMembers,
     hideActionButton,
 }) => (
@@ -54,7 +55,7 @@ const CustomTutorial = ({
                             </div>
                         </div>
                     }
-                    callToActionLink={`/dashboard/project/${currentProjectId}/components`}
+                    callToActionLink={`/dashboard/project/${slug}/components`}
                     callToAction="Create Component"
                     hideActionButton={hideActionButton}
                 />
@@ -139,6 +140,7 @@ CustomTutorial.propTypes = {
     tutorialStat: PropTypes.object,
     monitors: PropTypes.array,
     currentProjectId: PropTypes.string,
+    slug: PropTypes.string,
     projectTeamMembers: PropTypes.array,
     hideActionButton: PropTypes.bool,
 };

@@ -300,6 +300,11 @@ class DashboardView extends Component {
                                                             monitors={
                                                                 allMonitors
                                                             }
+                                                            slug={
+                                                                this.props
+                                                                    .currentProject
+                                                                    .slug
+                                                            }
                                                             tutorialStat={
                                                                 this.props
                                                                     .tutorialStat

@@ -168,11 +168,10 @@ class MonitorView extends React.Component {
             monitorSlas,
             scheduleWarning,
             monitorId,
-            projectId,
             history,
             defaultSchedule,
         } = this.props;
-        const redirectTo = `/dashboard/project/${projectId}/on-call`;
+        const redirectTo = `/dashboard/project/${this.props.currentProject.slug}/on-call`;
         let scheduleAlert;
         if (
             scheduleWarning.includes(monitorId) === false &&

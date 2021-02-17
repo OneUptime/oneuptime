@@ -110,10 +110,7 @@ class TopContent extends Component {
     };
 
     handleActiveIncidentClick = () => {
-        const projectId = this.props.currentProject
-            ? this.props.currentProject._id
-            : '';
-        history.push(`/dashboard/project/${projectId}`);
+        history.push(`/dashboard/project/${this.props.currentProjectSlug}`);
     };
 
     renderActiveIncidents = (incidentCounter, topNavCardClass) => (
