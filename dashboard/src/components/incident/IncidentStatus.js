@@ -20,7 +20,7 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
-import EditIncident from '../modals/EditIncident';
+//import EditIncident from '../modals/EditIncident';
 import { history } from '../../store';
 import MessageBox from '../modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
@@ -638,7 +638,7 @@ export class IncidentStatus extends Component {
                                                         ) : null}
                                         </div>
                                     </div>
-                                    <ShouldRender
+                                    {/* <ShouldRender
                                         if={
                                             !this.props.route ||
                                             (this.props.route &&
@@ -673,7 +673,7 @@ export class IncidentStatus extends Component {
                                         >
                                             <span>Edit Incident</span>
                                         </button>
-                                    </ShouldRender>
+                                    </ShouldRender> */}
                                 </div>
                             </div>
                             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
