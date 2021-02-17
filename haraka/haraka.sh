@@ -45,6 +45,8 @@ if [[ ! -d "${DATADIR}/config" ]]; then
   #enable toobusy plugin
   sed -i 's/^#toobusy$\?/toobusy/g' ${DATADIR}/config/plugins
 
+  sed -i 's/^#relay$\?/relay/g' ${DATADIR}/config/plugins
+
   #smtp
   sed -i "s/^;listen=\[::0\]:25$\?/listen=\[::0\]:${SMTP_PORT}/g" ${DATADIR}/config/smtp.ini
 
