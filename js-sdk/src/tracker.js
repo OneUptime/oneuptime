@@ -15,6 +15,7 @@ class ErrorTracker {
     #fingerprint = [];
     #options = {
         maxTimeline: 5,
+        captureCodeSnippet: true,
     };
     #MAX_ITEMS_ALLOWED_IN_STACK = 100;
     #configKeys = ['baseUrl'];
@@ -36,7 +37,7 @@ class ErrorTracker {
             this.#isWindow,
             this.#options
         ); // Initialize Listener for timeline
-        this.#utilObj = new Util();
+        this.#utilObj = new Util(this.#options);
         // set up error listener
         if (this.#isWindow) {
             this._setUpErrorListener();
@@ -57,13 +58,18 @@ class ErrorTracker {
         for (const [key, value] of Object.entries(options)) {
             // proceed with current key if it is not in the config keys
             if (!this.#configKeys.includes(key)) {
+                // if key is in allowed options keys
                 if (this.#options[key]) {
-                    // set max timeline properly after checkig conditions
+                    // set max timeline properly after checking conditions
                     if (
                         key === 'maxTimeline' &&
                         (value > this.#MAX_ITEMS_ALLOWED_IN_STACK || value < 1)
                     ) {
                         this.#options[key] = this.#MAX_ITEMS_ALLOWED_IN_STACK;
+                    } else if (key === 'captureCodeSnippet') {
+                        const isBoolean = typeof value === 'boolean'; // check if the passed value is a boolean
+                        // set boolean value if boolean or set default `true` if annything other than boolean is passed
+                        this.#options[key] = isBoolean ? value : true;
                     } else {
                         this.#options[key] = value;
                     }
