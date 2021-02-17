@@ -10,7 +10,7 @@ FYIPE_DB_PASSWORD='password'
 FYIPE_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
-BACKUP_PATH="/Users/$CURRENT_USER/Documents"
+BACKUP_PATH="/Users/$CURRENT_USER/Documents/backup"
 BACKUP_RETAIN_DAYS=14
 TODAY=`date +"%d%b%Y"`
 
@@ -143,7 +143,7 @@ if sudo kubectl exec fyipe-766b74d759-ncbg7 -- mongodump --uri="mongodb://$FYIPE
       echo "File Saved: $BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"
       echo ""
       BACKUP_SUCCESS
-      
+    
     else
       echo "Failure, exit status: $?"
       BACKUP_FAIL_LOCAL
@@ -153,45 +153,9 @@ else
      BACKUP_FAIL_SERVER
 fi
 
+####### Remove backups older than {BACKUP_RETAIN_DAYS} days  ########
 
- ####### Remove backups older than {BACKUP_RETAIN_DAYS} days  ########
- 
 echo "Removing backup older than ${BACKUP_RETAIN_DAYS} days."
-DBDELDATE=`date +%s --date="${BACKUP_RETAIN_DAYS} days ago"`
-echo ""
-if [ ! -z ${BACKUP_PATH} ]; then
-      cd ${BACKUP_PATH}
-      for backupFile in `ls $BACKUP_PATH`; do
-            if [ $backupFile -lt ${DBDELDATE} ]; then
-              rm -rf $backupFile
-              # Send delete message
-              # curl -X POST -H 'Content-type: application/json' --data '{
-              #   "blocks": [
-              #     {
-              #       "type": "divider"
-              #     },
-              #     {
-              #       "type": "section",
-              #       "text": {
-              #         "type": "mrkdwn",
-              #         "text": "*Backup Deleted*\nPath: '$backupFile'"
-              #       },
-              #       "accessory": {
-              #         "type": "image",
-              #         "image_url":"https://icon-library.com/images/delete-icon/delete-icon-13.jpg",
-              #         "alt_text": "alt text for image"
-              #       }
-              #     },
-              #     {
-              #       "type": "divider"
-              #     }
-              #   ]
-              # }' https://hooks.slack.com/services/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
-            fi
-      done
-fi
-
+find $BACKUP_PATH* -mtime +${BACKUP_RETAIN_DAYS} -exec rm {} \;
 echo ""
 echo "Done"
-
-# # 0 */12 * * *
