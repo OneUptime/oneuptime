@@ -311,14 +311,6 @@ module.exports = {
                     // IS_SAAS_SERVICE: save a user only when payment method is charged and then next steps
                     user = await _this.create(data);
 
-                    let verificationToken;
-                    if (user.role !== 'master-admin') {
-                        verificationToken = await _this.sendToken(
-                            user,
-                            user.email
-                        );
-                    }
-
                     if (IS_SAAS_SERVICE) {
                         //update customer Id
                         user = await _this.updateOneBy(
@@ -332,6 +324,13 @@ module.exports = {
                             stripePlanId,
                             customerId,
                             data.coupon
+                        );
+                    }
+                    let verificationToken;
+                    if (user.role !== 'master-admin' && !customerId) {
+                        verificationToken = await _this.sendToken(
+                            user,
+                            user.email
                         );
                     }
 
