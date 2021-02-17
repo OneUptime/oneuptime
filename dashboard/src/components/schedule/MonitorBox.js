@@ -47,6 +47,7 @@ function submitMonitorForm(values, dispatch, props) {
 export function MonitorBox(props) {
     const { currentProject, subProjects, subProjectId, schedule } = props;
     const currentProjectId = currentProject ? currentProject._id : null;
+    const slug = currentProject ? currentProject.slug : null;
     let subProject =
         currentProjectId === subProjectId || currentProjectId === subProjectId
             ? currentProject
@@ -103,7 +104,7 @@ export function MonitorBox(props) {
                                                         this schedule.{' '}
                                                     </span>
                                                     <Link
-                                                        to={`/dashboard/project/${props.projectId}/components`}
+                                                        to={`/dashboard/project/${slug}/components`}
                                                     >
                                                         <span className="Text-fontWeight--medium">
                                                             Please add one to
@@ -393,10 +394,6 @@ MonitorBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     currentProject: PropTypes.oneOfType([
         PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
     subProjectId: PropTypes.oneOfType([

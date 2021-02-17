@@ -138,6 +138,7 @@ export class DashboardApp extends Component {
                         route="/"
                         name={projectName}
                         projectId={projectId}
+                        slug={currentProject ? currentProject.slug : null}
                         switchToProjectViewerNav={switchToProjectViewerNav}
                     />
                 )}

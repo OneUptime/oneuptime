@@ -85,7 +85,7 @@ const CustomTutorial = ({
                             </div>
                         </div>
                     }
-                    callToActionLink={`/dashboard/project/${currentProjectId}/components`}
+                    callToActionLink={`/dashboard/project/${slug}/components`}
                     callToAction="Create Monitor"
                     hideActionButton={hideActionButton}
                 />
@@ -125,7 +125,7 @@ const CustomTutorial = ({
                             </div>
                         </div>
                     }
-                    callToActionLink={`/dashboard/project/${currentProjectId}/team`}
+                    callToActionLink={`/dashboard/project/${slug}/team`}
                     callToAction="Invite Team Member"
                 />
             </ShouldRender>

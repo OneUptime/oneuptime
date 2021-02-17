@@ -9,8 +9,8 @@ import { history } from '../../store';
 class AlertDisabledWarning extends Component {
     render() {
         const { alertEnable, currentProject, page } = this.props;
-        const projectId = currentProject ? currentProject._id : null;
-        const redirectTo = `/dashboard/project/${projectId}/settings/billing`;
+        const slug = currentProject ? currentProject.slug : null;
+        const redirectTo = `/dashboard/project/${slug}/settings/billing`;
 
         return (
             <ShouldRender if={!alertEnable && booleanParser(IS_SAAS_SERVICE)}>
@@ -65,7 +65,7 @@ AlertDisabledWarning.displayName = 'AlertDisabledWarning';
 
 AlertDisabledWarning.propTypes = {
     alertEnable: PropTypes.bool,
-    currentProject: PropTypes.shape({ _id: PropTypes.string }),
+    currentProject: PropTypes.shape({ slug: PropTypes.string }),
     page: PropTypes.string,
 };
 
