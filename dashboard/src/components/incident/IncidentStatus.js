@@ -28,7 +28,7 @@ import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import FooterButton from './FooterButton';
 import { animateSidebar } from '../../actions/animateSidebar';
-import { reduxForm, Field} from 'redux-form';
+import { reduxForm, Field, formValueSelector} from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
 import { RenderSelect } from '../basic/RenderSelect';
@@ -91,7 +91,7 @@ export class IncidentStatus extends Component {
         const projectId = this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const title = this.props.incident.title;
-        const description = this.props.form["object Object"].values.description;
+        const description = this.props.description;
         const incidentPriority = this.props.incident.incidentPriority._id;
         this.props.updateIncident(
             projectId,
@@ -132,7 +132,7 @@ export class IncidentStatus extends Component {
         const incidentType = this.props.incident.incidentType;
         const title = this.props.incident.title;
         const description = this.props.incident.description;
-        const incidentPriority = this.props.form["object Object"].values.incidentPriority;
+        const incidentPriority = this.props.incidentPriority;
 
         this.props.updateIncident(
             projectId,
@@ -258,7 +258,6 @@ export class IncidentStatus extends Component {
     };
 
     render() {
-        console.log("Incident Status Page: ", this.props);
         const subProject =
             this.props.subProjects &&
             this.props.subProjects.filter(
@@ -2114,17 +2113,17 @@ IncidentStatus.displayName = 'IncidentStatus';
 
 const EditIncidentStatusForm = reduxForm({
     form: 'IncidentStatusForm',
-    destroyOnUnmount: true,
     enableReinitialize: true
 })(IncidentStatus)
+const selector = formValueSelector('IncidentStatusForm');
 const mapStateToProps = (state, ownProps) => {
-    console.log("My own Props: ",ownProps)
     const incident = ownProps.incident;
     const initialValues = {
         title: incident.title,
         description: incident.description,
         incidentPriority: incident.incidentPriority._id
     }
+    const {description, incidentPriority} = selector(state,'description','incidentPriority');
     return {
         currentProject: state.project.currentProject,
         closeincident: state.incident.closeincident,
@@ -2134,7 +2133,8 @@ const mapStateToProps = (state, ownProps) => {
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         initialValues,
-        form: state.form,        
+        description,       
+        incidentPriority,       
     };
 };
 
@@ -2176,7 +2176,6 @@ IncidentStatus.propTypes = {
     animateSidebar: PropTypes.func,
     escalations: PropTypes.array,
     editable: PropTypes.bool,
-    form: PropTypes.object,
     incidentPriorities: PropTypes.array.isRequired,
 };
 
