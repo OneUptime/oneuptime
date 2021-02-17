@@ -103,8 +103,8 @@ if [[ ! -d "${DATADIR}/config" ]]; then
 	EOF
 
   #enable log
-  cat <<-EOF >>${DATADIR}/config/log.ini
-	loglevel=${LOGLEVEL}
+  cat <<-EOF >${DATADIR}/config/log.ini
+	level=${LOGLEVEL}
 	timestamps=false
 	format=logfmt
 	EOF
