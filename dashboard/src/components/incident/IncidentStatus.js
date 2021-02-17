@@ -31,7 +31,7 @@ import { animateSidebar } from '../../actions/animateSidebar';
 import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
-//import RenderTextArea from '../basic/RenderTextArea';
+import { RenderSelect } from '../basic/RenderSelect';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 export class IncidentStatus extends Component {
@@ -82,20 +82,20 @@ export class IncidentStatus extends Component {
         }
     }
     secondFormSubmit = values => {
-        const incidentId = this.props.incident._id;
-        const projectId = this.props.incident.projectId;
-        const incidentType = this.props.incident.incidentType;
-        const title = this.props.incident.title;
-        const incidentPriority = this.props.incident.incidentPriority._id;
-        console.log("Clicked");
-        this.props.updateIncident(
-            projectId,
-            incidentId,
-            incidentType,
-            title,
-            values.description,
-            incidentPriority
-        )
+        // const incidentId = this.props.incident._id;
+        // const projectId = this.props.incident.projectId;
+        // const incidentType = this.props.incident.incidentType;
+        // const title = this.props.incident.title;
+        // const incidentPriority = this.props.incident.incidentPriority._id;
+        console.log(values);
+        // this.props.updateIncident(
+        //     projectId,
+        //     incidentId,
+        //     incidentType,
+        //     title,
+        //     values.description,
+        //     incidentPriority
+        // )
        // document.getElementById("title").setAttribute('disabled', true);
 
     }
@@ -1551,7 +1551,7 @@ export class IncidentStatus extends Component {
                                                                             height="125px"
                                                                             width="100%"
                                                                             placeholder="Please add a description"
-                                                                            onBlur={this.secondFormSubmit}
+                                                                            onBlur={()=> this.secondFormSubmit()}
                                                                             id="description"
                                                                         />
                                                                         <span>
@@ -1806,6 +1806,29 @@ export class IncidentStatus extends Component {
                                                                             }
                                                                         </span>
                                                                     </div>
+                                                                    <form onSubmit={this.props.handleSubmit(this.firstFormSubmit.bind(this))}>
+                                                                    <div className="bs-Fieldset-fields">
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={RenderSelect}
+                                                                            name="incidentPriority"
+                                                                            disabled={false}                                                                                                                                
+                                                                            id="incidentPriority"
+                                                                        />
+                                                                        <span>
+                                                                            <img
+                                                                                onClick={this.firstFormIconFunction}
+                                                                                style={{
+                                                                                    width: 20,
+                                                                                    height: 20,
+                                                                                    cursor: 'pointer'
+                                                                                }}
+                                                                                src={`${this.state.FormIcon}`}
+                                                                                alt="thirdFormIcon"
+                                                                            />
+                                                                        </span>
+                                                                    </div>
+                                                                </form>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -2040,7 +2063,8 @@ const mapStateToProps = (state, ownProps) => {
     const incident = ownProps.incident;
     const initialValues = {
         title: incident.title,
-        description: incident.description
+        description: incident.description,
+        incidentPriority: incident.incidentPriority.name
     }
     return {
         currentProject: state.project.currentProject,
@@ -2048,6 +2072,8 @@ const mapStateToProps = (state, ownProps) => {
         subProjects: state.subProject.subProjects.subProjects,
         incidentRequest: state.incident.incident,
         escalations: state.schedule.escalations,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         initialValues
     };
 };
