@@ -323,7 +323,10 @@ module.exports = {
                         //update customer Id
                         user = await _this.updateOneBy(
                             { _id: user._id },
-                            { stripeCustomerId: customerId }
+                            {
+                                stripeCustomerId: customerId,
+                                isVerified: customerId ? true : false,
+                            }
                         );
                         subscription = await PaymentService.subscribePlan(
                             stripePlanId,

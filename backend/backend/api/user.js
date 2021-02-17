@@ -194,8 +194,11 @@ router.post('/signup', async function(req, res) {
             }
             // Call the UserService.
             user = await UserService.signup(data);
-            // Call the MailService.
-            MailService.sendSignupMail(user.email, user.name);
+            if (!(user.stripeCustomerId && user.isVerified)) {
+                // Call the MailService.
+                MailService.sendSignupMail(user.email, user.name);
+            }
+
             // create access token and refresh token.
             const authUserObj = {
                 id: user._id,
