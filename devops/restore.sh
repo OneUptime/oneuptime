@@ -14,7 +14,7 @@ FYIPE_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
 FILE_NAME="fyipe-backup-1613551425"
-FILE_PATH="/mnt/c/Users/${CURRENT_USER}/Documents/backup"
+FILE_PATH="/Users/${CURRENT_USER}/Documents/backup"
 TODAY=`date +"%d%b%Y"`
 
 function HELP (){
