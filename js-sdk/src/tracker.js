@@ -139,7 +139,7 @@ class ErrorTracker {
     // set up error listener
     _setUpErrorListener() {
         const _this = this;
-        window.onerror = function(message, file, line, col, error) {
+        window.onerror = async function(message, file, line, col, error) {
             const errorEvent = { message, file, line, col, error };
 
             const string = errorEvent.message
@@ -150,7 +150,9 @@ class ErrorTracker {
                 return; // third party error
             } else {
                 // construct the error object
-                const errorObj = _this.#utilObj._getErrorStackTrace(errorEvent);
+                const errorObj = await _this.#utilObj._getErrorStackTrace(
+                    errorEvent
+                );
 
                 // log error event
                 const content = {
@@ -186,9 +188,9 @@ class ErrorTracker {
                 _this._manageErrorNode(err);
             });
     }
-    _manageErrorNode(error) {
+    async _manageErrorNode(error) {
         // construct the error object
-        const errorObj = this.#utilObj._getErrorStackTrace(error);
+        const errorObj = await this.#utilObj._getErrorStackTrace(error);
 
         // log error event
         const content = {
@@ -224,9 +226,9 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    captureException(error) {
+    async captureException(error) {
         // construct the error object
-        const errorObj = this.#utilObj._getErrorStackTrace(error);
+        const errorObj = await this.#utilObj._getErrorStackTrace(error);
 
         // set the a handled tag
         this.setTag('handled', 'true');
