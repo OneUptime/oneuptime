@@ -148,10 +148,10 @@ function RESTORE_FAIL_LOCAL (){
 
 echo "Copying backup from local to server. This will take some time...."
 echo ""
-if sudo kubectl cp "$FILE_PATH/$FILE_NAME" fyipe-766b74d759-ncbg7:/tmp/fyipedata.archive; then
+if sudo kubectl cp "$FILE_PATH/$FILE_NAME" fi-mongodb-primary-0:/tmp/fyipedata.archive; then
   echo "Restoring a backup on the server."
   echo ""
-  if kubectl exec fyipe-766b74d759-ncbg7  -- mongorestore --uri="mongodb://$FYIPE_DB_USERNAME:$FYIPE_DB_PASSWORD@localhost:27017/$FYIPE_DB_NAME" --archive="/tmp/fyipedata.archive"; then
+  if kubectl exec fi-mongodb-primary-0  -- mongorestore --uri="mongodb://$FYIPE_DB_USERNAME:$FYIPE_DB_PASSWORD@localhost:27017/$FYIPE_DB_NAME" --archive="/tmp/fyipedata.archive"; then
     echo "Restore success"
     RESTORE_SUCCESS
   else

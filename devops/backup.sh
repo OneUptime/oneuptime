@@ -136,10 +136,10 @@ function BACKUP_FAIL_LOCAL(){
 
 echo "Taking a backup on the server"
 echo ""
-if sudo kubectl exec fyipe-766b74d759-ncbg7 -- mongodump --uri="mongodb://$FYIPE_DB_USERNAME:$FYIPE_DB_PASSWORD@localhost:27017/$FYIPE_DB_NAME" --archive="/tmp/fyipedata.archive"; then
+if sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://$FYIPE_DB_USERNAME:$FYIPE_DB_PASSWORD@localhost:27017/$FYIPE_DB_NAME" --archive="/tmp/fyipedata.archive"; then
     echo "Copying backup from server to local computer. This will take some time...."
     echo ""
-    if sudo kubectl cp fyipe-766b74d759-ncbg7:tmp/fyipedata.archive "$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
+    if sudo kubectl cp fi-mongodb-primary-0:tmp/fyipedata.archive "$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
       echo "File Saved: $BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"
       echo ""
       BACKUP_SUCCESS
