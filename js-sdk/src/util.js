@@ -133,7 +133,7 @@ class Util {
         }
         frames.map(frame => {
             const lines = frame.sourceFile ? frame.sourceFile.split('\n') : [];
-            const localFrame = this._addContextToFrame(lines, frame);
+            const localFrame = this._addCodeSnippetToFrame(lines, frame);
             frame = localFrame;
             return frame;
         });
@@ -161,7 +161,7 @@ class Util {
         }
         return localFileName;
     }
-    _addContextToFrame(lines, frame, linesOfContext = 5) {
+    _addCodeSnippetToFrame(lines, frame, linesOfContext = 5) {
         if (lines.length < 1) return;
         const lineNumber = frame.lineNumber || 0;
         const maxLines = lines.length;
