@@ -91,7 +91,7 @@ export class ResponseParent extends Component {
                                               }}
                                           >
                                               <button
-                                                  className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
+                                                  className="bs-Button bs-DeprecatedButton Margin-top--8"
                                                   id="Add-Criteria-Button"
                                                   type="button"
                                                   onClick={e => {
@@ -105,12 +105,19 @@ export class ResponseParent extends Component {
                                                           field3: false,
                                                       });
                                                   }}
+                                                  style={{
+                                                      borderRadius: '50%',
+                                                      padding: '0px 6px',
+                                                  }}
                                               >
-                                                  <span className="bs-Button">
-                                                      <span>
-                                                          Add Sub-Criteria
-                                                      </span>
-                                                  </span>
+                                                  <img
+                                                      src="/dashboard/assets/img/more.svg"
+                                                      style={{
+                                                          height: '10px',
+                                                          width: '10px',
+                                                      }}
+                                                      alt=""
+                                                  />
                                               </button>
                                           </div>
                                       </li>
