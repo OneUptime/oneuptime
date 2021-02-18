@@ -96,6 +96,7 @@ const GitCredentialList = ({
         10
     );
     gitCredentials = data;
+    const numberOfPages = Math.ceil(parseInt(count) / 10);
 
     return (
         <div className="Box-root  Margin-bottom--12">
@@ -307,7 +308,13 @@ const GitCredentialList = ({
                         >
                             <div className="Box-root">
                                 <span className="Text-fontWeight--medium">
-                                    {count} Git Credential{count > 1 ? 's' : ''}
+                                    {numberOfPages > 0
+                                        ? `Page ${page} of ${numberOfPages} (${count} Git Credential${
+                                              count === 1 ? '' : 's'
+                                          })`
+                                        : `${count} Git Credential${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </div>
                         </div>

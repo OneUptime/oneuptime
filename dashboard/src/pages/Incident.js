@@ -493,6 +493,7 @@ class Incident extends React.Component {
                                     incident={this.props.incident}
                                     count={0}
                                     route={pathname}
+                                    editable={true}
                                 />
                                 <IncidentInternal
                                     incident={this.props.incident}

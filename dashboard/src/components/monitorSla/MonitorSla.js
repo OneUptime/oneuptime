@@ -10,6 +10,8 @@ import {
     fetchMonitorSlas,
     updateMonitorSla,
     setActiveMonitorSla,
+    paginateNext,
+    paginatePrev,
 } from '../../actions/monitorSla';
 import MonitorSlaModal from './MonitorSlaModal';
 import EditMonitorSlaModal from './EditMonitorSlaModal';
@@ -547,6 +549,9 @@ MonitorSla.propTypes = {
     setActiveMonitorSla: PropTypes.func,
     activeSla: PropTypes.string,
     monitors: PropTypes.array,
+    page: PropTypes.number,
+    paginatePrev: PropTypes.func,
+    paginateNext: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -556,6 +561,8 @@ const mapDispatchToProps = dispatch =>
             fetchMonitorSlas,
             updateMonitorSla,
             setActiveMonitorSla,
+            paginateNext,
+            paginatePrev,
         },
         dispatch
     );
@@ -575,6 +582,7 @@ const mapStateToProps = (state, ownProps) => {
         monitorSlas: state.monitorSla.monitorSlas.slas,
         activeSla: state.monitorSla.activeSla,
         monitors,
+        page: state.monitorSla.page,
     };
 };
 

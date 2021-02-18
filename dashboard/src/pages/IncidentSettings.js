@@ -26,6 +26,7 @@ import { fetchCustomFields } from '../actions/customField';
 class IncidentSettings extends React.Component {
     state = {
         tabIndex: 0,
+        page: 1,
     };
 
     componentDidMount() {
@@ -95,6 +96,7 @@ class IncidentSettings extends React.Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
+        this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     }
     nextClicked() {
         const { skip, limit } = this.props.incidentPrioritiesList;
@@ -103,6 +105,10 @@ class IncidentSettings extends React.Component {
             skip + limit,
             10
         );
+        const { count } = this.props.incidentPrioritiesList;
+        this.setState({
+            page: this.state.page < count ? this.state.page + 1 : count,
+        });
     }
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
@@ -127,7 +133,7 @@ class IncidentSettings extends React.Component {
             !this.props.incidentPrioritiesList.requesting && skip && skip > 0
                 ? true
                 : false;
-
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
             <Dashboard ready={() => this.ready()}>
                 <Fade>
@@ -265,20 +271,24 @@ class IncidentSettings extends React.Component {
                                                                         id="incidentPrioritiesCount"
                                                                         className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                                                     >
-                                                                        {
-                                                                            this
-                                                                                .props
-                                                                                .incidentPriorities
-                                                                                .length
-                                                                        }{' '}
-                                                                        Priorit
-                                                                        {this
-                                                                            .props
-                                                                            .incidentPriorities
-                                                                            .length ===
-                                                                        1
-                                                                            ? 'y'
-                                                                            : 'ies'}
+                                                                        {numberOfPages >
+                                                                        0
+                                                                            ? `Page ${
+                                                                                  this
+                                                                                      .state
+                                                                                      .page
+                                                                              } of ${numberOfPages} (${count} Priorit${
+                                                                                  count ===
+                                                                                  1
+                                                                                      ? 'y'
+                                                                                      : 'ies'
+                                                                              })`
+                                                                            : `${count} Priorit${
+                                                                                  count ===
+                                                                                  1
+                                                                                      ? 'y'
+                                                                                      : 'ies'
+                                                                              }`}
                                                                     </span>
                                                                 </span>
                                                             </span>

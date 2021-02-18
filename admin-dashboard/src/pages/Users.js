@@ -36,16 +36,18 @@ class Users extends Component {
         const { modalId } = this.props;
         const { addModalId } = this.state;
 
-        switch (event.key) {
-            case 'N':
-            case 'n':
-                if (modalId !== addModalId) {
-                    event.preventDefault();
-                    return this.handleClick();
-                }
-                return false;
-            default:
-                return false;
+        if (event.target.localName === 'body' && event.key) {
+            switch (event.key) {
+                case 'N':
+                case 'n':
+                    if (modalId !== addModalId) {
+                        event.preventDefault();
+                        return this.handleClick();
+                    }
+                    return false;
+                default:
+                    return false;
+            }
         }
     };
 
