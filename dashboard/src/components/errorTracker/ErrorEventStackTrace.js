@@ -31,7 +31,7 @@ class ErrorEventStackTrace extends Component {
         let codeSnippet = null;
         const { linesBeforeError, errorLine, linesAfterError } = frame;
         if (linesAfterError && linesBeforeError && errorLine) {
-            let codeContent = '';
+            let codeContent = '\n';
             linesBeforeError.map(line => {
                 codeContent += line + '\n';
                 return line;
@@ -48,12 +48,12 @@ class ErrorEventStackTrace extends Component {
                         name={`codeContent`}
                         readOnly={true}
                         mode="javascript"
-                        height={230}
+                        height={250}
                         markers={[
                             {
-                                startRow: 5,
+                                startRow: 6,
                                 startCol: 0,
-                                endRow: 5,
+                                endRow: 6,
                                 endCol: 150,
                                 className: 'error-marker',
                                 type: 'background',
