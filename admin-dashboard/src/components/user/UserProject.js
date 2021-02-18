@@ -6,15 +6,24 @@ import { connect } from 'react-redux';
 import { fetchUserProjects } from '../../actions/project';
 
 class UserProject extends React.Component {
+    constructor() {
+        super();
+        this.state = { page: 1 };
+    }
     prevClicked = (skip, limit) => {
+        const { userId } = this.props;
         this.props.fetchUserProjects(
+            userId,
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
+        this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip, limit) => {
-        this.props.fetchUserProjects(skip + limit, 10);
+        const { userId } = this.props;
+        this.props.fetchUserProjects(userId, skip + limit, 10);
+        this.setState({ page: this.state.page + 1 });
     };
     render() {
         return (
@@ -44,6 +53,7 @@ class UserProject extends React.Component {
                             prevClicked={this.prevClicked}
                             nextClicked={this.nextClicked}
                             userId={this.props.userId}
+                            page={this.state.page}
                         />
                     </div>
                 </div>

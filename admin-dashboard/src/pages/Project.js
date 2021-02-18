@@ -85,7 +85,7 @@ class Project extends Component {
                                                         this.props.projectUsers
                                                             .page
                                                     }
-                                                    membersPerPage={20}
+                                                    membersPerPage={10}
                                                     count={
                                                         this.props
                                                             .projectUsers &&
@@ -93,6 +93,12 @@ class Project extends Component {
                                                             .team &&
                                                         this.props.projectUsers
                                                             .team.count
+                                                    }
+                                                    page={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .page
                                                     }
                                                     canPaginateBackward={
                                                         this.props
@@ -112,7 +118,7 @@ class Project extends Component {
                                                             this.props
                                                                 .projectUsers
                                                                 .page *
-                                                                20
+                                                                10
                                                             ? true
                                                             : false
                                                     }
