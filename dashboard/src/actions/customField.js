@@ -155,3 +155,11 @@ export const deleteCustomField = (
         dispatch(deleteCustomFieldFailure(errorMsg));
     }
 };
+
+export const paginate = type => {
+    if (type === 'next') {
+        return { type: types.NEXT_PAGE };
+    } else if (type === 'prev') {
+        return { type: types.PREV_PAGE };
+    }
+};
