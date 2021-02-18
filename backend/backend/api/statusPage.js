@@ -83,6 +83,24 @@ router.put(
     }
 );
 
+router.put(
+    '/:projectId/theme', 
+    getUser, 
+    isAuthorized, 
+    async (req, res) => {
+        const { projectId } = req.params;
+        const { theme, statusPageId } = req.body;
+        try {
+            const statusPage  = await StatusPageService.updateOneBy(
+                { projectId, _id: statusPageId }, 
+                { theme }
+            )
+            return sendItemResponse(req, res, statusPage);
+        } catch (error) {
+            return sendErrorResponse(req, res, error)
+        }
+    });
+
 // Route Description: Creates a domain and domainVerificationToken
 // req.params -> {projectId, statusPageId}; req.body -> {domain}
 // Returns: response updated status page, error message
