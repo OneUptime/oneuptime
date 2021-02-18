@@ -22,6 +22,7 @@ class IncidentCommunicationSla extends Component {
         this.limit = 10;
         this.state = {
             flag: false,
+            page: 1,
         };
     }
 
@@ -41,6 +42,7 @@ class IncidentCommunicationSla extends Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             limit
         );
+        this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip, limit) => {
@@ -48,8 +50,13 @@ class IncidentCommunicationSla extends Component {
         this.setState({
             flag: false,
         });
-
-        fetchCommunicationSlas(projectId, skip + limit, limit);
+        fetchCommunicationSlas(projectId, skip + limit, 10);
+        this.setState({
+            page:
+                this.state.page < this.props.count
+                    ? this.state.page + 1
+                    : this.props.count,
+        });
     };
 
     setAsDefault = ({ projectId, incidentSlaId }) => {
@@ -302,7 +309,7 @@ class IncidentCommunicationSla extends Component {
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
         const projectName = currentProject ? currentProject.name : '';
-
+        const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
@@ -441,10 +448,21 @@ class IncidentCommunicationSla extends Component {
                                             id="slaCount"
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            {this.props.count +
-                                                (this.props.count > 1
-                                                    ? '  SLAs'
-                                                    : ' SLA')}
+                                            {numberOfPages > 0
+                                                ? `Page ${
+                                                      this.state.page
+                                                  } of ${numberOfPages} (${
+                                                      this.props.count
+                                                  } SLA${
+                                                      this.props.count === 1
+                                                          ? ''
+                                                          : 's'
+                                                  })`
+                                                : `${this.props.count} SLA${
+                                                      this.props.count === 1
+                                                          ? ''
+                                                          : 's'
+                                                  }`}
                                         </span>
                                     </span>
                                 </span>
@@ -455,10 +473,7 @@ class IncidentCommunicationSla extends Component {
                                         <button
                                             id="btnPrevIncidentSla"
                                             onClick={() =>
-                                                this.prevClicked(
-                                                    projectId,
-                                                    skip
-                                                )
+                                                this.prevClicked(skip, limit)
                                             }
                                             className={
                                                 'Button bs-ButtonLegacy' +
@@ -479,10 +494,7 @@ class IncidentCommunicationSla extends Component {
                                         <button
                                             id="btnNextIncidentSla"
                                             onClick={() =>
-                                                this.nextClicked(
-                                                    projectId,
-                                                    skip
-                                                )
+                                                this.nextClicked(skip, limit)
                                             }
                                             className={
                                                 'Button bs-ButtonLegacy' +

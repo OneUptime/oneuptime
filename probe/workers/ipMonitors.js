@@ -58,16 +58,15 @@ const pingfetch = async IPAddress => {
         res = new Date().getTime() - now;
 
         resp = {
-            status: isAlive ? 200 : 503,
+            status: isAlive ? 200 : 408,
             body: null,
         };
         rawResp = {
             body: null,
-            status: isAlive ? 200 : 503,
+            status: isAlive ? 200 : 408,
         };
     } catch (error) {
         res = new Date().getTime() - now;
-        console.log('error body', error);
         resp = { status: 408, body: error };
     }
 

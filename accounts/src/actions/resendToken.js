@@ -23,6 +23,14 @@ export function resendTokenSuccess(data) {
     };
 }
 
+export function resendTokenReset() {
+    return function(dispatch) {
+        dispatch({
+            type: types.RESENDTOKEN_RESET,
+        });
+    };
+}
+
 export function resendToken(values) {
     return function(dispatch) {
         const promise = postApi('user/resend', values);

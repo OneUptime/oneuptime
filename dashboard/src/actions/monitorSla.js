@@ -186,3 +186,13 @@ export const fetchDefaultMonitorSla = projectId => async dispatch => {
         dispatch(fetchDefaultMonitorSlaFailure(errorMsg));
     }
 };
+export const paginateNext = () => {
+    return {
+        type: types.NEXT_MONITOR_SLA_PAGE,
+    };
+};
+export const paginatePrev = () => {
+    return {
+        type: types.PREV_MONITOR_SLA_PAGE,
+    };
+};

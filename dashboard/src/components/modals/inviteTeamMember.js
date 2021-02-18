@@ -397,14 +397,12 @@ export class FormModal extends Component {
                                             </div>
                                             <ShouldRender
                                                 if={
-                                                    this.props.data
-                                                        .subProjectId ===
-                                                        this.props
-                                                            .currentProject
-                                                            ._id &&
                                                     !HasProjectOwner(
                                                         this.props
-                                                            .currentProject
+                                                            .currentProject,
+                                                        this.props.data
+                                                            .subProjectId,
+                                                        this.props.subProjects
                                                     )
                                                 }
                                             >
