@@ -8,8 +8,10 @@ const criterionEventSchema = {
     autoResolve: { type: Boolean, default: false },
     title: { type: String, default: '' },
     description: { type: String, default: '' },
-    and: [Object],
-    or: [Object],
+    // and: [Object],
+    // or: [Object],
+    and: Object,
+    or: Object,
     default: { type: Boolean, default: false },
     name: String,
 };
