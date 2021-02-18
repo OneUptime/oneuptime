@@ -13,9 +13,9 @@ html, body {
   margin: 0;
   padding: 0;
 }
-html {
+/* html {
   background: #eef2f6;
-}
+} */
 body {
   font-family: "Camphor W04", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -1266,6 +1266,220 @@ margin-left:10px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+}
+
+.logo_section {
+  width: 100%;
+  max-width: 850px;
+  margin: 30px auto 30px auto;
+}
+
+.new-theme {
+  background-color: white;
+  min-height: 100vh;
+  max-height: fit-content;
+}
+
+.banner-container {
+  width: 100%;
+  max-width: 850px;
+  height: 250px;
+  margin: auto;
+}
+
+.new-main-container {
+  width: 90%;
+  max-width: 850px;
+  margin: auto;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-size: 16px;
+  margin-bottom: 70px;
+}
+
+.sy-op {
+  background-color: #49c3b1;
+  font-weight: 500;
+  border: 1px solid rgba(0,0,0,0.1);
+  text-shadow: 0 1px 0 rgb(0 0 0 / 10%);
+  margin-bottom: 70px;
+  margin-top: 70px;
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 5px;
+  font-size: 18px;
+}
+
+.new-theme-incident {
+  margin-top: 70px;
+  width: 90%;
+  max-width: 850px;
+  margin: auto;
+  margin-bottom: 70px;
+}
+
+.font-largest {
+  font-weight: 500;
+  font-size: 1.75rem;
+  line-height: 2.3625rem;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.incident-object {
+  margin: 30px 0px;
+}
+
+.date-big {
+  font-weight: 500;
+  border-style: solid;
+  border-top-width: 0;
+  border-right-width: 0;
+  border-left-width: 0;
+  border-bottom-width: 1px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  padding-top: 8px;
+  border-color: #dfe1df;
+  font-weight: 500;
+  font-size: 18px;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.alerting-deplay {
+  color: #ff3d00;
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.new-mb-12 {
+  margin-bottom: 12px;
+}
+
+.incident-info {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.incident-brief {
+  color: #333333;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.incident-date {
+  margin-top: 4px;
+}
+
+.incident-date > span {
+  color: #AAAAAA;
+  font-size: 0.875rem;
+}
+
+.op-div {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom-width: 1px;
+  border-left-width: 1px !important;
+  border-right-width: 1px;
+  border-top-width: 0px;
+  padding: 1.1rem 1.25rem 1rem;
+  border-style: solid;
+  border-color: #dfe1df;
+}
+
+.another-div {
+  flex-direction: column;
+}
+
+.line-chart {
+  color: black !important;
+}
+
+.display-flex {
+  display: flex;
+  justify-content: space-between;
+}
+
+.border-top {
+  border-top-width: 1px;
+}
+
+.op-div div:nth-child(1) {
+  font-weight: 500;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.op-div div:nth-child(2) {
+  color: #49c3b1;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 2px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+}
+
+.tooltip .tooltiptext::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+.op-info {
+  display: flex;
+}
+
+.ques_mark {
+  border: 1px solid #dfe1df;
+  font-size: 12px;
+  color: #000;
+  padding: 1px 5px;
+  border-radius: 50%;
+  cursor: default;
+}
+
+.collecion_item {
+  margin-right: 15px;
+}
+
+.powered {
+  width: 90%;
+  max-width: 850px;
+  margin: auto;
+  display: flex;
+  justify-content: flex-end;
 }
 
 @media screen and (max-width: 650px) {
