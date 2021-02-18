@@ -249,9 +249,7 @@ export class SubProjects extends Component {
                                                   } of ${numbersOfPage} (${count} Sub Project${
                                                       count === 1 ? '' : 's'
                                                   })`
-                                                : `${
-                                                      this.state.page
-                                                  } of ${numbersOfPage} (${count} Sub Project${
+                                                : `${count} Sub Project${
                                                       count === 1 ? '' : 's'
                                                   }`}
                                         </span>
