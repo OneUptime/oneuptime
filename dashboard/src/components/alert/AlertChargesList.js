@@ -50,7 +50,6 @@ export class AlertChargesList extends Component {
             count,
             skip,
             limit,
-            projectId,
         } = this.props;
         const canNext = count > parseInt(skip) + parseInt(limit) ? true : false;
         const canPrev = parseInt(skip) <= 0 ? false : true;
@@ -157,7 +156,8 @@ export class AlertChargesList extends Component {
                                                         onClick={() => {
                                                             history.push(
                                                                 '/dashboard/project/' +
-                                                                    projectId +
+                                                                    this.props
+                                                                        .slug +
                                                                     '/' +
                                                                     alertCharge
                                                                         .monitorId
@@ -194,7 +194,8 @@ export class AlertChargesList extends Component {
                                                         onClick={() => {
                                                             history.push(
                                                                 '/dashboard/project/' +
-                                                                    projectId +
+                                                                    this.props
+                                                                        .slug +
                                                                     '/' +
                                                                     alertCharge
                                                                         .monitorId
@@ -430,6 +431,9 @@ const mapStateToProps = state => {
         projectId:
             state.project.currentProject !== null &&
             state.project.currentProject._id,
+        slug:
+            state.project.currentProject !== null &&
+            state.project.currentProject.slug,
         alertCharges:
             state.alert.alertCharges !== null && state.alert.alertCharges.data,
         isRequesting:
@@ -460,6 +464,7 @@ AlertChargesList.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     projectId: PropTypes.string,
+    slug: PropTypes.string,
     skip: PropTypes.number,
     limit: PropTypes.number,
     count: PropTypes.number,

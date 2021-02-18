@@ -99,7 +99,7 @@ class ApplicationLogDetail extends Component {
         const { currentProject, componentId, applicationLog } = this.props;
         history.push(
             '/dashboard/project/' +
-                currentProject._id +
+                currentProject.slug +
                 '/' +
                 componentId +
                 '/application-logs/' +

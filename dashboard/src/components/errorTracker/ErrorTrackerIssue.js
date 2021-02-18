@@ -19,10 +19,10 @@ function getComponentBadge(componentName) {
 }
 getComponentBadge.displayName = 'getComponentBadge';
 
-function viewMore(projectId, componentId, errorTrackerId, errorEventId) {
+function viewMore(slug, componentId, errorTrackerId, errorEventId) {
     return history.push(
         '/dashboard/project/' +
-            projectId +
+            slug +
             '/' +
             componentId +
             '/error-trackers/' +
@@ -35,7 +35,6 @@ function isSelected(selectedErrorEvents, id) {
     return selectedErrorEvents.indexOf(id) > -1 ? true : false;
 }
 function ErrorTrackerIssue({
-    projectId,
     componentId,
     errorTrackerIssue,
     errorTracker,
@@ -44,6 +43,7 @@ function ErrorTrackerIssue({
     openEventMemberModal,
     resolveSingleIssue,
     errorTrackerStatus,
+    slug,
 }) {
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
@@ -83,7 +83,7 @@ function ErrorTrackerIssue({
                 }}
                 onClick={() =>
                     viewMore(
-                        projectId,
+                        slug,
                         componentId,
                         errorTracker._id,
                         errorTrackerIssue.latestId
@@ -313,13 +313,13 @@ function ErrorTrackerIssue({
 ErrorTrackerIssue.propTypes = {
     errorTracker: PropTypes.object,
     errorTrackerIssue: PropTypes.object,
-    projectId: PropTypes.string,
     componentId: PropTypes.string,
     selectErrorEvent: PropTypes.func,
     selectedErrorEvents: PropTypes.array,
     openEventMemberModal: PropTypes.func,
     resolveSingleIssue: PropTypes.func,
     errorTrackerStatus: PropTypes.func,
+    slug: PropTypes.string,
 };
 ErrorTrackerIssue.displayName = 'ErrorTrackerIssue';
 export default ErrorTrackerIssue;

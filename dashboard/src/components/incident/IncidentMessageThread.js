@@ -33,6 +33,7 @@ export class IncidentMessageThread extends Component {
             page,
             numberOfPages,
             count,
+            slug,
         } = this.props;
         return (
             <div className="Box-root">
@@ -1040,11 +1041,7 @@ export class IncidentMessageThread extends Component {
                                                                                     className="bs-duty-span"
                                                                                     onClick={() => {
                                                                                         history.push(
-                                                                                            `/dashboard/project/${
-                                                                                                incidentMessage
-                                                                                                    .project
-                                                                                                    .slug
-                                                                                            }/sub-project/${incidentMessage.project &&
+                                                                                            `/dashboard/project/${slug}/sub-project/${incidentMessage.project &&
                                                                                                 incidentMessage.project}/schedule/${incidentMessage.schedule &&
                                                                                                 incidentMessage
                                                                                                     .schedule
@@ -1427,6 +1424,7 @@ IncidentMessageThread.displayName = 'IncidentMessageThread';
 IncidentMessageThread.propTypes = {
     title: PropTypes.string,
     description: PropTypes.string,
+    slug: PropTypes.string,
     incident: PropTypes.object.isRequired,
     incidentMessages: PropTypes.object,
     canPrev: PropTypes.bool,

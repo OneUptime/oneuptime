@@ -210,7 +210,7 @@ export class ComponentDetail extends Component {
                                     setTimeout(() => {
                                         history.push(
                                             '/dashboard/project/' +
-                                                currentProject._id +
+                                                currentProject.slug +
                                                 '/' +
                                                 component._id +
                                                 '/monitoring'

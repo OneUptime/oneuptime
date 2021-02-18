@@ -150,6 +150,7 @@ export class IncidentInvestigation extends Component {
                         deleteIncidentMessage={this.deleteInvestigationMessage}
                         numberOfPages={numberOfPages}
                         page={this.state.page}
+                        slug={this.props.currentProject.slug}
                     />
                 </div>
             </div>
