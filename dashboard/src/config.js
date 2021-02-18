@@ -4,6 +4,7 @@ import validUrl from 'valid-url';
 import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import moment from 'moment';
+import { isEmpty } from 'lodash';
 import { emaildomains } from './constants/emaildomains';
 // import booleanParser from './utils/booleanParser';
 const dJSON = require('dirty-json');
@@ -618,12 +619,28 @@ export function saveFile(content, filename) {
 }
 
 export function makeCriteria(val) {
-    const val2 = {};
-    const and = [];
-    const or = [];
+    const val2 = { and: [], or: [] };
+    const finalVal = { and: {}, or: {} };
 
+    const parentCondition = val[0] && val[0].match;
+    val = val.filter(v => !v.field3);
+
+    let nextStage;
     for (let i = 0; i < val.length; i++) {
         const val3 = {};
+        let initCriteria = false;
+        if (val[i].match && val[i].match === 'all') {
+            nextStage = 'all';
+            initCriteria = true;
+            val3.match = val[i].match;
+            val2.and.push([]);
+        } else if (val[i].match && val[i].match === 'any') {
+            nextStage = 'any';
+            initCriteria = true;
+            val3.match = val[i].match;
+            val2.or.push([]);
+        }
+
         if (val[i].responseType && val[i].responseType.length) {
             val3.responseType = val[i].responseType;
         }
@@ -646,84 +663,58 @@ export function makeCriteria(val) {
                     ? val[i].field2.replace(/;/g, '')
                     : val[i].field2;
         }
-        if (val[i].collection && val[i].collection.length) {
-            val3.collection = makeCriteria(val[i].collection);
+
+        if (
+            nextStage &&
+            nextStage === 'all' &&
+            (initCriteria || !val[i].match)
+        ) {
+            val2.and[val2.and.length - 1].push(val3);
         }
-        if (val[0].match && val[0].match.length && val[0].match === 'all') {
-            and.push(val3);
-        }
-        if (val[0].match && val[0].match.length && val[0].match === 'any') {
-            or.push(val3);
+
+        if (
+            nextStage &&
+            nextStage === 'any' &&
+            (initCriteria || !val[i].match)
+        ) {
+            val2.or[val2.or.length - 1].push(val3);
         }
     }
-    val2.and = and;
-    val2.or = or;
-    return val2;
+    if (parentCondition === 'all') {
+        finalVal.and = val2;
+    } else if (parentCondition === 'any') {
+        finalVal.or = val2;
+    }
+
+    return finalVal;
 }
 
 export function mapCriteria(val) {
     const val2 = [];
-    if (val && val.and && val.and.length) {
-        for (let i = 0; i < val.and.length; i++) {
-            const val3 = {};
-            if (val.and[i].responseType && val.and[i].responseType.length) {
-                val3.responseType = val.and[i].responseType;
+    if (val && !isEmpty(val.and)) {
+        val2.push({ match: 'all', field3: true });
+        if (val.and && val.and.and && val.and.and.length > 0) {
+            for (let i = 0; i < val.and.and.length; i++) {
+                val2.push(...val.and.and[i]);
             }
-            if (val.and[i].filter && val.and[i].filter.length) {
-                val3.filter = val.and[i].filter;
+        } else if (val.and && val.and.or && val.and.or.length > 0) {
+            for (let i = 0; i < val.and.or.length; i++) {
+                val2.push(...val.and.or[i]);
             }
-            if (val.and[i].field1 && val.and[i].field1.length) {
-                val3.field1 = val.and[i].field1;
-            }
-            if (val.and[i].field2 && val.and[i].field2.length) {
-                val3.field2 = val.and[i].field2;
-            }
-            if (
-                val.and[i].collection &&
-                (val.and[i].collection.and || val.and[i].collection.or)
-            ) {
-                val3.field3 = true;
-                val3.collection = mapCriteria(val.and[i].collection);
-            } else {
-                val3.field3 = false;
-            }
-            if (i === 0) {
-                val3.match = 'all';
-            }
-            val2.push(val3);
         }
-        return val2;
-    } else if (val && val.or && val.or.length) {
-        for (let i = 0; i < val.or.length; i++) {
-            const val3 = {};
-            if (val.or[i].responseType && val.or[i].responseType.length) {
-                val3.responseType = val.or[i].responseType;
+    } else if (val && !isEmpty(val.or)) {
+        val2.push({ match: 'any', field3: true });
+        if (val.or && val.or.and && val.or.and.length > 0) {
+            for (let i = 0; i < val.and.and.length; i++) {
+                val2.push(...val.or.and[i]);
             }
-            if (val.or[i].filter && val.or[i].filter.length) {
-                val3.filter = val.or[i].filter;
+        } else if (val.or && val.or.or && val.or.or.length > 0) {
+            for (let i = 0; i < val.and.or.length; i++) {
+                val2.push(...val.or.or[i]);
             }
-            if (val.or[i].field1 && val.or[i].field1.length) {
-                val3.field1 = val.or[i].field1;
-            }
-            if (val.or[i].field2 && val.or[i].field2.length) {
-                val3.field2 = val.or[i].field2;
-            }
-            if (
-                val.or[i].collection &&
-                (val.or[i].collection.and || val.or[i].collection.or)
-            ) {
-                val3.field3 = true;
-                val3.collection = mapCriteria(val.or[i].collection);
-            } else {
-                val3.field3 = false;
-            }
-            if (i === 0) {
-                val3.match = 'any';
-            }
-            val2.push(val3);
         }
-        return val2;
     }
+    return val2;
 }
 
 export function renderIfSubProjectAdmin(

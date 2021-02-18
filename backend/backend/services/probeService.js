@@ -697,7 +697,7 @@ module.exports = {
         if (con && con.length) {
             eventOccurred = await some(con, async condition => {
                 let stat = true;
-                if (condition && condition.and && condition.and.length) {
+                if (condition && condition.and && !isEmpty(condition.and)) {
                     stat = await checkAnd(
                         payload,
                         condition.and,
@@ -711,7 +711,11 @@ module.exports = {
                         queryParams,
                         headers
                     );
-                } else if (condition && condition.or && condition.or.length) {
+                } else if (
+                    condition &&
+                    condition.or &&
+                    !isEmpty(condition.or)
+                ) {
                     stat = await checkOr(
                         payload,
                         condition.or,
@@ -1699,1995 +1703,2187 @@ const checkAnd = async (
     headers
 ) => {
     let validity = true;
-    for (let i = 0; i < con.length; i++) {
-        let tempReason = `${payload} min`;
-        if (
-            con[i] &&
-            con[i].responseType &&
-            con[i].responseType === 'incomingTime'
-        ) {
-            let timeHours = 0;
-            let timeMinutes = payload;
-            if (timeMinutes > 60) {
-                timeHours = Math.floor(timeMinutes / 60);
-                timeMinutes = Math.floor(timeMinutes % 60);
-                tempReason = `${timeHours} hrs ${timeMinutes} min`;
-            }
-        }
-        if (
-            con[i] &&
-            con[i].responseType &&
-            con[i].responseType === 'responseTime'
-        ) {
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload > con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload < con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        con[i].field2 &&
-                        payload > con[i].field1 &&
-                        payload < con[i].field2
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload == con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload != con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload >= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload <= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            }
-        } else if (
-            con[i] &&
-            con[i].responseType &&
-            con[i].responseType === 'incomingTime'
-        ) {
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload > con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload < con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        con[i].field2 &&
-                        payload > con[i].field1 &&
-                        payload < con[i].field2
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload == con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload != con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload >= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload <= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'doesRespond') {
-            if (con[i] && con[i].filter && con[i].filter === 'isUp') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].filter &&
-                        !(
-                            (statusCode === 408 || statusCode === '408') &&
-                            body &&
-                            body.code &&
-                            body.code === 'ENOTFOUND'
-                        )
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings[type] || 'Monitor was'} Offline`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings[type] || 'Monitor was'} Online`
-                    );
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].filter &&
-                        (statusCode === 408 || statusCode === '408') &&
-                        body &&
-                        body.code &&
-                        body.code === 'ENOTFOUND'
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings[type] || 'Monitor was'} Online`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings[type] || 'Monitor was'} Offline`
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'ssl') {
-            const expiresIn = moment(
-                new Date(
-                    ssl && ssl.expires ? ssl.expires : Date.now()
-                ).getTime()
-            ).diff(Date.now(), 'days');
-            if (con[i] && con[i].filter && con[i].filter === 'isValid') {
-                if (!(ssl && !ssl.selfSigned)) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.sslCertificate} was not valid`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.sslCertificate} was valid`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notFound'
-            ) {
-                if (ssl) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.sslCertificate} was present`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.sslCertificate} was not present`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'selfSigned'
-            ) {
-                if (!(ssl && ssl.selfSigned)) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.sslCertificate} was not Self-Signed`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.sslCertificate} was Self-Signed`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'expiresIn30'
-            ) {
-                if (!(ssl && !ssl.selfSigned && expiresIn < 30)) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'expiresIn10'
-            ) {
-                if (!(ssl && !ssl.selfSigned && expiresIn < 10)) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'statusCode') {
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        statusCode &&
-                        statusCode > con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        statusCode &&
-                        statusCode < con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        statusCode &&
-                        con[i].field2 &&
-                        statusCode > con[i].field1 &&
-                        statusCode < con[i].field2
-                    )
-                ) {
-                    validity = false;
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        statusCode &&
-                        statusCode == con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        statusCode &&
-                        statusCode != con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        statusCode &&
-                        statusCode >= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        statusCode &&
-                        statusCode <= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'cpuLoad') {
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.cpuLoad &&
-                        payload.cpuLoad > con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.cpuLoad &&
-                        payload.cpuLoad < con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.cpuLoad &&
-                        con[i].field2 &&
-                        payload.cpuLoad > con[i].field1 &&
-                        payload.cpuLoad < con[i].field2
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.cpuLoad &&
-                        payload.cpuLoad == con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.cpuLoad &&
-                        payload.cpuLoad != con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.cpuLoad &&
-                        payload.cpuLoad >= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.cpuLoad &&
-                        payload.cpuLoad <= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'memoryUsage') {
-            const memoryUsedBytes = payload
-                ? parseInt(payload.memoryUsed || 0)
-                : 0;
-            const memoryUsed = memoryUsedBytes / Math.pow(1e3, 3);
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        memoryUsedBytes &&
-                        memoryUsed &&
-                        memoryUsed > con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        memoryUsedBytes &&
-                        memoryUsed &&
-                        memoryUsed < con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        memoryUsedBytes &&
-                        memoryUsed &&
-                        con[i].field2 &&
-                        memoryUsed > con[i].field1 &&
-                        memoryUsed < con[i].field2
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        memoryUsedBytes &&
-                        memoryUsed &&
-                        memoryUsed == con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        memoryUsedBytes &&
-                        memoryUsed &&
-                        memoryUsed != con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        memoryUsedBytes &&
-                        memoryUsed &&
-                        memoryUsed >= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        memoryUsedBytes &&
-                        memoryUsed &&
-                        memoryUsed <= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'storageUsage') {
-            const size = payload ? parseInt(payload.totalStorage || 0) : 0;
-            const used = payload ? parseInt(payload.storageUsed || 0) : 0;
-            const freeBytes = size - used;
-            const free = freeBytes / Math.pow(1e3, 3);
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        freeBytes &&
-                        free > con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        freeBytes &&
-                        free < con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        con[i].field2 &&
-                        freeBytes &&
-                        free > con[i].field1 &&
-                        free < con[i].field2
-                    )
-                ) {
-                    validity = false;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        freeBytes &&
-                        free === con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        freeBytes &&
-                        free !== con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        freeBytes &&
-                        free >= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        freeBytes &&
-                        free <= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'temperature') {
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.mainTemp &&
-                        payload.mainTemp > con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.mainTemp &&
-                        payload.mainTemp < con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.mainTemp &&
-                        con[i].field2 &&
-                        payload.mainTemp > con[i].field1 &&
-                        payload.mainTemp < con[i].field2
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.mainTemp &&
-                        payload.mainTemp == con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.mainTemp &&
-                        payload.mainTemp != con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.mainTemp &&
-                        payload.mainTemp >= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        payload &&
-                        payload.mainTemp &&
-                        payload.mainTemp <= con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'responseBody') {
-            if (con[i] && con[i].filter && con[i].filter === 'contains') {
-                if (body && typeof body === 'string') {
-                    if (
-                        !(
-                            con[i] &&
-                            con[i].field1 &&
-                            body &&
-                            body.includes([con[i].field1])
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                        );
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                        );
-                    }
-                } else {
-                    if (
-                        !(
-                            con[i] &&
-                            con[i].field1 &&
-                            body &&
-                            body[con[i].field1]
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                        );
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'doesNotContain'
-            ) {
-                if (body && typeof body === 'string') {
-                    if (
-                        !(
-                            con[i] &&
-                            con[i].field1 &&
-                            body &&
-                            !body.includes([con[i].field1])
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                        );
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                        );
-                    }
-                } else {
-                    if (
-                        !(
-                            con[i] &&
-                            con[i].field1 &&
-                            body &&
-                            !body[con[i].field1]
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                        );
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'jsExpression'
-            ) {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        body &&
-                        body[con[i].field1] === con[i].field1
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} did not have Javascript expression \`${con[i].field1}\``
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} did have Javascript expression \`${con[i].field1}\``
-                    );
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
-                if (!(con[i] && con[i].filter && body && _.isEmpty(body))) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} was not empty`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} was empty`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEmpty'
-            ) {
-                if (!(con[i] && con[i].filter && body && !_.isEmpty(body))) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} was empty`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} was not empty`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'evaluateResponse'
-            ) {
-                const responseDisplay = con[i].field1
-                    ? con[i].field1.includes('response.body') &&
-                      con[i].field1.includes('response.headers')
-                        ? { headers: response.headers, body: response.body }
-                        : con[i].field1.includes('response.headers')
-                        ? response.headers
-                        : con[i].field1.includes('response.body')
-                        ? response.body
-                        : response
-                    : response;
-                try {
-                    if (
-                        !(
-                            con[i] &&
-                            con[i].field1 &&
-                            response &&
-                            Function(
-                                '"use strict";const response = ' +
-                                    JSON.stringify(response) +
-                                    ';return (' +
-                                    con[i].field1 +
-                                    ');'
-                            )()
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${criteriaStrings.response} \`${JSON.stringify(
-                                responseDisplay
-                            )}\` did evaluate \`${con[i].field1}\``
-                        );
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.response} \`${JSON.stringify(
-                                responseDisplay
-                            )}\` did evaluate \`${con[i].field1}\``
-                        );
-                    }
-                } catch (e) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.response} \`${JSON.stringify(
-                            responseDisplay
-                        )}\` caused an error`
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'queryString') {
-            if (con[i] && con[i].filter && con[i].filter === 'contains') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        queryParams &&
-                        queryParams.includes(con[i].field1.toLowerCase())
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'headers') {
-            if (con[i] && con[i].filter && con[i].filter === 'contains') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        headers &&
-                        headers.includes(con[i].field1.toLowerCase())
-                    )
-                ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'podStatus') {
-            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                // eslint-disable-next-line no-loop-func
-                payload.podData.allPods.forEach(pod => {
-                    if (
-                        !(
-                            con[i] &&
-                            con[i].field1 &&
-                            pod.podStatus &&
-                            pod.podStatus.toLowerCase() ===
-                                con[i].field1.toLowerCase()
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${pod.podName} status is ${pod.podStatus}`
-                        );
-                    } else {
-                        successReasons.push(
-                            `${pod.podName} status is ${pod.podStatus}`
-                        );
-                    }
-                });
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                // eslint-disable-next-line no-loop-func
-                payload.podData.allPods.forEach(pod => {
-                    if (
-                        !(
-                            con[i] &&
-                            con[i].field1 &&
-                            pod.podStatus &&
-                            pod.podStatus.toLowerCase() !==
-                                con[i].field1.toLowerCase()
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${pod.podName} status is ${pod.podStatus}`
-                        );
-                    } else {
-                        successReasons.push(
-                            `${pod.podName} status is ${pod.podStatus}`
-                        );
-                    }
-                });
-            }
-        } else if (con[i] && con[i].responseType === 'jobStatus') {
-            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                // eslint-disable-next-line no-loop-func
-                payload.jobData.allJobs.forEach(job => {
-                    if (
-                        !(
-                            con[i] &&
-                            con[i].field1 &&
-                            job.jobStatus &&
-                            job.jobStatus.toLowerCase() ===
-                                con[i].field1.toLowerCase()
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
-                    } else {
-                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
-                    }
-                });
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                // eslint-disable-next-line no-loop-func
-                payload.jobData.allJobs.forEach(job => {
-                    if (
-                        !(
-                            con[i] &&
-                            con[i].field1 &&
-                            job.jobStatus &&
-                            job.jobStatus.toLowerCase() !==
-                                con[i].field1.toLowerCase()
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
-                    } else {
-                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
-                    }
-                });
-            }
-        } else if (con[i] && con[i].responseType === 'desiredDeployment') {
-            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                // eslint-disable-next-line no-loop-func
-                payload.deploymentData.allDeployments.forEach(deployment => {
-                    if (
-                        !(
-                            deployment.desiredDeployment ===
-                            deployment.readyDeployment
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                        );
-                    } else {
-                        successReasons.push(
-                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                        );
-                    }
-                });
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                // eslint-disable-next-line no-loop-func
-                payload.deploymentData.allDeployments.forEach(deployment => {
-                    if (
-                        !(
-                            deployment.desiredDeployment !==
-                            deployment.readyDeployment
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                        );
-                    } else {
-                        successReasons.push(
-                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                        );
-                    }
-                });
-            }
-        } else if (con[i] && con[i].responseType === 'desiredStatefulset') {
-            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                // eslint-disable-next-line no-loop-func
-                payload.statefulsetData.allStatefulset.forEach(statefulset => {
-                    if (
-                        !(
-                            statefulset.desiredStatefulsets ===
-                            statefulset.readyStatefulsets
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        );
-                    } else {
-                        successReasons.push(
-                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        );
-                    }
-                });
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                // eslint-disable-next-line no-loop-func
-                payload.statefulsetData.allStatefulset.forEach(statefulset => {
-                    if (
-                        !(
-                            statefulset.desiredStatefulsets !==
-                            statefulset.readyStatefulsets
-                        )
-                    ) {
-                        validity = false;
-                        failedReasons.push(
-                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        );
-                    } else {
-                        successReasons.push(
-                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        );
-                    }
-                });
-            }
-        }
+    if (con && con.and && con.and.length > 0) {
+        for (let i = 0; i < con.and.length; i++) {
+            if (Array.isArray(con.and[i])) {
+                // check and again
+                const temp = await checkAnd(
+                    payload,
+                    { and: con.and[i] },
+                    statusCode,
+                    body,
+                    ssl,
+                    response,
+                    successReasons,
+                    failedReasons,
+                    type,
+                    queryParams,
+                    headers
+                );
 
-        if (
-            con[i] &&
-            con[i].collection &&
-            con[i].collection.and &&
-            con[i].collection.and.length
-        ) {
-            const temp = await checkAnd(
-                payload,
-                con[i].collection.and,
-                statusCode,
-                body,
-                ssl,
-                response,
-                successReasons,
-                failedReasons
-            );
-            if (!temp) {
-                validity = temp;
-            }
-        } else if (
-            con[i] &&
-            con[i].collection &&
-            con[i].collection.or &&
-            con[i].collection.or.length
-        ) {
-            const temp1 = await checkOr(
-                payload,
-                con[i].collection.or,
-                statusCode,
-                body,
-                ssl,
-                response,
-                successReasons,
-                failedReasons
-            );
-            if (!temp1) {
-                validity = temp1;
+                if (!temp) {
+                    validity = temp;
+                }
+            } else {
+                let tempReason = `${payload} min`;
+                if (
+                    con.and[i] &&
+                    con.and[i].responseType &&
+                    con.and[i].responseType === 'incomingTime'
+                ) {
+                    let timeHours = 0;
+                    let timeMinutes = payload;
+                    if (timeMinutes > 60) {
+                        timeHours = Math.floor(timeMinutes / 60);
+                        timeMinutes = Math.floor(timeMinutes % 60);
+                        tempReason = `${timeHours} hrs ${timeMinutes} min`;
+                    }
+                }
+                if (
+                    con.and[i] &&
+                    con.and[i].responseType &&
+                    con.and[i].responseType === 'responseTime'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload > con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload < con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                con.and[i].field2 &&
+                                payload > con.and[i].field1 &&
+                                payload < con.and[i].field2
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload == con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload != con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload >= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload <= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType &&
+                    con.and[i].responseType === 'incomingTime'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload > con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload < con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                con.and[i].field2 &&
+                                payload > con.and[i].field1 &&
+                                payload < con.and[i].field2
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload == con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload != con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload >= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload <= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'doesRespond'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'isUp'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].filter &&
+                                !(
+                                    (statusCode === 408 ||
+                                        statusCode === '408') &&
+                                    body &&
+                                    body.code &&
+                                    body.code === 'ENOTFOUND'
+                                )
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Offline`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Online`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'isDown'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].filter &&
+                                (statusCode === 408 || statusCode === '408') &&
+                                body &&
+                                body.code &&
+                                body.code === 'ENOTFOUND'
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Online`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Offline`
+                            );
+                        }
+                    }
+                } else if (con.and[i] && con.and[i].responseType === 'ssl') {
+                    const expiresIn = moment(
+                        new Date(
+                            ssl && ssl.expires ? ssl.expires : Date.now()
+                        ).getTime()
+                    ).diff(Date.now(), 'days');
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'isValid'
+                    ) {
+                        if (!(ssl && !ssl.selfSigned)) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.sslCertificate} was not valid`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.sslCertificate} was valid`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notFound'
+                    ) {
+                        if (ssl) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.sslCertificate} was present`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.sslCertificate} was not present`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'selfSigned'
+                    ) {
+                        if (!(ssl && ssl.selfSigned)) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.sslCertificate} was not Self-Signed`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.sslCertificate} was Self-Signed`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'expiresIn30'
+                    ) {
+                        if (!(ssl && !ssl.selfSigned && expiresIn < 30)) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'expiresIn10'
+                    ) {
+                        if (!(ssl && !ssl.selfSigned && expiresIn < 10)) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                            );
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'statusCode'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                statusCode &&
+                                statusCode > con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                statusCode &&
+                                statusCode < con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                statusCode &&
+                                con.and[i].field2 &&
+                                statusCode > con.and[i].field1 &&
+                                statusCode < con.and[i].field2
+                            )
+                        ) {
+                            validity = false;
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                statusCode &&
+                                statusCode == con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                statusCode &&
+                                statusCode != con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                statusCode &&
+                                statusCode >= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                statusCode &&
+                                statusCode <= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'cpuLoad'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.cpuLoad &&
+                                payload.cpuLoad > con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.cpuLoad &&
+                                payload.cpuLoad < con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.cpuLoad &&
+                                con.and[i].field2 &&
+                                payload.cpuLoad > con.and[i].field1 &&
+                                payload.cpuLoad < con.and[i].field2
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.cpuLoad &&
+                                payload.cpuLoad == con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.cpuLoad &&
+                                payload.cpuLoad != con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.cpuLoad &&
+                                payload.cpuLoad >= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.cpuLoad &&
+                                payload.cpuLoad <= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'memoryUsage'
+                ) {
+                    const memoryUsedBytes = payload
+                        ? parseInt(payload.memoryUsed || 0)
+                        : 0;
+                    const memoryUsed = memoryUsedBytes / Math.pow(1e3, 3);
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                memoryUsedBytes &&
+                                memoryUsed &&
+                                memoryUsed > con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                memoryUsedBytes &&
+                                memoryUsed &&
+                                memoryUsed < con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                memoryUsedBytes &&
+                                memoryUsed &&
+                                con.and[i].field2 &&
+                                memoryUsed > con.and[i].field1 &&
+                                memoryUsed < con.and[i].field2
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                memoryUsedBytes &&
+                                memoryUsed &&
+                                memoryUsed == con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                memoryUsedBytes &&
+                                memoryUsed &&
+                                memoryUsed != con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                memoryUsedBytes &&
+                                memoryUsed &&
+                                memoryUsed >= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                memoryUsedBytes &&
+                                memoryUsed &&
+                                memoryUsed <= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'storageUsage'
+                ) {
+                    const size = payload
+                        ? parseInt(payload.totalStorage || 0)
+                        : 0;
+                    const used = payload
+                        ? parseInt(payload.storageUsed || 0)
+                        : 0;
+                    const freeBytes = size - used;
+                    const free = freeBytes / Math.pow(1e3, 3);
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                freeBytes &&
+                                free > con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                freeBytes &&
+                                free < con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                con.and[i].field2 &&
+                                freeBytes &&
+                                free > con.and[i].field1 &&
+                                free < con.and[i].field2
+                            )
+                        ) {
+                            validity = false;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                freeBytes &&
+                                free === con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                freeBytes &&
+                                free !== con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                freeBytes &&
+                                free >= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                freeBytes &&
+                                free <= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'temperature'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.mainTemp &&
+                                payload.mainTemp > con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.mainTemp &&
+                                payload.mainTemp < con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.mainTemp &&
+                                con.and[i].field2 &&
+                                payload.mainTemp > con.and[i].field1 &&
+                                payload.mainTemp < con.and[i].field2
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.mainTemp &&
+                                payload.mainTemp == con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.mainTemp &&
+                                payload.mainTemp != con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.mainTemp &&
+                                payload.mainTemp >= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                payload &&
+                                payload.mainTemp &&
+                                payload.mainTemp <= con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'responseBody'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'contains'
+                    ) {
+                        if (body && typeof body === 'string') {
+                            if (
+                                !(
+                                    con.and[i] &&
+                                    con.and[i].field1 &&
+                                    body &&
+                                    body.includes([con.and[i].field1])
+                                )
+                            ) {
+                                validity = false;
+                                failedReasons.push(
+                                    `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                                );
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                                );
+                            }
+                        } else {
+                            if (
+                                !(
+                                    con.and[i] &&
+                                    con.and[i].field1 &&
+                                    body &&
+                                    body[con.and[i].field1]
+                                )
+                            ) {
+                                validity = false;
+                                failedReasons.push(
+                                    `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                                );
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'doesNotContain'
+                    ) {
+                        if (body && typeof body === 'string') {
+                            if (
+                                !(
+                                    con.and[i] &&
+                                    con.and[i].field1 &&
+                                    body &&
+                                    !body.includes([con.and[i].field1])
+                                )
+                            ) {
+                                validity = false;
+                                failedReasons.push(
+                                    `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                                );
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                                );
+                            }
+                        } else {
+                            if (
+                                !(
+                                    con.and[i] &&
+                                    con.and[i].field1 &&
+                                    body &&
+                                    !body[con.and[i].field1]
+                                )
+                            ) {
+                                validity = false;
+                                failedReasons.push(
+                                    `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                                );
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'jsExpression'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                body &&
+                                body[con.and[i].field1] === con.and[i].field1
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} did not have Javascript expression \`${con.and[i].field1}\``
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} did have Javascript expression \`${con.and[i].field1}\``
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'empty'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].filter &&
+                                body &&
+                                _.isEmpty(body)
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} was not empty`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} was empty`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEmpty'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].filter &&
+                                body &&
+                                !_.isEmpty(body)
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} was empty`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} was not empty`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'evaluateResponse'
+                    ) {
+                        const responseDisplay = con.and[i].field1
+                            ? con.and[i].field1.includes('response.body') &&
+                              con.and[i].field1.includes('response.headers')
+                                ? {
+                                      headers: response.headers,
+                                      body: response.body,
+                                  }
+                                : con.and[i].field1.includes('response.headers')
+                                ? response.headers
+                                : con.and[i].field1.includes('response.body')
+                                ? response.body
+                                : response
+                            : response;
+                        try {
+                            if (
+                                !(
+                                    con.and[i] &&
+                                    con.and[i].field1 &&
+                                    response &&
+                                    Function(
+                                        '"use strict";const response = ' +
+                                            JSON.stringify(response) +
+                                            ';return (' +
+                                            con.and[i].field1 +
+                                            ');'
+                                    )()
+                                )
+                            ) {
+                                validity = false;
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.response
+                                    } \`${JSON.stringify(
+                                        responseDisplay
+                                    )}\` did evaluate \`${con.and[i].field1}\``
+                                );
+                            } else {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.response
+                                    } \`${JSON.stringify(
+                                        responseDisplay
+                                    )}\` did evaluate \`${con.and[i].field1}\``
+                                );
+                            }
+                        } catch (e) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.response} \`${JSON.stringify(
+                                    responseDisplay
+                                )}\` caused an error`
+                            );
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'queryString'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'contains'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                queryParams &&
+                                queryParams.includes(
+                                    con.and[i].field1.toLowerCase()
+                                )
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                            );
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'headers'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'contains'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].field1 &&
+                                headers &&
+                                headers.includes(
+                                    con.and[i].field1.toLowerCase()
+                                )
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                            );
+                        }
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'podStatus'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        // eslint-disable-next-line no-loop-func
+                        payload.podData.allPods.forEach(pod => {
+                            if (
+                                !(
+                                    con.and[i] &&
+                                    con.and[i].field1 &&
+                                    pod.podStatus &&
+                                    pod.podStatus.toLowerCase() ===
+                                        con.and[i].field1.toLowerCase()
+                                )
+                            ) {
+                                validity = false;
+                                failedReasons.push(
+                                    `${pod.podName} status is ${pod.podStatus}`
+                                );
+                            } else {
+                                successReasons.push(
+                                    `${pod.podName} status is ${pod.podStatus}`
+                                );
+                            }
+                        });
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        // eslint-disable-next-line no-loop-func
+                        payload.podData.allPods.forEach(pod => {
+                            if (
+                                !(
+                                    con.and[i] &&
+                                    con.and[i].field1 &&
+                                    pod.podStatus &&
+                                    pod.podStatus.toLowerCase() !==
+                                        con.and[i].field1.toLowerCase()
+                                )
+                            ) {
+                                validity = false;
+                                failedReasons.push(
+                                    `${pod.podName} status is ${pod.podStatus}`
+                                );
+                            } else {
+                                successReasons.push(
+                                    `${pod.podName} status is ${pod.podStatus}`
+                                );
+                            }
+                        });
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'jobStatus'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        // eslint-disable-next-line no-loop-func
+                        payload.jobData.allJobs.forEach(job => {
+                            if (
+                                !(
+                                    con.and[i] &&
+                                    con.and[i].field1 &&
+                                    job.jobStatus &&
+                                    job.jobStatus.toLowerCase() ===
+                                        con.and[i].field1.toLowerCase()
+                                )
+                            ) {
+                                validity = false;
+                                failedReasons.push(
+                                    `${job.jobName} ${job.jobStatus}`
+                                );
+                            } else {
+                                successReasons.push(
+                                    `${job.jobName} ${job.jobStatus}`
+                                );
+                            }
+                        });
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        // eslint-disable-next-line no-loop-func
+                        payload.jobData.allJobs.forEach(job => {
+                            if (
+                                !(
+                                    con.and[i] &&
+                                    con.and[i].field1 &&
+                                    job.jobStatus &&
+                                    job.jobStatus.toLowerCase() !==
+                                        con.and[i].field1.toLowerCase()
+                                )
+                            ) {
+                                validity = false;
+                                failedReasons.push(
+                                    `${job.jobName} ${job.jobStatus}`
+                                );
+                            } else {
+                                successReasons.push(
+                                    `${job.jobName} ${job.jobStatus}`
+                                );
+                            }
+                        });
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'desiredDeployment'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        payload.deploymentData.allDeployments.forEach(
+                            // eslint-disable-next-line no-loop-func
+                            deployment => {
+                                if (
+                                    !(
+                                        deployment.desiredDeployment ===
+                                        deployment.readyDeployment
+                                    )
+                                ) {
+                                    validity = false;
+                                    failedReasons.push(
+                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                    );
+                                } else {
+                                    successReasons.push(
+                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                    );
+                                }
+                            }
+                        );
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        payload.deploymentData.allDeployments.forEach(
+                            // eslint-disable-next-line no-loop-func
+                            deployment => {
+                                if (
+                                    !(
+                                        deployment.desiredDeployment !==
+                                        deployment.readyDeployment
+                                    )
+                                ) {
+                                    validity = false;
+                                    failedReasons.push(
+                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                    );
+                                } else {
+                                    successReasons.push(
+                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                    );
+                                }
+                            }
+                        );
+                    }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'desiredStatefulset'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'equalTo'
+                    ) {
+                        payload.statefulsetData.allStatefulset.forEach(
+                            // eslint-disable-next-line no-loop-func
+                            statefulset => {
+                                if (
+                                    !(
+                                        statefulset.desiredStatefulsets ===
+                                        statefulset.readyStatefulsets
+                                    )
+                                ) {
+                                    validity = false;
+                                    failedReasons.push(
+                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                    );
+                                } else {
+                                    successReasons.push(
+                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                    );
+                                }
+                            }
+                        );
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'notEqualTo'
+                    ) {
+                        payload.statefulsetData.allStatefulset.forEach(
+                            // eslint-disable-next-line no-loop-func
+                            statefulset => {
+                                if (
+                                    !(
+                                        statefulset.desiredStatefulsets !==
+                                        statefulset.readyStatefulsets
+                                    )
+                                ) {
+                                    validity = false;
+                                    failedReasons.push(
+                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                    );
+                                } else {
+                                    successReasons.push(
+                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                    );
+                                }
+                            }
+                        );
+                    }
+                }
             }
         }
     }
+
+    if (con && con.or && con.or.length > 0) {
+        const temp1 = await checkOr(
+            payload,
+            { or: con.or },
+            statusCode,
+            body,
+            ssl,
+            response,
+            successReasons,
+            failedReasons,
+            type,
+            queryParams,
+            headers
+        );
+        if (!temp1) {
+            validity = temp1;
+        }
+    }
+
     return validity;
 };
 
@@ -3705,1850 +3901,2097 @@ const checkOr = async (
     headers
 ) => {
     let validity = false;
-    for (let i = 0; i < con.length; i++) {
-        let tempReason = `${payload} min`;
-        if (
-            con[i] &&
-            con[i].responseType &&
-            con[i].responseType === 'incomingTime'
-        ) {
-            let timeHours = 0;
-            let timeMinutes = payload;
-            if (timeMinutes > 60) {
-                timeHours = Math.floor(timeMinutes / 60);
-                timeMinutes = Math.floor(timeMinutes % 60);
-                tempReason = `${timeHours} hrs ${timeMinutes} min`;
-            }
-        }
-        if (con[i] && con[i].responseType === 'responseTime') {
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
+    if (con && con.or && con.or.length > 0) {
+        for (let i = 0; i < con.or.length; i++) {
+            if (Array.isArray(con.or[i])) {
+                // check or again
+                const temp1 = await checkOr(
+                    payload,
+                    { or: con.or[i] },
+                    statusCode,
+                    body,
+                    ssl,
+                    response,
+                    successReasons,
+                    failedReasons,
+                    type,
+                    queryParams,
+                    headers
+                );
+                if (temp1) {
+                    validity = temp1;
+                }
+            } else {
+                let tempReason = `${payload} min`;
                 if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload > con[i].field1
+                    con.or[i] &&
+                    con.or[i].responseType &&
+                    con.or[i].responseType === 'incomingTime'
                 ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload < con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    con[i].field2 &&
-                    payload > con[i].field1 &&
-                    payload < con[i].field2
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload == con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload != con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload >= con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload <= con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.responseTime} ${payload} ms`
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'incomingTime') {
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload > con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload < con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    con[i].field2 &&
-                    payload > con[i].field1 &&
-                    payload < con[i].field2
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload == con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload != con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload >= con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload <= con[i].field1
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.incomingTime} ${tempReason}`
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'doesRespond') {
-            if (con[i] && con[i].filter && con[i].filter === 'isUp') {
-                if (
-                    con[i] &&
-                    con[i].filter &&
-                    !(
-                        (statusCode === 408 || statusCode === '408') &&
-                        body &&
-                        body.code &&
-                        body.code === 'ENOTFOUND'
-                    )
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings[type] || 'Monitor was'} Online`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings[type] || 'Monitor was'} Offline`
-                    );
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
-                if (
-                    con[i] &&
-                    con[i].filter &&
-                    (statusCode === 408 || statusCode === '408') &&
-                    body &&
-                    body.code &&
-                    body.code === 'ENOTFOUND'
-                ) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings[type] || 'Monitor was'} Offline`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings[type] || 'Monitor was'} Online`
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'ssl') {
-            const expiresIn = moment(
-                new Date(
-                    ssl && ssl.expires ? ssl.expires : Date.now()
-                ).getTime()
-            ).diff(Date.now(), 'days');
-            if (con[i] && con[i].filter && con[i].filter === 'isValid') {
-                if (ssl && !ssl.selfSigned) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.sslCertificate} was valid`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.sslCertificate} was not valid`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notFound'
-            ) {
-                if (!ssl) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.sslCertificate} was not present`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.sslCertificate} was present`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'selfSigned'
-            ) {
-                if (ssl && ssl.selfSigned) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.sslCertificate} was Self-Signed`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.sslCertificate} was not Self-Signed`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'expiresIn30'
-            ) {
-                if (ssl && !ssl.selfSigned && expiresIn < 30) {
-                    validity = true;
-                    if (expiresIn) {
-                        successReasons.push(
-                            `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
-                        );
-                    }
-                } else {
-                    if (expiresIn) {
-                        failedReasons.push(
-                            `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
-                        );
+                    let timeHours = 0;
+                    let timeMinutes = payload;
+                    if (timeMinutes > 60) {
+                        timeHours = Math.floor(timeMinutes / 60);
+                        timeMinutes = Math.floor(timeMinutes % 60);
+                        tempReason = `${timeHours} hrs ${timeMinutes} min`;
                     }
                 }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'expiresIn10'
-            ) {
-                if (ssl && !ssl.selfSigned && expiresIn < 10) {
-                    validity = true;
-                    if (expiresIn) {
-                        successReasons.push(
-                            `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
-                        );
-                    }
-                } else {
-                    if (expiresIn) {
-                        failedReasons.push(
-                            `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'statusCode') {
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    statusCode &&
-                    statusCode > con[i].field1
-                ) {
-                    validity = true;
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    statusCode &&
-                    statusCode < con[i].field1
-                ) {
-                    validity = true;
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    statusCode &&
-                    con[i].field2 &&
-                    statusCode > con[i].field1 &&
-                    statusCode < con[i].field2
-                ) {
-                    validity = true;
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    statusCode &&
-                    statusCode == con[i].field1
-                ) {
-                    validity = true;
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    statusCode &&
-                    statusCode != con[i].field1
-                ) {
-                    validity = true;
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    statusCode &&
-                    statusCode >= con[i].field1
-                ) {
-                    validity = true;
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    statusCode &&
-                    statusCode <= con[i].field1
-                ) {
-                    validity = true;
-                    if (statusCode === 408 || statusCode === '408') {
-                        successReasons.push('Request Timed out');
-                    } else {
-                        successReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                } else {
-                    if (statusCode === 408 || statusCode === '408') {
-                        failedReasons.push('Request Timed out');
-                    } else {
-                        failedReasons.push(
-                            `${criteriaStrings.statusCode} ${statusCode}`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'cpuLoad') {
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.cpuLoad &&
-                    payload.cpuLoad > con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.cpuLoad &&
-                    payload.cpuLoad < con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.cpuLoad &&
-                    con[i].field2 &&
-                    payload.cpuLoad > con[i].field1 &&
-                    payload.cpuLoad < con[i].field2
-                ) {
-                    validity = true;
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.cpuLoad &&
-                    payload.cpuLoad == con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.cpuLoad &&
-                    payload.cpuLoad != con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.cpuLoad &&
-                    payload.cpuLoad >= con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.cpuLoad &&
-                    payload.cpuLoad <= con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.cpuLoad !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                } else {
-                    if (payload && payload.cpuLoad !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'memoryUsage') {
-            const memoryUsedBytes = payload
-                ? parseInt(payload.memoryUsed || 0)
-                : 0;
-            const memoryUsed = memoryUsedBytes / Math.pow(1e3, 3);
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    memoryUsed &&
-                    memoryUsed > con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    memoryUsed &&
-                    memoryUsed < con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    memoryUsed &&
-                    con[i].field2 &&
-                    memoryUsed > con[i].field1 &&
-                    memoryUsed < con[i].field2
-                ) {
-                    validity = true;
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    memoryUsed &&
-                    memoryUsed == con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    memoryUsed &&
-                    memoryUsed != con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    memoryUsed &&
-                    memoryUsed >= con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    memoryUsed &&
-                    memoryUsed <= con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.memoryUsed !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (payload && payload.memoryUsed !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'storageUsage') {
-            const size = payload ? parseInt(payload.totalStorage || 0) : 0;
-            const used = payload ? parseInt(payload.storageUsed || 0) : 0;
-            const freeBytes = size - used;
-            const free = freeBytes / Math.pow(1e3, 3);
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (con[i] && con[i].field1 && free > con[i].field1) {
-                    validity = true;
+                if (con.or[i] && con.or[i].responseType === 'responseTime') {
                     if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'greaterThan'
                     ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (con[i] && con[i].field1 && free < con[i].field1) {
-                    validity = true;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    con[i].field2 &&
-                    free > con[i].field1 &&
-                    free < con[i].field2
-                ) {
-                    validity = true;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (con[i] && con[i].field1 && free === con[i].field1) {
-                    validity = true;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (con[i] && con[i].field1 && free !== con[i].field1) {
-                    validity = true;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (con[i] && con[i].field1 && free >= con[i].field1) {
-                    validity = true;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (con[i] && con[i].field1 && free <= con[i].field1) {
-                    validity = true;
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        successReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                } else {
-                    if (
-                        payload &&
-                        payload.totalStorage !== null &&
-                        payload.storageUsed !== null
-                    ) {
-                        failedReasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'temperature') {
-            if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.mainTemp &&
-                    payload.mainTemp > con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'lessThan'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.mainTemp &&
-                    payload.mainTemp < con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'inBetween'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.mainTemp &&
-                    con[i].field2 &&
-                    payload.mainTemp > con[i].field1 &&
-                    payload.mainTemp < con[i].field2
-                ) {
-                    validity = true;
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.mainTemp &&
-                    payload.mainTemp == con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.mainTemp &&
-                    payload.mainTemp != con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.mainTemp &&
-                    payload.mainTemp >= con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    payload &&
-                    payload.mainTemp &&
-                    payload.mainTemp <= con[i].field1
-                ) {
-                    validity = true;
-                    if (payload && payload.mainTemp !== null) {
-                        successReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                } else {
-                    if (payload && payload.mainTemp !== null) {
-                        failedReasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'responseBody') {
-            if (con[i] && con[i].filter && con[i].filter === 'contains') {
-                if (body && typeof body === 'string') {
-                    if (
-                        con[i] &&
-                        con[i].field1 &&
-                        body &&
-                        body.includes([con[i].field1])
-                    ) {
-                        validity = true;
-                        if (con[i].field1) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload > con.or[i].field1
+                        ) {
+                            validity = true;
                             successReasons.push(
-                                `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                                `${criteriaStrings.responseTime} ${payload} ms`
                             );
-                        }
-                    } else {
-                        if (con[i].field1) {
+                        } else {
                             failedReasons.push(
-                                `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                                `${criteriaStrings.responseTime} ${payload} ms`
                             );
                         }
-                    }
-                } else {
-                    if (
-                        con[i] &&
-                        con[i].field1 &&
-                        body &&
-                        body[con[i].field1]
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'lessThan'
                     ) {
-                        validity = true;
-                        if (con[i].field1) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload < con.or[i].field1
+                        ) {
+                            validity = true;
                             successReasons.push(
-                                `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                                `${criteriaStrings.responseTime} ${payload} ms`
                             );
-                        }
-                    } else {
-                        if (con[i].field1) {
+                        } else {
                             failedReasons.push(
-                                `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                                `${criteriaStrings.responseTime} ${payload} ms`
                             );
                         }
-                    }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'doesNotContain'
-            ) {
-                if (body && typeof body === 'string') {
-                    if (
-                        con[i] &&
-                        con[i].field1 &&
-                        body &&
-                        !body.includes([con[i].field1])
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'inBetween'
                     ) {
-                        validity = true;
-                        if (con[i].field1) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            con.or[i].field2 &&
+                            payload > con.or[i].field1 &&
+                            payload < con.or[i].field2
+                        ) {
+                            validity = true;
                             successReasons.push(
-                                `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                                `${criteriaStrings.responseTime} ${payload} ms`
                             );
-                        }
-                    } else {
-                        if (con[i].field1) {
+                        } else {
                             failedReasons.push(
-                                `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                                `${criteriaStrings.responseTime} ${payload} ms`
                             );
                         }
-                    }
-                } else {
-                    if (
-                        con[i] &&
-                        con[i].field1 &&
-                        body &&
-                        !body[con[i].field1]
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
                     ) {
-                        validity = true;
-                        if (con[i].field1) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload == con.or[i].field1
+                        ) {
+                            validity = true;
                             successReasons.push(
-                                `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
                             );
                         }
-                    } else {
-                        if (con[i].field1) {
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload != con.or[i].field1
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
                             failedReasons.push(
-                                `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload >= con.or[i].field1
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload <= con.or[i].field1
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.responseTime} ${payload} ms`
                             );
                         }
                     }
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'jsExpression'
-            ) {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    body &&
-                    body[con[i].field1] === con[i].field1
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'incomingTime'
                 ) {
-                    validity = true;
-                    if (con[i].field1) {
-                        successReasons.push(
-                            `${criteriaStrings.responseBody} contains Javascript expression ${con[i].field1}`
-                        );
-                    }
-                } else {
-                    if (con[i].field1) {
-                        failedReasons.push(
-                            `${criteriaStrings.responseBody} does not contain Javascript expression ${con[i].field1}`
-                        );
-                    }
-                }
-            } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
-                if (con[i] && con[i].filter && body && _.isEmpty(body)) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} was empty`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} was not empty`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEmpty'
-            ) {
-                if (con[i] && con[i].filter && body && !_.isEmpty(body)) {
-                    validity = true;
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} was not empty`
-                    );
-                } else {
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} was empty`
-                    );
-                }
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'evaluateResponse'
-            ) {
-                const responseDisplay = con[i].field1
-                    ? con[i].field1.includes('response.body') &&
-                      con[i].field1.includes('response.headers')
-                        ? { headers: response.headers, body: response.body }
-                        : con[i].field1.includes('response.headers')
-                        ? response.headers
-                        : con[i].field1.includes('response.body')
-                        ? response.body
-                        : response
-                    : response;
-                try {
                     if (
-                        con[i] &&
-                        con[i].field1 &&
-                        response &&
-                        Function(
-                            '"use strict";const response = ' +
-                                JSON.stringify(response) +
-                                ';return (' +
-                                con[i].field1 +
-                                ');'
-                        )()
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'greaterThan'
                     ) {
-                        validity = true;
-                        if (con[i].field1) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload > con.or[i].field1
+                        ) {
+                            validity = true;
                             successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload < con.or[i].field1
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            con.or[i].field2 &&
+                            payload > con.or[i].field1 &&
+                            payload < con.or[i].field2
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload == con.or[i].field1
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload != con.or[i].field1
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload >= con.or[i].field1
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload <= con.or[i].field1
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.incomingTime} ${tempReason}`
+                            );
+                        }
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'doesRespond'
+                ) {
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'isUp'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].filter &&
+                            !(
+                                (statusCode === 408 || statusCode === '408') &&
+                                body &&
+                                body.code &&
+                                body.code === 'ENOTFOUND'
+                            )
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Online`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Offline`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'isDown'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].filter &&
+                            (statusCode === 408 || statusCode === '408') &&
+                            body &&
+                            body.code &&
+                            body.code === 'ENOTFOUND'
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Offline`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Online`
+                            );
+                        }
+                    }
+                } else if (con.or[i] && con.or[i].responseType === 'ssl') {
+                    const expiresIn = moment(
+                        new Date(
+                            ssl && ssl.expires ? ssl.expires : Date.now()
+                        ).getTime()
+                    ).diff(Date.now(), 'days');
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'isValid'
+                    ) {
+                        if (ssl && !ssl.selfSigned) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.sslCertificate} was valid`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.sslCertificate} was not valid`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notFound'
+                    ) {
+                        if (!ssl) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.sslCertificate} was not present`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.sslCertificate} was present`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'selfSigned'
+                    ) {
+                        if (ssl && ssl.selfSigned) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.sslCertificate} was Self-Signed`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.sslCertificate} was not Self-Signed`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'expiresIn30'
+                    ) {
+                        if (ssl && !ssl.selfSigned && expiresIn < 30) {
+                            validity = true;
+                            if (expiresIn) {
+                                successReasons.push(
+                                    `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                                );
+                            }
+                        } else {
+                            if (expiresIn) {
+                                failedReasons.push(
+                                    `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'expiresIn10'
+                    ) {
+                        if (ssl && !ssl.selfSigned && expiresIn < 10) {
+                            validity = true;
+                            if (expiresIn) {
+                                successReasons.push(
+                                    `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                                );
+                            }
+                        } else {
+                            if (expiresIn) {
+                                failedReasons.push(
+                                    `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                                );
+                            }
+                        }
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'statusCode'
+                ) {
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            statusCode &&
+                            statusCode > con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            statusCode &&
+                            statusCode < con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            statusCode &&
+                            con.or[i].field2 &&
+                            statusCode > con.or[i].field1 &&
+                            statusCode < con.or[i].field2
+                        ) {
+                            validity = true;
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            statusCode &&
+                            statusCode == con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            statusCode &&
+                            statusCode != con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            statusCode &&
+                            statusCode >= con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            statusCode &&
+                            statusCode <= con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (statusCode === 408 || statusCode === '408') {
+                                successReasons.push('Request Timed out');
+                            } else {
+                                successReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        } else {
+                            if (statusCode === 408 || statusCode === '408') {
+                                failedReasons.push('Request Timed out');
+                            } else {
+                                failedReasons.push(
+                                    `${criteriaStrings.statusCode} ${statusCode}`
+                                );
+                            }
+                        }
+                    }
+                } else if (con.or[i] && con.or[i].responseType === 'cpuLoad') {
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.cpuLoad &&
+                            payload.cpuLoad > con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.cpuLoad &&
+                            payload.cpuLoad < con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.cpuLoad &&
+                            con.or[i].field2 &&
+                            payload.cpuLoad > con.or[i].field1 &&
+                            payload.cpuLoad < con.or[i].field2
+                        ) {
+                            validity = true;
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.cpuLoad &&
+                            payload.cpuLoad == con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.cpuLoad &&
+                            payload.cpuLoad != con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.cpuLoad &&
+                            payload.cpuLoad >= con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.cpuLoad &&
+                            payload.cpuLoad <= con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.cpuLoad !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.cpuLoad !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                        payload.cpuLoad,
+                                        2
+                                    )} %`
+                                );
+                            }
+                        }
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'memoryUsage'
+                ) {
+                    const memoryUsedBytes = payload
+                        ? parseInt(payload.memoryUsed || 0)
+                        : 0;
+                    const memoryUsed = memoryUsedBytes / Math.pow(1e3, 3);
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            memoryUsed &&
+                            memoryUsed > con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            memoryUsed &&
+                            memoryUsed < con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            memoryUsed &&
+                            con.or[i].field2 &&
+                            memoryUsed > con.or[i].field1 &&
+                            memoryUsed < con.or[i].field2
+                        ) {
+                            validity = true;
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            memoryUsed &&
+                            memoryUsed == con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            memoryUsed &&
+                            memoryUsed != con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            memoryUsed &&
+                            memoryUsed >= con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            memoryUsed &&
+                            memoryUsed <= con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.memoryUsed !== null) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.memoryUsed !== null) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.memoryUsed
+                                    } ${formatBytes(memoryUsedBytes)}`
+                                );
+                            }
+                        }
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'storageUsage'
+                ) {
+                    const size = payload
+                        ? parseInt(payload.totalStorage || 0)
+                        : 0;
+                    const used = payload
+                        ? parseInt(payload.storageUsed || 0)
+                        : 0;
+                    const freeBytes = size - used;
+                    const free = freeBytes / Math.pow(1e3, 3);
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            free > con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            free < con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            con.or[i].field2 &&
+                            free > con.or[i].field1 &&
+                            free < con.or[i].field2
+                        ) {
+                            validity = true;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            free === con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            free !== con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            free >= con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            free <= con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        } else {
+                            if (
+                                payload &&
+                                payload.totalStorage !== null &&
+                                payload.storageUsed !== null
+                            ) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.freeStorage
+                                    } ${formatBytes(freeBytes)}`
+                                );
+                            }
+                        }
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'temperature'
+                ) {
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.mainTemp &&
+                            payload.mainTemp > con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.mainTemp &&
+                            payload.mainTemp < con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.mainTemp &&
+                            con.or[i].field2 &&
+                            payload.mainTemp > con.or[i].field1 &&
+                            payload.mainTemp < con.or[i].field2
+                        ) {
+                            validity = true;
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.mainTemp &&
+                            payload.mainTemp == con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.mainTemp &&
+                            payload.mainTemp != con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.mainTemp &&
+                            payload.mainTemp >= con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            payload &&
+                            payload.mainTemp &&
+                            payload.mainTemp <= con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (payload && payload.mainTemp !== null) {
+                                successReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        } else {
+                            if (payload && payload.mainTemp !== null) {
+                                failedReasons.push(
+                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                                );
+                            }
+                        }
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'responseBody'
+                ) {
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'contains'
+                    ) {
+                        if (body && typeof body === 'string') {
+                            if (
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                body &&
+                                body.includes([con.or[i].field1])
+                            ) {
+                                validity = true;
+                                if (con.or[i].field1) {
+                                    successReasons.push(
+                                        `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                                    );
+                                }
+                            } else {
+                                if (con.or[i].field1) {
+                                    failedReasons.push(
+                                        `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                                    );
+                                }
+                            }
+                        } else {
+                            if (
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                body &&
+                                body[con.or[i].field1]
+                            ) {
+                                validity = true;
+                                if (con.or[i].field1) {
+                                    successReasons.push(
+                                        `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                                    );
+                                }
+                            } else {
+                                if (con.or[i].field1) {
+                                    failedReasons.push(
+                                        `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                                    );
+                                }
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'doesNotContain'
+                    ) {
+                        if (body && typeof body === 'string') {
+                            if (
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                body &&
+                                !body.includes([con.or[i].field1])
+                            ) {
+                                validity = true;
+                                if (con.or[i].field1) {
+                                    successReasons.push(
+                                        `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                                    );
+                                }
+                            } else {
+                                if (con.or[i].field1) {
+                                    failedReasons.push(
+                                        `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                                    );
+                                }
+                            }
+                        } else {
+                            if (
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                body &&
+                                !body[con.or[i].field1]
+                            ) {
+                                validity = true;
+                                if (con.or[i].field1) {
+                                    successReasons.push(
+                                        `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                                    );
+                                }
+                            } else {
+                                if (con.or[i].field1) {
+                                    failedReasons.push(
+                                        `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                                    );
+                                }
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'jsExpression'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].field1 &&
+                            body &&
+                            body[con.or[i].field1] === con.or[i].field1
+                        ) {
+                            validity = true;
+                            if (con.or[i].field1) {
+                                successReasons.push(
+                                    `${criteriaStrings.responseBody} contains Javascript expression ${con.or[i].field1}`
+                                );
+                            }
+                        } else {
+                            if (con.or[i].field1) {
+                                failedReasons.push(
+                                    `${criteriaStrings.responseBody} does not contain Javascript expression ${con.or[i].field1}`
+                                );
+                            }
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'empty'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].filter &&
+                            body &&
+                            _.isEmpty(body)
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} was empty`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} was not empty`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEmpty'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].filter &&
+                            body &&
+                            !_.isEmpty(body)
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} was not empty`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} was empty`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'evaluateResponse'
+                    ) {
+                        const responseDisplay = con.or[i].field1
+                            ? con.or[i].field1.includes('response.body') &&
+                              con.or[i].field1.includes('response.headers')
+                                ? {
+                                      headers: response.headers,
+                                      body: response.body,
+                                  }
+                                : con.or[i].field1.includes('response.headers')
+                                ? response.headers
+                                : con.or[i].field1.includes('response.body')
+                                ? response.body
+                                : response
+                            : response;
+                        try {
+                            if (
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                response &&
+                                Function(
+                                    '"use strict";const response = ' +
+                                        JSON.stringify(response) +
+                                        ';return (' +
+                                        con.or[i].field1 +
+                                        ');'
+                                )()
+                            ) {
+                                validity = true;
+                                if (con.or[i].field1) {
+                                    successReasons.push(
+                                        `${
+                                            criteriaStrings.response
+                                        } \`${JSON.stringify(
+                                            responseDisplay
+                                        )}\` evaluate \`${con.or[i].field1}\``
+                                    );
+                                }
+                            } else {
+                                if (con.or[i].field1) {
+                                    failedReasons.push(
+                                        `${
+                                            criteriaStrings.response
+                                        } \`${JSON.stringify(
+                                            responseDisplay
+                                        )}\` did not evaluate \`${
+                                            con.or[i].field1
+                                        }\``
+                                    );
+                                }
+                            }
+                        } catch (e) {
+                            failedReasons.push(
                                 `${criteriaStrings.response} \`${JSON.stringify(
                                     responseDisplay
-                                )}\` evaluate \`${con[i].field1}\``
+                                )}\` did not evaluate \`${con.or[i].field1}\``
                             );
                         }
-                    } else {
-                        if (con[i].field1) {
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'queryString'
+                ) {
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'contains'
+                    ) {
+                        if (
+                            !(
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                queryParams &&
+                                queryParams.includes(
+                                    con.or[i].field1.toLowerCase()
+                                )
+                            )
+                        ) {
+                            validity = false;
                             failedReasons.push(
-                                `${criteriaStrings.response} \`${JSON.stringify(
-                                    responseDisplay
-                                )}\` did not evaluate \`${con[i].field1}\``
+                                `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
                             );
                         }
                     }
-                } catch (e) {
-                    failedReasons.push(
-                        `${criteriaStrings.response} \`${JSON.stringify(
-                            responseDisplay
-                        )}\` did not evaluate \`${con[i].field1}\``
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'queryString') {
-            if (con[i] && con[i].filter && con[i].filter === 'contains') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        queryParams &&
-                        queryParams.includes(con[i].field1.toLowerCase())
-                    )
+                } else if (con.or[i] && con.or[i].responseType === 'headers') {
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'contains'
+                    ) {
+                        if (
+                            !(
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                headers &&
+                                headers.includes(con.or[i].field1.toLowerCase())
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                            );
+                        }
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'podStatus'
                 ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                    );
-                }
-            }
-        } else if (con[i] && con[i].responseType === 'headers') {
-            if (con[i] && con[i].filter && con[i].filter === 'contains') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        headers &&
-                        headers.includes(con[i].field1.toLowerCase())
-                    )
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
+                    ) {
+                        // eslint-disable-next-line no-loop-func
+                        payload.podData.allPods.forEach(pod => {
+                            if (
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                pod.podStatus &&
+                                pod.podStatus.toLowerCase() ===
+                                    con.or[i].field1.toLowerCase()
+                            ) {
+                                validity = true;
+                                successReasons.push(
+                                    `${pod.podName} status is ${pod.podStatus}`
+                                );
+                            } else {
+                                failedReasons.push(
+                                    `${pod.podName} status is ${pod.podStatus}`
+                                );
+                            }
+                        });
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        // eslint-disable-next-line no-loop-func
+                        payload.podData.allPods.forEach(pod => {
+                            if (
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                pod.podStatus &&
+                                pod.podStatus.toLowerCase() !==
+                                    con.or[i].field1.toLowerCase()
+                            ) {
+                                validity = true;
+                                successReasons.push(
+                                    `${pod.podName} status is ${pod.podStatus}`
+                                );
+                            } else {
+                                failedReasons.push(
+                                    `${pod.podName} status is ${pod.podStatus}`
+                                );
+                            }
+                        });
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'jobStatus'
                 ) {
-                    validity = false;
-                    failedReasons.push(
-                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
-                    );
-                } else {
-                    successReasons.push(
-                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
-                    );
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
+                    ) {
+                        // eslint-disable-next-line no-loop-func
+                        payload.jobData.allJobs.forEach(job => {
+                            if (
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                job.jobStatus &&
+                                job.jobStatus.toLowerCase() ===
+                                    con.or[i].field1.toLowerCase()
+                            ) {
+                                validity = true;
+                                successReasons.push(
+                                    `${job.jobName} ${job.jobStatus}`
+                                );
+                            } else {
+                                failedReasons.push(
+                                    `${job.jobName} ${job.jobStatus}`
+                                );
+                            }
+                        });
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        // eslint-disable-next-line no-loop-func
+                        payload.jobData.allJobs.forEach(job => {
+                            if (
+                                con.or[i] &&
+                                con.or[i].field1 &&
+                                job.jobStatus &&
+                                job.jobStatus.toLowerCase() !==
+                                    con.or[i].field1.toLowerCase()
+                            ) {
+                                validity = true;
+                                successReasons.push(
+                                    `${job.jobName} ${job.jobStatus}`
+                                );
+                            } else {
+                                failedReasons.push(
+                                    `${job.jobName} ${job.jobStatus}`
+                                );
+                            }
+                        });
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'desiredDeployment'
+                ) {
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
+                    ) {
+                        payload.deploymentData.allDeployments.forEach(
+                            // eslint-disable-next-line no-loop-func
+                            deployment => {
+                                if (
+                                    deployment.desiredDeployment ===
+                                    deployment.readyDeployment
+                                ) {
+                                    validity = true;
+                                    successReasons.push(
+                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                    );
+                                } else {
+                                    failedReasons.push(
+                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                    );
+                                }
+                            }
+                        );
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        payload.deploymentData.allDeployments.forEach(
+                            // eslint-disable-next-line no-loop-func
+                            deployment => {
+                                if (
+                                    deployment.desiredDeployment !==
+                                    deployment.readyDeployment
+                                ) {
+                                    validity = true;
+                                    successReasons.push(
+                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                    );
+                                } else {
+                                    failedReasons.push(
+                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                    );
+                                }
+                            }
+                        );
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'desiredStatefulsets'
+                ) {
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'equalTo'
+                    ) {
+                        payload.statefulsetData.allStatefulset.forEach(
+                            // eslint-disable-next-line no-loop-func
+                            statefulset => {
+                                if (
+                                    statefulset.desiredStatefulsets ===
+                                    statefulset.readyStatefulsets
+                                ) {
+                                    validity = true;
+                                    successReasons.push(
+                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                    );
+                                } else {
+                                    failedReasons.push(
+                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                    );
+                                }
+                            }
+                        );
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'notEqualTo'
+                    ) {
+                        payload.statefulsetData.allStatefulset.forEach(
+                            // eslint-disable-next-line no-loop-func
+                            statefulset => {
+                                if (
+                                    statefulset.desiredStatefulsets !==
+                                    statefulset.readyStatefulsets
+                                ) {
+                                    validity = true;
+                                    successReasons.push(
+                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                    );
+                                } else {
+                                    failedReasons.push(
+                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                    );
+                                }
+                            }
+                        );
+                    }
                 }
-            }
-        } else if (con[i] && con[i].responseType === 'podStatus') {
-            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                // eslint-disable-next-line no-loop-func
-                payload.podData.allPods.forEach(pod => {
-                    if (
-                        con[i] &&
-                        con[i].field1 &&
-                        pod.podStatus &&
-                        pod.podStatus.toLowerCase() ===
-                            con[i].field1.toLowerCase()
-                    ) {
-                        validity = true;
-                        successReasons.push(
-                            `${pod.podName} status is ${pod.podStatus}`
-                        );
-                    } else {
-                        failedReasons.push(
-                            `${pod.podName} status is ${pod.podStatus}`
-                        );
-                    }
-                });
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                // eslint-disable-next-line no-loop-func
-                payload.podData.allPods.forEach(pod => {
-                    if (
-                        con[i] &&
-                        con[i].field1 &&
-                        pod.podStatus &&
-                        pod.podStatus.toLowerCase() !==
-                            con[i].field1.toLowerCase()
-                    ) {
-                        validity = true;
-                        successReasons.push(
-                            `${pod.podName} status is ${pod.podStatus}`
-                        );
-                    } else {
-                        failedReasons.push(
-                            `${pod.podName} status is ${pod.podStatus}`
-                        );
-                    }
-                });
-            }
-        } else if (con[i] && con[i].responseType === 'jobStatus') {
-            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                // eslint-disable-next-line no-loop-func
-                payload.jobData.allJobs.forEach(job => {
-                    if (
-                        con[i] &&
-                        con[i].field1 &&
-                        job.jobStatus &&
-                        job.jobStatus.toLowerCase() ===
-                            con[i].field1.toLowerCase()
-                    ) {
-                        validity = true;
-                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
-                    } else {
-                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
-                    }
-                });
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                // eslint-disable-next-line no-loop-func
-                payload.jobData.allJobs.forEach(job => {
-                    if (
-                        con[i] &&
-                        con[i].field1 &&
-                        job.jobStatus &&
-                        job.jobStatus.toLowerCase() !==
-                            con[i].field1.toLowerCase()
-                    ) {
-                        validity = true;
-                        successReasons.push(`${job.jobName} ${job.jobStatus}`);
-                    } else {
-                        failedReasons.push(`${job.jobName} ${job.jobStatus}`);
-                    }
-                });
-            }
-        } else if (con[i] && con[i].responseType === 'desiredDeployment') {
-            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                // eslint-disable-next-line no-loop-func
-                payload.deploymentData.allDeployments.forEach(deployment => {
-                    if (
-                        deployment.desiredDeployment ===
-                        deployment.readyDeployment
-                    ) {
-                        validity = true;
-                        successReasons.push(
-                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                        );
-                    } else {
-                        failedReasons.push(
-                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                        );
-                    }
-                });
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                // eslint-disable-next-line no-loop-func
-                payload.deploymentData.allDeployments.forEach(deployment => {
-                    if (
-                        deployment.desiredDeployment !==
-                        deployment.readyDeployment
-                    ) {
-                        validity = true;
-                        successReasons.push(
-                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                        );
-                    } else {
-                        failedReasons.push(
-                            `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                        );
-                    }
-                });
-            }
-        } else if (con[i] && con[i].responseType === 'desiredStatefulsets') {
-            if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
-                // eslint-disable-next-line no-loop-func
-                payload.statefulsetData.allStatefulset.forEach(statefulset => {
-                    if (
-                        statefulset.desiredStatefulsets ===
-                        statefulset.readyStatefulsets
-                    ) {
-                        validity = true;
-                        successReasons.push(
-                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        );
-                    } else {
-                        failedReasons.push(
-                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        );
-                    }
-                });
-            } else if (
-                con[i] &&
-                con[i].filter &&
-                con[i].filter === 'notEqualTo'
-            ) {
-                // eslint-disable-next-line no-loop-func
-                payload.statefulsetData.allStatefulset.forEach(statefulset => {
-                    if (
-                        statefulset.desiredStatefulsets !==
-                        statefulset.readyStatefulsets
-                    ) {
-                        validity = true;
-                        successReasons.push(
-                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        );
-                    } else {
-                        failedReasons.push(
-                            `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        );
-                    }
-                });
-            }
-        }
 
-        if (
-            con[i] &&
-            con[i].collection &&
-            con[i].collection.and &&
-            con[i].collection.and.length
-        ) {
-            const temp = await checkAnd(
-                payload,
-                con[i].collection.and,
-                statusCode,
-                body,
-                ssl,
-                response,
-                successReasons,
-                failedReasons
-            );
-            if (temp) {
-                validity = temp;
-            }
-        } else if (
-            con[i] &&
-            con[i].collection &&
-            con[i].collection.or &&
-            con[i].collection.or.length
-        ) {
-            const temp1 = await checkOr(
-                payload,
-                con[i].collection.or,
-                statusCode,
-                body,
-                ssl,
-                response,
-                successReasons,
-                failedReasons
-            );
-            if (temp1) {
-                validity = temp1;
+                if (
+                    con.or[i] &&
+                    con.or[i].collection &&
+                    con.or[i].collection.and &&
+                    con.or[i].collection.and.length
+                ) {
+                    const temp = await checkAnd(
+                        payload,
+                        con.or[i].collection.and,
+                        statusCode,
+                        body,
+                        ssl,
+                        response,
+                        successReasons,
+                        failedReasons
+                    );
+                    if (temp) {
+                        validity = temp;
+                    }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].collection &&
+                    con.or[i].collection.or &&
+                    con.or[i].collection.or.length
+                ) {
+                    const temp1 = await checkOr(
+                        payload,
+                        con.or[i].collection.or,
+                        statusCode,
+                        body,
+                        ssl,
+                        response,
+                        successReasons,
+                        failedReasons
+                    );
+                    if (temp1) {
+                        validity = temp1;
+                    }
+                }
             }
         }
     }
+
+    if (con && con.and && con.and.length > 0) {
+        const temp = await checkAnd(
+            payload,
+            { and: con.and },
+            statusCode,
+            body,
+            ssl,
+            response,
+            successReasons,
+            failedReasons,
+            type,
+            queryParams,
+            headers
+        );
+        if (temp) {
+            validity = temp;
+        }
+    }
+
     return validity;
 };
 
@@ -5891,3 +6334,4 @@ const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
 const { some, forEach } = require('p-iteration');
+const { isEmpty } = require('lodash');
