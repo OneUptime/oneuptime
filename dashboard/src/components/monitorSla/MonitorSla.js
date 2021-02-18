@@ -23,6 +23,7 @@ class MonitorSla extends Component {
         this.limit = 10;
         this.state = {
             flag: false,
+            page: 1,
         };
     }
 
@@ -42,7 +43,9 @@ class MonitorSla extends Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             limit
         );
-        this.props.paginatePrev();
+        this.setState({
+            page: this.state.page === 1 ? 1 : this.state.page - 1,
+        });
     };
 
     nextClicked = (skip, limit) => {
@@ -52,7 +55,7 @@ class MonitorSla extends Component {
         });
 
         fetchMonitorSlas(projectId, skip + limit, limit);
-        this.props.paginateNext();
+        this.setState({ page: this.state.page + 1 });
     };
 
     setAsDefault = ({ projectId, monitorSlaId }) => {
@@ -455,7 +458,7 @@ class MonitorSla extends Component {
                                         >
                                             {numberOfPage > 0
                                                 ? `Page ${
-                                                      this.props.page
+                                                      this.state.page
                                                   } of ${numberOfPage} (${
                                                       this.props.count
                                                   } SLA${
