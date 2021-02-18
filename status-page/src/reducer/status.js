@@ -60,6 +60,7 @@ import {
     FETCH_LAST_INCIDENT_TIMELINES_FAILURE,
     SHOW_EVENT_CARD,
     SHOW_INCIDENT_CARD,
+    NEW_THEME_NOTES_SUCCESS,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -156,6 +157,12 @@ const INITIAL_STATE = {
     },
     showEventCard: false,
     showIncidentCard: true,
+    newThemeIncidentNotes: {
+        notes: [],
+        requesting: false,
+        error: null,
+        success: false
+    }
 };
 
 export default (state = INITIAL_STATE, action) => {
@@ -312,6 +319,19 @@ export default (state = INITIAL_STATE, action) => {
                             : 0,
                 },
             });
+
+        case NEW_THEME_NOTES_SUCCESS:
+            return Object.assign({}, state, {
+                newThemeIncidentNotes: {
+                    error: null,
+                    notes: 
+                        action.payload && action.payload.data
+                        ? action.payload.data
+                        : [],
+                    requesting: false,
+                    success: true
+                }
+            })
 
         case STATUSPAGE_NOTES_FAILURE:
             return Object.assign({}, state, {
