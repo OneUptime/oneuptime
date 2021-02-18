@@ -69,6 +69,13 @@ export const statusPageNoteSuccess = data => {
     };
 };
 
+export const newThemeIncidentNote = data => {
+    return {
+        type: types.NEW_THEME_NOTES_SUCCESS,
+        payload: data
+    }
+}
+
 export const statusPageNoteRequest = () => {
     return {
         type: types.STATUSPAGE_NOTES_REQUEST,
@@ -107,10 +114,10 @@ export const individualNoteDisable = () => {
 };
 
 // Calls the API to get notes
-export const getStatusPageNote = (projectId, statusPageId, skip) => {
+export const getStatusPageNote = (projectId, statusPageId, skip, limit) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageId}/notes?skip=${skip}`
+            `statusPage/${projectId}/${statusPageId}/notes?skip=${skip}&limit=${limit}`
         );
 
         dispatch(statusPageNoteRequest());
@@ -118,6 +125,7 @@ export const getStatusPageNote = (projectId, statusPageId, skip) => {
         promise.then(
             Data => {
                 dispatch(statusPageNoteSuccess(Data.data));
+                dispatch(newThemeIncidentNote(Data.data))
                 dispatch(individualNoteDisable());
             },
             error => {
