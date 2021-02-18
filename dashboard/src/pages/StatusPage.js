@@ -29,6 +29,7 @@ import EmbeddedBubble from '../components/statusPage/EmbeddedBubble';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
+import Themes from '../components/statusPage/Themes';
 
 class StatusPage extends Component {
     state = {
@@ -93,6 +94,14 @@ class StatusPage extends Component {
             statusPage: { status },
         } = this.props;
         const pageName = status ? status.name : null;
+        const projectId = history.location.pathname
+                .split('project/')[1]
+                .split('/')[0];
+        const data = {
+            statusPageId: status._id,
+            projectId,
+            theme: status.theme
+        }
 
         return (
             <Dashboard>
@@ -205,6 +214,9 @@ class StatusPage extends Component {
                                                                     >
                                                                         <div className="Box-root Margin-bottom--12">
                                                                             <Branding />
+                                                                        </div>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            <Themes data={data} />
                                                                         </div>
                                                                         <div className="Box-root Margin-bottom--12">
                                                                             <Links />
