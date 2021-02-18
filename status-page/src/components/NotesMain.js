@@ -32,7 +32,8 @@ class NotesMain extends Component {
         this.props.getStatusPageNote(
             this.props.projectId,
             this.props.statusPageId,
-            0
+            0,
+            this.props.theme && 15
         );
     }
 
@@ -141,288 +142,381 @@ class NotesMain extends Component {
             webhookNotification ||
             emailNotification;
 
-        if (this.props.noteData && this.props.noteData.requesting) {
-            return (
+        const data = [1, 2, 3, 4];
+
+        if (this.props.theme === 'New Theme') {
+            return data && data.length > 1
+                ? data.map((d, i) => {
+                      return (
+                          <div className="incident-object">
+                              <div className="date-big">Feb 16, 2021</div>
+                              <div className="alerting-deplay">
+                                  Alerting deplay
+                              </div>
+                              <div className="new-mb-12">
+                                  <div>
+                                      <span className="incident-info">
+                                          Resolved -{' '}
+                                      </span>
+                                      <span className="incident-brief" title="World Health Organization">
+                                          This incident has been resolved.
+                                      </span>
+                                  </div>
+                                  <div className="incident-date">
+                                      <span>Feb 16, 06:38 PST</span>
+                                  </div>
+                              </div>
+                              <div className="new-mb-12">
+                                  <div>
+                                      <span className="incident-info">
+                                          Monitoring -{' '}
+                                      </span>
+                                      <span className="incident-brief">
+                                          A fix has been implemented and we are
+                                          monitoring the results. New alerts
+                                          will be processed as usual, old alerts
+                                          still have a delay.
+                                      </span>
+                                  </div>
+                                  <div className="incident-date">
+                                      <span>Feb 16, 06:38 PST</span>
+                                  </div>
+                              </div>
+                              <div className="new-mb-12">
+                                  <div>
+                                      <span className="incident-info">
+                                          Identified -{' '}
+                                      </span>
+                                      <span className="incident-brief">
+                                          The issue has been identified and a
+                                          fix is being implemented.
+                                      </span>
+                                  </div>
+                                  <div className="incident-date">
+                                      <span>Feb 16, 06:38 PST</span>
+                                  </div>
+                              </div>
+                              <div className="new-mb-12">
+                                  <div>
+                                      <span className="incident-info">
+                                          Investigating -{' '}
+                                      </span>
+                                      <span className="incident-brief">
+                                          We are currently investigating this
+                                          issue.
+                                      </span>
+                                  </div>
+                                  <div className="incident-date">
+                                      <span>Feb 16, 06:38 PST</span>
+                                  </div>
+                              </div>
+                          </div>
+                      );
+                  })
+                : null;
+        } else {
+            if (this.props.noteData && this.props.noteData.requesting) {
+                return (
+                    <div
+                        className="twitter-feed white box"
+                        style={{ overflow: 'visible', ...contentBackground }}
+                    >
+                        <div
+                            className="messages"
+                            style={{ position: 'relative' }}
+                        >
+                            <ShouldRender
+                                if={
+                                    this.props.noteData &&
+                                    !this.props.noteData.error
+                                }
+                            >
+                                <div
+                                    className="box-inner"
+                                    style={{
+                                        paddingLeft: 0,
+                                        paddingRight: 0,
+                                        width: '100%',
+                                    }}
+                                >
+                                    <div className="feed-header">
+                                        <ShouldRender
+                                            if={!this.props.individualnote}
+                                        >
+                                            <span
+                                                className="feed-title"
+                                                style={subheading}
+                                            >
+                                                Incidents
+                                            </span>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={this.props.individualnote}
+                                        >
+                                            <span
+                                                className="feed-title"
+                                                style={primaryTextColor}
+                                            >
+                                                Incidents for{' '}
+                                                {this.props.individualnote
+                                                    ? this.props.individualnote
+                                                          .name
+                                                    : ''}{' '}
+                                                on{' '}
+                                                {this.props.individualnote
+                                                    ? moment(
+                                                          this.props
+                                                              .individualnote
+                                                              .date
+                                                      ).format('LL')
+                                                    : ''}
+                                            </span>
+                                        </ShouldRender>
+                                    </div>
+                                    <ShouldRender
+                                        if={
+                                            this.props.noteData &&
+                                            this.props.noteData.requesting
+                                        }
+                                    >
+                                        <div
+                                            className="ball-beat"
+                                            id="notes-loader"
+                                            style={{ marginBottom: 0 }}
+                                        >
+                                            <div
+                                                style={{
+                                                    height: '12px',
+                                                    width: '12px',
+                                                }}
+                                            ></div>
+                                            <div
+                                                style={{
+                                                    height: '12px',
+                                                    width: '12px',
+                                                }}
+                                            ></div>
+                                            <div
+                                                style={{
+                                                    height: '12px',
+                                                    width: '12px',
+                                                }}
+                                            ></div>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
+                            </ShouldRender>
+                        </div>
+                    </div>
+                );
+            }
+
+            return this.props.noteData ||
+                this.props.individualnote ||
+                this.props.showIncidentCardState ? (
                 <div
                     className="twitter-feed white box"
-                    style={{ overflow: 'visible', ...contentBackground }}
+                    style={{
+                        overflow: 'visible',
+                        marginBottom: 40,
+                        ...contentBackground,
+                    }}
+                    id="incidentCard"
                 >
                     <div className="messages" style={{ position: 'relative' }}>
+                        <div
+                            className="box-inner"
+                            style={{
+                                paddingLeft: 0,
+                                paddingRight: 0,
+                                width: '100%',
+                            }}
+                        >
+                            <div className="feed-header">
+                                <ShouldRender if={!this.props.individualnote}>
+                                    <span
+                                        className="feed-title"
+                                        style={subheading}
+                                    >
+                                        Incidents
+                                    </span>
+                                </ShouldRender>
+                                <ShouldRender if={this.props.individualnote}>
+                                    <span
+                                        className="feed-title"
+                                        style={primaryTextColor}
+                                    >
+                                        Incidents for{' '}
+                                        {this.props.individualnote
+                                            ? this.props.individualnote.name
+                                            : ''}{' '}
+                                        on{' '}
+                                        {this.props.individualnote
+                                            ? moment(
+                                                  this.props.individualnote.date
+                                              ).format('LL')
+                                            : ''}
+                                    </span>
+                                </ShouldRender>
+                                <ShouldRender
+                                    if={
+                                        this.props.isSubscriberEnabled ===
+                                            true && showSubscriberOption
+                                    }
+                                >
+                                    <button
+                                        className="bs-Button-subscribe"
+                                        type="submit"
+                                        onClick={() => this.subscribebutton()}
+                                    >
+                                        <span>Subscribe</span>
+                                    </button>
+                                </ShouldRender>
+                            </div>
+                            <ShouldRender
+                                if={
+                                    this.props.subscribed &&
+                                    showSubscriberOption
+                                }
+                            >
+                                <SubscribeBox />
+                            </ShouldRender>
+                            <ShouldRender
+                                if={
+                                    this.props.noteData &&
+                                    !this.props.noteData.requesting &&
+                                    this.props.noteData.notes &&
+                                    this.props.noteData.notes.length
+                                }
+                            >
+                                <ul className="feed-contents plain">{note}</ul>
+                            </ShouldRender>
+
+                            <ShouldRender
+                                if={
+                                    (this.props.noteData &&
+                                        !this.props.noteData.requesting &&
+                                        this.props.noteData.notes &&
+                                        !this.props.noteData.notes.length) ||
+                                    (this.props.showIncidentCardState &&
+                                        !this.props.noteData.notes.length)
+                                }
+                            >
+                                <ul className="feed-contents plain">
+                                    <li
+                                        className="feed-item clearfix"
+                                        style={{
+                                            minHeight: '5px',
+                                            marginBottom: '10px',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            flexWrap: 'nowrap',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <span
+                                            className="time"
+                                            style={{
+                                                fontSize: '0.8em',
+                                                marginLeft: '0px',
+                                                ...secondaryTextColor,
+                                            }}
+                                        >
+                                            {this.props.notesmessage
+                                                ? this.props.notesmessage
+                                                : 'No incidents yet'}
+                                            .
+                                        </span>
+                                    </li>
+                                </ul>
+                            </ShouldRender>
+                        </div>
+
                         <ShouldRender
                             if={
                                 this.props.noteData &&
-                                !this.props.noteData.error
+                                this.props.noteData.notes &&
+                                this.props.noteData.notes.length &&
+                                this.props.count > this.props.skip + 5 &&
+                                !this.props.noteData.requesting &&
+                                !this.props.requestingmore &&
+                                !this.props.noteData.error &&
+                                !this.props.individualnote &&
+                                !this.props.fetchingIncidentTimelines
                             }
                         >
-                            <div
-                                className="box-inner"
-                                style={{
-                                    paddingLeft: 0,
-                                    paddingRight: 0,
-                                    width: '100%',
-                                }}
+                            <button
+                                className="more button-as-anchor anchor-centered"
+                                onClick={() => this.more()}
                             >
-                                <div className="feed-header">
-                                    <ShouldRender
-                                        if={!this.props.individualnote}
-                                    >
-                                        <span
-                                            className="feed-title"
-                                            style={subheading}
-                                        >
-                                            Incidents
-                                        </span>
-                                    </ShouldRender>
-                                    <ShouldRender
-                                        if={this.props.individualnote}
-                                    >
-                                        <span
-                                            className="feed-title"
-                                            style={primaryTextColor}
-                                        >
-                                            Incidents for{' '}
-                                            {this.props.individualnote
-                                                ? this.props.individualnote.name
-                                                : ''}{' '}
-                                            on{' '}
-                                            {this.props.individualnote
-                                                ? moment(
-                                                      this.props.individualnote
-                                                          .date
-                                                  ).format('LL')
-                                                : ''}
-                                        </span>
-                                    </ShouldRender>
-                                </div>
-                                <ShouldRender
-                                    if={
-                                        this.props.noteData &&
-                                        this.props.noteData.requesting
-                                    }
+                                More
+                            </button>
+                        </ShouldRender>
+
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <ShouldRender
+                                if={
+                                    this.props.noteData &&
+                                    !this.props.noteData.error &&
+                                    !this.props.noteData.requesting &&
+                                    this.props.individualnote
+                                }
+                            >
+                                <button
+                                    className="all__btn"
+                                    onClick={() => this.getAll()}
                                 >
-                                    <div
-                                        className="ball-beat"
-                                        id="notes-loader"
-                                        style={{ marginBottom: 0 }}
-                                    >
-                                        <div
-                                            style={{
-                                                height: '12px',
-                                                width: '12px',
-                                            }}
-                                        ></div>
-                                        <div
-                                            style={{
-                                                height: '12px',
-                                                width: '12px',
-                                            }}
-                                        ></div>
-                                        <div
-                                            style={{
-                                                height: '12px',
-                                                width: '12px',
-                                            }}
-                                        ></div>
-                                    </div>
-                                </ShouldRender>
+                                    All Incidents
+                                </button>
+                            </ShouldRender>
+                        </div>
+
+                        <ShouldRender
+                            if={
+                                this.props.noteData &&
+                                this.props.noteData.requesting
+                            }
+                        >
+                            <div className="ball-beat" id="notes-loader">
+                                <div
+                                    style={{ height: '12px', width: '12px' }}
+                                ></div>
+                                <div
+                                    style={{ height: '12px', width: '12px' }}
+                                ></div>
+                                <div
+                                    style={{ height: '12px', width: '12px' }}
+                                ></div>
+                            </div>
+                        </ShouldRender>
+
+                        <ShouldRender
+                            if={
+                                this.props.noteData && this.props.requestingmore
+                            }
+                        >
+                            <div className="ball-beat" id="more-loader">
+                                <div
+                                    style={{ height: '8px', width: '8px' }}
+                                ></div>
+                                <div
+                                    style={{ height: '8px', width: '8px' }}
+                                ></div>
+                                <div
+                                    style={{ height: '8px', width: '8px' }}
+                                ></div>
                             </div>
                         </ShouldRender>
                     </div>
                 </div>
-            );
+            ) : null;
         }
-
-        return this.props.noteData ||
-            this.props.individualnote ||
-            this.props.showIncidentCardState ? (
-            <div
-                className="twitter-feed white box"
-                style={{
-                    overflow: 'visible',
-                    marginBottom: 40,
-                    ...contentBackground,
-                }}
-                id="incidentCard"
-            >
-                <div className="messages" style={{ position: 'relative' }}>
-                    <div
-                        className="box-inner"
-                        style={{
-                            paddingLeft: 0,
-                            paddingRight: 0,
-                            width: '100%',
-                        }}
-                    >
-                        <div className="feed-header">
-                            <ShouldRender if={!this.props.individualnote}>
-                                <span className="feed-title" style={subheading}>
-                                    Incidents
-                                </span>
-                            </ShouldRender>
-                            <ShouldRender if={this.props.individualnote}>
-                                <span
-                                    className="feed-title"
-                                    style={primaryTextColor}
-                                >
-                                    Incidents for{' '}
-                                    {this.props.individualnote
-                                        ? this.props.individualnote.name
-                                        : ''}{' '}
-                                    on{' '}
-                                    {this.props.individualnote
-                                        ? moment(
-                                              this.props.individualnote.date
-                                          ).format('LL')
-                                        : ''}
-                                </span>
-                            </ShouldRender>
-                            <ShouldRender
-                                if={
-                                    this.props.isSubscriberEnabled === true &&
-                                    showSubscriberOption
-                                }
-                            >
-                                <button
-                                    className="bs-Button-subscribe"
-                                    type="submit"
-                                    onClick={() => this.subscribebutton()}
-                                >
-                                    <span>Subscribe</span>
-                                </button>
-                            </ShouldRender>
-                        </div>
-                        <ShouldRender
-                            if={this.props.subscribed && showSubscriberOption}
-                        >
-                            <SubscribeBox />
-                        </ShouldRender>
-                        <ShouldRender
-                            if={
-                                this.props.noteData &&
-                                !this.props.noteData.requesting &&
-                                this.props.noteData.notes &&
-                                this.props.noteData.notes.length
-                            }
-                        >
-                            <ul className="feed-contents plain">{note}</ul>
-                        </ShouldRender>
-
-                        <ShouldRender
-                            if={
-                                (this.props.noteData &&
-                                    !this.props.noteData.requesting &&
-                                    this.props.noteData.notes &&
-                                    !this.props.noteData.notes.length) ||
-                                (this.props.showIncidentCardState &&
-                                    !this.props.noteData.notes.length)
-                            }
-                        >
-                            <ul className="feed-contents plain">
-                                <li
-                                    className="feed-item clearfix"
-                                    style={{
-                                        minHeight: '5px',
-                                        marginBottom: '10px',
-                                        display: 'flex',
-                                        flexDirection: 'row',
-                                        flexWrap: 'nowrap',
-                                        justifyContent: 'center',
-                                    }}
-                                >
-                                    <span
-                                        className="time"
-                                        style={{
-                                            fontSize: '0.8em',
-                                            marginLeft: '0px',
-                                            ...secondaryTextColor,
-                                        }}
-                                    >
-                                        {this.props.notesmessage
-                                            ? this.props.notesmessage
-                                            : 'No incidents yet'}
-                                        .
-                                    </span>
-                                </li>
-                            </ul>
-                        </ShouldRender>
-                    </div>
-
-                    <ShouldRender
-                        if={
-                            this.props.noteData &&
-                            this.props.noteData.notes &&
-                            this.props.noteData.notes.length &&
-                            this.props.count > this.props.skip + 5 &&
-                            !this.props.noteData.requesting &&
-                            !this.props.requestingmore &&
-                            !this.props.noteData.error &&
-                            !this.props.individualnote &&
-                            !this.props.fetchingIncidentTimelines
-                        }
-                    >
-                        <button
-                            className="more button-as-anchor anchor-centered"
-                            onClick={() => this.more()}
-                        >
-                            More
-                        </button>
-                    </ShouldRender>
-
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                        }}
-                    >
-                        <ShouldRender
-                            if={
-                                this.props.noteData &&
-                                !this.props.noteData.error &&
-                                !this.props.noteData.requesting &&
-                                this.props.individualnote
-                            }
-                        >
-                            <button
-                                className="all__btn"
-                                onClick={() => this.getAll()}
-                            >
-                                All Incidents
-                            </button>
-                        </ShouldRender>
-                    </div>
-
-                    <ShouldRender
-                        if={
-                            this.props.noteData &&
-                            this.props.noteData.requesting
-                        }
-                    >
-                        <div className="ball-beat" id="notes-loader">
-                            <div
-                                style={{ height: '12px', width: '12px' }}
-                            ></div>
-                            <div
-                                style={{ height: '12px', width: '12px' }}
-                            ></div>
-                            <div
-                                style={{ height: '12px', width: '12px' }}
-                            ></div>
-                        </div>
-                    </ShouldRender>
-
-                    <ShouldRender
-                        if={this.props.noteData && this.props.requestingmore}
-                    >
-                        <div className="ball-beat" id="more-loader">
-                            <div style={{ height: '8px', width: '8px' }}></div>
-                            <div style={{ height: '8px', width: '8px' }}></div>
-                            <div style={{ height: '8px', width: '8px' }}></div>
-                        </div>
-                    </ShouldRender>
-                </div>
-            </div>
-        ) : null;
     }
 }
 
