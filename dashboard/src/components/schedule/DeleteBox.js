@@ -109,7 +109,7 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId, projectId, subProjectId, userId } = props.match.params;
+    const { scheduleId, subProjectId, userId } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
@@ -127,7 +127,9 @@ const mapStateToProps = (state, props) => {
 
     return {
         scheduleName,
-        projectId,
+        projectId:
+            state.project.currentProject !== null &&
+            state.project.currentProject._id,
         subProjectId,
         scheduleId,
         slug:

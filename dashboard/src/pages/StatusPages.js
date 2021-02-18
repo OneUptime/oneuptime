@@ -46,8 +46,10 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state, props) {
-    const { projectId } = props.match.params;
+function mapStateToProps(state) {
+    const projectId =
+        state.project.currentProject !== null &&
+        state.project.currentProject._id;
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
 

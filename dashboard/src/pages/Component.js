@@ -383,7 +383,9 @@ const mapStateToProps = (state, props) => {
         return monitor;
     });
 
-    const { projectId } = props.match.params;
+    const projectId =
+        state.project.currentProject !== null &&
+        state.project.currentProject._id;
 
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];

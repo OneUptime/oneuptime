@@ -273,7 +273,6 @@ const mapStateToProps = (state, props) => {
      }) : */
     const { escalations } = state.schedule;
 
-    const { projectId } = props.match.params;
     const { scheduleId } = props.match.params;
     const { subProjectId } = props.match.params;
 
@@ -306,7 +305,8 @@ const mapStateToProps = (state, props) => {
     return {
         initialValues: { OnCallAlertBox },
         escalationPolicy: state.schedule.escalation,
-        projectId,
+        projectId: state.project.currentProject !== null &&
+        state.project.currentProject._id,
         scheduleId,
         subProjectId,
     };

@@ -340,7 +340,7 @@ const AddMonitorsForm = new reduxForm({
 })(MonitorBox);
 
 const mapStateToProps = (state, props) => {
-    const { projectId, subProjectId, scheduleId } = props.match.params;
+    const { subProjectId, scheduleId } = props.match.params;
     const initialValues = {};
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
@@ -378,7 +378,8 @@ const mapStateToProps = (state, props) => {
         initialValues,
         monitors,
         isRequesting,
-        projectId,
+        projectId: state.project.currentProject !== null &&
+        state.project.currentProject._id,
         subProjectId,
         currentProject,
         subProjects,

@@ -785,7 +785,7 @@ class MonitorView extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const scheduleWarning = [];
-    const { projectId, componentId, monitorId } = props.match.params;
+    const { componentId, monitorId } = props.match.params;
     const schedules = state.schedule.schedules;
 
     state.schedule.subProjectSchedules.forEach(item => {
@@ -976,7 +976,8 @@ const mapStateToProps = (state, props) => {
     return {
         defaultSchedule,
         scheduleWarning,
-        projectId,
+        projectId:state.project.currentProject !== null &&
+        state.project.currentProject._id,
         monitorId,
         componentId,
         monitor,

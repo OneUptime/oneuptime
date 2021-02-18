@@ -66,8 +66,10 @@ class Billing extends Component {
 
 Billing.displayName = 'Billing';
 
-const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
+const mapStateToProps = state => {
+    const projectId =
+        state.project.currentProject !== null &&
+        state.project.currentProject._id;
     return {
         currentProjectId: projectId,
         alertEnable:

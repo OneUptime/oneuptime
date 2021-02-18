@@ -325,8 +325,7 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
+const mapStateToProps = state => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
@@ -338,7 +337,8 @@ const mapStateToProps = (state, props) => {
         subProjectNames.map(name =>
             subProjects.find(subProject => subProject.name === name)
         );
-
+    const projectId = state.project.currentProject !== null &&
+    state.project.currentProject._id;
     const currentProjectId = projectId;
     const schedules = state.schedule.subProjectSchedules;
 

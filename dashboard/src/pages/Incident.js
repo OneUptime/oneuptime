@@ -64,7 +64,7 @@ class Incident extends React.Component {
 
     nextAlerts = () => {
         this.props.fetchIncidentAlert(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.incidentId,
             parseInt(this.props.skip, 10) + parseInt(this.props.limit, 10),
             parseInt(this.props.limit, 10)
@@ -76,7 +76,7 @@ class Incident extends React.Component {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT ALERT CLICKED',
                 {
-                    projectId: this.props.match.params.projectId,
+                    projectId: this.props.projectId,
                     incidentId: this.props.match.params.incidentId,
                 }
             );
@@ -85,7 +85,7 @@ class Incident extends React.Component {
 
     previousAlerts = () => {
         this.props.fetchIncidentAlert(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.incidentId,
             parseInt(this.props.skip, 10) - parseInt(this.props.limit, 10),
             parseInt(this.props.limit, 10)
@@ -97,7 +97,7 @@ class Incident extends React.Component {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS ALERT CLICKED',
                 {
-                    projectId: this.props.match.params.projectId,
+                    projectId: this.props.projectId,
                     incidentId: this.props.match.params.incidentId,
                 }
             );
@@ -106,7 +106,7 @@ class Incident extends React.Component {
 
     nextTimeline = () => {
         this.props.getIncidentTimeline(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.incidentId,
             parseInt(this.props.incidentTimeline.skip, 10) +
                 parseInt(this.props.incidentTimeline.limit, 10),
@@ -116,7 +116,7 @@ class Incident extends React.Component {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT TIMELINE CLICKED',
                 {
-                    projectId: this.props.match.params.projectId,
+                    projectId: this.props.projectId,
                     incidentId: this.props.match.params.incidentId,
                 }
             );
@@ -125,7 +125,7 @@ class Incident extends React.Component {
 
     previousTimeline = () => {
         this.props.getIncidentTimeline(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.incidentId,
             parseInt(this.props.incidentTimeline.skip, 10) -
                 parseInt(this.props.incidentTimeline.limit, 10),
@@ -135,7 +135,7 @@ class Incident extends React.Component {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS TIMELINE CLICKED',
                 {
-                    projectId: this.props.match.params.projectId,
+                    projectId: this.props.projectId,
                     incidentId: this.props.match.params.incidentId,
                 }
             );
@@ -144,7 +144,7 @@ class Incident extends React.Component {
 
     nextSubscribers = () => {
         this.props.fetchSubscriberAlert(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.incidentId,
             parseInt(this.props.subscribersAlerts.skip, 10) +
                 parseInt(this.props.subscribersAlerts.limit, 10),
@@ -157,7 +157,7 @@ class Incident extends React.Component {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT SUBSCRIBER CLICKED',
                 {
-                    projectId: this.props.match.params.projectId,
+                    projectId: this.props.projectId,
                     incidentId: this.props.match.params.incidentId,
                 }
             );
@@ -166,7 +166,7 @@ class Incident extends React.Component {
 
     previousSubscribers = () => {
         this.props.fetchSubscriberAlert(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.incidentId,
             parseInt(this.props.subscribersAlerts.skip, 10) -
                 parseInt(this.props.subscribersAlerts.limit, 10),
@@ -179,7 +179,7 @@ class Incident extends React.Component {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS SUBSCRIBER CLICKED',
                 {
-                    projectId: this.props.match.params.projectId,
+                    projectId: this.props.projectId,
                     incidentId: this.props.match.params.incidentId,
                 }
             );
@@ -208,31 +208,31 @@ class Incident extends React.Component {
 
         this.props
             .getIncident(
-                this.props.match.params.projectId,
+                this.props.projectId,
                 this.props.match.params.incidentId
             )
             .then(() => {
                 this.props.getIncidentTimeline(
-                    this.props.match.params.projectId,
+                    this.props.projectId,
                     this.props.match.params.incidentId,
                     0,
                     10
                 );
             });
         this.props.fetchIncidentAlert(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.incidentId,
             0,
             10
         );
         this.props.fetchSubscriberAlert(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.incidentId,
             0,
             10
         );
         this.props.getMonitorLogs(
-            this.props.match.params.projectId,
+            this.props.projectId,
             monitorId,
             0,
             10,
@@ -243,13 +243,13 @@ class Incident extends React.Component {
             this.props.type
         );
         this.props.fetchIncidentMessages(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.incidentId,
             0,
             10
         );
         this.props.fetchIncidentMessages(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.incidentId,
             0,
             10,
@@ -671,6 +671,8 @@ const mapStateToProps = (state, props) => {
         type: monitor && monitor.type ? monitor.type : null,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
+        projectId: state.project.currentProject !== null &&
+        state.project.currentProject._id,
         incidentTimeline: state.incident.incident,
         count: state.alert.incidentalerts.count,
         skip: state.alert.incidentalerts.skip,
@@ -748,6 +750,7 @@ Incident.propTypes = {
     scheduleWarning: PropTypes.array,
     defaultSchedule: PropTypes.bool,
     type: PropTypes.string,
+    projectId: PropTypes.string,
 };
 
 Incident.displayName = 'Incident';

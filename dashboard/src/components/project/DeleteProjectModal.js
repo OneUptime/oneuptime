@@ -107,11 +107,11 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
-
+const mapStateToProps = state => {
     const { projects } = state.project.projects;
-
+    const projectId = 
+    state.project.currentProject !== null &&
+    state.project.currentProject._id;
     const project =
         projects !== undefined && projects.length > 0
             ? projects.filter(project => project._id === projectId)[0]

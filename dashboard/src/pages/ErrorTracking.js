@@ -141,7 +141,10 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, projectId } = ownProps.match.params;
+    const { componentId } = ownProps.match.params;
+    const projectId =
+        state.project.currentProject !== null &&
+        state.project.currentProject._id;
     const currentProject = state.project.currentProject;
 
     const errorTracker = state.errorTracker.errorTrackersList;

@@ -461,10 +461,10 @@ class Home extends Component {
                                                                                     schedules={
                                                                                         upcomingSchedules
                                                                                     }
-                                                                                    currentProjectId={
+                                                                                    slug={
                                                                                         this
                                                                                             .props
-                                                                                            .currentProjectId
+                                                                                            .slug
                                                                                     }
                                                                                 />
                                                                             </ShouldRender>
@@ -481,10 +481,10 @@ class Home extends Component {
                                                                                     schedules={
                                                                                         inactiveSchedules
                                                                                     }
-                                                                                    currentProjectId={
+                                                                                    slug={
                                                                                         this
                                                                                             .props
-                                                                                            .currentProjectId
+                                                                                            .slug
                                                                                     }
                                                                                 />
                                                                             </ShouldRender>
@@ -526,6 +526,11 @@ class Home extends Component {
                                                                                         this
                                                                                             .props
                                                                                             .projectTeamMembers
+                                                                                    }
+                                                                                    slug={
+                                                                                        this
+                                                                                            .props
+                                                                                            .slug
                                                                                     }
                                                                                 />
 
@@ -673,8 +678,9 @@ Home.propTypes = {
     errorTrackers: PropTypes.array,
 };
 
-const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
+const mapStateToProps = state => {
+    const projectId = state.project.currentProject !== null &&
+    state.project.currentProject._id;
     let monitors = [],
         components = [],
         projectTeamMembers = [];

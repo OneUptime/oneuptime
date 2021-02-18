@@ -206,7 +206,7 @@ Container.propTypes = {
 
 const mapStateToProps = (state, ownProps) => {
     // ids from url
-    const { componentId, projectId } = ownProps.match.params;
+    const { componentId } = ownProps.match.params;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
@@ -217,7 +217,9 @@ const mapStateToProps = (state, ownProps) => {
     });
 
     return {
-        projectId,
+        projectId:
+            state.project.currentProject !== null &&
+            state.project.currentProject._id,
         componentId,
         slug:
             state.project.currentProject !== null &&
