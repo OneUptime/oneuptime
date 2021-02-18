@@ -35210,6 +35210,15 @@ span.CodeMirror-selectedtext {
     opacity: 0.5;
     width: 10px;
 }
+.rm-auto {
+  grid-template-columns: auto auto !important;
+}
+.themelabel {
+  padding: 5%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 @media (max-width: 768px) {
   .bs-thread-container {
     margin-top: 20px
@@ -35279,6 +35288,13 @@ span.CodeMirror-selectedtext {
 @media (max-width: 930px) {
   .bs-incident-notes-content {
     display: block;
+  }
+}
+
+@media (min-width: 1200px) {
+  .theme-list-3c {
+    width: 80%;
+    margin: auto;
   }
 }
 
