@@ -1075,7 +1075,8 @@ const { ErrorTracker } = Fyipe;
                                                     
 // set up tracking configurations                    
 const options = {                    
-    maxTimeline: 10,                    
+    maxTimeline: 10, 
+    captureCodeSnippet: true,                   
 };
                                                     
 // constructor                    
@@ -1086,10 +1087,7 @@ const tracker = new ErrorTracker(
     options // Optional Field
 );
                                 
-// capturing error exception 
-NonExistingMethodCall(); // this is automatically captured and sent to your fyipe dashboard
-                                
-// capturing error exception manually
+// capturing error exception manually and sent to your fyipe dashboard
 try {
     // your code logic
     NonExistingMethodCall();
