@@ -385,7 +385,7 @@ module.exports = {
 
             if (!skip) skip = 0;
 
-            if (!limit) limit = 5;
+            if (!limit || isNaN(limit)) limit = 5;
 
             if (typeof skip === 'string') skip = parseInt(skip);
 
