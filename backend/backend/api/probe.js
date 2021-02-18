@@ -136,7 +136,12 @@ router.get('/monitors', isAuthorizedProbe, async function(req, res) {
                 global.io.emit(`updateProbe-${projectId}`, probe);
             }
         }
-        return sendListResponse(req, res, monitors, monitors.length);
+        return sendListResponse(
+            req,
+            res,
+            JSON.stringify(monitors),
+            monitors.length
+        );
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
