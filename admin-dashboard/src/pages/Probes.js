@@ -15,7 +15,7 @@ class Probes extends React.Component {
     constructor(props) {
         super(props);
 
-        this.state = { addModalId: uuid.v4() };
+        this.state = { addModalId: uuid.v4(), page: 1 };
     }
 
     componentDidMount() {
@@ -50,10 +50,12 @@ class Probes extends React.Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
+        this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip, limit) => {
         this.props.getProbes(skip + limit, 10);
+        this.setState({ page: this.state.page + 1 });
     };
 
     ready = () => {
@@ -169,6 +171,7 @@ class Probes extends React.Component {
                                             <ProbeList
                                                 prevClicked={this.prevClicked}
                                                 nextClicked={this.nextClicked}
+                                                page={this.state.page}
                                             />
                                         </div>
                                     </div>
