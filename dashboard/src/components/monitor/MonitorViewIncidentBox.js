@@ -23,6 +23,7 @@ export class MonitorViewIncidentBox extends Component {
             filteredIncidents: [],
             isFiltered: false,
             filterOption: 'Filter By',
+            page: 1,
         };
     }
 
@@ -31,10 +32,13 @@ export class MonitorViewIncidentBox extends Component {
             this.props.monitor.projectId._id,
             this.props.monitor._id,
             this.props.monitor.skip
-                ? parseInt(this.props.monitor.skip, 10) - 5
-                : 5,
-            5
+                ? parseInt(this.props.monitor.skip, 10) - 10
+                : 10,
+            10
         );
+        this.setState({
+            page: this.state.page === 1 ? 1 : this.state.page - 1,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
@@ -50,10 +54,11 @@ export class MonitorViewIncidentBox extends Component {
             this.props.monitor.projectId._id,
             this.props.monitor._id,
             this.props.monitor.skip
-                ? parseInt(this.props.monitor.skip, 10) + 5
-                : 5,
-            5
+                ? parseInt(this.props.monitor.skip, 10) + 10
+                : 10,
+            10
         );
+        this.setState({ page: this.state.page + 1 });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
@@ -112,7 +117,6 @@ export class MonitorViewIncidentBox extends Component {
             filterOption,
         } = this.state;
         const creating = this.props.create ? this.props.create : false;
-
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -228,6 +232,7 @@ export class MonitorViewIncidentBox extends Component {
                         nextClicked={this.nextClicked}
                         filteredIncidents={filteredIncidents}
                         isFiltered={isFiltered}
+                        page={this.state.page}
                     />
                 </div>
             </div>

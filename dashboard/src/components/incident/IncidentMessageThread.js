@@ -32,6 +32,7 @@ export class IncidentMessageThread extends Component {
             deleteIncidentMessage,
             page,
             numberOfPages,
+            count,
         } = this.props;
         return (
             <div className="Box-root">
@@ -1359,30 +1360,12 @@ export class IncidentMessageThread extends Component {
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
-                                        ? `Page ${page} of ${numberOfPages} (${
-                                              incidentMessages &&
-                                              incidentMessages.incidentMessages
-                                                  .length
-                                                  ? incidentMessages
-                                                        .incidentMessages
-                                                        .length +
-                                                    (incidentMessages
-                                                        .incidentMessages
-                                                        .length > 1
-                                                        ? ' Messages'
-                                                        : ' Message')
-                                                  : '0 Messages'
+                                        ? `Page ${page} of ${numberOfPages} (${count} Message${
+                                              count === 1 ? '' : 's'
                                           })`
-                                        : incidentMessages &&
-                                          incidentMessages.incidentMessages
-                                              .length
-                                        ? incidentMessages.incidentMessages
-                                              .length +
-                                          (incidentMessages.incidentMessages
-                                              .length > 1
-                                              ? ' Messages'
-                                              : ' Message')
-                                        : '0 Messages'}
+                                        : `${count} Message${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </span>
                         </div>
@@ -1458,6 +1441,9 @@ IncidentMessageThread.propTypes = {
     editMessageModalId: PropTypes.string,
     deleteMessageModalId: PropTypes.string,
     deleteIncidentMessage: PropTypes.func,
+    count: PropTypes.number,
+    numberOfPages: PropTypes.number,
+    page: PropTypes.number,
 };
 
 export default IncidentMessageThread;

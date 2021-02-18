@@ -119,14 +119,22 @@ export class MonitorDetail extends Component {
     };
 
     prevClicked = () => {
-        this.props.fetchMonitorsIncidents(
-            this.props.monitor.projectId._id,
-            this.props.monitor._id,
-            this.props.monitor.skip
-                ? parseInt(this.props.monitor.skip, 10) - 3
-                : 3,
-            3
-        );
+        this.props
+            .fetchMonitorsIncidents(
+                this.props.monitor.projectId._id,
+                this.props.monitor._id,
+                this.props.monitor.skip
+                    ? parseInt(this.props.monitor.skip, 10) - 3
+                    : 3,
+                3
+            )
+            .then(() => {
+                this.setState({
+                    [this.props.monitor._id]:
+                        this.state[this.props.monitor._id] - 1,
+                });
+            });
+
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
@@ -134,22 +142,36 @@ export class MonitorDetail extends Component {
                     ProjectId: this.props.monitor.projectId._id,
                     monitorId: this.props.monitor._id,
                     skip: this.props.monitor.skip
-                        ? parseInt(this.props.monitor.skip, 10) - 3
-                        : 3,
+                        ? parseInt(this.props.monitor.skip, 10) - 10
+                        : 10,
                 }
             );
         }
     };
 
     nextClicked = () => {
-        this.props.fetchMonitorsIncidents(
-            this.props.monitor.projectId._id,
-            this.props.monitor._id,
-            this.props.monitor.skip
-                ? parseInt(this.props.monitor.skip, 10) + 3
-                : 3,
-            3
-        );
+        this.props
+            .fetchMonitorsIncidents(
+                this.props.monitor.projectId._id,
+                this.props.monitor._id,
+                this.props.monitor.skip
+                    ? parseInt(this.props.monitor.skip, 10) + 3
+                    : 3,
+                3
+            )
+            .then(() => {
+                const numberOfPage = Math.ceil(
+                    parseInt(this.props.monitor && this.props.monitor.count) / 3
+                );
+                this.setState({
+                    [this.props.monitor._id]: this.state[this.props.monitor._id]
+                        ? this.state[this.props.monitor._id] < numberOfPage
+                            ? this.state[this.props.monitor._id] + 1
+                            : numberOfPage
+                        : 2,
+                });
+            });
+
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
@@ -157,7 +179,7 @@ export class MonitorDetail extends Component {
                     ProjectId: this.props.monitor.projectId._id,
                     monitorId: this.props.monitor._id,
                     skip: this.props.monitor.skip
-                        ? parseInt(this.props.monitor.skip, 10) + 3
+                        ? parseInt(this.props.monitor.skip, 3) + 3
                         : 3,
                 }
             );
@@ -219,6 +241,9 @@ export class MonitorDetail extends Component {
             activeIncident,
             componentId,
         } = this.props;
+        const numberOfPage = Math.ceil(
+            parseInt(this.props.monitor && this.props.monitor.count) / 3
+        );
         const probe =
             monitor && probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
@@ -667,6 +692,19 @@ export class MonitorDetail extends Component {
                                                         nextClicked={
                                                             this.nextClicked
                                                         }
+                                                        page={
+                                                            this.state[
+                                                                monitor._id
+                                                            ]
+                                                                ? this.state[
+                                                                      monitor
+                                                                          ._id
+                                                                  ]
+                                                                : 1
+                                                        }
+                                                        numberOfPage={
+                                                            numberOfPage
+                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -728,6 +766,14 @@ export class MonitorDetail extends Component {
                                                     nextClicked={
                                                         this.nextClicked
                                                     }
+                                                    page={
+                                                        this.state[monitor._id]
+                                                            ? this.state[
+                                                                  monitor._id
+                                                              ]
+                                                            : 1
+                                                    }
+                                                    numberOfPage={numberOfPage}
                                                 />
                                             </div>
                                         </div>

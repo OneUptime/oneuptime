@@ -10,6 +10,7 @@ import MessageBox from '../components/MessageBox';
 import { identify, setUserId, logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS, DISABLE_SIGNUP } from '../config';
 import { history } from '../store';
+import { resendTokenReset } from '../actions/resendToken';
 
 class LoginPage extends React.Component {
     constructor(props) {
@@ -66,15 +67,26 @@ class LoginPage extends React.Component {
                         <div>
                             <MessageBox
                                 title="Your email is not verified."
-                                //eslint-disable-next-line
-                                message={`An email is on its way to you with new verification link. Please don't forget to check spam.`}
+                                message="An email is on its way to you with new verification link. Please don&#39;t forget to check spam."
                             >
                                 <div className="below-box">
                                     <p>
                                         Click{' '}
-                                        <Link to="/accounts/user-verify/resend">
+                                        <span
+                                            style={{
+                                                cursor: 'pointer',
+                                                fontWeight: 'bold',
+                                                textDecoration: 'underline',
+                                            }}
+                                            onClick={() => {
+                                                this.props.resendTokenReset();
+                                                history.push(
+                                                    '/accounts/user-verify/resend'
+                                                );
+                                            }}
+                                        >
                                             here
-                                        </Link>{' '}
+                                        </span>{' '}
                                         to resend verification link to your
                                         email.
                                     </p>
@@ -141,7 +153,10 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ loginUser, loginUserSso, loginError }, dispatch);
+    bindActionCreators(
+        { loginUser, loginUserSso, loginError, resendTokenReset },
+        dispatch
+    );
 
 LoginPage.propTypes = {
     loginUser: PropTypes.func.isRequired,
@@ -153,6 +168,7 @@ LoginPage.propTypes = {
     location: PropTypes.object,
     masterAdminExists: PropTypes.bool,
     requestingMasterAdmin: PropTypes.bool,
+    resendTokenReset: PropTypes.func,
 };
 
 LoginPage.displayName = 'LoginPage';

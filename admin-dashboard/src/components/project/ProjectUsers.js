@@ -127,8 +127,7 @@ class ProjectUser extends Component {
                                             {user && user.name
                                                 ? 'Online ' +
                                                   moment(
-                                                      user.userId &&
-                                                          user.userId.lastActive
+                                                      user && user.lastActive
                                                   ).fromNow()
                                                 : 'Invitation Sent'}
                                         </span>
