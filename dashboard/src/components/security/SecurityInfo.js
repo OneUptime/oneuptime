@@ -34,6 +34,7 @@ const SecurityInfo = ({
     scanContainerError,
     activeApplicationSecurity,
     activeContainerSecurity,
+    slug,
 }) => {
     const scanSecurity = () => {
         if (applicationSecurityId) {
@@ -56,7 +57,7 @@ const SecurityInfo = ({
             (type === 'application' && 'application');
 
         history.push(
-            `/dashboard/project/${projectId}/${componentId}/security/${type}/${securityId}`
+            `/dashboard/project/${slug}/${componentId}/security/${type}/${securityId}`
         );
     };
 
@@ -364,6 +365,7 @@ SecurityInfo.propTypes = {
     ]),
     activeApplicationSecurity: PropTypes.string,
     activeContainerSecurity: PropTypes.string,
+    slug: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -382,6 +384,9 @@ const mapStateToProps = state => {
         scanContainerError: state.security.scanContainerSecurity.error,
         activeApplicationSecurity: state.security.activeApplicationSecurity,
         activeContainerSecurity: state.security.activeContainerSecurity,
+        slug:
+            state.project.currentProject !== null &&
+            state.project.currentProject.slug,
     };
 };
 

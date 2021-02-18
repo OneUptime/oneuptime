@@ -42,7 +42,7 @@ class DeleteApplicationSecurity extends Component {
 
         deleteApplicationSecurity(data).then(() => {
             history.push(
-                `/dashboard/project/${data.projectId}/${data.componentId}/security/application`
+                `/dashboard/project/${this.props.slug}/${data.componentId}/security/application`
             );
 
             if (!deleteApplicationError) {
@@ -173,6 +173,7 @@ DeleteApplicationSecurity.propTypes = {
     deleteApplicationSecurity: PropTypes.func,
     closeModal: PropTypes.func,
     modalId: PropTypes.string,
+    slug: PropTypes.string,
     propArr: PropTypes.array,
 };
 
@@ -181,6 +182,9 @@ const mapStateToProps = state => {
         isRequesting: state.security.deleteApplication.requesting,
         deleteApplicationError: state.security.deleteApplication.error,
         modalId: state.modal.modals[0].id,
+        slug:
+            state.project.currentProject !== null &&
+            state.project.currentProject.slug,
     };
 };
 

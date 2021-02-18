@@ -68,7 +68,7 @@ class Container extends Component {
 
         socket.on(`createContainerSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${projectId}/${componentId}/security/container/${data._id}`
+                `/dashboard/project/${this.props.slug}/${componentId}/security/container/${data._id}`
             );
         });
 
@@ -186,6 +186,7 @@ Container.displayName = 'Container Security Page';
 Container.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    slug: PropTypes.string,
     containerSecurities: PropTypes.array,
     getContainerSecurities: PropTypes.func,
     getContainerSecurityLogs: PropTypes.func,
@@ -218,6 +219,9 @@ const mapStateToProps = (state, ownProps) => {
     return {
         projectId,
         componentId,
+        slug:
+            state.project.currentProject !== null &&
+            state.project.currentProject.slug,
         containerSecurities: state.security.containerSecurities,
         gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,
         gettingContainerSecurities: state.security.getContainer.requesting,

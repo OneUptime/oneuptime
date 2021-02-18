@@ -19,7 +19,7 @@ export class DeleteStatusPageBox extends Component {
     }
 
     handleClick = () => {
-        const { projectId, deleteStatusPage, scheduleId, history } = this.props;
+        const { deleteStatusPage, scheduleId, history } = this.props;
         const { deleteModalId } = this.state;
         const { subProjectId } = this.props.match.params;
         this.props.openModal({
@@ -32,7 +32,7 @@ export class DeleteStatusPageBox extends Component {
                         );
                     }
                     history.push(
-                        `/dashboard/project/${projectId}/status-pages`
+                        `/dashboard/project/${this.props.slug}/status-pages`
                     );
                 });
             },
@@ -114,6 +114,9 @@ const mapStateToProps = (state, props) => {
     return {
         // scheduleName,
         projectId,
+        slug:
+            state.project.currentProject !== null &&
+            state.project.currentProject.slug,
         scheduleId,
         isRequesting:
             state.statusPage &&
@@ -125,10 +128,6 @@ const mapStateToProps = (state, props) => {
 DeleteStatusPageBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     history: PropTypes.object.isRequired,
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     scheduleId: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
@@ -136,6 +135,7 @@ DeleteStatusPageBox.propTypes = {
     deleteStatusPage: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
+    slug: PropTypes.string,
     match: PropTypes.object,
 };
 

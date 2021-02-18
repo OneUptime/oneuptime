@@ -325,7 +325,7 @@ class Home extends Component {
                     <OngoingScheduledEvent
                         event={event}
                         monitorList={this.props.monitorList}
-                        projectId={this.props.currentProjectId}
+                        slug={this.props.slug}
                     />
                 </RenderIfUserInSubProject>
             ));
@@ -644,6 +644,7 @@ Home.propTypes = {
     fetchUserSchedule: PropTypes.func,
     escalation: PropTypes.object,
     escalations: PropTypes.array,
+    slug: PropTypes.string,
     closeIncident: PropTypes.func,
     incidents: PropTypes.oneOfType([
         PropTypes.array,
@@ -724,6 +725,9 @@ const mapStateToProps = (state, props) => {
         defaultMonitorSla: state.monitorSla.defaultMonitorSla.sla,
         closingSla: state.monitor.closeBreachedMonitorSla.requesting,
         errorTrackers: state.errorTracker.errorTrackersList.errorTrackers,
+        slug:
+            state.project.currentProject !== null &&
+            state.project.currentProject.slug,
     };
 };
 

@@ -37,13 +37,12 @@ class DeleteSchedule extends Component {
             modalId,
             data,
         } = this.props;
-        const { projectId, eventId, parentProjectId } = data;
+        const { projectId, eventId } = data;
         deleteScheduledEvent(projectId, eventId).then(() => {
             if (!deleteError) {
                 closeModal({ id: modalId });
                 return history.push(
-                    `/dashboard/project/${parentProjectId ||
-                        projectId}/scheduledEvents`
+                    `/dashboard/project/${this.props.slug}/scheduledEvents`
                 );
             }
         });
@@ -161,6 +160,7 @@ DeleteSchedule.propTypes = {
     closeModal: PropTypes.func,
     deleteScheduledEvent: PropTypes.func,
     modalId: PropTypes.string,
+    slug: PropTypes.string,
     data: PropTypes.object,
 };
 
@@ -169,6 +169,9 @@ const mapStateToProps = state => {
         isRequesting: state.scheduledEvent.deletedScheduledEvent.requesting,
         deleteError: state.scheduledEvent.deletedScheduledEvent.error,
         modalId: state.modal.modals[0].id,
+        slug:
+            state.project.currentProject !== null &&
+            state.project.currentProject.slug,
     };
 };
 
