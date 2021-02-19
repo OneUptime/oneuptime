@@ -94,7 +94,7 @@ GitCredential.propTypes = {
 const mapStateToProps = state => {
     return {
         projectId:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject._id,
         gitCredentials: state.credential.gitCredentials,
         getError: state.credential.getCredential.error,

@@ -225,7 +225,7 @@ const mapStateToProps = (state, props) => {
     const users =
         state.teams.teamMembers.filter(user => user.name && user.name !== '') ||
         [];
-    const projectId = state.project.currentProject !== null &&
+    const projectId = state.project.currentProject &&
     state.project.currentProject._id;
     const isRequesting = state.teams.teamLoading.requesting;
     const addUserRequesting = state.schedule.addUser.requesting;

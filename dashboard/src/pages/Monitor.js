@@ -501,7 +501,7 @@ const mapDispatchToProps = dispatch => {
 
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
-    const projectId=state.project.currentProject !== null &&
+    const projectId=state.project.currentProject &&
     state.project.currentProject._id;
     const monitor = state.monitor;
     let component;

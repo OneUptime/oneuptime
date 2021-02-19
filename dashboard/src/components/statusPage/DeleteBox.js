@@ -115,7 +115,7 @@ const mapStateToProps = (state, props) => {
         // scheduleName,
         projectId,
         slug:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject.slug,
         scheduleId,
         isRequesting:

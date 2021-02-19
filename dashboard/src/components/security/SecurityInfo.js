@@ -385,7 +385,7 @@ const mapStateToProps = state => {
         activeApplicationSecurity: state.security.activeApplicationSecurity,
         activeContainerSecurity: state.security.activeContainerSecurity,
         slug:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject.slug,
     };
 };

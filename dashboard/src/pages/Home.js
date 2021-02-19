@@ -679,7 +679,7 @@ Home.propTypes = {
 };
 
 const mapStateToProps = state => {
-    const projectId = state.project.currentProject !== null &&
+    const projectId = state.project.currentProject &&
     state.project.currentProject._id;
     let monitors = [],
         components = [],
@@ -732,7 +732,7 @@ const mapStateToProps = state => {
         closingSla: state.monitor.closeBreachedMonitorSla.requesting,
         errorTrackers: state.errorTracker.errorTrackersList.errorTrackers,
         slug:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject.slug,
     };
 };

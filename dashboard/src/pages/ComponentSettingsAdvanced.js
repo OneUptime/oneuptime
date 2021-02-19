@@ -165,7 +165,7 @@ const mapStateToProps = (state, ownProps) => {
     return {
         component: component,
         slug:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject.slug,
     };
 };

@@ -143,7 +143,7 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = (state, ownProps) => {
     const { componentId } = ownProps.match.params;
     const projectId =
-        state.project.currentProject !== null &&
+    state.project.currentProject &&
         state.project.currentProject._id;
     const currentProject = state.project.currentProject;
 

@@ -452,7 +452,7 @@ const mapStateToProps = (state, props) => {
         component,
         monitor,
         monitorState: state.monitor,
-        projectId: state.project.currentProject !== null &&
+        projectId: state.project.currentProject &&
         state.project.currentProject._id,
     };
 };

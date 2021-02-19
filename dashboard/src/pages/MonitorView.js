@@ -976,7 +976,7 @@ const mapStateToProps = (state, props) => {
     return {
         defaultSchedule,
         scheduleWarning,
-        projectId:state.project.currentProject !== null &&
+        projectId:state.project.currentProject &&
         state.project.currentProject._id,
         monitorId,
         componentId,

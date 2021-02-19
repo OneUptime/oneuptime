@@ -337,7 +337,7 @@ const mapStateToProps = state => {
         subProjectNames.map(name =>
             subProjects.find(subProject => subProject.name === name)
         );
-    const projectId = state.project.currentProject !== null &&
+    const projectId = state.project.currentProject &&
     state.project.currentProject._id;
     const currentProjectId = projectId;
     const schedules = state.schedule.subProjectSchedules;

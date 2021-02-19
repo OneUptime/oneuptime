@@ -183,7 +183,7 @@ const mapStateToProps = state => {
         deleteApplicationError: state.security.deleteApplication.error,
         modalId: state.modal.modals[0].id,
         slug:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject.slug,
     };
 };

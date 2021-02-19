@@ -218,11 +218,11 @@ const mapStateToProps = (state, ownProps) => {
 
     return {
         projectId:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject._id,
         componentId,
         slug:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject.slug,
         containerSecurities: state.security.containerSecurities,
         gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,

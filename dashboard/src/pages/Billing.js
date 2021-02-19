@@ -68,7 +68,7 @@ Billing.displayName = 'Billing';
 
 const mapStateToProps = state => {
     const projectId =
-        state.project.currentProject !== null &&
+    state.project.currentProject &&
         state.project.currentProject._id;
     return {
         currentProjectId: projectId,

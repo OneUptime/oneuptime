@@ -128,12 +128,12 @@ const mapStateToProps = (state, props) => {
     return {
         scheduleName,
         projectId:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject._id,
         subProjectId,
         scheduleId,
         slug:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject.slug,
         userId,
         isRequesting: state.schedule.deleteSchedule.requesting,

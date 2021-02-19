@@ -210,10 +210,10 @@ const mapStateToProps = (state, ownProps) => {
     return {
         componentId,
         projectId:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject._id,
         slug:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject.slug,
         applicationSecurities: state.security.applicationSecurities,
         gettingSecurityLogs:

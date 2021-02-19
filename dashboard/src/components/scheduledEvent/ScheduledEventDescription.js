@@ -376,7 +376,7 @@ const mapStateToProps = state => {
     return {
         resolving: state.scheduledEvent.resolveScheduledEvent.requesting,
         slug:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject.slug,
     };
 };

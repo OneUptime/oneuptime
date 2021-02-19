@@ -110,7 +110,7 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = state => {
     const { projects } = state.project.projects;
     const projectId = 
-    state.project.currentProject !== null &&
+    state.project.currentProject &&
     state.project.currentProject._id;
     const project =
         projects !== undefined && projects.length > 0

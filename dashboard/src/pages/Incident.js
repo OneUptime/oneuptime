@@ -671,7 +671,7 @@ const mapStateToProps = (state, props) => {
         type: monitor && monitor.type ? monitor.type : null,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
-        projectId: state.project.currentProject !== null &&
+        projectId: state.project.currentProject &&
         state.project.currentProject._id,
         incidentTimeline: state.incident.incident,
         count: state.alert.incidentalerts.count,
