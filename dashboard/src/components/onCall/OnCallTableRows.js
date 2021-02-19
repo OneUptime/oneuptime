@@ -94,6 +94,7 @@ function OnCallTableRows({
     match,
     subProjectId,
     bottonTitle,
+    slug
 }) {
     return schedules.length > 0
         ? schedules.map((schedule, index) => {
@@ -110,6 +111,7 @@ function OnCallTableRows({
                       match={match}
                       subProjectId={subProjectId}
                       bottonTitle={bottonTitle}
+                      slug={slug}
                   />
               );
           })

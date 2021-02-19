@@ -231,7 +231,7 @@ export class OnCall extends Component {
         projectSchedule =
             projectSchedule && projectSchedule.schedules ? (
                 <RenderIfUserInSubProject
-                    subProjectId={currentProject._id}
+                    subProjectId={currentProject && currentProject._id}
                     key={() => uuid.v4()}
                 >
                     <div className="bs-BIM">
@@ -243,7 +243,7 @@ export class OnCall extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ScheduleProjectBox
-                                    projectId={currentProject._id}
+                                    projectId={currentProject && currentProject._id}
                                     currentProject={currentProject}
                                     schedules={schedules}
                                     isRequesting={isRequesting}
@@ -252,7 +252,7 @@ export class OnCall extends Component {
                                     limit={limit}
                                     numberOfSchedules={numberOfSchedules}
                                     subProjectSchedule={projectSchedule}
-                                    subProjectName={currentProject.name}
+                                    subProjectName={currentProject && currentProject.name}
                                     scheduleModalId={this.state.scheduleModalId}
                                     openModal={this.props.openModal}
                                     subProject={currentProject}
@@ -265,7 +265,7 @@ export class OnCall extends Component {
                                         subProjectSchedules.length
                                     }
                                     modalList={this.props.modalList}
-                                    page={this.state[currentProject._id]}
+                                    page={this.state[currentProject && currentProject._id]}
                                 />
                             </div>
                         </div>
