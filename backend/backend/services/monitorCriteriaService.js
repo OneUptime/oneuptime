@@ -474,13 +474,6 @@ const MonitorCriteriaService = {
                         field2: '',
                         field3: false,
                     },
-                    {
-                        responseType: 'jobStatus',
-                        filter: 'equalTo',
-                        field1: 'failed',
-                        field2: '',
-                        field3: false,
-                    },
                 ],
                 up_1000_createAlert: false,
                 up_1000_autoAcknowledge: false,
