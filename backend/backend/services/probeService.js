@@ -5979,6 +5979,53 @@ const checkOr = async (
                             }
                         );
                     }
+                } else if (
+                    con.or[i] &&
+                    con.or[i].responseType === 'respondsToPing'
+                ) {
+                    if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'isUp'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].filter &&
+                            !(statusCode === 408 || statusCode === '408')
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Online`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Offline`
+                            );
+                        }
+                    } else if (
+                        con.or[i] &&
+                        con.or[i].filter &&
+                        con.or[i].filter === 'isDown'
+                    ) {
+                        if (
+                            con.or[i] &&
+                            con.or[i].filter &&
+                            (statusCode === 408 || statusCode === '408')
+                        ) {
+                            validity = true;
+                            successReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Offline`
+                            );
+                        } else {
+                            failedReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Online`
+                            );
+                        }
+                    }
                 }
 
                 if (
