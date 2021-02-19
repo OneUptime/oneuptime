@@ -17,6 +17,7 @@ class Users extends Component {
         this.state = {
             searchBox: null,
             addModalId: uuid.v4(),
+            page: 1,
         };
     }
 
@@ -68,6 +69,7 @@ class Users extends Component {
         } else {
             fetchUsers((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
         }
+        this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip, limit) => {
@@ -79,6 +81,7 @@ class Users extends Component {
         } else {
             fetchUsers(skip + limit, 10);
         }
+        this.setState({ page: this.state.page + 1 });
     };
 
     onChange = e => {
@@ -87,6 +90,7 @@ class Users extends Component {
 
         this.setState({ searchBox: value });
         searchUsers(value, 0, 10);
+        this.setState({ page: 1 });
     };
 
     handleClick = () => {
@@ -119,6 +123,7 @@ class Users extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(parseInt(user.users.count) / 10);
         return (
             <Dashboard ready={this.ready}>
                 <div
@@ -269,12 +274,30 @@ class Users extends Component {
                                                 <div className="bs-Tail bs-Tail--separated bs-Tail--short">
                                                     <div className="bs-Tail-copy">
                                                         <span>
-                                                            {user.users.count}{' '}
-                                                            Fyipe User
-                                                            {user.users
-                                                                .count === 1
-                                                                ? ''
-                                                                : 's'}
+                                                            {numberOfPages > 0
+                                                                ? `Page ${
+                                                                      this.state
+                                                                          .page
+                                                                  } of ${numberOfPages} (${
+                                                                      user.users
+                                                                          .count
+                                                                  } Fyipe User${
+                                                                      user.users
+                                                                          .count ===
+                                                                      1
+                                                                          ? ''
+                                                                          : 's'
+                                                                  })`
+                                                                : `${
+                                                                      user.users
+                                                                          .count
+                                                                  } Fyipe User${
+                                                                      user.users
+                                                                          .count ===
+                                                                      1
+                                                                          ? ''
+                                                                          : 's'
+                                                                  }`}
                                                         </span>
                                                     </div>
                                                     <div className="bs-Tail-actions">
