@@ -700,8 +700,47 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
             });
 
-        case 'UPDATE_MONITOR_LOG':
+        case 'UPDATE_MONITOR_LOG': {
+            const isPresent =
+                state.monitorLogs &&
+                state.monitorLogs[action.payload.monitorId] &&
+                state.monitorLogs[action.payload.monitorId].logs
+                    ? true
+                    : false;
+            const newMonitorLogs = isPresent
+                ? {
+                      ...state.monitorLogs,
+                      [action.payload.monitorId]: {
+                          ...state.monitorLogs[action.payload.monitorId],
+                          logs: (() => {
+                              state.monitorLogs[
+                                  action.payload.monitorId
+                              ].logs.unshift(action.payload.logData);
+                              state.monitorLogs[
+                                  action.payload.monitorId
+                              ].logs.pop();
+                              return state.monitorLogs[action.payload.monitorId]
+                                  .logs;
+                          })(),
+                          count:
+                              state.monitorLogs[action.payload.monitorId]
+                                  .count + 1,
+                      },
+                  }
+                : {
+                      ...state.monitorLogs,
+                      [action.payload.monitorId]: {
+                          logs: [action.payload.logData],
+                          error: null,
+                          requesting: false,
+                          success: false,
+                          skip: 0,
+                          limit: 10,
+                          count: 1,
+                      },
+                  };
             return Object.assign({}, state, {
+                monitorLogs: newMonitorLogs,
                 monitorsList: {
                     ...state.monitorsList,
                     requesting: false,
@@ -900,6 +939,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
                 fetchMonitorLogsRequest: false,
             });
+        }
 
         case 'UPDATE_MONITOR_STATUS':
             return Object.assign({}, state, {

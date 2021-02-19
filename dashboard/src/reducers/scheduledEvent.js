@@ -44,6 +44,8 @@ import {
     RESOLVE_SCHEDULED_EVENT_FAILURE,
     RESOLVE_SCHEDULED_EVENT_REQUEST,
     RESOLVE_SCHEDULED_EVENT_SUCCESS,
+    NEXT_PAGE,
+    PREV_PAGE,
 } from '../constants/scheduledEvent';
 import moment from 'moment';
 
@@ -139,6 +141,7 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    pages: {},
 };
 
 export default function scheduledEvent(state = INITIAL_STATE, action) {
@@ -223,6 +226,10 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     success: true,
                     scheduledEvent: action.payload,
                 },
+                pages: {
+                    ...state.pages,
+                    [action.payload.projectId._id]: 1,
+                },
                 scheduledEventList: {
                     ...state.scheduledEventList,
                     scheduledEvents: [
@@ -249,6 +256,22 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     error: action.payload,
                     success: false,
                     scheduledEvent: state.newScheduledEvent.scheduledEvent,
+                },
+            });
+        case NEXT_PAGE:
+            return Object.assign({}, state, {
+                pages: {
+                    ...state.pages,
+                    [action.payload]: !state.pages[action.payload]
+                        ? 2
+                        : state.pages[action.payload] + 1,
+                },
+            });
+        case PREV_PAGE:
+            return Object.assign({}, state, {
+                pages: {
+                    ...state.pages,
+                    [action.payload]: state.pages[action.payload] - 1,
                 },
             });
         case CREATE_SCHEDULED_EVENT_REQUEST:

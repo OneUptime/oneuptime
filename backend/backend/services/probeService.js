@@ -3860,6 +3860,57 @@ const checkAnd = async (
                             }
                         );
                     }
+                } else if (
+                    con.and[i] &&
+                    con.and[i].responseType === 'respondsToPing'
+                ) {
+                    if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'isUp'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].filter &&
+                                !(statusCode === 408 || statusCode === '408')
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Offline`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Online`
+                            );
+                        }
+                    } else if (
+                        con.and[i] &&
+                        con.and[i].filter &&
+                        con.and[i].filter === 'isDown'
+                    ) {
+                        if (
+                            !(
+                                con.and[i] &&
+                                con.and[i].filter &&
+                                (statusCode === 408 || statusCode === '408')
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Online`
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings[type] ||
+                                    'Monitor was'} Offline`
+                            );
+                        }
+                    }
                 }
             }
         }

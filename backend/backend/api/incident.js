@@ -27,6 +27,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const subscriberAlertService = require('../services/subscriberAlertService');
 const onCallScheduleStatusService = require('../services/onCallScheduleStatusService');
+const Services = require('../utils/services');
 
 // Route
 // Description: Creating incident.
@@ -307,22 +308,23 @@ router.post(
                 incidentId: incident._id,
                 projectId,
             });
-            const subAlerts = deduplicate(subscriberAlerts);
+            const subAlerts = await Services.deduplicate(subscriberAlerts);
             let callScheduleStatus = await onCallScheduleStatusService.findBy({
-                query: {incident: incident._id}
-            })
-            callScheduleStatus = checkCallSchedule(callScheduleStatus);
+                query: { incident: incident._id },
+            });
+            callScheduleStatus = await Services.checkCallSchedule(
+                callScheduleStatus
+            );
             incidentMessages = [
                 ...incidentMessages,
                 ...timeline,
                 ...alerts,
                 ...subAlerts,
-                ...callScheduleStatus
+                ...callScheduleStatus,
             ];
             incidentMessages.sort(
-                (a, b) => 
-                    typeof a.schedule !== 'object' && 
-                    b.createdAt - a.createdAt
+                (a, b) =>
+                    typeof a.schedule !== 'object' && b.createdAt - a.createdAt
             );
             const filteredMsg = incidentMessages.filter(
                 a =>
@@ -330,7 +332,7 @@ router.post(
                     a.status !== 'internal notes updated'
             );
             const result = {
-                data: rearrangeDuty(filteredMsg),
+                data: await Services.rearrangeDuty(filteredMsg),
                 incident,
                 type: 'internal',
             };
@@ -373,22 +375,23 @@ router.post(
                 incidentId: incident._id,
                 projectId,
             });
-            const subAlerts = deduplicate(subscriberAlerts);
+            const subAlerts = await Services.deduplicate(subscriberAlerts);
             let callScheduleStatus = await onCallScheduleStatusService.findBy({
-                query: {incident: incident._id}
-            })
-            callScheduleStatus = checkCallSchedule(callScheduleStatus);
+                query: { incident: incident._id },
+            });
+            callScheduleStatus = await Services.checkCallSchedule(
+                callScheduleStatus
+            );
             incidentMessages = [
                 ...incidentMessages,
                 ...timeline,
                 ...alerts,
                 ...subAlerts,
-                ...callScheduleStatus
+                ...callScheduleStatus,
             ];
             incidentMessages.sort(
-                (a, b) => 
-                    typeof a.schedule !== 'object' && 
-                    b.createdAt - a.createdAt
+                (a, b) =>
+                    typeof a.schedule !== 'object' && b.createdAt - a.createdAt
             );
             const filteredMsg = incidentMessages.filter(
                 a =>
@@ -396,7 +399,7 @@ router.post(
                     a.status !== 'internal notes updated'
             );
             const result = {
-                data: rearrangeDuty(filteredMsg),
+                data: await Services.rearrangeDuty(filteredMsg),
                 incident,
                 type: 'internal',
             };
@@ -636,21 +639,27 @@ router.post(
                     const timeline = await IncidentTimelineService.findBy({
                         incidentId: incident._id,
                     });
-                    const subAlerts = deduplicate(subscriberAlerts);
-                    let callScheduleStatus = await onCallScheduleStatusService.findBy({
-                        query: {incident: incident._id}
-                    })
-                    callScheduleStatus = checkCallSchedule(callScheduleStatus);
+                    const subAlerts = await Services.deduplicate(
+                        subscriberAlerts
+                    );
+                    let callScheduleStatus = await onCallScheduleStatusService.findBy(
+                        {
+                            query: { incident: incident._id },
+                        }
+                    );
+                    callScheduleStatus = await Services.checkCallSchedule(
+                        callScheduleStatus
+                    );
                     incidentMessages = [
                         ...incidentMessages,
                         ...timeline,
                         ...alerts,
                         ...subAlerts,
-                        ...callScheduleStatus
+                        ...callScheduleStatus,
                     ];
                     incidentMessages.sort(
-                        (a, b) => 
-                            typeof a.schedule !== 'object' && 
+                        (a, b) =>
+                            typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
                     );
                     const filteredMsg = incidentMessages.filter(
@@ -660,7 +669,7 @@ router.post(
                     );
                     incidentMessage = {
                         type: data.type,
-                        data: rearrangeDuty(filteredMsg),
+                        data: await Services.rearrangeDuty(filteredMsg),
                     };
                 } else {
                     incidentMessage = await IncidentMessageService.findOneBy({
@@ -734,10 +743,14 @@ router.delete(
                 });
 
                 await RealTimeService.deleteIncidentNote(incidentMessage);
-                let callScheduleStatus = await onCallScheduleStatusService.findBy({
-                    query: {incident: incidentId}
-                })
-                callScheduleStatus = checkCallSchedule(callScheduleStatus);
+                let callScheduleStatus = await onCallScheduleStatusService.findBy(
+                    {
+                        query: { incident: incidentId },
+                    }
+                );
+                callScheduleStatus = await Services.checkCallSchedule(
+                    callScheduleStatus
+                );
                 if (checkMsg.type === 'investigation') {
                     result = incidentMessage;
                 } else {
@@ -748,17 +761,19 @@ router.delete(
                     const timeline = await IncidentTimelineService.findBy({
                         incidentId,
                     });
-                    const subAlerts = deduplicate(subscriberAlerts);
+                    const subAlerts = await Services.deduplicate(
+                        subscriberAlerts
+                    );
                     incidentMessages = [
                         ...incidentMessages,
                         ...timeline,
                         ...alerts,
                         ...subAlerts,
-                        ...callScheduleStatus
+                        ...callScheduleStatus,
                     ];
                     incidentMessages.sort(
-                        (a, b) => 
-                            typeof a.schedule !== 'object' && 
+                        (a, b) =>
+                            typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
                     );
                     const filteredMsg = incidentMessages.filter(
@@ -768,7 +783,7 @@ router.delete(
                     );
                     result = {
                         type: checkMsg.type,
-                        data: rearrangeDuty(filteredMsg),
+                        data: await Services.rearrangeDuty(filteredMsg),
                     };
                 }
                 return sendItemResponse(req, res, result);
@@ -825,21 +840,25 @@ router.get(
             if (type === 'investigation') {
                 result = incidentMessages;
             } else {
-                const subAlerts = deduplicate(subscriberAlerts);
-                let callScheduleStatus = await onCallScheduleStatusService.findBy({
-                    query: {incident: incidentId}
-                })
-                callScheduleStatus = checkCallSchedule(callScheduleStatus);
+                const subAlerts = await Services.deduplicate(subscriberAlerts);
+                let callScheduleStatus = await onCallScheduleStatusService.findBy(
+                    {
+                        query: { incident: incidentId },
+                    }
+                );
+                callScheduleStatus = await Services.checkCallSchedule(
+                    callScheduleStatus
+                );
                 incidentMessages = [
                     ...incidentMessages,
                     ...timeline,
                     ...alerts,
                     ...subAlerts,
-                    ...callScheduleStatus
+                    ...callScheduleStatus,
                 ];
                 incidentMessages.sort(
-                    (a, b) => 
-                        typeof a.schedule !== 'object' && 
+                    (a, b) =>
+                        typeof a.schedule !== 'object' &&
                         b.createdAt - a.createdAt
                 );
                 const filteredMsg = incidentMessages.filter(
@@ -847,7 +866,7 @@ router.get(
                         a.status !== 'internal notes added' &&
                         a.status !== 'internal notes updated'
                 );
-                result = rearrangeDuty(filteredMsg);
+                result = await Services.rearrangeDuty(filteredMsg);
             }
             return sendListResponse(req, res, result, count);
         } catch (error) {
@@ -936,46 +955,5 @@ router.get(
         }
     }
 );
-
-function deduplicate(arr = []) {
-    const map = {};
-
-    let curr;
-
-    for (let i = 0; i < arr.length; i++) {
-        curr = arr[i];
-
-        if (!map[curr.identification]) {
-            map[curr.identification] = curr;
-        } else {
-            if (curr.error && !map[curr.identification].error) {
-                map[curr.identification].error = true;
-            }
-        }
-    }
-
-    return Object.values(map);
-}
-
-function rearrangeDuty(main = []) {
-    let closeStringId;
-    for (let i = 0; i < main.length; i++) {
-        if (typeof main[i].schedule == "object"){
-             closeStringId = i - 1
-             break;
-        } 
-   }
-   main.push(main[closeStringId])
-   main.splice(closeStringId, 1)
-   return main;
-}
-
-function checkCallSchedule(arr) {
-    const isAllFalse = arr.every(a => !a.isOnDuty);
-    
-    if(isAllFalse) return [arr[0]];
-    
-    return arr.filter(a => a.isOnDuty)
-}
 
 module.exports = router;

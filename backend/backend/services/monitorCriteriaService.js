@@ -498,7 +498,7 @@ const MonitorCriteriaService = {
                         field3: false,
                     },
                 ],
-                up_1000_createAlert: true,
+                up_1000_createAlert: false,
                 up_1000_autoAcknowledge: true,
                 up_1000_autoResolve: true,
                 down_1000: [
@@ -516,7 +516,7 @@ const MonitorCriteriaService = {
                     },
                     {
                         responseType: 'respondsToPing',
-                        filter: 'isUp',
+                        filter: 'isDown',
                         field1: '',
                         field2: '',
                         field3: false,

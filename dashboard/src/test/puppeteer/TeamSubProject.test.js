@@ -128,13 +128,13 @@ describe('Team API With SubProjects', () => {
                     `#count_${data.projectName}`,
                     elem => elem.textContent
                 );
-                expect(memberCount).toEqual('2 Team Members');
+                expect(memberCount).toEqual('Page 1 of 1 (2 Team Members)');
             }
         );
         done();
     }, 200000);
 
-    test('should not all project owner to add other project owners', async () => {
+    test('should not allow project owner to add other project owners', async () => {
         return await cluster.execute(
             { email, password, projectName, isParentUser: true },
             async ({ page, data }) => {
@@ -162,7 +162,7 @@ describe('Team API With SubProjects', () => {
         );
     });
 
-    test('should not all administrator to add project owners', async () => {
+    test('should not allow administrator to add project owners', async () => {
         return await cluster.execute(
             { anotherEmail, anotherPassword, projectName, isParentUser: true },
             async ({ page, data }) => {
@@ -236,7 +236,7 @@ describe('Team API With SubProjects', () => {
                     `#count_${data.subProjectName}`,
                     elem => elem.textContent
                 );
-                expect(memberCount).toEqual('3 Team Members');
+                expect(memberCount).toEqual('Page 1 of 1 (3 Team Members)');
             }
         );
         done();
@@ -311,7 +311,7 @@ describe('Team API With SubProjects', () => {
                         `#count_${data.projectName}`,
                         elem => elem.textContent
                     );
-                    expect(memberCount).toEqual('1 Team Member');
+                    expect(memberCount).toEqual('Page 1 of 1 (1 Team Member)');
                 }
             );
             done();

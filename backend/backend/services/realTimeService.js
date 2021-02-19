@@ -21,6 +21,34 @@ module.exports = {
         }
     },
 
+    sendIncidentTimeline: async timeline => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: timeline.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : timeline.projectId;
+
+            const data = {
+                incidentId: timeline.incidentId,
+                incidentMessages: timeline.data,
+                count: timeline.data.length,
+                type: 'internal',
+            };
+            global.io.emit(`incidentTimeline-${projectId}`, data);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendIncidentTimeline', error);
+            throw error;
+        }
+    },
+
     sendSlaCountDown: async (incident, countDown) => {
         try {
             if (!global || !global.io) {
@@ -643,7 +671,7 @@ module.exports = {
         }
     },
 
-    updateMonitorLog: async (data, projectId) => {
+    updateMonitorLog: async (data, logData, projectId) => {
         try {
             if (!global || !global.io) {
                 return;
@@ -655,11 +683,11 @@ module.exports = {
                     ? project.parentProjectId._id
                     : project._id
                 : projectId;
-
             global.io.emit(`updateMonitorLog-${parentProjectId}`, {
                 projectId,
                 monitorId: data.monitorId,
                 data,
+                logData,
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateMonitorLog', error);
