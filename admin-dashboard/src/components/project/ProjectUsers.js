@@ -320,6 +320,7 @@ class ProjectUser extends Component {
             canPaginateForward,
             paginate,
         } = this.props;
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
             <div className="Box-root">
                 <div className="ContentHeader Box-root Card-shadow--medium Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-vertical--16">
@@ -456,8 +457,13 @@ class ProjectUser extends Component {
                                 >
                                     <div className="bs-Tail-copy">
                                         <span id={`count_kolawole`}>
-                                            {count} User
-                                            {count > 1 ? 's' : ''}
+                                            {count
+                                                ? `Page ${
+                                                      this.props.page
+                                                  } of ${numberOfPages} (${count} User${
+                                                      count === 1 ? '' : 's'
+                                                  })`
+                                                : null}
                                         </span>
                                     </div>
                                 </ShouldRender>
@@ -548,6 +554,7 @@ ProjectUser.propTypes = {
     canPaginateForward: PropTypes.bool.isRequired,
     paginate: PropTypes.func.isRequired,
     projectName: PropTypes.string,
+    page: PropTypes.number,
 };
 
 function mapStateToProps(state) {

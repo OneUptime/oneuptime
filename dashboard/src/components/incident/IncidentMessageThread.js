@@ -1056,11 +1056,13 @@ export class IncidentMessageThread extends Component {
                                                                                     }{' '}
                                                                                 </span>
                                                                                 <span>
+                                                                                    call
+                                                                                    schedule
                                                                                     was
                                                                                     executed
                                                                                     for
                                                                                     this
-                                                                                    monitor
+                                                                                    incident
                                                                                 </span>
                                                                             </>
                                                                         ) : (
@@ -1121,13 +1123,15 @@ export class IncidentMessageThread extends Component {
                                                             <div
                                                                 className={`bs-incident-notes 
                                                                         ${
-                                                                            incidentMessage.eventType ===
+                                                                            (incidentMessage.eventType ===
                                                                                 'resolved' ||
-                                                                            incidentMessage.eventType ===
-                                                                                'identified'
+                                                                                incidentMessage.eventType ===
+                                                                                    'identified') &&
+                                                                            !incidentMessage.error
                                                                                 ? 'bs-note-resolved'
                                                                                 : incidentMessage.eventType ===
-                                                                                  'acknowledged'
+                                                                                      'acknowledged' &&
+                                                                                  !incidentMessage.error
                                                                                 ? 'bs-note-acknowleged'
                                                                                 : 'bs-note-offline'
                                                                         }`}
@@ -1207,10 +1211,6 @@ export class IncidentMessageThread extends Component {
                                                                             {
                                                                                 ' notified by '
                                                                             }
-                                                                            {incidentMessage.alertVia ===
-                                                                            'email'
-                                                                                ? 'an'
-                                                                                : 'a'}{' '}
                                                                             <span
                                                                                 style={{
                                                                                     fontSize:
@@ -1229,11 +1229,10 @@ export class IncidentMessageThread extends Component {
                                                                                 }
                                                                             </span>
                                                                             {
-                                                                                ' because an '
+                                                                                ' because '
                                                                             }
-                                                                            {incidentMessage.error
-                                                                                ? 'error ocurred'
-                                                                                : 'incident was '}
+                                                                            {!incidentMessage.error &&
+                                                                                'an incident was '}
                                                                             <span className="bs-in-style">
                                                                                 {!incidentMessage.error &&
                                                                                     (incidentMessage.eventType ===
@@ -1276,7 +1275,7 @@ export class IncidentMessageThread extends Component {
                                                                                                                     {incidentMessage.alertStatus ===
                                                                                                                     'Success'
                                                                                                                         ? incidentMessage.alertStatus
-                                                                                                                        : 'error'}
+                                                                                                                        : incidentMessage.errorMessage}
                                                                                                                 </span>
                                                                                                             </span>
                                                                                                         </div>
