@@ -639,7 +639,7 @@ module.exports = {
         if (con && con.length) {
             eventOccurred = con.some(condition => {
                 let stat = true;
-                if (condition && condition.and && condition.and.length) {
+                if (condition && condition.and && !isEmpty(condition.and)) {
                     stat = checkScriptAnd(
                         payload,
                         condition.and,
@@ -648,7 +648,11 @@ module.exports = {
                         successReasons,
                         failedReasons
                     );
-                } else if (condition && condition.or && condition.or.length) {
+                } else if (
+                    condition &&
+                    condition.or &&
+                    !isEmpty(condition.or)
+                ) {
                     stat = checkScriptOr(
                         payload,
                         condition.or,
@@ -6173,13 +6177,13 @@ const checkScriptAnd = (
     failedReasons
 ) => {
     let valid = true;
-
-    con.forEach(condition => {
-        if (condition.collection) {
-            if (condition.collection.and && condition.collection.and.length) {
+    if (con && con.and && con.and.length > 0) {
+        for (let i = 0; i < con.and.length; i++) {
+            if (Array.isArray(con.and[i])) {
+                // check script and
                 const subConditionValid = checkScriptAnd(
                     payload,
-                    condition.collection.and,
+                    { and: con.and[i] },
                     statusCode,
                     body,
                     successReasons,
@@ -6188,32 +6192,78 @@ const checkScriptAnd = (
                 if (!subConditionValid) {
                     valid = false;
                 }
-            }
-            if (condition.collection.or && condition.collection.or.length) {
-                const subConditionValid = checkScriptOr(
+            } else {
+                const validity = checkScriptCondition(
+                    con.and[i],
                     payload,
-                    condition.collection.or,
-                    statusCode,
-                    body,
-                    successReasons,
-                    failedReasons
+                    body
                 );
-                if (!subConditionValid) {
-                    valid = false;
-                }
-            }
-        } else {
-            const validity = checkScriptCondition(condition, payload, body);
-            if (validity) {
-                if (validity.valid) {
-                    successReasons.push(validity.reason);
-                } else {
-                    valid = false;
-                    failedReasons.push(validity.reason);
+                if (validity) {
+                    if (validity.valid) {
+                        successReasons.push(validity.reason);
+                    } else {
+                        valid = false;
+                        failedReasons.push(validity.reason);
+                    }
                 }
             }
         }
-    });
+    }
+
+    if (con && con.or && con.or.length > 0) {
+        const subConditionValid = checkScriptOr(
+            payload,
+            { or: con.or },
+            statusCode,
+            body,
+            successReasons,
+            failedReasons
+        );
+        if (!subConditionValid) {
+            valid = false;
+        }
+    }
+
+    // con.forEach(condition => {
+    //     if (condition.collection) {
+    //         if (condition.collection.and && condition.collection.and.length) {
+    //             const subConditionValid = checkScriptAnd(
+    //                 payload,
+    //                 condition.collection.and,
+    //                 statusCode,
+    //                 body,
+    //                 successReasons,
+    //                 failedReasons
+    //             );
+    //             if (!subConditionValid) {
+    //                 valid = false;
+    //             }
+    //         }
+    //         if (condition.collection.or && condition.collection.or.length) {
+    //             const subConditionValid = checkScriptOr(
+    //                 payload,
+    //                 condition.collection.or,
+    //                 statusCode,
+    //                 body,
+    //                 successReasons,
+    //                 failedReasons
+    //             );
+    //             if (!subConditionValid) {
+    //                 valid = false;
+    //             }
+    //         }
+    //     } else {
+    //         const validity = checkScriptCondition(condition, payload, body);
+    //         if (validity) {
+    //             if (validity.valid) {
+    //                 successReasons.push(validity.reason);
+    //             } else {
+    //                 valid = false;
+    //                 failedReasons.push(validity.reason);
+    //             }
+    //         }
+    //     }
+    // });
     return valid;
 };
 
@@ -6226,25 +6276,13 @@ const checkScriptOr = (
     failedReasons
 ) => {
     let valid = false;
-    con.forEach(condition => {
-        if (condition.collection) {
-            if (condition.collection.and && condition.collection.and.length) {
-                const subConditionValid = checkScriptAnd(
-                    payload,
-                    condition.collection.and,
-                    statusCode,
-                    body,
-                    successReasons,
-                    failedReasons
-                );
-                if (subConditionValid) {
-                    valid = true;
-                }
-            }
-            if (condition.collection.or && condition.collection.or.length) {
+    if (con && con.or && con.or.length > 0) {
+        for (let i = 0; i < con.or.length; i++) {
+            if (Array.isArray(con.or[i])) {
+                // check script or
                 const subConditionValid = checkScriptOr(
                     payload,
-                    condition.collection.or,
+                    { or: con.or[i] },
                     statusCode,
                     body,
                     successReasons,
@@ -6253,19 +6291,73 @@ const checkScriptOr = (
                 if (subConditionValid) {
                     valid = true;
                 }
-            }
-        } else {
-            const validity = checkScriptCondition(condition, payload, body);
-            if (validity) {
-                if (validity.valid) {
-                    valid = true;
-                    successReasons.push(validity.reason);
-                } else {
-                    failedReasons.push(validity.reason);
+            } else {
+                const validity = checkScriptCondition(con.or[i], payload, body);
+                if (validity) {
+                    if (validity.valid) {
+                        valid = true;
+                        successReasons.push(validity.reason);
+                    } else {
+                        failedReasons.push(validity.reason);
+                    }
                 }
             }
         }
-    });
+    }
+
+    if (con && con.and && con.and.length > 0) {
+        const subConditionValid = checkScriptAnd(
+            payload,
+            { and: con.and },
+            statusCode,
+            body,
+            successReasons,
+            failedReasons
+        );
+        if (subConditionValid) {
+            valid = true;
+        }
+    }
+    // con.forEach(condition => {
+    //     if (condition.collection) {
+    //         if (condition.collection.and && condition.collection.and.length) {
+    //             const subConditionValid = checkScriptAnd(
+    //                 payload,
+    //                 condition.collection.and,
+    //                 statusCode,
+    //                 body,
+    //                 successReasons,
+    //                 failedReasons
+    //             );
+    //             if (subConditionValid) {
+    //                 valid = true;
+    //             }
+    //         }
+    //         if (condition.collection.or && condition.collection.or.length) {
+    //             const subConditionValid = checkScriptOr(
+    //                 payload,
+    //                 condition.collection.or,
+    //                 statusCode,
+    //                 body,
+    //                 successReasons,
+    //                 failedReasons
+    //             );
+    //             if (subConditionValid) {
+    //                 valid = true;
+    //             }
+    //         }
+    //     } else {
+    //         const validity = checkScriptCondition(condition, payload, body);
+    //         if (validity) {
+    //             if (validity.valid) {
+    //                 valid = true;
+    //                 successReasons.push(validity.reason);
+    //             } else {
+    //                 failedReasons.push(validity.reason);
+    //             }
+    //         }
+    //     }
+    // });
     return valid;
 };
 
