@@ -697,7 +697,8 @@ export function mapCriteria(val) {
             for (let i = 0; i < val.and.and.length; i++) {
                 val2.push(...val.and.and[i]);
             }
-        } else if (val.and && val.and.or && val.and.or.length > 0) {
+        }
+        if (val.and && val.and.or && val.and.or.length > 0) {
             for (let i = 0; i < val.and.or.length; i++) {
                 val2.push(...val.and.or[i]);
             }
@@ -708,7 +709,8 @@ export function mapCriteria(val) {
             for (let i = 0; i < val.and.and.length; i++) {
                 val2.push(...val.or.and[i]);
             }
-        } else if (val.or && val.or.or && val.or.or.length > 0) {
+        }
+        if (val.or && val.or.or && val.or.or.length > 0) {
             for (let i = 0; i < val.and.or.length; i++) {
                 val2.push(...val.or.or[i]);
             }
