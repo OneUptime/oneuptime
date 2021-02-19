@@ -55,7 +55,7 @@ class EventBox extends Component {
 
     handleScheduledEventDetail = scheduledEventId => {
         history.push(
-            `/dashboard/project/${this.currentProject.slug}/scheduledEvents/${scheduledEventId}`
+            `/dashboard/project/${this.props.currentProject.slug}/scheduledEvents/${scheduledEventId}`
         );
     };
 
