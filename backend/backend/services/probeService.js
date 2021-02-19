@@ -1131,11 +1131,11 @@ module.exports = {
                     countAnd = 0,
                     countOr = 0;
 
-                if (condition && condition.and && condition.and.length) {
+                if (condition && condition.and && !isEmpty(condition.and)) {
                     respAnd = await incomingCheckAnd(payload, condition.and);
                     countAnd++;
                 }
-                if (condition && condition.or && condition.or.length) {
+                if (condition && condition.or && !isEmpty(condition.or)) {
                     respOr = await incomingCheckOr(payload, condition.or);
                     countOr++;
                 }
@@ -1411,142 +1411,135 @@ const incomingCheckAnd = async (payload, condition) => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;
-    for (let i = 0; i < condition.length; i++) {
-        if (
-            condition[i] &&
-            condition[i].responseType &&
-            condition[i].responseType === 'incomingTime'
-        ) {
-            if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'greaterThan'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload > condition[i].field1
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'lessThan'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload < condition[i].field1
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'inBetween'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    condition[i].field2 &&
-                    payload > condition[i].field1 &&
-                    payload < condition[i].field2
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'equalTo'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload == condition[i].field1
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload != condition[i].field1
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload >= condition[i].field1
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload <= condition[i].field1
-                ) {
-                    val++;
-                }
-            }
-            incomingVal++;
-        } else if (
-            condition[i] &&
-            condition[i].collection &&
-            condition[i].collection.length
-        ) {
-            if (
-                condition[i].collection.and &&
-                condition[i].collection.and.length
-            ) {
-                const tempAnd = await incomingCheckAnd(
-                    payload,
-                    condition[i].collection.and
-                );
+    if (condition && condition.and && condition.and.length > 0) {
+        for (let i = 0; i < condition.and.length; i++) {
+            if (Array.isArray(condition.and[i])) {
+                // incoming check and
+                const tempAnd = await incomingCheckAnd(payload, {
+                    and: condition.and[i],
+                });
                 if (tempAnd) {
                     val++;
                     incomingVal++;
                 }
-            } else if (
-                condition[i].collection.or &&
-                condition[i].collection.or.length
-            ) {
-                const tempOr = await incomingCheckOr(
-                    payload,
-                    condition[i].collection.or
-                );
-                if (tempOr) {
-                    val++;
+            } else {
+                if (
+                    condition.and[i] &&
+                    condition.and[i].responseType &&
+                    condition.and[i].responseType === 'incomingTime'
+                ) {
+                    if (
+                        condition.and[i] &&
+                        condition.and[i].filter &&
+                        condition.and[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            condition.and[i] &&
+                            condition.and[i].field1 &&
+                            payload &&
+                            payload > condition.and[i].field1
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.and[i] &&
+                        condition.and[i].filter &&
+                        condition.and[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            condition.and[i] &&
+                            condition.and[i].field1 &&
+                            payload &&
+                            payload < condition.and[i].field1
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.and[i] &&
+                        condition.and[i].filter &&
+                        condition.and[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            condition.and[i] &&
+                            condition.and[i].field1 &&
+                            payload &&
+                            condition.and[i].field2 &&
+                            payload > condition.and[i].field1 &&
+                            payload < condition.and[i].field2
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.and[i] &&
+                        condition.and[i].filter &&
+                        condition.and[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            condition.and[i] &&
+                            condition.and[i].field1 &&
+                            payload &&
+                            payload == condition.and[i].field1
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.and[i] &&
+                        condition.and[i].filter &&
+                        condition.and[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            condition.and[i] &&
+                            condition.and[i].field1 &&
+                            payload &&
+                            payload != condition.and[i].field1
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.and[i] &&
+                        condition.and[i].filter &&
+                        condition.and[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            condition.and[i] &&
+                            condition.and[i].field1 &&
+                            payload &&
+                            payload >= condition.and[i].field1
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.and[i] &&
+                        condition.and[i].filter &&
+                        condition.and[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            condition.and[i] &&
+                            condition.and[i].field1 &&
+                            payload &&
+                            payload <= condition.and[i].field1
+                        ) {
+                            val++;
+                        }
+                    }
                     incomingVal++;
                 }
             }
         }
     }
+
+    if (condition && condition.or && condition.or.length > 0) {
+        const tempOr = await incomingCheckOr(payload, { or: condition.or });
+        if (tempOr) {
+            val++;
+            incomingVal++;
+        }
+    }
+
     if (val > 0 && incomingVal > 0 && val === incomingVal) {
         validity = true;
     }
+
     return validity;
 };
 
@@ -1554,142 +1547,135 @@ const incomingCheckOr = async (payload, condition) => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;
-    for (let i = 0; i < condition.length; i++) {
-        if (
-            condition[i] &&
-            condition[i].responseType &&
-            condition[i].responseType === 'incomingTime'
-        ) {
-            if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'greaterThan'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload > condition[i].field1
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'lessThan'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload < condition[i].field1
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'inBetween'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    condition[i].field2 &&
-                    payload > condition[i].field1 &&
-                    payload < condition[i].field2
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'equalTo'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload == condition[i].field1
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'notEqualTo'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload != condition[i].field1
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'gtEqualTo'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload >= condition[i].field1
-                ) {
-                    val++;
-                }
-            } else if (
-                condition[i] &&
-                condition[i].filter &&
-                condition[i].filter === 'ltEqualTo'
-            ) {
-                if (
-                    condition[i] &&
-                    condition[i].field1 &&
-                    payload &&
-                    payload <= condition[i].field1
-                ) {
-                    val++;
-                }
-            }
-            incomingVal++;
-        } else if (
-            condition[i] &&
-            condition[i].collection &&
-            condition[i].collection.length
-        ) {
-            if (
-                condition[i].collection.and &&
-                condition[i].collection.and.length
-            ) {
-                const tempAnd = await incomingCheckAnd(
-                    payload,
-                    condition[i].collection.and
-                );
-                if (tempAnd) {
+    if (condition && condition.or && condition.or.length > 0) {
+        for (let i = 0; i < condition.or.length; i++) {
+            if (Array.isArray(condition.or[i])) {
+                // incoming check or
+                const tempor = await incomingCheckAnd(payload, {
+                    or: condition.or[i],
+                });
+                if (tempor) {
                     val++;
                     incomingVal++;
                 }
-            } else if (
-                condition[i].collection.or &&
-                condition[i].collection.or.length
-            ) {
-                const tempor = await incomingCheckAnd(
-                    payload,
-                    condition[i].collection.or
-                );
-                if (tempor) {
-                    val++;
+            } else {
+                if (
+                    condition.or[i] &&
+                    condition.or[i].responseType &&
+                    condition.or[i].responseType === 'incomingTime'
+                ) {
+                    if (
+                        condition.or[i] &&
+                        condition.or[i].filter &&
+                        condition.or[i].filter === 'greaterThan'
+                    ) {
+                        if (
+                            condition.or[i] &&
+                            condition.or[i].field1 &&
+                            payload &&
+                            payload > condition.or[i].field1
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.or[i] &&
+                        condition.or[i].filter &&
+                        condition.or[i].filter === 'lessThan'
+                    ) {
+                        if (
+                            condition.or[i] &&
+                            condition.or[i].field1 &&
+                            payload &&
+                            payload < condition.or[i].field1
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.or[i] &&
+                        condition.or[i].filter &&
+                        condition.or[i].filter === 'inBetween'
+                    ) {
+                        if (
+                            condition.or[i] &&
+                            condition.or[i].field1 &&
+                            payload &&
+                            condition.or[i].field2 &&
+                            payload > condition.or[i].field1 &&
+                            payload < condition.or[i].field2
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.or[i] &&
+                        condition.or[i].filter &&
+                        condition.or[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            condition.or[i] &&
+                            condition.or[i].field1 &&
+                            payload &&
+                            payload == condition.or[i].field1
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.or[i] &&
+                        condition.or[i].filter &&
+                        condition.or[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            condition.or[i] &&
+                            condition.or[i].field1 &&
+                            payload &&
+                            payload != condition.or[i].field1
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.or[i] &&
+                        condition.or[i].filter &&
+                        condition.or[i].filter === 'gtEqualTo'
+                    ) {
+                        if (
+                            condition.or[i] &&
+                            condition.or[i].field1 &&
+                            payload &&
+                            payload >= condition.or[i].field1
+                        ) {
+                            val++;
+                        }
+                    } else if (
+                        condition.or[i] &&
+                        condition.or[i].filter &&
+                        condition.or[i].filter === 'ltEqualTo'
+                    ) {
+                        if (
+                            condition.or[i] &&
+                            condition.or[i].field1 &&
+                            payload &&
+                            payload <= condition.or[i].field1
+                        ) {
+                            val++;
+                        }
+                    }
                     incomingVal++;
                 }
             }
         }
     }
+
+    if (condition && condition.and && condition.and.length > 0) {
+        const tempAnd = await incomingCheckAnd(payload, { and: condition.and });
+        if (tempAnd) {
+            val++;
+            incomingVal++;
+        }
+    }
+
     if (val > 0 && incomingVal > 0) {
         validity = true;
     }
+
     return validity;
 };
 
