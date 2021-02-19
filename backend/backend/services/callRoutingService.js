@@ -317,11 +317,13 @@ module.exports = {
         }
     },
 
-    chargeRoutedCall: async function(projectId, CallSid) {
+    chargeRoutedCall: async function(projectId, body) {
         try {
+            const callSid = body['CallSid'];
+            const callStatus = body['CallStatus'] || null;
             const callDetails = await TwilioService.getCallDetails(
                 projectId,
-                CallSid
+                callSid
             );
             if (callDetails && callDetails.price) {
                 const duration = callDetails.duration;
@@ -347,10 +349,33 @@ module.exports = {
                         price
                     );
                 }
-                await CallRoutingLogService.updateOneBy(
-                    { callSid: CallSid },
-                    { price, duration }
-                );
+                const callRoutingLog = await CallRoutingLogService.findOneBy({
+                    callSid,
+                });
+                if (callRoutingLog && callRoutingLog.callSid) {
+                    let dialTo =
+                        callRoutingLog.dialTo && callRoutingLog.dialTo.length
+                            ? callRoutingLog.dialTo
+                            : [];
+                    dialTo = dialTo.map(dt => {
+                        if (dt.callSid !== callSid) {
+                            dt.status =
+                                callStatus && callStatus.length
+                                    ? callStatus
+                                    : dt.status;
+                        }
+                        return dt;
+                    });
+                    await CallRoutingLogService.updateOneBy(
+                        { _id: callRoutingLog._id },
+                        { price, duration, dialTo }
+                    );
+                } else {
+                    await CallRoutingLogService.updateOneBy(
+                        { callSid: callSid },
+                        { price, duration }
+                    );
+                }
             }
             return 'Customer has been successfully charged for the call.';
         } catch (error) {
@@ -359,62 +384,163 @@ module.exports = {
         }
     },
 
-    getCallResponse: async function(data, fromNumber, to, callSid) {
+    getCallResponse: async function(data, to, body, backup) {
         try {
+            const fromNumber = body['From'];
+            const callSid = body['CallSid'];
+            const dialCallSid = body['DialCallSid'] || null;
+            const callStatus = body['CallStatus'] || null;
+            const dialCallStatus = body['DialCallStatus'] || null;
+            const routingSchema =
+                data && data.routingSchema && data.routingSchema.type
+                    ? data.routingSchema
+                    : {};
             let memberId = null;
             const response = new twilio.twiml.VoiceResponse();
-            if (
-                data &&
-                data.routingSchema &&
-                data.routingSchema.type &&
-                data.routingSchema.type.length &&
-                data.routingSchema.id &&
-                data.routingSchema.id.length
-            ) {
-                const {
-                    forwardingNumber,
-                    error,
-                    userId,
-                } = await this.findTeamMember(
-                    data.routingSchema.type,
-                    data.routingSchema.id
-                );
-                if (userId) {
-                    memberId = userId;
+            let forwardingNumber, error, userId, scheduleId;
+
+            const {
+                type,
+                id,
+                phonenumber,
+                backup_type,
+                backup_id,
+                backup_phonenumber,
+                introAudio,
+                introtext,
+            } = routingSchema;
+
+            if (introtext && introtext.length) {
+                response.say(introtext);
+            }
+            if (introAudio && introAudio.length) {
+                response.play(`${global.apiHost}/file/${introAudio}`);
+            }
+
+            if (type && !backup) {
+                if (id && id.length && type !== 'PhoneNumber') {
+                    const result = await this.findTeamMember(type, id);
+                    forwardingNumber = result.forwardingNumber;
+                    error = result.error;
+                    userId = result.userId;
+                    scheduleId = type === 'Schedule' ? id : null;
+                    if (userId) {
+                        memberId = userId;
+                    }
+                } else if (
+                    type === 'PhoneNumber' &&
+                    phonenumber &&
+                    phonenumber.length
+                ) {
+                    forwardingNumber = phonenumber;
+                    error = null;
+                    userId = null;
                 }
-                const hasEnoughBalance = await PaymentService.hasEnoughBalance(
-                    data.projectId,
-                    forwardingNumber,
-                    memberId,
-                    'callRouting'
-                );
-                if (!hasEnoughBalance) {
-                    response.reject();
-                    return response;
-                }
-                if (forwardingNumber && (!error || (error && error.length))) {
-                    response.dial(forwardingNumber);
-                } else if (!forwardingNumber && error && error.length) {
-                    response.say(error);
+            } else if (backup_type && backup) {
+                if (
+                    backup_id &&
+                    backup_id.length &&
+                    backup_type !== 'PhoneNumber'
+                ) {
+                    const result = await this.findTeamMember(
+                        backup_type,
+                        backup_id
+                    );
+                    forwardingNumber = result.forwardingNumber;
+                    error = result.error;
+                    userId = result.userId;
+                    scheduleId = backup_type === 'Schedule' ? backup_id : null;
+                    if (userId) {
+                        memberId = userId;
+                    }
+                } else if (
+                    backup_type === 'PhoneNumber' &&
+                    backup_phonenumber &&
+                    backup_phonenumber.length
+                ) {
+                    forwardingNumber = backup_phonenumber;
+                    error = null;
+                    userId = null;
                 }
             } else {
                 response.say('Sorry could not find anyone on duty');
             }
-            if (data && data._id) {
+
+            const hasEnoughBalance = await PaymentService.hasEnoughBalance(
+                data.projectId,
+                forwardingNumber,
+                memberId,
+                'callRouting'
+            );
+            if (!hasEnoughBalance) {
+                response.reject();
+                return response;
+            }
+            if (
+                forwardingNumber &&
+                (!error || (error && error.length <= 0)) &&
+                !backup
+            ) {
+                response.dial(
+                    {
+                        action: `${global.apiHost}/callRouting/routeBackupCall`,
+                    },
+                    forwardingNumber
+                );
+            } else if (
+                forwardingNumber &&
+                (!error || (error && error.length <= 0)) &&
+                backup
+            ) {
+                response.dial(forwardingNumber);
+            } else if (!forwardingNumber && error && error.length) {
+                response.say(error);
+            }
+            const callRoutingLog = await CallRoutingLogService.findOneBy({
+                callSid,
+            });
+            if (callRoutingLog && callRoutingLog.callSid) {
+                let dialTo =
+                    callRoutingLog.dialTo && callRoutingLog.dialTo.length
+                        ? callRoutingLog.dialTo
+                        : [];
+                dialTo = dialTo.map(dt => {
+                    dt.callSid =
+                        dialCallSid && dialCallSid.length
+                            ? dialCallSid
+                            : callSid;
+                    dt.status =
+                        dialCallStatus && dialCallStatus.length
+                            ? dialCallStatus
+                            : callStatus;
+                    return dt;
+                });
+                dialTo.push({
+                    callSid: callSid,
+                    userId: memberId,
+                    scheduleId: scheduleId,
+                    phoneNumber: phonenumber,
+                    status: callStatus,
+                });
+                await CallRoutingLogService.updateOneBy(
+                    { _id: callRoutingLog._id },
+                    { dialTo }
+                );
+            } else if (data && data._id) {
                 await CallRoutingLogService.create({
                     callRoutingId: data && data._id ? data._id : null,
                     calledFrom: fromNumber,
                     calledTo: to,
-                    userId: memberId,
+                    dialTo: [
+                        {
+                            callSid: callSid,
+                            userId: memberId,
+                            scheduleId: scheduleId,
+                            phoneNumber: phonenumber,
+                            status: callStatus ? callStatus : null,
+                        },
+                    ],
                     callSid: callSid,
-                    scheduleId:
-                        data &&
-                        data.routingSchema &&
-                        data.routingSchema.type &&
-                        data.routingSchema.id &&
-                        data.routingSchema.type === 'Schedule'
-                            ? data.routingSchema.id
-                            : '',
                 });
             }
             response.say('Goodbye');

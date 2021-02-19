@@ -1,22 +1,32 @@
+/* eslint-disable react/no-unused-state */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Field, reduxForm } from 'redux-form';
 import ClickOutside from 'react-click-outside';
-import { addCallRoutingSchedule } from '../../actions/callRouting';
-import { RenderSelect } from '../basic/RenderSelect';
+import {
+    addCallRoutingSchedule,
+    removeIntroAudio,
+} from '../../actions/callRouting';
+import { RenderField } from '../basic/RenderField';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import ScheduleComponent from './ScheduleComponent';
 import PropTypes from 'prop-types';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, ValidateField } from '../../config';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { UploadFile } from '../basic/UploadFile';
 
 export class AddScheduleModal extends Component {
     constructor(props) {
         super(props);
         this.state = {
             currentButton: this.props.initialValues.type || '',
+            currentBackupButton: this.props.initialValues.backup_type || '',
+            showAdvance: this.props.initialValues.showAdvance || false,
+            fileName: this.props.initialValues.fileName || '',
+            fileUploaded: this.props.initialValues.fileUploaded || false,
         };
     }
 
@@ -35,15 +45,53 @@ export class AddScheduleModal extends Component {
             currentProject,
             addCallRoutingSchedule,
         } = this.props;
-        const postObj = {};
+        const postObj = new FormData();
+        postObj.append('showAdvance', this.state.showAdvance);
         if (values.type && values.type.length) {
-            postObj.type = values.type;
+            postObj.append('type', values.type);
         }
         if (values.type && values.type === 'TeamMember') {
-            postObj.teamMemberId = values.teamMembers;
+            postObj.append('teamMemberId', values.teamMembers);
+        } else if (values.type && values.type === 'Schedule') {
+            postObj.append('scheduleId', values.schedules);
+        } else if (values.type && values.type === 'PhoneNumber') {
+            postObj.append('phoneNumber', values.PhoneNumber);
         }
-        if (values.type && values.type === 'Schedule') {
-            postObj.scheduleId = values.schedules;
+        if (this.state.showAdvance) {
+            if (values.introAudio && values.introAudio !== 'null') {
+                if (
+                    values.introAudio &&
+                    typeof values.introAudio !== 'object'
+                ) {
+                    postObj.append('introAudio', values.introAudio);
+                } else {
+                    postObj.append(
+                        'introAudio',
+                        values.introAudio[0],
+                        values.introAudio[0].name
+                    );
+                }
+            }
+            postObj.append('introtext', values.introtext);
+            if (values.backup_type && values.backup_type.length) {
+                postObj.append('backup_type', values.backup_type);
+            }
+            if (values.backup_type && values.backup_type === 'TeamMember') {
+                postObj.append(
+                    'backup_teamMemberId',
+                    values.backup_teamMembers
+                );
+            } else if (
+                values.backup_type &&
+                values.backup_type === 'Schedule'
+            ) {
+                postObj.append('backup_scheduleId', values.backup_schedules);
+            } else if (
+                values.backup_type &&
+                values.backup_type === 'PhoneNumber'
+            ) {
+                postObj.append('backup_phoneNumber', values.backup_PhoneNumber);
+            }
         }
         addCallRoutingSchedule(
             currentProject._id,
@@ -64,8 +112,32 @@ export class AddScheduleModal extends Component {
             );
         }
     };
+    changefile = e => {
+        e.preventDefault();
+        const file = e.target.files[0];
+        const fileName = file.name;
+        this.setState({ fileName: fileName, fileUploaded: true });
+    };
+    removeIntroAudio = e => {
+        const _this = this;
+        const { currentProject, data, removeIntroAudio } = this.props;
+        removeIntroAudio(currentProject._id, data.callRoutingId).then(
+            function() {
+                _this.setState({ fileName: '', fileUploaded: false });
+            },
+            function() {
+                //do nothing.
+            }
+        );
+    };
+    toggleShowAdvance = e => {
+        this.setState({ showAdvance: e.target.checked });
+    };
     changeButton = (event, value) => {
         this.setState({ currentButton: value });
+    };
+    changeBackupButton = (event, value) => {
+        this.setState({ currentBackupButton: value });
     };
     handleKeyBoard = e => {
         switch (e.key) {
@@ -89,262 +161,392 @@ export class AddScheduleModal extends Component {
             addCallRoutingSchedules,
             teamMembers,
             schedules,
+            introAudioState,
         } = this.props;
+        const disabled =
+            (introAudioState && introAudioState.requesting) ||
+            (addCallRoutingSchedules && addCallRoutingSchedules.requesting);
+        const error =
+            (introAudioState && introAudioState.error) ||
+            (addCallRoutingSchedules && addCallRoutingSchedules.error);
         return (
             <div
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
-                <div className="bs-BIM db-InviteSetting">
-                    <div className="bs-Modal bs-Modal--large">
+                <div className="bs-BIM">
+                    <div className="bs-Modal" style={{ width: 700 }}>
                         <ClickOutside onClickOutside={closeThisDialog}>
+                            <div className="bs-Modal-header">
+                                <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20">
+                                    <div
+                                        className="bs-Modal-header-copy"
+                                        style={{
+                                            marginBottom: '10px',
+                                            marginTop: '10px',
+                                        }}
+                                    >
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Add Routing Schedule</span>
+                                        </span>
+                                    </div>
+                                    <div
+                                        className="bs-Fieldset-row"
+                                        style={{
+                                            padding: 0,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                        }}
+                                    >
+                                        <label style={{ marginRight: 10 }}>
+                                            Show advanced options
+                                        </label>
+                                        <div>
+                                            <label className="Toggler-wrap">
+                                                <input
+                                                    className="btn-toggler"
+                                                    type="checkbox"
+                                                    onChange={
+                                                        this.toggleShowAdvance
+                                                    }
+                                                    disabled={disabled}
+                                                    name="moreOptions"
+                                                    id="moreOptions"
+                                                    checked={
+                                                        this.state.showAdvance
+                                                    }
+                                                />
+                                                <span className="TogglerBtn-slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <form
                                 id={`form_${data.number}`}
                                 onSubmit={handleSubmit(this.submitForm)}
                             >
-                                <div
-                                    className="bs-Modal-header"
-                                    style={{ paddingBottom: '1px' }}
-                                >
-                                    <div className="bs-Modal-header-copy">
-                                        <div className="db-InviteSetting-header">
-                                            <h2>
-                                                <span>
-                                                    Add Routing Schedule
-                                                </span>
-                                            </h2>
-                                            <p className="db-InviteSetting-headerDescription">
-                                                <span>
-                                                    Attach a team member or a
-                                                    call schedule to route the
-                                                    call on selected phone
-                                                    number.
-                                                </span>
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bs-Modal-content bs-u-paddingless">
-                                    <div className="bs-Modal-block bs-u-paddingless">
-                                        <div className="db-RoleRadioList">
-                                            <div className="db-RoleRadioList-row">
-                                                <label className="bs-Radio">
-                                                    <Field
-                                                        id={`Team_member_${data.number}`}
-                                                        className="bs-Radio-source"
-                                                        name="type"
-                                                        component="input"
-                                                        type="radio"
-                                                        value="TeamMember"
-                                                        onChange={
-                                                            this.changeButton
-                                                        }
-                                                    />
-                                                    <span className="bs-Radio-button"></span>
-                                                    <span className="bs-Radio-label">
-                                                        <div className="db-RoleRadioListLabel">
-                                                            <div className="db-RoleRadioListLabel-name">
-                                                                <span>
-                                                                    Team Member
-                                                                </span>
-                                                            </div>
-                                                            <div className="db-RoleRadioListLabel-description">
-                                                                <span>
-                                                                    Attach
-                                                                    Individual
-                                                                    team members
-                                                                    to route
-                                                                    calls to
-                                                                    them.
-                                                                </span>
-                                                            </div>
-                                                            <div className="db-RoleRadioListLabel-info">
-                                                                <div className="Box-root Flex-inlineFlex">
-                                                                    <div className="Box-root Flex-flex">
-                                                                        <div className="Box-root Flex-flex"></div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </span>
-                                                </label>
-                                            </div>
-                                            <div className="db-RoleRadioList-row">
-                                                <label className="bs-Radio">
-                                                    <Field
-                                                        id={`Schedule_${data.number}`}
-                                                        className="bs-Radio-source"
-                                                        name="type"
-                                                        component="input"
-                                                        type="radio"
-                                                        value="Schedule"
-                                                        onChange={
-                                                            this.changeButton
-                                                        }
-                                                    />
-                                                    <span className="bs-Radio-button"></span>
-                                                    <span className="bs-Radio-label">
-                                                        <div className="db-RoleRadioListLabel">
-                                                            <div className="db-RoleRadioListLabel-name">
-                                                                <span>
-                                                                    On-Call
-                                                                    Schedule
-                                                                </span>
-                                                            </div>
-                                                            <div className="db-RoleRadioListLabel-description">
-                                                                <span>
-                                                                    Attach
-                                                                    On-call
-                                                                    schedule to
-                                                                    route calls
-                                                                    to members
-                                                                    on call duty
-                                                                    as specified
-                                                                    by
-                                                                    escalation
-                                                                    policy.
-                                                                </span>
-                                                            </div>
-                                                            <div className="db-RoleRadioListLabel-info">
-                                                                <div className="Box-root Flex-inlineFlex">
-                                                                    <div className="Box-root Flex-flex">
-                                                                        <div className="Box-root Flex-flex"></div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <ShouldRender
-                                    if={
-                                        this.state.currentButton ===
-                                        'TeamMember'
-                                    }
-                                >
-                                    <fieldset
-                                        className="Margin-bottom--16"
-                                        style={{
-                                            paddingLeft: '75px',
-                                        }}
-                                    >
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{
-                                                    padding: 0,
-                                                }}
-                                            >
-                                                <label className="bs-Fieldset-label Text-align--left">
-                                                    <span>Team Members</span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
+                                <div className="bs-Modal-content">
+                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                        <ShouldRender
+                                            if={this.state.showAdvance}
+                                        >
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
                                                     <div
-                                                        className="bs-Fieldset-field"
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="introtext"
+                                                            style={{
+                                                                flexBasis:
+                                                                    '20%',
+                                                            }}
+                                                        >
+                                                            <span>
+                                                                Intro Text
+                                                            </span>
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                flexBasis:
+                                                                    '80%',
+                                                                maxWidth: '80%',
+                                                            }}
+                                                        >
+                                                            <div
+                                                                className="bs-Fieldset-field"
+                                                                style={{
+                                                                    width:
+                                                                        '70%',
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    name="introtext"
+                                                                    type="input"
+                                                                    placeholder="Hello Customer"
+                                                                    id="introtext"
+                                                                    disabled={
+                                                                        disabled
+                                                                    }
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                        padding:
+                                                                            '3px 5px',
+                                                                    }}
+                                                                    autoFocus={
+                                                                        true
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
                                                         style={{
-                                                            width: '250px',
+                                                            padding: 0,
                                                         }}
                                                     >
-                                                        <Field
-                                                            component={
-                                                                RenderSelect
-                                                            }
-                                                            name="teamMembers"
-                                                            id="teamMembers"
-                                                            placeholder="Select team member"
-                                                            options={
-                                                                teamMembers &&
-                                                                teamMembers.map(
-                                                                    t => {
-                                                                        return {
-                                                                            value:
-                                                                                t.id,
-                                                                            label:
-                                                                                t.name,
-                                                                        };
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            style={{
+                                                                flexBasis:
+                                                                    '20%',
+                                                            }}
+                                                        >
+                                                            Intro Audio
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <div
+                                                                className="Box-root Flex-flex Flex-alignItems--center"
+                                                                style={{
+                                                                    flexWrap:
+                                                                        'wrap',
+                                                                }}
+                                                            >
+                                                                <div>
+                                                                    <label
+                                                                        className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                        type="button"
+                                                                    >
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                !this
+                                                                                    .state
+                                                                                    .fileUploaded
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--new"></span>
+                                                                            <span>
+                                                                                Upload
+                                                                                Intro
+                                                                                Audio
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                this
+                                                                                    .state
+                                                                                    .fileUploaded
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-Button--icon bs-Button--edit"></span>
+                                                                            <span>
+                                                                                Change
+                                                                                Intro
+                                                                                Audio
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <div className="bs-FileUploadButton-inputWrap">
+                                                                            <Field
+                                                                                className="bs-FileUploadButton-input"
+                                                                                component={
+                                                                                    UploadFile
+                                                                                }
+                                                                                name="introAudio"
+                                                                                id="introAudio"
+                                                                                accept="audio/mp3"
+                                                                                disabled={
+                                                                                    disabled
+                                                                                }
+                                                                                onChange={
+                                                                                    this
+                                                                                        .changefile
+                                                                                }
+                                                                                fileInputKey={
+                                                                                    ''
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        this
+                                                                            .state
+                                                                            .fileUploaded
                                                                     }
-                                                                )
-                                                            }
-                                                            validate={
-                                                                ValidateField.select
-                                                            }
-                                                            className="db-select-nw db-MultiSelect-input"
-                                                        />
+                                                                >
+                                                                    <div
+                                                                        className="bs-Fieldset-fields"
+                                                                        style={{
+                                                                            padding:
+                                                                                '0',
+                                                                        }}
+                                                                    >
+                                                                        <button
+                                                                            className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                            type="button"
+                                                                            onClick={
+                                                                                this
+                                                                                    .removeIntroAudio
+                                                                            }
+                                                                            disabled={
+                                                                                disabled
+                                                                            }
+                                                                            style={{
+                                                                                margin:
+                                                                                    '10px 10px 0 0',
+                                                                            }}
+                                                                        >
+                                                                            {!introAudioState.requesting && (
+                                                                                <>
+                                                                                    <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                                    <span>
+                                                                                        Remove
+                                                                                        Intro
+                                                                                        Audio
+                                                                                    </span>
+                                                                                </>
+                                                                            )}
+                                                                            {introAudioState.requesting && (
+                                                                                <FormLoader />
+                                                                            )}
+                                                                        </button>
+                                                                    </div>
+                                                                    <div
+                                                                        className="bs-Fieldset-fields"
+                                                                        style={{
+                                                                            padding:
+                                                                                '0',
+                                                                        }}
+                                                                    >
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                {
+                                                                                    this
+                                                                                        .state
+                                                                                        .fileName
+                                                                                }
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </ShouldRender>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        </ShouldRender>
+                                        <fieldset style={{ paddingTop: 0 }}>
+                                            <div className="bs-Fieldset-rows">
+                                                <div
+                                                    className="bs-Fieldset-row"
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label Text-align--left"
+                                                        style={{
+                                                            flexBasis: '20%',
+                                                        }}
+                                                    ></label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            flexBasis: '80%',
+                                                            maxWidth: '80%',
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '100%',
+                                                                fontWeight: 500,
+                                                            }}
+                                                        >
+                                                            Who to forward call
+                                                            to
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </fieldset>
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={this.state.currentButton === 'Schedule'}
-                                >
-                                    <fieldset
-                                        className="Margin-bottom--16"
-                                        style={{
-                                            paddingLeft: '75px',
-                                        }}
-                                    >
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{
-                                                    padding: 0,
-                                                }}
-                                            >
-                                                <label className="bs-Fieldset-label Text-align--left">
-                                                    <span>
-                                                        On-Call Schedules
-                                                    </span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
+                                        </fieldset>
+                                        <ScheduleComponent
+                                            teamMembers={teamMembers}
+                                            schedules={schedules}
+                                            data={data}
+                                            changeButton={this.changeButton}
+                                            stateData={this.state}
+                                            backup={false}
+                                            disabled={disabled}
+                                            changeBackupButton={
+                                                this.changeBackupButton
+                                            }
+                                        />
+                                        <ShouldRender
+                                            if={this.state.showAdvance}
+                                        >
+                                            <fieldset style={{ paddingTop: 0 }}>
+                                                <div className="bs-Fieldset-rows">
                                                     <div
-                                                        className="bs-Fieldset-field"
+                                                        className="bs-Fieldset-row"
                                                         style={{
-                                                            width: '250px',
+                                                            paddingBottom:
+                                                                '0px',
+                                                            paddingLeft: '10px',
                                                         }}
                                                     >
-                                                        <Field
-                                                            component={
-                                                                RenderSelect
-                                                            }
-                                                            name="schedules"
-                                                            id="schedules"
-                                                            placeholder="Select a schedule"
-                                                            options={
-                                                                schedules &&
-                                                                schedules.map(
-                                                                    s => {
-                                                                        return {
-                                                                            value:
-                                                                                s.id,
-                                                                            label:
-                                                                                s.name,
-                                                                        };
-                                                                    }
-                                                                )
-                                                            }
-                                                            validate={
-                                                                ValidateField.select
-                                                            }
-                                                            className="db-select-nw db-MultiSelect-input"
-                                                        />
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            style={{
+                                                                flexBasis:
+                                                                    '20%',
+                                                            }}
+                                                        ></label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                flexBasis:
+                                                                    '80%',
+                                                                maxWidth: '80%',
+                                                            }}
+                                                        >
+                                                            <div
+                                                                className="bs-Fieldset-field"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                    fontWeight: 500,
+                                                                }}
+                                                            >
+                                                                Who to forward
+                                                                call to
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                </ShouldRender>
+                                            </fieldset>
+                                            <ScheduleComponent
+                                                teamMembers={teamMembers}
+                                                schedules={schedules}
+                                                data={data}
+                                                changeButton={this.changeButton}
+                                                stateData={this.state}
+                                                backup={true}
+                                                disabled={disabled}
+                                                changeBackupButton={
+                                                    this.changeBackupButton
+                                                }
+                                            />
+                                        </ShouldRender>
+                                    </div>
+                                </div>
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
-                                        <ShouldRender
-                                            if={addCallRoutingSchedules.error}
-                                        >
+                                        <ShouldRender if={error}>
                                             <div className="bs-Tail-copy">
                                                 <div
                                                     className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
@@ -361,9 +563,7 @@ export class AddScheduleModal extends Component {
                                                                 color: 'red',
                                                             }}
                                                         >
-                                                            {
-                                                                addCallRoutingSchedules.error
-                                                            }
+                                                            {error}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -372,6 +572,7 @@ export class AddScheduleModal extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
+                                            disabled={disabled}
                                             onClick={closeThisDialog}
                                         >
                                             <span>Cancel</span>
@@ -382,9 +583,7 @@ export class AddScheduleModal extends Component {
                                         <button
                                             id={`btn_modal_${data.number}`}
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                            disabled={
-                                                addCallRoutingSchedules.requesting
-                                            }
+                                            disabled={disabled}
                                             type="submit"
                                         >
                                             {!addCallRoutingSchedules.requesting && (
@@ -424,6 +623,7 @@ const mapDispatchToProps = dispatch => {
             addCallRoutingSchedule,
             openModal,
             closeModal,
+            removeIntroAudio,
         },
         dispatch
     );
@@ -456,49 +656,96 @@ function mapStateToProps(state, props) {
         allNumbers && allNumbers.length
             ? allNumbers.find(n => n._id === callRoutingId)
             : null;
-    const type =
+    const routingSchema =
         currentNumber &&
         currentNumber.routingSchema &&
-        currentNumber.routingSchema.type &&
-        currentNumber.routingSchema.type.length
-            ? currentNumber.routingSchema.type
+        currentNumber.routingSchema.type
+            ? currentNumber.routingSchema
+            : {};
+    const type =
+        routingSchema.type && routingSchema.type.length
+            ? routingSchema.type
             : '';
     const id =
-        currentNumber &&
-        currentNumber.routingSchema &&
-        currentNumber.routingSchema.id &&
-        currentNumber.routingSchema.id.length
-            ? currentNumber.routingSchema.id
+        routingSchema.id && routingSchema.id.length ? routingSchema.id : null;
+    const phoneNumber =
+        routingSchema.phoneNumber && routingSchema.phoneNumber.length
+            ? routingSchema.phoneNumber
             : null;
-    let schedule, teamMember;
-    if (type && type === 'TeamMember' && id) {
-        teamMember = teamMembers.find(t => t.id === id);
-    } else if (type && type === 'Schedule' && id) {
-        schedule = schedules.find(s => s.id === id);
-    }
+    const backup_phoneNumber =
+        routingSchema.backup_phoneNumber &&
+        routingSchema.backup_phoneNumber.length
+            ? routingSchema.backup_phoneNumber
+            : null;
+    const backup_type =
+        routingSchema.backup_type && routingSchema.backup_type.length
+            ? routingSchema.backup_type
+            : '';
+    const backup_id =
+        routingSchema.backup_id && routingSchema.backup_id.length
+            ? routingSchema.backup_id
+            : null;
+    const showAdvance =
+        routingSchema && routingSchema.type ? routingSchema.showAdvance : null;
+    const fileName =
+        routingSchema &&
+        routingSchema.introAudioName &&
+        routingSchema.introAudioName.length
+            ? routingSchema.introAudioName
+            : '';
+    const fileUploaded = fileName && fileName.length ? true : false;
     const initialValues =
         type && id
             ? {
                   type: type,
-                  teamMembers:
-                      teamMember && teamMember.id && teamMember.id.length
-                          ? teamMember.id
+                  teamMembers: type && type === 'TeamMember' && id ? id : '',
+                  schedules: type && type === 'Schedule' && id ? id : '',
+                  phoneNumber:
+                      phoneNumber && phoneNumber.length ? phoneNumber : '',
+                  showAdvance: showAdvance,
+                  backup_type: backup_type,
+                  backup_teamMembers:
+                      backup_type && backup_type === 'TeamMember' && backup_id
+                          ? backup_id
                           : '',
-                  schedules:
-                      schedule && schedule.id && schedule.id.length
-                          ? schedule.id
+                  backup_schedules:
+                      backup_type && backup_type === 'Schedule' && backup_id
+                          ? backup_id
+                          : '',
+                  backup_PhoneNumber:
+                      backup_phoneNumber && backup_phoneNumber.length
+                          ? backup_phoneNumber
+                          : '',
+                  fileName: fileName,
+                  fileUploaded: fileUploaded,
+                  introtext:
+                      routingSchema && routingSchema.introtext
+                          ? routingSchema.introtext
                           : '',
               }
-            : { type: '', teamMembers: '', schedules: '' };
+            : {
+                  type: '',
+                  teamMembers: '',
+                  schedules: '',
+                  phoneNumber: '',
+                  backup_type: '',
+                  backup_teamMembers: '',
+                  backup_schedules: '',
+                  backup_PhoneNumber: '',
+                  fileName: '',
+                  fileUploaded: false,
+                  introtext: '',
+              };
     return {
         team: state.team,
         teamMembers,
         schedules,
-        currentNumber,
         initialValues,
+        currentNumber,
         addCallRoutingSchedules: state.callRouting.addCallRoutingSchedule,
         currentProject: state.project.currentProject,
         subProjects: state.subProject.subProjects.subProjects,
+        introAudioState: state.callRouting.introAudioState,
     };
 }
 
@@ -513,8 +760,17 @@ AddScheduleModal.propTypes = {
     data: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     initialValues: PropTypes.shape({
+        backup_type: PropTypes.string,
+        fileName: PropTypes.string,
+        fileUploaded: PropTypes.bool,
+        showAdvance: PropTypes.bool,
         type: PropTypes.string,
     }),
+    introAudioState: PropTypes.shape({
+        error: PropTypes.any,
+        requesting: PropTypes.any,
+    }),
+    removeIntroAudio: PropTypes.func,
     schedules: PropTypes.shape({
         map: PropTypes.func,
     }),
