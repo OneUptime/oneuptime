@@ -277,7 +277,6 @@ module.exports = {
             const _this = this;
             let subProject = null;
             let project = await ProjectService.findOneBy({ _id: projectId });
-            const registerUrl = `${global.accountsHost}/register`;
             if (project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({
@@ -308,6 +307,7 @@ module.exports = {
             let members = [];
 
             for (const member of invitedTeamMembers) {
+                let registerUrl = `${global.accountsHost}/register`;
                 if (member.name) {
                     projectUsers = await _this.getTeamMembersBy({
                         parentProjectId: project._id,
@@ -357,6 +357,14 @@ module.exports = {
                         );
                     }
                 } else {
+                    const verificationTokenModel = new VerificationTokenModel({
+                        userId: member._id,
+                        token: crypto.randomBytes(16).toString('hex'),
+                    });
+                    const verificationToken = await verificationTokenModel.save();
+                    if (verificationToken) {
+                        registerUrl = `${registerUrl}?token=${verificationToken.token}`;
+                    }
                     if (role === 'Viewer') {
                         MailService.sendNewStatusPageViewerMail(
                             project,
@@ -774,5 +782,7 @@ const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
 const ErrorService = require('./errorService');
 const domains = require('../config/domains');
+const VerificationTokenModel = require('../models/verificationToken');
+const crypto = require('crypto');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const { emaildomains } = require('../config/emaildomains');

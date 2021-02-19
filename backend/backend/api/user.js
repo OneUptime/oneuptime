@@ -128,6 +128,22 @@ router.post('/signup', async function(req, res) {
             });
         }
         let user = await UserService.findOneBy({ email: data.email });
+        let verified = true;
+
+        const token = await VerificationTokenModel.findOne({
+            token: req.query.token,
+        });
+        if (token) {
+            user = await UserModel.findOne({
+                _id: token.userId,
+            });
+            if (!user) {
+                user = await UserService.findOneBy({ email: data.email });
+                verified = false;
+            }
+        } else {
+            verified = false;
+        }
         //Checks if user is registered with only email
         if (user) {
             if (!user.password) {
@@ -143,12 +159,15 @@ router.post('/signup', async function(req, res) {
                         name: data.name,
                         password: hash,
                         jwtRefreshToken: jwtRefreshToken,
+                        isVerified: verified,
                     }
                 );
 
                 // Call the MailService.
                 MailService.sendSignupMail(user.email, user.name);
-                UserService.sendToken(user, user.email);
+                if (!verified) {
+                    UserService.sendToken(user, user.email);
+                }
                 // create access token and refresh token.
                 const authUserObj = {
                     id: user._id,
