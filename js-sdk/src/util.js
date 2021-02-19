@@ -76,9 +76,9 @@ class Util {
         };
         obj.stacktrace = stacktrace;
 
-        // TODO decide what happens in a browser, frontend app or node
+        // check if  readFile is supported before attempting to read file, this currently works on only NODE
         // check if user opted in for getting code snippet before getting it
-        if (this.#options.captureCodeSnippet) {
+        if (readFile && this.#options.captureCodeSnippet) {
             obj = await this._getErrorCodeSnippet(obj);
         }
         return obj;
