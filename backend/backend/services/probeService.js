@@ -3646,6 +3646,42 @@ const checkAnd = async (
                     }
                 });
             }
+        } else if (con[i] && con[i].responseType === 'respondsToPing') {
+            if (con[i] && con[i].filter && con[i].filter === 'isUp') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].filter &&
+                        !(statusCode === 408 || statusCode === '408')
+                    )
+                ) {
+                    validity = false;
+                    failedReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Offline`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Online`
+                    );
+                }
+            } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].filter &&
+                        (statusCode === 408 || statusCode === '408')
+                    )
+                ) {
+                    validity = false;
+                    failedReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Online`
+                    );
+                } else {
+                    successReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Offline`
+                    );
+                }
+            }
         }
 
         if (
@@ -5506,6 +5542,42 @@ const checkOr = async (
                         );
                     }
                 });
+            }
+        } else if (
+            con[i] &&
+            (con[i].responseType === 'doesRespond' ||
+                con[i].responseType === 'respondsToPing')
+        ) {
+            if (con[i] && con[i].filter && con[i].filter === 'isUp') {
+                if (
+                    con[i] &&
+                    con[i].filter &&
+                    !(statusCode === 408 || statusCode === '408')
+                ) {
+                    validity = true;
+                    successReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Online`
+                    );
+                } else {
+                    failedReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Offline`
+                    );
+                }
+            } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
+                if (
+                    con[i] &&
+                    con[i].filter &&
+                    (statusCode === 408 || statusCode === '408')
+                ) {
+                    validity = true;
+                    successReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Offline`
+                    );
+                } else {
+                    failedReasons.push(
+                        `${criteriaStrings[type] || 'Monitor was'} Online`
+                    );
+                }
             }
         }
 

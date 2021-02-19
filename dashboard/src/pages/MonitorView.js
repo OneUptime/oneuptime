@@ -86,7 +86,7 @@ class MonitorView extends React.Component {
                 );
                 this.props.fetchLighthouseLogs(subProjectId, monitor._id, 0, 5); //0 -> skip, 10-> limit.
             }
-            this.props.fetchMonitorsIncidents(subProjectId, monitor._id, 0, 5); //0 -> skip, 5-> limit.
+            this.props.fetchMonitorsIncidents(subProjectId, monitor._id, 0, 10); //0 -> skip, 5-> limit.
             this.props.fetchMonitorsSubscribers(
                 subProjectId,
                 monitor._id,

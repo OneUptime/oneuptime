@@ -248,6 +248,7 @@ class Home extends Component {
                             multipleIncidentRequest={
                                 this.props.multipleIncidentRequest
                             }
+                            editable={false}
                         />
                     </RenderIfUserInSubProject>
                 );
