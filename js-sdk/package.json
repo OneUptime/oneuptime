@@ -1,5 +1,5 @@
 {
-    "name": "fyipe-test",
+    "name": "fyipe",
     "version": "3.0.0",
     "description": "Fyipe is a JS package that tracks error event and send logs from your applications to your fyipe dashboard.",
     "main": "dist/fyipe.js",
