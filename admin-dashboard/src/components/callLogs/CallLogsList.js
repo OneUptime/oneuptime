@@ -70,6 +70,9 @@ export class CallLogsList extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(
+            parseInt(this.props.callLogs && this.props.callLogs.count) / 10
+        );
         return (
             <div onKeyDown={this.handleKeyBoard}>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -366,11 +369,16 @@ export class CallLogsList extends Component {
                                 >
                                     {this.props.callLogs &&
                                     this.props.callLogs.count
-                                        ? this.props.callLogs.count +
-                                          (this.props.callLogs &&
-                                          this.props.callLogs.count > 1
-                                              ? ' Logs'
-                                              : ' Log')
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${this.props
+                                              .callLogs &&
+                                              this.props.callLogs.count} Log${
+                                              this.props.callLogs &&
+                                              this.props.callLogs.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
                                         : null}
                                 </span>
                             </span>
@@ -473,6 +481,7 @@ CallLogsList.propTypes = {
     ]),
     requesting: PropTypes.bool,
     openModal: PropTypes.func.isRequired,
+    page: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(CallLogsList);
