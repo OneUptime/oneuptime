@@ -243,7 +243,9 @@ export class OnCall extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ScheduleProjectBox
-                                    projectId={currentProject && currentProject._id}
+                                    projectId={
+                                        currentProject && currentProject._id
+                                    }
                                     currentProject={currentProject}
                                     schedules={schedules}
                                     isRequesting={isRequesting}
@@ -252,7 +254,9 @@ export class OnCall extends Component {
                                     limit={limit}
                                     numberOfSchedules={numberOfSchedules}
                                     subProjectSchedule={projectSchedule}
-                                    subProjectName={currentProject && currentProject.name}
+                                    subProjectName={
+                                        currentProject && currentProject.name
+                                    }
                                     scheduleModalId={this.state.scheduleModalId}
                                     openModal={this.props.openModal}
                                     subProject={currentProject}
@@ -265,7 +269,11 @@ export class OnCall extends Component {
                                         subProjectSchedules.length
                                     }
                                     modalList={this.props.modalList}
-                                    page={this.state[currentProject && currentProject._id]}
+                                    page={
+                                        this.state[
+                                            currentProject && currentProject._id
+                                        ]
+                                    }
                                 />
                             </div>
                         </div>
@@ -337,8 +345,8 @@ const mapStateToProps = state => {
         subProjectNames.map(name =>
             subProjects.find(subProject => subProject.name === name)
         );
-    const projectId = state.project.currentProject &&
-    state.project.currentProject._id;
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
     const currentProjectId = projectId;
     const schedules = state.schedule.subProjectSchedules;
 
