@@ -27,6 +27,10 @@ const callRoutingSchema = new Schema({
     } /*routingSchema: {
         type: ‘team-member’ || ‘schedule’
         id: 'scheduleId' || 'teamMemberId'
+        introtext: 'string',
+        introAudio: 'tone mongo storage name',
+        introAudioName: 'original audio name',
+
    } */,
     sid: String,
     price: String,
