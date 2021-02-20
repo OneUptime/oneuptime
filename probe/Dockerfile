@@ -24,6 +24,12 @@ WORKDIR /usr/src/app
 # Install trivy for container scanning
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
 
+# Install kubectl for kubernetes monitor scanning
+RUN curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+RUN chmod +x ./kubectl
+RUN sudo mv ./kubectl /usr/local/bin/kubectl && \
+  sudo chown root: /usr/local/bin/kubectl
+
 # Install app dependencies
 COPY package*.json /usr/src/app/
 RUN npm ci --only=production
