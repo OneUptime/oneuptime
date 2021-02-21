@@ -476,17 +476,7 @@ class NewMonitor extends Component {
                     const conditions = makeCriteria(
                         values[`${criterionFieldName}`]
                     );
-
-                    // pass the criterion if no 'and' and 'or' conditions are set
-                    if (
-                        conditions.and.length === 0 &&
-                        conditions.or.length === 0
-                    ) {
-                        return;
-                    }
-
-                    criterionData.and = conditions.and;
-                    criterionData.or = conditions.or;
+                    criterionData.criteria = conditions;
                 }
 
                 const criterionSchedules =
