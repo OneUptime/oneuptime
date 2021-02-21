@@ -1,4 +1,5 @@
 const mongoose = require('../config/db');
+const Schema = mongoose.Schema;
 
 // a schema definition for a criterion event, i.e up, down, or degraded
 const criterionEventSchema = {
@@ -8,15 +9,18 @@ const criterionEventSchema = {
     autoResolve: { type: Boolean, default: false },
     title: { type: String, default: '' },
     description: { type: String, default: '' },
-    // and: [Object],
-    // or: [Object],
-    and: Object,
-    or: Object,
     default: { type: Boolean, default: false },
     name: String,
+    criteria: {
+        type: {
+            type: String,
+        },
+        criteria: {
+            type: [Schema.Types.Mixed],
+        },
+    },
 };
 
-const Schema = mongoose.Schema;
 const monitorSchema = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
