@@ -60,7 +60,7 @@ export const groups = [
         routes: [
             {
                 title: 'Back to Dashboard',
-                path: '/dashboard/project/:projectId/components',
+                path: '/dashboard/project/:slug/components',
                 icon: 'back',
                 component: Component,
                 visible: true,
@@ -70,7 +70,7 @@ export const groups = [
             },
             {
                 title: 'Monitors',
-                path: '/dashboard/project/:projectId/:componentId/monitoring',
+                path: '/dashboard/project/:slug/:componentId/monitoring',
                 icon: 'monitor',
                 component: Monitor,
                 exact: true,
@@ -80,7 +80,7 @@ export const groups = [
                     {
                         title: 'Monitor View',
                         path:
-                            '/dashboard/project/:projectId/:componentId/monitoring/:monitorId',
+                            '/dashboard/project/:slug/:componentId/monitoring/:monitorId',
                         icon: 'monitor',
                         visible: true,
                         subRoutes: [],
@@ -92,7 +92,7 @@ export const groups = [
                     {
                         title: 'Website Issues',
                         path:
-                            '/dashboard/project/:projectId/:componentId/monitoring/:monitorId/issues/:issueId',
+                            '/dashboard/project/:slug/:componentId/monitoring/:monitorId/issues/:issueId',
                         icon: 'info',
                         visible: true,
                         subRoutes: [],
@@ -105,7 +105,7 @@ export const groups = [
             },
             {
                 title: 'Incident Log',
-                path: '/dashboard/project/:projectId/:componentId/incident-log',
+                path: '/dashboard/project/:slug/:componentId/incident-log',
                 icon: 'info',
                 visible: true,
                 component: IncidentLog,
@@ -114,7 +114,7 @@ export const groups = [
                     {
                         title: 'Incident',
                         path:
-                            '/dashboard/project/:projectId/:componentId/incidents/:incidentId',
+                            '/dashboard/project/:slug/:componentId/incidents/:incidentId',
                         icon: 'info',
                         visible: true,
                         subRoutes: [],
@@ -128,7 +128,7 @@ export const groups = [
             {
                 title: 'Logs',
                 path:
-                    '/dashboard/project/:projectId/:componentId/application-log',
+                    '/dashboard/project/:slug/:componentId/application-log',
                 icon: 'appLog',
                 visible: true,
                 exact: true,
@@ -139,7 +139,7 @@ export const groups = [
                     {
                         title: 'Log Container View',
                         path:
-                            '/dashboard/project/:projectId/:componentId/application-logs/:applicationLogId',
+                            '/dashboard/project/:slug/:componentId/application-logs/:applicationLogId',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],
@@ -152,7 +152,7 @@ export const groups = [
             {
                 title: 'Error Tracking',
                 path:
-                    '/dashboard/project/:projectId/:componentId/error-tracker',
+                    '/dashboard/project/:slug/:componentId/error-tracker',
                 icon: 'errorTracking',
                 visible: true,
                 exact: true,
@@ -163,7 +163,7 @@ export const groups = [
                     {
                         title: 'Error Tracking View',
                         path:
-                            '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId',
+                            '/dashboard/project/:slug/:componentId/error-trackers/:errorTrackerId',
                         icon: 'radar',
                         visible: true,
                         exact: true,
@@ -175,7 +175,7 @@ export const groups = [
                     {
                         title: 'Error Tracking Detail View',
                         path:
-                            '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId/events/:errorEventId',
+                            '/dashboard/project/:slug/:componentId/error-trackers/:errorTrackerId/events/:errorEventId',
                         icon: 'radar',
                         visible: true,
                         exact: true,
@@ -189,7 +189,7 @@ export const groups = [
             {
                 title: 'Security',
                 path:
-                    '/dashboard/project/:projectId/:componentId/security/container',
+                    '/dashboard/project/:slug/:componentId/security/container',
                 icon: 'security',
                 visible: true,
                 component: Container,
@@ -199,7 +199,7 @@ export const groups = [
                     {
                         title: 'Container',
                         path:
-                            '/dashboard/project/:projectId/:componentId/security/container',
+                            '/dashboard/project/:slug/:componentId/security/container',
                         icon: 'security',
                         visible: true,
                         subRoute: [],
@@ -211,7 +211,7 @@ export const groups = [
                     {
                         title: 'Container Detail',
                         path:
-                            '/dashboard/project/:projectId/:componentId/security/container/:containerSecurityId',
+                            '/dashboard/project/:slug/:componentId/security/container/:containerSecurityId',
                         icon: 'docker',
                         visible: true,
                         subRoute: [],
@@ -223,7 +223,7 @@ export const groups = [
                     {
                         title: 'Application',
                         path:
-                            '/dashboard/project/:projectId/:componentId/security/application',
+                            '/dashboard/project/:slug/:componentId/security/application',
                         icon: 'security',
                         visible: true,
                         component: Application,
@@ -235,7 +235,7 @@ export const groups = [
                     {
                         title: 'Application Detail',
                         path:
-                            '/dashboard/project/:projectId/:componentId/security/application/:applicationSecurityId',
+                            '/dashboard/project/:slug/:componentId/security/application/:applicationSecurityId',
                         icon: 'info',
                         visible: true,
                         component: ApplicationDetail,
@@ -250,7 +250,7 @@ export const groups = [
             {
                 title: 'Component Settings',
                 path:
-                    '/dashboard/project/:projectId/:componentId/settings/basic',
+                    '/dashboard/project/:slug/:componentId/settings/basic',
                 icon: 'businessSettings',
                 visible: true,
                 exact: true,
@@ -261,7 +261,7 @@ export const groups = [
                     {
                         title: 'Basic',
                         path:
-                            '/dashboard/project/:projectId/:componentId/settings/basic',
+                            '/dashboard/project/:slug/:componentId/settings/basic',
                         icon: 'businessSettings',
                         visible: true,
                         subRoutes: [],
@@ -273,7 +273,7 @@ export const groups = [
                     {
                         title: 'Advanced',
                         path:
-                            '/dashboard/project/:projectId/:componentId/settings/advanced',
+                            '/dashboard/project/:slug/:componentId/settings/advanced',
                         icon: 'businessSettings',
                         visible: true,
                         subRoutes: [],
@@ -292,7 +292,7 @@ export const groups = [
         routes: [
             {
                 title: 'Home',
-                path: '/dashboard/project/:projectId',
+                path: '/dashboard/project/:slug',
                 icon: 'home',
                 exact: true,
                 visible: true,
@@ -303,7 +303,7 @@ export const groups = [
             },
             {
                 title: 'Components',
-                path: '/dashboard/project/:projectId/components',
+                path: '/dashboard/project/:slug/components',
                 icon: 'square',
                 component: Component,
                 visible: true,
@@ -314,7 +314,7 @@ export const groups = [
             },
             {
                 title: 'Incidents',
-                path: '/dashboard/project/:projectId/incidents',
+                path: '/dashboard/project/:slug/incidents',
                 icon: 'info',
                 visible: true,
                 subRoutes: [],
@@ -324,7 +324,7 @@ export const groups = [
             },
             {
                 title: 'Status Pages',
-                path: '/dashboard/project/:projectId/status-pages',
+                path: '/dashboard/project/:slug/status-pages',
                 icon: 'radar',
                 visible: true,
                 shortcut: 'f+p',
@@ -332,7 +332,7 @@ export const groups = [
                     {
                         title: 'Status Page',
                         path:
-                            '/dashboard/project/:projectId/sub-project/:subProjectId/status-page/:scheduleId',
+                            '/dashboard/project/:slug/sub-project/:subProjectId/status-page/:scheduleId',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],
@@ -346,14 +346,14 @@ export const groups = [
             },
             {
                 title: 'On-Call Duty',
-                path: '/dashboard/project/:projectId/on-call',
+                path: '/dashboard/project/:slug/on-call',
                 icon: 'call',
                 visible: true,
                 shortcut: 'f+o',
                 subRoutes: [
                     {
                         title: 'Alert Log',
-                        path: '/dashboard/project/:projectId/alert-log',
+                        path: '/dashboard/project/:slug/alert-log',
                         icon: 'info',
                         visible: true,
                         subRoutes: [],
@@ -364,7 +364,7 @@ export const groups = [
                     {
                         title: 'Schedule',
                         path:
-                            '/dashboard/project/:projectId/sub-project/:subProjectId/schedule/:scheduleId',
+                            '/dashboard/project/:slug/sub-project/:subProjectId/schedule/:scheduleId',
                         icon: 'call',
                         visible: true,
                         subRoutes: [],
@@ -378,7 +378,7 @@ export const groups = [
             },
             {
                 title: 'Scheduled Maintenance',
-                path: '/dashboard/project/:projectId/scheduledEvents',
+                path: '/dashboard/project/:slug/scheduledEvents',
                 icon: 'connect',
                 visible: true,
                 component: ScheduledEvent,
@@ -387,7 +387,7 @@ export const groups = [
                     {
                         title: 'Scheduled Event Detail',
                         path:
-                            '/dashboard/project/:projectId/scheduledEvents/:scheduledEventId',
+                            '/dashboard/project/:slug/scheduledEvents/:scheduledEventId',
                         icon: 'connect',
                         visible: true,
                         component: ScheduledEventDetail,
@@ -401,7 +401,7 @@ export const groups = [
             },
             {
                 title: 'Reports',
-                path: '/dashboard/project/:projectId/reports',
+                path: '/dashboard/project/:slug/reports',
                 icon: 'report',
                 visible: true,
                 subRoutes: [],
@@ -417,7 +417,7 @@ export const groups = [
         routes: [
             {
                 title: 'Team Members',
-                path: '/dashboard/project/:projectId/team',
+                path: '/dashboard/project/:slug/team',
                 icon: 'customers',
                 visible: true,
                 component: TeamMembers,
@@ -427,7 +427,7 @@ export const groups = [
             },
             {
                 title: 'Project Settings',
-                path: '/dashboard/project/:projectId/settings',
+                path: '/dashboard/project/:slug/settings',
                 icon: 'businessSettings',
                 exact: true,
                 visible: true,
@@ -435,7 +435,7 @@ export const groups = [
                 subRoutes: [
                     {
                         title: 'Billing',
-                        path: '/dashboard/project/:projectId/settings/billing',
+                        path: '/dashboard/project/:slug/settings/billing',
                         icon: 'radar',
                         visible: IS_SAAS_SERVICE,
                         subRoutes: [],
@@ -446,7 +446,7 @@ export const groups = [
                     {
                         title: 'Integrations',
                         path:
-                            '/dashboard/project/:projectId/settings/integrations',
+                            '/dashboard/project/:slug/settings/integrations',
                         icon: 'integration',
                         visible: true,
                         subRoutes: [],
@@ -456,7 +456,7 @@ export const groups = [
                     },
                     {
                         title: 'API',
-                        path: '/dashboard/project/:projectId/settings/api',
+                        path: '/dashboard/project/:slug/settings/api',
                         icon: 'apis',
                         visible: true,
                         subRoutes: [],
@@ -466,7 +466,7 @@ export const groups = [
                     },
                     {
                         title: 'Advanced',
-                        path: '/dashboard/project/:projectId/settings/advanced',
+                        path: '/dashboard/project/:slug/settings/advanced',
                         icon: 'businessSettings',
                         visible: true,
                         subRoutes: [],
@@ -476,7 +476,7 @@ export const groups = [
                     },
                     {
                         title: 'More',
-                        path: '/dashboard/project/:projectId/setting',
+                        path: '/dashboard/project/:slug/setting',
                         icon: 'radar',
                         visible: true,
                         subRoutes: [],
@@ -486,7 +486,7 @@ export const groups = [
                     {
                         title: 'Resources',
                         path:
-                            '/dashboard/project/:projectId/settings/resources',
+                            '/dashboard/project/:slug/settings/resources',
                         icon: 'monitor',
                         visible: true,
                         subRoutes: [],
@@ -496,7 +496,7 @@ export const groups = [
                     },
                     {
                         title: 'Monitor',
-                        path: '/dashboard/project/:projectId/settings/monitor',
+                        path: '/dashboard/project/:slug/settings/monitor',
                         icon: 'incidentSettings',
                         visible: true,
                         subRoutes: [],
@@ -507,7 +507,7 @@ export const groups = [
                     {
                         title: 'Incident Settings',
                         path:
-                            '/dashboard/project/:projectId/settings/incidents',
+                            '/dashboard/project/:slug/settings/incidents',
                         icon: 'incidentSettings',
                         visible: true,
                         subRoutes: [],
@@ -517,7 +517,7 @@ export const groups = [
                     },
                     {
                         title: 'Email',
-                        path: '/dashboard/project/:projectId/settings/emails',
+                        path: '/dashboard/project/:slug/settings/emails',
                         icon: 'email',
                         visible: true,
                         subRoutes: [],
@@ -527,7 +527,7 @@ export const groups = [
                     },
                     {
                         title: 'SMS & Calls',
-                        path: '/dashboard/project/:projectId/settings/sms',
+                        path: '/dashboard/project/:slug/settings/sms',
                         icon: 'sms',
                         visible: true,
                         subRoutes: [],
@@ -538,7 +538,7 @@ export const groups = [
                     {
                         title: 'Call Routing',
                         path:
-                            '/dashboard/project/:projectId/settings/callRouting',
+                            '/dashboard/project/:slug/settings/callRouting',
                         icon: 'callrouting',
                         visible: true,
                         subRoutes: [],
@@ -548,7 +548,7 @@ export const groups = [
                     },
                     {
                         title: 'Webhooks',
-                        path: '/dashboard/project/:projectId/settings/webhooks',
+                        path: '/dashboard/project/:slug/settings/webhooks',
                         icon: 'integration',
                         visible: true,
                         subRoutes: [],
@@ -558,7 +558,7 @@ export const groups = [
                     },
                     {
                         title: 'Probe',
-                        path: '/dashboard/project/:projectId/settings/probe',
+                        path: '/dashboard/project/:slug/settings/probe',
                         icon: 'probes',
                         visible: true,
                         subRoutes: [],
@@ -569,7 +569,7 @@ export const groups = [
                     {
                         title: 'Git Credentials',
                         path:
-                            '/dashboard/project/:projectId/settings/gitCredential',
+                            '/dashboard/project/:slug/settings/gitCredential',
                         icon: 'git',
                         visible: true,
                         subRoutes: [],
@@ -580,7 +580,7 @@ export const groups = [
                     {
                         title: 'Docker Credentials',
                         path:
-                            '/dashboard/project/:projectId/settings/dockerCredential',
+                            '/dashboard/project/:slug/settings/dockerCredential',
                         icon: 'docker',
                         visible: true,
                         subRoutes: [],
@@ -651,7 +651,7 @@ export const groups = [
             },
             {
                 title: 'Back to Dashboard',
-                path: '/dashboard/project/:projectId/components',
+                path: '/dashboard/project/:slug/components',
                 icon: 'back',
                 component: Component,
                 visible: true,
@@ -667,7 +667,7 @@ export const groups = [
         routes: [
             {
                 title: 'Consulting & Services',
-                path: '/dashboard/project/:projectId/consulting',
+                path: '/dashboard/project/:slug/consulting',
                 icon: 'consulting',
                 visible: true,
                 component: Consulting,

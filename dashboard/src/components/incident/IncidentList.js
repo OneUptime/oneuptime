@@ -211,7 +211,7 @@ export class IncidentList extends Component {
                                                         '/dashboard/project/' +
                                                             this.props
                                                                 .currentProject
-                                                                ._id +
+                                                                .slug +
                                                             '/' +
                                                             incident.monitorId
                                                                 .componentId

@@ -67,7 +67,7 @@ class ErrorEventView extends Component {
         setCurrentErrorEvent(errorEventId);
         history.push(
             '/dashboard/project/' +
-                currentProject._id +
+                currentProject.slug +
                 '/' +
                 component._id +
                 '/error-trackers/' +

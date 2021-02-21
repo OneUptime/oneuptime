@@ -459,7 +459,7 @@ const mapDispatchToProps = dispatch =>
 
 const mapStateToProps = state => ({
     projectId:
-        state.project.currentProject !== null &&
+    state.project.currentProject &&
         state.project.currentProject._id,
     resourceCategories:
         state.resourceCategories.resourceCategoryList.resourceCategories,

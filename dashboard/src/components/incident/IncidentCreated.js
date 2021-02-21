@@ -26,7 +26,7 @@ class IncidentCreated extends Component {
             logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
         }
         history.push(
-            `/dashboard/project/${project_Id}/${componentId}/incidents/${_id}`
+            `/dashboard/project/${this.props.slug}/${componentId}/incidents/${_id}`
         );
     };
 
@@ -193,6 +193,7 @@ IncidentCreated.propTypes = {
     notifications: PropTypes.array,
     markAsRead: PropTypes.func,
     closeNotification: PropTypes.func,
+    slug: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentCreated);

@@ -59,10 +59,8 @@ class NewComponent extends Component {
         }
     }
 
-    viewCreatedComponent = (projectId, componentId) => {
-        history.push(
-            `/dashboard/project/${projectId}/${componentId}/monitoring`
-        );
+    viewCreatedComponent = (slug, componentId) => {
+        history.push(`/dashboard/project/${slug}/${componentId}/monitoring`);
     };
 
     submitForm = values => {
@@ -89,7 +87,7 @@ class NewComponent extends Component {
             });
         } else {
             this.props.createComponent(postObj.projectId, postObj).then(
-                ({ data: { _id: componentId, projectId } }) => {
+                ({ data: { _id: componentId } }) => {
                     thisObj.props.reset();
                     if (IS_SAAS_SERVICE) {
                         logEvent(
@@ -97,7 +95,10 @@ class NewComponent extends Component {
                             values
                         );
                     }
-                    this.viewCreatedComponent(projectId._id, componentId);
+                    this.viewCreatedComponent(
+                        this.props.currentProject.slug,
+                        componentId
+                    );
                 },
                 error => {
                     if (

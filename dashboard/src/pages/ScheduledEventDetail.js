@@ -53,19 +53,19 @@ class ScheduledEvent extends Component {
             deleteScheduledEventNoteSuccess,
             createScheduledEventNoteSuccess,
         } = this.props;
-        const { projectId, scheduledEventId } = match.params;
+        const { scheduledEventId } = match.params;
         // fetch scheduled event
-        fetchscheduledEvent(projectId, scheduledEventId);
+        fetchscheduledEvent(this.props.projectId, scheduledEventId);
 
         // fetch scheduled event notes
         fetchScheduledEventNotesInternal(
-            projectId,
+            this.props.projectId,
             scheduledEventId,
             this.limit,
             0
         );
         fetchScheduledEventNotesInvestigation(
-            projectId,
+            this.props.projectId,
             scheduledEventId,
             this.limit,
             0
@@ -106,7 +106,7 @@ class ScheduledEvent extends Component {
             match,
             monitorList,
         } = this.props;
-        const { projectId, scheduledEventId } = match.params;
+        const { scheduledEventId } = match.params;
         const eventName = scheduledEvent ? scheduledEvent.name : '';
 
         return (
@@ -201,7 +201,9 @@ class ScheduledEvent extends Component {
                                                                         investigationNotesList.count
                                                                     }
                                                                     projectId={
-                                                                        projectId
+                                                                        this
+                                                                            .props
+                                                                            .projectId
                                                                     }
                                                                     scheduledEventId={
                                                                         scheduledEventId
@@ -243,7 +245,9 @@ class ScheduledEvent extends Component {
                                                                         internalNotesList.count
                                                                     }
                                                                     projectId={
-                                                                        projectId
+                                                                        this
+                                                                            .props
+                                                                            .projectId
                                                                     }
                                                                     scheduledEventId={
                                                                         scheduledEventId
@@ -268,7 +272,7 @@ class ScheduledEvent extends Component {
                                 <Fade>
                                     <ShouldRender if={scheduledEvent}>
                                         <ScheduleEventDeleteBox
-                                            projectId={projectId}
+                                            projectId={this.props.projectId}
                                             scheduledEventId={scheduledEventId}
                                         />
                                     </ShouldRender>
@@ -290,6 +294,7 @@ ScheduledEvent.propTypes = {
         pathname: PropTypes.string,
     }),
     fetchscheduledEvent: PropTypes.func,
+    projectId: PropTypes.string,
     scheduledEvent: PropTypes.object,
     requesting: PropTypes.bool,
     fetchScheduledEventNotesInternal: PropTypes.func,
@@ -322,6 +327,8 @@ const mapStateToProps = state => {
         investigationNotesList:
             state.scheduledEvent.scheduledEventInvestigationList,
         monitorList,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
     };
 };
 

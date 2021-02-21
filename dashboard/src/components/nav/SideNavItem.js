@@ -47,10 +47,7 @@ export class SidebarNavItem extends Component {
     mainRoute = () => {
         const { match, currentProject, route } = this.props;
         return route.path
-            .replace(
-                ':projectId',
-                match.params.projectId || (currentProject || {})._id
-            )
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
@@ -63,10 +60,7 @@ export class SidebarNavItem extends Component {
     subRoute = subRoute => {
         const { match, currentProject } = this.props;
         const subRoutePath = subRoute.path
-            .replace(
-                ':projectId',
-                match.params.projectId || (currentProject || {})._id
-            )
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':componentId', match.params.componentId)
             .replace(/:issueId/, match.params.issueId)
             .replace(/:scheduleId/, match.params.scheduleId)
@@ -111,10 +105,7 @@ export class SidebarNavItem extends Component {
             toggleMoreBtn,
         } = this.props;
         const path = route.path
-            .replace(
-                ':projectId',
-                match.params.projectId || (currentProject || {})._id
-            )
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
@@ -168,10 +159,7 @@ export class SidebarNavItem extends Component {
                 route.title === 'Error Tracking');
 
         const isChildLinkActive = route.subRoutes.some(link => {
-            let newPath = link.path.replace(
-                /:projectId/,
-                match.params.projectId
-            );
+            let newPath = link.path.replace(/:slug/, match.params.slug);
             newPath = newPath.replace(/:issueId/, match.params.issueId);
             newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);
@@ -337,7 +325,7 @@ export class SidebarNavItem extends Component {
                             }
                         >
                             <RenderListItems
-                                projectId={match.params.projectId}
+                                slug={this.props.currentProject.slug}
                                 schedule={schedule}
                                 active={match.url}
                                 onLoad={title => loadPage(title)}
@@ -355,7 +343,7 @@ export class SidebarNavItem extends Component {
     }
 
     RenderListItems({
-        projectId,
+        slug,
         schedule,
         active,
         onLoad,
@@ -394,7 +382,7 @@ export class SidebarNavItem extends Component {
 
             if (child.visible) {
                 let link = child.path
-                    .replace(':projectId', projectId)
+                    .replace(':slug', slug)
                     .replace(':componentId', componentId);
                 link =
                     schedule && schedule._id
@@ -497,9 +485,7 @@ export class SidebarNavItem extends Component {
                                     >
                                         <div style={{ outline: 'none' }}>
                                             <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
-                                                <div
-                                                    className="Box-root Flex-flex Flex-alignItems--center Padding-left--32 tooltip"
-                                                >
+                                                <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32 tooltip">
                                                     <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <span
                                                             className={

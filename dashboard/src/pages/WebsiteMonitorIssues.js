@@ -63,7 +63,7 @@ class WebsiteMonitorIssues extends React.Component {
 
     ready = () => {
         this.props.fetchMonitorIssue(
-            this.props.match.params.projectId,
+            this.props.projectId,
             this.props.match.params.issueId
         );
     };
@@ -452,6 +452,8 @@ const mapStateToProps = (state, props) => {
         component,
         monitor,
         monitorState: state.monitor,
+        projectId: state.project.currentProject &&
+        state.project.currentProject._id,
     };
 };
 
@@ -477,6 +479,7 @@ WebsiteMonitorIssues.propTypes = {
     ),
     monitor: PropTypes.object,
     monitorState: PropTypes.object,
+    projectId: PropTypes.string,
 };
 
 WebsiteMonitorIssues.displayName = 'WebsiteMonitorIssues';
