@@ -6,10 +6,6 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
-                        field3: true,
-                    },
-                    {
-                        match: 'all',
                         responseType: 'statusCode',
                         filter: 'gtEqualTo',
                         field1: '200',
@@ -43,10 +39,6 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: false,
                 down_1000: [
                     {
-                        match: 'all',
-                        field3: true,
-                    },
-                    {
                         match: 'any',
                         responseType: 'doesRespond',
                         filter: 'isDown',
@@ -66,10 +58,6 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
                 degraded_1000: [
-                    {
-                        match: 'all',
-                        field3: true,
-                    },
                     {
                         match: 'all',
                         responseType: 'responseTime',
@@ -88,10 +76,6 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
-                        field3: true,
-                    },
-                    {
-                        match: 'all',
                         responseType: 'statusCode',
                         filter: 'gtEqualTo',
                         field1: '200',
@@ -125,10 +109,6 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: false,
                 down_1000: [
                     {
-                        match: 'all',
-                        field3: true,
-                    },
-                    {
                         match: 'any',
                         responseType: 'doesRespond',
                         filter: 'isDown',
@@ -150,10 +130,6 @@ const MonitorCriteriaService = {
                 degraded_1000: [
                     {
                         match: 'all',
-                        field3: true,
-                    },
-                    {
-                        match: 'all',
                         responseType: 'responseTime',
                         filter: 'greaterThan',
                         field1: '5000',
@@ -168,10 +144,6 @@ const MonitorCriteriaService = {
             },
             script: {
                 up_1000: [
-                    {
-                        match: 'all',
-                        field3: true,
-                    },
                     {
                         match: 'all',
                         responseType: 'executes',
@@ -193,10 +165,6 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: false,
                 down_1000: [
                     {
-                        match: 'all',
-                        field3: true,
-                    },
-                    {
                         match: 'any',
                         responseType: 'error',
                         filter: 'throwsError',
@@ -216,10 +184,6 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
                 degraded_1000: [
-                    {
-                        match: 'all',
-                        field3: true,
-                    },
                     {
                         match: 'all',
                         responseType: 'executes',
@@ -252,10 +216,6 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
-                        field3: true,
-                    },
-                    {
-                        match: 'all',
                         responseType: 'storageUsage',
                         filter: 'greaterThan',
                         field1: '10',
@@ -275,10 +235,6 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: false,
                 down_1000: [
                     {
-                        match: 'all',
-                        field3: true,
-                    },
-                    {
                         match: 'any',
                         responseType: 'storageUsage',
                         filter: 'lessThan',
@@ -291,10 +247,6 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
                 degraded_1000: [
-                    {
-                        match: 'all',
-                        field3: true,
-                    },
                     {
                         match: 'all',
                         responseType: 'storageUsage',
@@ -326,10 +278,6 @@ const MonitorCriteriaService = {
             default: {
                 up_1000: [
                     {
-                        match: 'all',
-                        field3: true,
-                    },
-                    {
                         match: '',
                         responseType: '',
                         filter: '',
@@ -343,10 +291,6 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: false,
                 down_1000: [
                     {
-                        match: 'all',
-                        field3: true,
-                    },
-                    {
                         match: '',
                         responseType: '',
                         filter: '',
@@ -359,10 +303,6 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
                 degraded_1000: [
-                    {
-                        match: 'all',
-                        field3: true,
-                    },
                     {
                         match: '',
                         responseType: '',
@@ -381,10 +321,6 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
-                        field3: true,
-                    },
-                    {
-                        match: 'all',
                         responseType: 'responseBody',
                         filter: 'notEmpty',
                         field1: '',
@@ -396,10 +332,6 @@ const MonitorCriteriaService = {
                 up_1000_autoAcknowledge: false,
                 up_1000_autoResolve: false,
                 down_1000: [
-                    {
-                        match: 'all',
-                        field3: true,
-                    },
                     {
                         match: 'any',
                         responseType: 'responseBody',
@@ -413,10 +345,6 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
                 degraded_1000: [
-                    {
-                        match: 'all',
-                        field3: true,
-                    },
                     {
                         match: 'all',
                         responseType: 'responseBody',
@@ -434,45 +362,43 @@ const MonitorCriteriaService = {
             kubernetes: {
                 up_1000: [
                     {
-                        match: 'all',
+                        match: 'any',
+                        responseType: 'podStatus',
+                        filter: 'equalTo',
+                        field1: 'running',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'jobStatus',
+                        filter: 'equalTo',
+                        field1: 'succeeded',
+                        field2: '',
                         field3: true,
-                    },
-                    {
-                        match: 'any',
-                        responseType: 'podStatus',
-                        filter: 'equalTo',
-                        field1: 'running',
-                        field2: '',
-                        field3: false,
-                    },
-                    {
-                        responseType: 'podStatus',
-                        filter: 'equalTo',
-                        field1: 'succeeded',
-                        field2: '',
-                        field3: false,
-                    },
-                    {
-                        responseType: 'podStatus',
-                        filter: 'equalTo',
-                        field1: 'pending',
-                        field2: '',
-                        field3: false,
-                    },
-                    {
-                        match: 'any',
-                        responseType: 'jobStatus',
-                        filter: 'equalTo',
-                        field1: 'running',
-                        field2: '',
-                        field3: false,
-                    },
-                    {
-                        responseType: 'jobStatus',
-                        filter: 'equalTo',
-                        field1: 'succeeded',
-                        field2: '',
-                        field3: false,
+                        criteria: [
+                            {
+                                match: 'any',
+                                responseType: 'podStatus',
+                                filter: 'equalTo',
+                                field1: 'pending',
+                                field2: '',
+                                field3: false,
+                            },
+                            {
+                                responseType: 'podStatus',
+                                filter: 'equalTo',
+                                field1: 'succeeded',
+                                field2: '',
+                                field3: false,
+                            },
+                            {
+                                responseType: 'jobStatus',
+                                filter: 'equalTo',
+                                field1: 'running',
+                                field2: '',
+                                field3: false,
+                            },
+                        ],
                     },
                 ],
                 up_1000_createAlert: false,
@@ -487,10 +413,6 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
-                        field3: true,
-                    },
-                    {
-                        match: 'all',
                         responseType: 'respondsToPing',
                         filter: 'isUp',
                         field1: '',
@@ -502,10 +424,6 @@ const MonitorCriteriaService = {
                 up_1000_autoAcknowledge: true,
                 up_1000_autoResolve: true,
                 down_1000: [
-                    {
-                        match: 'all',
-                        field3: true,
-                    },
                     {
                         match: 'any',
                         responseType: 'respondsToPing',
