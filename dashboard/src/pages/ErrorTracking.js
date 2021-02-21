@@ -47,7 +47,7 @@ class ErrorTracking extends Component {
             document.title = this.props.currentProject.name + ' Dashboard';
             socket.on(`createErrorTracker-${this.props.componentId}`, data => {
                 history.push(
-                    `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/error-trackers/${data._id}`
+                    `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/error-trackers/${data._id}`
                 );
             });
         }
@@ -141,7 +141,10 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    const { componentId, projectId } = ownProps.match.params;
+    const { componentId } = ownProps.match.params;
+    const projectId =
+    state.project.currentProject &&
+        state.project.currentProject._id;
     const currentProject = state.project.currentProject;
 
     const errorTracker = state.errorTracker.errorTrackersList;

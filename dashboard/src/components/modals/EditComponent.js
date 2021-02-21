@@ -181,7 +181,7 @@ const mapStateToProps = (state, ownProps) => {
         )[0][0],
         editingComponent: state.component.editComponent,
         projectId:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject._id,
     };
 };

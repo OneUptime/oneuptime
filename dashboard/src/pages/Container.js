@@ -68,7 +68,7 @@ class Container extends Component {
 
         socket.on(`createContainerSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${projectId}/${componentId}/security/container/${data._id}`
+                `/dashboard/project/${this.props.slug}/${componentId}/security/container/${data._id}`
             );
         });
 
@@ -186,6 +186,7 @@ Container.displayName = 'Container Security Page';
 Container.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    slug: PropTypes.string,
     containerSecurities: PropTypes.array,
     getContainerSecurities: PropTypes.func,
     getContainerSecurityLogs: PropTypes.func,
@@ -205,7 +206,7 @@ Container.propTypes = {
 
 const mapStateToProps = (state, ownProps) => {
     // ids from url
-    const { componentId, projectId } = ownProps.match.params;
+    const { componentId } = ownProps.match.params;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
@@ -216,8 +217,13 @@ const mapStateToProps = (state, ownProps) => {
     });
 
     return {
-        projectId,
+        projectId:
+        state.project.currentProject &&
+            state.project.currentProject._id,
         componentId,
+        slug:
+        state.project.currentProject &&
+            state.project.currentProject.slug,
         containerSecurities: state.security.containerSecurities,
         gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,
         gettingContainerSecurities: state.security.getContainer.requesting,

@@ -24,7 +24,7 @@ class ResourceTabularList extends Component {
     }
     generateUrlLink(componentResource) {
         const { currentProject, componentId } = this.props;
-        const baseUrl = `/dashboard/project/${currentProject._id}/${componentId}/`;
+        const baseUrl = `/dashboard/project/${currentProject.slug}/${componentId}/`;
         let route = '';
         switch (componentResource.type) {
             case 'website monitor':

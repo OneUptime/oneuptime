@@ -143,6 +143,7 @@ const ScheduleProjectBox = props => {
                                 schedules={sortByName(props.schedules)}
                                 requesting={props.isRequesting}
                                 subProjectId={props.subProjectSchedule._id}
+                                slug={props.currentProject.slug}
                                 bottonTitle="View On-Call Duty"
                             />
                         </tbody>

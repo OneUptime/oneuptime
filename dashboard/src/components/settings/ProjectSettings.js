@@ -183,7 +183,7 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = state => ({
     isRequesting: state.project.renameProject.isRequesting,
     projectId:
-        state.project.currentProject !== null &&
+    state.project.currentProject &&
         state.project.currentProject._id,
     initialValues: {
         project_name:

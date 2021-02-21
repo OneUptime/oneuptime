@@ -49,7 +49,7 @@ export class StatusPageForm extends React.Component {
                     content: DuplicateStatusPageConfirmation,
                     statusPageId: res.data._id,
                     subProjectId: data.subProjectId,
-                    projectId: data.projectId,
+                    slug: this.props.currentProject.slug,
                 });
             });
         });
@@ -232,6 +232,7 @@ StatusPageForm.propTypes = {
     duplicateModalId: PropTypes.string.isRequired,
     statusPageId: PropTypes.string.isRequired,
     statusPage: PropTypes.object,
+    currentProject: PropTypes.object,
     subProjectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
 };
