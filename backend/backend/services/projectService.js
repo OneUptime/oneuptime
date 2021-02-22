@@ -303,7 +303,7 @@ module.exports = {
             projectId,
             data.alertOptions
         );
-        if (chargeForBalance && !chargeForBalance.client_secret) {
+        if (chargeForBalance) {
             const newBalance = rechargeToBalance + currentBalance;
             updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,
@@ -316,12 +316,9 @@ module.exports = {
                 },
                 { new: true }
             );
-            return updatedProject;
-        } else if (chargeForBalance && chargeForBalance.client_secret) {
-            updatedProject = {
-                ...project,
-                paymentIntent: chargeForBalance.client_secret,
-            };
+            if (chargeForBalance.client_secret) {
+                updatedProject.paymentIntent = chargeForBalance.client_secret;
+            }
             return updatedProject;
         } else {
             const error = new Error('Cannot save project settings');
