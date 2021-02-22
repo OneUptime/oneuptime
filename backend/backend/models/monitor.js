@@ -21,6 +21,48 @@ const criterionEventSchema = {
     },
 };
 
+/**
+ * SAMPLE STRUCTURE OF HOW CRITERIA WILL BE STRUCTURED IN THE DB
+ * Depending of on the level, criteria will house all the conditions,
+ * in addition to nested condition if present (the nested condition will follow the same structural pattern)
+ *
+ * criteria: {
+ *  type: 'and',
+ *  criteria: [
+ *      {
+ *         type: 'or',
+ *         criteria: [
+ *            {
+ *               "responseType": "requestBody",
+ *               "filter": "equalTo",
+ *                "field1": "ok"
+ *            },
+ *            {
+ *               "responseType": "requestBody",
+ *               "filter": "equalTo",
+ *                "field1": "healthy"
+ *            },
+ *            {
+ *               type: 'and',
+ *               criteria: [{}, {}, ...]
+ *            }
+ *         ]
+ *      },
+ *      {
+ *          "responseType": "statusCode",
+ *           "filter": "equalTo",
+ *           "field1": "200"
+ *      },
+ *      {
+ *           "responseType": "requestTime",
+ *           "filter": "lessthan",
+ *           "field1": "1000"
+ *      },
+ *      ...
+ *   ]
+ * }
+ */
+
 const monitorSchema = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
