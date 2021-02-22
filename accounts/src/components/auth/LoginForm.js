@@ -58,7 +58,10 @@ export class LoginForm extends Component {
             <div id="main-body" className="box css">
                 <div className="inner login">
                     <div>
-                        <form onSubmit={handleSubmit(this.props.onSubmit)}>
+                        <form
+                            onSubmit={handleSubmit(this.props.onSubmit)}
+                            id="login-form"
+                        >
                             <div className="step email-password-step">
                                 <h2>{header}</h2>
                                 <p className="text">

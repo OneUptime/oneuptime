@@ -4404,6 +4404,9 @@
 .Spinner--color--white .Spinner-ellipse {
   stroke: #fff;
 }
+.Spinner--color--black .Spinner-ellipse {
+  stroke: #000;
+}
 @-webkit-keyframes SpinnerAnimationShow {
   0% {
     opacity: 0;
