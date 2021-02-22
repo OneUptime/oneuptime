@@ -20,6 +20,8 @@ import {
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
 import AffectedResources from './basic/AffectedResources';
+import SubscribeBox from './Subscribe/SubscribeBox';
+import { openSubscribeMenu } from '../actions/subscribe';
 
 const greenBackground = {
     display: 'inline-block',
@@ -369,264 +371,307 @@ class Main extends Component {
             };
         }
 
+        const {
+            enableRSSFeed,
+            smsNotification,
+            webhookNotification,
+            emailNotification,
+        } = this.props.statusPage;
+        const showSubscriberOption =
+            enableRSSFeed ||
+            smsNotification ||
+            webhookNotification ||
+            emailNotification;
+
         return (
             <>
                 {theme === 'New Theme' ? (
-                    <div className="new-theme">
-                        {this.props.statusData &&
-                        this.props.statusData.logoPath ? (
-                            <div className="logo_section">
-                                <span>
-                                    <img
-                                        src={`${API_URL}/file/${this.props.statusData.logoPath}`}
-                                        alt=""
-                                        className="logo"
-                                    />
-                                </span>
-                            </div>
-                        ) : (
-                            ''
-                        )}
-                        {this.props.statusData &&
-                        this.props.statusData.bannerPath ? (
-                            <div className="banner-container">
-                                <div className="page-main-wrapper">
-                                    {/* Banner */}
+                    <>
+                        <div className="new-theme">
+                            {this.props.statusData &&
+                            this.props.statusData.logoPath ? (
+                                <div className="logo_section">
                                     <span>
                                         <img
-                                            src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
+                                            src={`${API_URL}/file/${this.props.statusData.logoPath}`}
                                             alt=""
-                                            className="banner"
+                                            className="logo"
                                         />
                                     </span>
                                 </div>
-                            </div>
-                        ) : (
-                            ''
-                        )}
-                        <div className="new-main-container">
-                            <div className="sy-op">All Systems Operational</div>
-                            <div className="op-div border-top">
-                                <div className="op-info">
-                                    <div className="collecion_item">
-                                        Data Collection & Storage
-                                    </div>
-                                    <div class="tooltip">
-                                        <span className="ques_mark">?</span>
-                                        <span class="tooltiptext tooltip1">
-                                            Receiving and storing log data from
-                                            the customer internally
+                            ) : (
+                                ''
+                            )}
+                            {this.props.statusData &&
+                            this.props.statusData.bannerPath ? (
+                                <div className="banner-container">
+                                    <div className="page-main-wrapper">
+                                        {/* Banner */}
+                                        <span>
+                                            <img
+                                                src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
+                                                alt=""
+                                                className="banner"
+                                            />
                                         </span>
                                     </div>
                                 </div>
-                                <div>Operational</div>
-                            </div>
-                            <div className="op-div">
-                                <div className="op-info">
-                                    <div className="collecion_item">
-                                        Indexing Data
-                                    </div>
-                                    <div class="tooltip">
-                                        <span className="ques_mark">?</span>
-                                        <span class="tooltiptext tooltip2">
-                                            indexing log data in our search
-                                            engine
-                                        </span>
-                                    </div>
+                            ) : (
+                                ''
+                            )}
+                            <div className="subscribe_box">
+                                <div>
+                                    <a href="https://fyipe.com" target="_blank">
+                                        Fyipe's Status Page
+                                    </a>
                                 </div>
-                                <div>Operational</div>
+                                <button
+                                    className="subscribe_btn"
+                                    onClick={() =>
+                                        this.props.openSubscribeMenu()
+                                    }
+                                >
+                                    subscribe to updates
+                                </button>
                             </div>
-                            <div className="op-div">
-                                <div className="op-info">
-                                    <div className="collecion_item">
-                                        Website Availability
-                                    </div>
-                                    <div class="tooltip">
-                                        <span className="ques_mark">?</span>
-                                        <span class="tooltiptext tooltip3">
-                                            The Web interface you use to view
-                                            log data
-                                        </span>
-                                    </div>
+                            <div className="new-main-container">
+                                <div className="sy-op">
+                                    All Systems Operational
                                 </div>
-                                <div>Operational</div>
-                            </div>
-                            <div className="op-div">
-                                <div className="op-info">
-                                    <div className="collecion_item">
-                                        Search Availability
+                                <div className="op-div border-top">
+                                    <div className="op-info">
+                                        <div className="collecion_item">
+                                            Data Collection & Storage
+                                        </div>
+                                        <div class="tooltip">
+                                            <span className="ques_mark">?</span>
+                                            <span class="tooltiptext tooltip1">
+                                                Receiving and storing log data
+                                                from the customer internally
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="tooltip">
-                                        <span className="ques_mark">?</span>
-                                        <span class="tooltiptext tooltip4">
-                                            The search engine is returning
-                                            results to display in the web
-                                            interface or API
-                                        </span>
-                                    </div>
-                                </div>
-                                <div>Operational</div>
-                            </div>
-                            <div className="op-div another-div">
-                                <div className="display-flex">
-                                    <div>Alerts</div>
                                     <div>Operational</div>
                                 </div>
-                                <div className="line-chart">
-                                    <div
-                                        className="uptime-graphs box-inner"
-                                        style={
-                                            isGroupedByMonitorCategory
-                                                ? { paddingBottom: 0 }
-                                                : { paddingBottom: 35 }
-                                        }
-                                    >
-                                        {isGroupedByMonitorCategory ? (
-                                            this.groupedMonitors()
-                                        ) : this.props.statusData &&
-                                          this.props.statusData.monitorsData !==
-                                              undefined &&
-                                          this.props.statusData.monitorsData
-                                              .length > 0 ? (
-                                            this.props.monitors
-                                                .filter(monitor =>
-                                                    this.props.statusData.monitorsData.some(
-                                                        m =>
-                                                            m._id ===
-                                                            monitor.monitor
+                                <div className="op-div">
+                                    <div className="op-info">
+                                        <div className="collecion_item">
+                                            Indexing Data
+                                        </div>
+                                        <div class="tooltip">
+                                            <span className="ques_mark">?</span>
+                                            <span class="tooltiptext tooltip2">
+                                                indexing log data in our search
+                                                engine
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>Operational</div>
+                                </div>
+                                <div className="op-div">
+                                    <div className="op-info">
+                                        <div className="collecion_item">
+                                            Website Availability
+                                        </div>
+                                        <div class="tooltip">
+                                            <span className="ques_mark">?</span>
+                                            <span class="tooltiptext tooltip3">
+                                                The Web interface you use to
+                                                view log data
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>Operational</div>
+                                </div>
+                                <div className="op-div">
+                                    <div className="op-info">
+                                        <div className="collecion_item">
+                                            Search Availability
+                                        </div>
+                                        <div class="tooltip">
+                                            <span className="ques_mark">?</span>
+                                            <span class="tooltiptext tooltip4">
+                                                The search engine is returning
+                                                results to display in the web
+                                                interface or API
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>Operational</div>
+                                </div>
+                                <div className="op-div another-div">
+                                    <div className="display-flex">
+                                        <div>Alerts</div>
+                                        <div>Operational</div>
+                                    </div>
+                                    <div className="line-chart">
+                                        <div
+                                            className="uptime-graphs box-inner"
+                                            style={
+                                                isGroupedByMonitorCategory
+                                                    ? { paddingBottom: 0 }
+                                                    : { paddingBottom: 35 }
+                                            }
+                                        >
+                                            {isGroupedByMonitorCategory ? (
+                                                this.groupedMonitors()
+                                            ) : this.props.statusData &&
+                                              this.props.statusData
+                                                  .monitorsData !== undefined &&
+                                              this.props.statusData.monitorsData
+                                                  .length > 0 ? (
+                                                this.props.monitors
+                                                    .filter(monitor =>
+                                                        this.props.statusData.monitorsData.some(
+                                                            m =>
+                                                                m._id ===
+                                                                monitor.monitor
+                                                        )
                                                     )
-                                                )
-                                                .map((monitor, i) => (
-                                                    <>
-                                                        <MonitorInfo
-                                                            monitor={
-                                                                this.props.statusData.monitorsData.filter(
-                                                                    m =>
-                                                                        m._id ===
-                                                                        monitor.monitor
-                                                                )[0]
-                                                            }
-                                                            selectedCharts={
-                                                                monitor
-                                                            }
-                                                            key={`uptime-${i}`}
-                                                            id={`monitor${i}`}
-                                                            isGroupedByMonitorCategory={
-                                                                isGroupedByMonitorCategory
-                                                            }
-                                                        />
-                                                        <LineChartsContainer
-                                                            monitor={
-                                                                this.props.statusData.monitorsData.filter(
-                                                                    m =>
-                                                                        m._id ===
-                                                                        monitor.monitor
-                                                                )[0]
-                                                            }
-                                                            selectedCharts={
-                                                                monitor
-                                                            }
-                                                            key={`line-charts-${i}`}
-                                                        />
-                                                        {i <
-                                                            this.props
-                                                                .statusData
-                                                                .monitorsData
-                                                                .length -
-                                                                1 && (
-                                                            <div
-                                                                style={{
-                                                                    margin:
-                                                                        '30px 0px',
-                                                                    backgroundColor:
-                                                                        '#e8e8e8',
-                                                                    height:
-                                                                        '1px',
-                                                                }}
+                                                    .map((monitor, i) => (
+                                                        <>
+                                                            <MonitorInfo
+                                                                monitor={
+                                                                    this.props.statusData.monitorsData.filter(
+                                                                        m =>
+                                                                            m._id ===
+                                                                            monitor.monitor
+                                                                    )[0]
+                                                                }
+                                                                selectedCharts={
+                                                                    monitor
+                                                                }
+                                                                key={`uptime-${i}`}
+                                                                id={`monitor${i}`}
+                                                                isGroupedByMonitorCategory={
+                                                                    isGroupedByMonitorCategory
+                                                                }
                                                             />
-                                                        )}
-                                                    </>
-                                                ))
-                                        ) : (
-                                            <NoMonitor />
-                                        )}
+                                                            <LineChartsContainer
+                                                                monitor={
+                                                                    this.props.statusData.monitorsData.filter(
+                                                                        m =>
+                                                                            m._id ===
+                                                                            monitor.monitor
+                                                                    )[0]
+                                                                }
+                                                                selectedCharts={
+                                                                    monitor
+                                                                }
+                                                                key={`line-charts-${i}`}
+                                                            />
+                                                            {i <
+                                                                this.props
+                                                                    .statusData
+                                                                    .monitorsData
+                                                                    .length -
+                                                                    1 && (
+                                                                <div
+                                                                    style={{
+                                                                        margin:
+                                                                            '30px 0px',
+                                                                        backgroundColor:
+                                                                            '#e8e8e8',
+                                                                        height:
+                                                                            '1px',
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </>
+                                                    ))
+                                            ) : (
+                                                <NoMonitor />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="op-div">
-                                <div className="op-info">
-                                    <div className="collecion_item">API</div>
-                                    <div class="tooltip">
-                                        <span className="ques_mark">?</span>
-                                        <span class="tooltiptext tooltip5">
-                                            Search API's
-                                        </span>
+                                <div className="op-div">
+                                    <div className="op-info">
+                                        <div className="collecion_item">
+                                            API
+                                        </div>
+                                        <div class="tooltip">
+                                            <span className="ques_mark">?</span>
+                                            <span class="tooltiptext tooltip5">
+                                                Search API's
+                                            </span>
+                                        </div>
                                     </div>
+                                    <div>Operational</div>
                                 </div>
-                                <div>Operational</div>
-                            </div>
-                            <div className="op-div">
-                                <div className="op-info">
-                                    <div className="collecion_item">
-                                        S3 Ingestion
+                                <div className="op-div">
+                                    <div className="op-info">
+                                        <div className="collecion_item">
+                                            S3 Ingestion
+                                        </div>
+                                        <div class="tooltip">
+                                            <span className="ques_mark">?</span>
+                                            <span class="tooltiptext tooltip6">
+                                                This is the status of the S3
+                                                ingestion service to get the
+                                                logs
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="tooltip">
-                                        <span className="ques_mark">?</span>
-                                        <span class="tooltiptext tooltip6">
-                                            This is the status of the S3
-                                            ingestion service to get the logs
-                                        </span>
-                                    </div>
+                                    <div>Operational</div>
                                 </div>
-                                <div>Operational</div>
-                            </div>
-                            <div className="op-div">
-                                <div className="op-info">
-                                    <div className="collecion_item">
-                                        New Account Signup
+                                <div className="op-div">
+                                    <div className="op-info">
+                                        <div className="collecion_item">
+                                            New Account Signup
+                                        </div>
+                                        <div class="tooltip">
+                                            <span className="ques_mark">?</span>
+                                            <span class="tooltiptext tooltip7">
+                                                New customers can create
+                                                accounts
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="tooltip">
-                                        <span className="ques_mark">?</span>
-                                        <span class="tooltiptext tooltip7">
-                                            New customers can create accounts
-                                        </span>
-                                    </div>
+                                    <div>Operational</div>
                                 </div>
-                                <div>Operational</div>
                             </div>
-                        </div>
-                        <div className="new-theme-incident">
-                            <div className="font-largest">Past Incidents</div>
-                            <ShouldRender
-                                if={
-                                    this.props.statusData &&
-                                    this.props.statusData.projectId &&
-                                    this.props.statusData._id &&
-                                    !this.props.statusData.moveIncidentToTheTop
-                                }
-                            >
-                                <NotesMain
-                                    projectId={
-                                        this.props.statusData.projectId._id
+                            <div className="new-theme-incident">
+                                <div className="font-largest">
+                                    Past Incidents
+                                </div>
+                                <ShouldRender
+                                    if={
+                                        this.props.statusData &&
+                                        this.props.statusData.projectId &&
+                                        this.props.statusData._id &&
+                                        !this.props.statusData
+                                            .moveIncidentToTheTop
                                     }
-                                    statusPageId={this.props.statusData._id}
-                                    theme={theme}
-                                />
-                            </ShouldRender>
-                        </div>
-                        <div className="powered">
-                            <p>
-                                <a
-                                    href="https://fyipe.com"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={secondaryText}
                                 >
-                                    Powered by Fyipe
-                                </a>
-                            </p>
+                                    <NotesMain
+                                        projectId={
+                                            this.props.statusData.projectId._id
+                                        }
+                                        statusPageId={this.props.statusData._id}
+                                        theme={theme}
+                                    />
+                                </ShouldRender>
+                            </div>
+                            <div className="powered">
+                                <p>
+                                    <a
+                                        href="https://fyipe.com"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={secondaryText}
+                                    >
+                                        Powered by Fyipe
+                                    </a>
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                        <ShouldRender
+                            if={this.props.subscribed && showSubscriberOption}
+                        >
+                            <SubscribeBox />
+                        </ShouldRender>
+                    </>
                 ) : (
                     <div className="page-main-wrapper" style={backgroundMain}>
                         {this.props.statusData &&
@@ -1208,6 +1253,8 @@ const mapStateToProps = state => ({
     probes: state.probe.probes,
     events: state.status.events.events,
     requestingEvents: state.status.events.requesting,
+    statusPage: state.status.statusPage,
+    subscribed: state.subscribe.subscribeMenu,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -1217,6 +1264,7 @@ const mapDispatchToProps = dispatch =>
             getProbes,
             selectedProbe,
             getScheduledEvent,
+            openSubscribeMenu,
         },
         dispatch
     );
@@ -1236,6 +1284,9 @@ Main.propTypes = {
     history: PropTypes.object,
     getScheduledEvent: PropTypes.func,
     requestingEvents: PropTypes.bool,
+    openSubscribeMenu: PropTypes.func,
+    statusPage: PropTypes.object,
+    subscribed: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);
