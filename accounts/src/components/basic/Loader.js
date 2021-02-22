@@ -1,4 +1,5 @@
 import React from 'react';
+import { PropTypes } from 'prop-types';
 
 const loaderStyle = {
     backgroundColor: '#96d8ff',
@@ -79,9 +80,11 @@ export const Spinner = () => (
 
 Spinner.displayName = 'Spinner';
 
-export const ButtonSpinner = () => (
+export const ButtonSpinner = props => (
     <div
-        className="Spinner bs-SpinnerLegacy Spinner--color--white Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center"
+        className={`Spinner bs-SpinnerLegacy Spinner--color--${
+            props && props.color ? props.color : 'white'
+        } Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center`}
         style={{ marginTop: 4 }}
     >
         <svg
@@ -102,6 +105,9 @@ export const ButtonSpinner = () => (
 );
 
 ButtonSpinner.displayName = 'ButtonSpinner';
+ButtonSpinner.propTypes = {
+    color: PropTypes.string,
+};
 
 export const LoadingState = () => (
     <div className="Box-root Margin-bottom--12">
