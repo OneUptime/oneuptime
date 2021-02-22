@@ -58,7 +58,7 @@ const IncidentStatusPages = ({
                     </div>
                 </div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
-                    {statusPages.length ? (
+                    {statusPages && statusPages.length ? (
                         <table className="Table">
                             <thead className="Table-body">
                                 <tr className="Table-row db-ListViewItem db-ListViewItem-header">

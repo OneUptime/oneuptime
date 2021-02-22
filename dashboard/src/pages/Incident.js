@@ -258,7 +258,8 @@ class Incident extends React.Component {
     }
 
     ready = () => {
-        const { projectId, incidentId } = this.props.match.params;
+        const { incidentId } = this.props.match.params;
+        const { projectId } = this.props;
         this.fetchAllIncidentData();
         this.props.fetchIncidentStatusPages(projectId, incidentId);
         this.props.fetchDefaultCommunicationSla(projectId);
