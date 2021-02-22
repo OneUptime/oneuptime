@@ -46,8 +46,13 @@ async function run() {
             monitor.criteria.up.length > 0
         ) {
             for (const up of monitor.criteria.up) {
-                const and = [...up.and],
+                let and = [], or = [];
+                if (up.and && up.and.length > 0) {
+                    and = [...up.and];
+                }
+                if (up.or && up.or.length > 0) {
                     or = [...up.or];
+                }
                 const cr = { and: [], or: [] };
                 if (and && and.length > 0) {
                     and[0].match = 'all';
@@ -77,8 +82,13 @@ async function run() {
             monitor.criteria.down.length > 0
         ) {
             for (const down of monitor.criteria.down) {
-                const and = [...down.and],
+                let and = [], or = [];
+                if (down.and && down.and.length > 0) {
+                    and = [...down.and];
+                }
+                if (down.or && down.or.length > 0) {
                     or = [...down.or];
+                }
                 const cr = { and: [], or: [] };
                 if (and && and.length > 0) {
                     and[0].match = 'all';
@@ -108,8 +118,13 @@ async function run() {
             monitor.criteria.degraded.length > 0
         ) {
             for (const degraded of monitor.criteria.degraded) {
-                const and = [...degraded.and],
+                let and = [], or = [];
+                if (degraded.and && degraded.and.length > 0) {
+                    and = [...degraded.and];
+                }
+                if (degraded.or && degraded.or.length > 0) {
                     or = [...degraded.or];
+                }
                 const cr = { and: [], or: [] };
                 if (and && and.length > 0) {
                     and[0].match = 'all';
