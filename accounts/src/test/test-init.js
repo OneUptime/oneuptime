@@ -89,7 +89,7 @@ module.exports = {
         }
 
         await Promise.all([
-            page.waitForSelector('div#success-step'),
+            // page.waitForSelector('div#success-step'),
             page.click('button[type=submit]'),
         ]);
     },

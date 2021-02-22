@@ -2,6 +2,7 @@ import { createStore, applyMiddleware, compose } from 'redux';
 import { createLogger } from 'redux-logger';
 import { routerMiddleware } from 'react-router-redux';
 import thunk from 'redux-thunk';
+import queryString from 'query-string';
 import { createBrowserHistory, createMemoryHistory } from 'history';
 // import createHistory from 'history/createBrowserHistory';
 import rootReducer from './reducers';
@@ -20,7 +21,8 @@ export const history = isServer
 
 export const removeQuery = () => {
     const location = Object.assign({}, history.location);
-    delete location.search;
+    const query = queryString.parse(location.search);
+    if (!query.token) delete location.search;
     history.push(location);
 };
 const initialState = {};

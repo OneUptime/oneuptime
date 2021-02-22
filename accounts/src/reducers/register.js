@@ -52,10 +52,12 @@ export default function register(state = initialState, action) {
                 error: null,
             });
         case SIGNUP_SUCCESS:
+            state.user.cardRegistered = action.payload.cardRegistered;
             return Object.assign({}, state, {
                 requesting: false,
                 success: true,
                 error: null,
+                user: { ...state.user },
             });
         case SIGNUP_FAILED:
             return Object.assign({}, state, {
