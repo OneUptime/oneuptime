@@ -83,23 +83,19 @@ router.put(
     }
 );
 
-router.put(
-    '/:projectId/theme', 
-    getUser, 
-    isAuthorized, 
-    async (req, res) => {
-        const { projectId } = req.params;
-        const { theme, statusPageId } = req.body;
-        try {
-            const statusPage  = await StatusPageService.updateOneBy(
-                { projectId, _id: statusPageId }, 
-                { theme }
-            )
-            return sendItemResponse(req, res, statusPage);
-        } catch (error) {
-            return sendErrorResponse(req, res, error)
-        }
-    });
+router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
+    const { projectId } = req.params;
+    const { theme, statusPageId } = req.body;
+    try {
+        const statusPage = await StatusPageService.updateOneBy(
+            { projectId, _id: statusPageId },
+            { theme }
+        );
+        return sendItemResponse(req, res, statusPage);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 
 // Route Description: Creates a domain and domainVerificationToken
 // req.params -> {projectId, statusPageId}; req.body -> {domain}
@@ -669,6 +665,7 @@ router.get(
     checkUser,
     ipWhitelist,
     async function(req, res) {
+        let result;
         const statusPageId = req.params.statusPageId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
@@ -681,7 +678,27 @@ router.get(
             );
             const notes = response.notes;
             const count = response.count;
-            return sendListResponse(req, res, notes, count);
+            const updatedNotes = [];
+            if (parseInt(limit) === 15) {
+                if (notes.length > 0) {
+                    for (const note of notes) {
+                        const statusPageNote = await StatusPageService.getIncidentNotes(
+                            { incidentId: note._id, type: 'investigation' },
+                            skip,
+                            limit
+                        );
+
+                        updatedNotes.push({
+                            ...note._doc,
+                            message: statusPageNote.message,
+                        });
+                    }
+                }
+                result = formatNotes(updatedNotes);
+            } else {
+                result = notes;
+            }
+            return sendListResponse(req, res, result, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -1030,5 +1047,62 @@ router.get(
         }
     }
 );
+
+const formatNotes = (data = []) => {
+    const resultData = [];
+
+    if (
+        data[0] &&
+        !(
+            moment(data[0].createdAt).format('YYYY-MM-DD') ===
+            moment().format('YYYY-MM-DD')
+        )
+    ) {
+        data.unshift({ createdAt: new Date().toISOString() });
+    }
+
+    if (!data[0]) data[0] = { createdAt: new Date().toISOString() };
+
+    let prev_obj = data[0];
+
+    for (let i = 1; i < data.length + 1; i++) {
+        resultData.push(prev_obj);
+
+        const current_obj = data[i];
+        if (!current_obj) break;
+
+        const prev_date = new Date(prev_obj.createdAt).getDate();
+        const curr_date = new Date(current_obj.createdAt).getDate();
+
+        const diff = prev_date - curr_date - 1;
+
+        if (diff > 0) {
+            for (let i = 0; i < diff; i++) {
+                const time = new Date().setDate(prev_date - i - 1);
+                const created_date = new Date(time).toISOString();
+
+                const new_obj = { createdAt: created_date };
+                resultData.push(new_obj);
+            }
+        }
+
+        prev_obj = current_obj;
+    }
+
+    const prev_date = new Date(prev_obj.createdAt).getDate();
+    const fields_left = 15 - resultData.length;
+
+    for (let i = 0; i < fields_left; i++) {
+        const time = new Date().setDate(prev_date - i - 1);
+        const created_date = new Date(time).toISOString();
+
+        const new_obj = { createdAt: created_date };
+        resultData.push(new_obj);
+
+        prev_obj = new_obj;
+    }
+
+    return resultData;
+};
 
 module.exports = router;
