@@ -38,6 +38,7 @@
         "@babel/polyfill": "^7.10.1",
         "axios": "^0.21.1",
         "babel-loader": "^8.2.2",
+        "lru_map": "^0.4.1",
         "uuid": "^8.3.1"
     },
     "directories": {

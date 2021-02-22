@@ -248,6 +248,7 @@ class Home extends Component {
                             multipleIncidentRequest={
                                 this.props.multipleIncidentRequest
                             }
+                            editable={false}
                         />
                     </RenderIfUserInSubProject>
                 );
@@ -324,7 +325,7 @@ class Home extends Component {
                     <OngoingScheduledEvent
                         event={event}
                         monitorList={this.props.monitorList}
-                        projectId={this.props.currentProjectId}
+                        slug={this.props.slug}
                     />
                 </RenderIfUserInSubProject>
             ));
@@ -460,10 +461,10 @@ class Home extends Component {
                                                                                     schedules={
                                                                                         upcomingSchedules
                                                                                     }
-                                                                                    currentProjectId={
+                                                                                    slug={
                                                                                         this
                                                                                             .props
-                                                                                            .currentProjectId
+                                                                                            .slug
                                                                                     }
                                                                                 />
                                                                             </ShouldRender>
@@ -480,10 +481,10 @@ class Home extends Component {
                                                                                     schedules={
                                                                                         inactiveSchedules
                                                                                     }
-                                                                                    currentProjectId={
+                                                                                    slug={
                                                                                         this
                                                                                             .props
-                                                                                            .currentProjectId
+                                                                                            .slug
                                                                                     }
                                                                                 />
                                                                             </ShouldRender>
@@ -525,6 +526,11 @@ class Home extends Component {
                                                                                         this
                                                                                             .props
                                                                                             .projectTeamMembers
+                                                                                    }
+                                                                                    slug={
+                                                                                        this
+                                                                                            .props
+                                                                                            .slug
                                                                                     }
                                                                                 />
 
@@ -643,6 +649,7 @@ Home.propTypes = {
     fetchUserSchedule: PropTypes.func,
     escalation: PropTypes.object,
     escalations: PropTypes.array,
+    slug: PropTypes.string,
     closeIncident: PropTypes.func,
     incidents: PropTypes.oneOfType([
         PropTypes.array,
@@ -671,8 +678,9 @@ Home.propTypes = {
     errorTrackers: PropTypes.array,
 };
 
-const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
+const mapStateToProps = state => {
+    const projectId = state.project.currentProject &&
+    state.project.currentProject._id;
     let monitors = [],
         components = [],
         projectTeamMembers = [];
@@ -723,6 +731,9 @@ const mapStateToProps = (state, props) => {
         defaultMonitorSla: state.monitorSla.defaultMonitorSla.sla,
         closingSla: state.monitor.closeBreachedMonitorSla.requesting,
         errorTrackers: state.errorTracker.errorTrackersList.errorTrackers,
+        slug:
+        state.project.currentProject &&
+            state.project.currentProject.slug,
     };
 };
 

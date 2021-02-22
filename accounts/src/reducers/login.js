@@ -17,6 +17,7 @@ import {
     MASTER_ADMIN_EXISTS_FAILED,
     MASTER_ADMIN_EXISTS_SUCCESS,
     RESET_MASTER_ADMIN_EXISTS,
+    LOGIN_STATE,
 } from '../constants/login';
 
 // The auth reducer. The starting state sets authentication
@@ -73,7 +74,13 @@ export default function register(state = initialState, action) {
                 success: false,
                 error: action.payload,
             });
-
+        case LOGIN_STATE:
+            return Object.assign({}, state, {
+                requesting: false,
+                success: false,
+                error: state.error,
+                user: action.payload,
+            });
         case RESET_LOGIN:
             return Object.assign({}, state, initialState);
 

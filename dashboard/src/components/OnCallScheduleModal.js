@@ -58,7 +58,7 @@ class OnCallScheduleModal extends Component {
                                                                             this
                                                                                 .props
                                                                                 .data
-                                                                                .currentProjectId
+                                                                                .currentProjectSlug
                                                                         }/sub-project/${schedule.projectId &&
                                                                             schedule
                                                                                 .projectId
@@ -203,7 +203,7 @@ OnCallScheduleModal.displayName = 'OnCallScheduleModal';
 
 OnCallScheduleModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
-    currentProjectId: PropTypes.string,
+    currentProjectSlug: PropTypes.string,
     data: PropTypes.object,
 };
 

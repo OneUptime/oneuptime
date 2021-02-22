@@ -7,7 +7,7 @@ import isSubProjectViewer from '../../utils/isSubProjectViewer';
 
 export class RowData extends Component {
     render() {
-        const { statusPage, projectId, subProjectId, project } = this.props;
+        const { statusPage, subProjectId, project } = this.props;
         const userId = User.getUserId();
         const monitorIds = statusPage.monitorNames;
         const gt = i => monitorIds && monitorIds.length > i;
@@ -15,7 +15,7 @@ export class RowData extends Component {
         monitors += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
-        const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPage._id}`;
+        const path = `/dashboard/project/${project.slug}/sub-project/${subProjectId}/status-page/${statusPage._id}`;
         let statusPageId, publicStatusPageUrl;
         if (statusPage) {
             statusPageId = statusPage._id;
@@ -126,7 +126,6 @@ RowData.displayName = 'StatusPage RowData';
 RowData.propTypes = {
     statusPage: PropTypes.object.isRequired,
     switchStatusPages: PropTypes.func.isRequired,
-    projectId: PropTypes.string.isRequired,
     subProjectId: PropTypes.string.isRequired,
     project: PropTypes.object,
 };

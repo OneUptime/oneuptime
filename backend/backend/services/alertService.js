@@ -121,6 +121,7 @@ module.exports = {
         alertProgress,
     }) {
         try {
+            const _this = this;
             alertProgress =
                 alertProgress &&
                 `${alertProgress.current}/${alertProgress.total}`;
@@ -144,11 +145,64 @@ module.exports = {
 
             const savedAlert = await alert.save();
 
+            await _this.sendRealTimeUpdate({
+                incidentId,
+                projectId,
+            });
             return savedAlert;
         } catch (error) {
             ErrorService.log('alertService.create', error);
             throw error;
         }
+    },
+
+    sendRealTimeUpdate: async function({ incidentId, projectId }) {
+        const _this = this;
+        let result;
+        let incidentMessages = await IncidentMessageService.findBy({
+            incidentId,
+            type: 'internal',
+        });
+        const timeline = await IncidentTimelineService.findBy({
+            incidentId,
+        });
+        const alerts = await _this.findBy({
+            query: { incidentId },
+        });
+        const subscriberAlerts = await SubscriberAlertService.findBy({
+            incidentId,
+            projectId,
+        });
+        const subAlerts = await Services.deduplicate(subscriberAlerts);
+        let callScheduleStatus = await OnCallScheduleStatusService.findBy({
+            query: { incident: incidentId },
+        });
+        callScheduleStatus = await Services.checkCallSchedule(
+            callScheduleStatus
+        );
+        incidentMessages = [
+            ...incidentMessages,
+            ...timeline,
+            ...alerts,
+            ...subAlerts,
+            ...callScheduleStatus,
+        ];
+        incidentMessages.sort(
+            (a, b) =>
+                typeof a.schedule !== 'object' && b.createdAt - a.createdAt
+        );
+        let filteredMsg = incidentMessages.filter(
+            a =>
+                a.status !== 'internal notes added' &&
+                a.status !== 'internal notes updated'
+        );
+        filteredMsg = await Services.rearrangeDuty(filteredMsg);
+        result = {
+            data: filteredMsg,
+            incidentId,
+            projectId,
+        };
+        await RealTimeService.sendIncidentTimeline(result);
     },
 
     countBy: async function(query) {
@@ -241,7 +295,7 @@ module.exports = {
 
                 const schedules = await this.getSchedulesForAlerts(incident);
 
-                if(schedules.length > 0) {
+                if (schedules.length > 0) {
                     for (const schedule of schedules) {
                         _this.sendAlertsToTeamMembersInSchedule({
                             schedule,
@@ -256,7 +310,7 @@ module.exports = {
                         schedule: null,
                         incidentAcknowledged: false,
                         escalations: [],
-                        isOnDuty: false
+                        isOnDuty: false,
                     });
                 }
             }
@@ -911,7 +965,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: 'No phone number',
-                callProgress,
+                alertProgress: callProgress,
             });
         }
 
@@ -956,7 +1010,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: errorMessageText,
-                callProgress,
+                alertProgress: callProgress,
             });
         }
 
@@ -991,7 +1045,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: errorMessageText,
-                    callProgress,
+                    alertProgress: callProgress,
                 });
             }
 
@@ -1016,7 +1070,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: status.message,
-                    callProgress,
+                    alertProgress: callProgress,
                 });
             }
         }
@@ -1044,7 +1098,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: alertStatus.message,
-                callProgress,
+                alertProgress: callProgress,
             });
         } else if (alertStatus) {
             alert = await _this.create({
@@ -1058,7 +1112,7 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Success',
-                callProgress,
+                alertProgress: callProgress,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
@@ -3238,3 +3292,7 @@ const {
     calculateHumanReadableDownTime,
     getIncidentLength,
 } = require('../utils/incident');
+const IncidentMessageService = require('./incidentMessageService');
+const IncidentTimelineService = require('./incidentTimelineService');
+const Services = require('../utils/services');
+const RealTimeService = require('./realTimeService');

@@ -13,21 +13,41 @@ const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const router = express.Router();
+const multer = require('multer');
+const storage = require('../middlewares/upload');
 
 const callForward = async (req, res) => {
     try {
         const body = req.body;
         const to = body['To'];
-        const fromNumber = body['From'];
-        const CallSid = body['CallSid'];
         const data = await CallRoutingService.findOneBy({
             phoneNumber: to,
         });
         const response = await CallRoutingService.getCallResponse(
             data,
-            fromNumber,
             to,
-            CallSid
+            body,
+            false
+        );
+        res.set('Content-Type', 'text/xml');
+        return res.send(response.toString());
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+};
+
+const backupCallForward = async (req, res) => {
+    try {
+        const body = req.body;
+        const to = body['To'];
+        const data = await CallRoutingService.findOneBy({
+            phoneNumber: to,
+        });
+        const response = await CallRoutingService.getCallResponse(
+            data,
+            to,
+            body,
+            true
         );
         res.set('Content-Type', 'text/xml');
         return res.send(response.toString());
@@ -40,13 +60,12 @@ const callStatus = async (req, res) => {
     try {
         const body = req.body;
         const to = body['To'];
-        const CallSid = body['CallSid'];
         const data = await CallRoutingService.findOneBy({
             phoneNumber: to,
         });
         const response = await CallRoutingService.chargeRoutedCall(
             data.projectId,
-            CallSid
+            body
         );
         return res.send(response);
     } catch (error) {
@@ -57,6 +76,10 @@ const callStatus = async (req, res) => {
 // Route for connecting caller to specific team member.
 router.get('/routeCalls', callForward);
 router.post('/routeCalls', callForward);
+
+// Route for connecting caller to specific team member.
+router.get('/routeBackupCall', backupCallForward);
+router.post('/routeBackupCall', backupCallForward);
 
 // Route for status callback from twilio.
 router.get('/statusCallback', callStatus);
@@ -137,19 +160,61 @@ router.put('/:projectId/:callRoutingId', getUser, isUserAdmin, async function(
 ) {
     try {
         const { callRoutingId } = req.params;
-        const data = req.body;
-        const routingSchema = {};
-        routingSchema.type = data.type;
-        if (data.type && data.type === 'TeamMember') {
-            routingSchema.id = data.teamMemberId;
-        } else if (data.type && data.type === 'Schedule') {
-            routingSchema.id = data.scheduleId;
-        }
-        const CallRouting = await CallRoutingService.updateOneBy(
-            { _id: callRoutingId },
-            { routingSchema }
-        );
-        return sendItemResponse(req, res, CallRouting);
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'introAudio',
+                maxCount: 1,
+            },
+        ]);
+        upload(req, res, async function(error) {
+            const data = req.body;
+            if (error) {
+                return sendErrorResponse(req, res, error);
+            }
+            const routingSchema = {};
+            routingSchema.type = data.type;
+            routingSchema.showAdvance = data.showAdvance;
+            if (data.type && data.type === 'TeamMember') {
+                routingSchema.id = data.teamMemberId;
+            } else if (data.type && data.type === 'Schedule') {
+                routingSchema.id = data.scheduleId;
+            } else if (data.type && data.type === 'PhoneNumber') {
+                routingSchema.phoneNumber = data.phoneNumber;
+            }
+            if (data.showAdvance) {
+                routingSchema.backup_type = data.backup_type;
+                if (
+                    req.files &&
+                    req.files.introAudio &&
+                    req.files.introAudio[0].filename
+                ) {
+                    routingSchema.introAudio = req.files.introAudio[0].filename;
+                    routingSchema.introAudioName =
+                        req.files.introAudio[0].originalname;
+                }
+                routingSchema.introtext = data.introtext;
+                if (data.backup_type && data.backup_type === 'TeamMember') {
+                    routingSchema.backup_id = data.backup_teamMemberId;
+                } else if (
+                    data.backup_type &&
+                    data.backup_type === 'Schedule'
+                ) {
+                    routingSchema.backup_id = data.backup_scheduleId;
+                } else if (
+                    data.backup_type &&
+                    data.backup_type === 'PhoneNumber'
+                ) {
+                    routingSchema.backup_phoneNumber = data.backup_phoneNumber;
+                }
+            }
+            const CallRouting = await CallRoutingService.updateOneBy(
+                { _id: callRoutingId },
+                { routingSchema }
+            );
+            return sendItemResponse(req, res, CallRouting);
+        });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -176,6 +241,36 @@ router.delete(
             if (data && data[0] && data[0]._id) {
                 data = data[0];
             }
+            return sendItemResponse(req, res, data);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.delete(
+    '/:projectId/:callRoutingId/removeAudio',
+    getUser,
+    isUserAdmin,
+    async function(req, res) {
+        try {
+            const { callRoutingId } = req.params;
+            if (!callRoutingId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Call Routing Id is required.',
+                });
+            }
+            let routingSchema = await CallRoutingService.findOneBy({
+                _id: callRoutingId,
+            });
+            routingSchema = routingSchema.routingSchema;
+            routingSchema.introAudio = null;
+            routingSchema.introAudioName = '';
+            const data = await CallRoutingService.updateOneBy(
+                { _id: callRoutingId },
+                { routingSchema }
+            );
             return sendItemResponse(req, res, data);
         } catch (error) {
             return sendErrorResponse(req, res, error);

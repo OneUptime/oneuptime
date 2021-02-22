@@ -149,13 +149,13 @@ const mapStateToProps = (state, props) => {
         schedule => schedule && schedule._id === scheduleId
     );
     const escalations = state.schedule.scheduleEscalations;
-    const { projectId } = props.match.params;
 
     const { subProjectId } = props.match.params;
     return {
         schedule,
         escalations,
-        projectId,
+        projectId: state.project.currentProject &&
+        state.project.currentProject._id,
         subProjectId,
         scheduleId,
         teamMembers: state.team.teamMembers,

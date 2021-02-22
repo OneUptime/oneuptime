@@ -53,7 +53,9 @@ export class IncidentList extends Component {
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages = Math.ceil(parseInt(this.props.incidents.count) / 10)
+        const numberOfPages = this.props.numberOfPage
+            ? this.props.numberOfPage
+            : Math.ceil(parseInt(this.props.incidents.count) / 10);
         const incidents =
             this.props.filteredIncidents &&
             this.props.filteredIncidents.length > 0
@@ -209,7 +211,7 @@ export class IncidentList extends Component {
                                                         '/dashboard/project/' +
                                                             this.props
                                                                 .currentProject
-                                                                ._id +
+                                                                .slug +
                                                             '/' +
                                                             incident.monitorId
                                                                 .componentId
@@ -958,21 +960,24 @@ export class IncidentList extends Component {
                                     id={`incident_count`}
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
-                                    {
-                                        numberOfPages > 0 ? `Page ${this.props.page} of ${numberOfPages} (${
-                                            incidents
+                                    {numberOfPages > 0
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${
+                                              incidents
+                                                  ? this.props.incidents.count +
+                                                    (this.props.incidents
+                                                        .count > 1
+                                                        ? ' total Incidents'
+                                                        : ' Incident')
+                                                  : null
+                                          })`
+                                        : incidents
                                         ? this.props.incidents.count +
                                           (this.props.incidents.count > 1
                                               ? ' total Incidents'
                                               : ' Incident')
-                                        : null
-                                        })`: incidents
-                                        ? this.props.incidents.count +
-                                          (this.props.incidents.count > 1
-                                              ? ' total Incidents'
-                                              : ' Incident')
-                                        : null
-                                    }
+                                        : null}
                                 </span>
                             </span>
                         </span>
@@ -990,7 +995,6 @@ export class IncidentList extends Component {
                                             this.props.incidents.skip,
                                             this.props.incidents.limit
                                         );
-                                        this.props.setPage(this.props.page - 1)
                                     }}
                                     className={
                                         'Button bs-ButtonLegacy' +
@@ -1018,7 +1022,6 @@ export class IncidentList extends Component {
                                             this.props.incidents.skip,
                                             this.props.incidents.limit
                                         );
-                                        this.props.setPage(this.props.page + 1)
                                     }}
                                     className={
                                         'Button bs-ButtonLegacy' +
@@ -1071,6 +1074,8 @@ IncidentList.propTypes = {
     isFiltered: PropTypes.bool,
     markAsRead: PropTypes.func,
     animateSidebar: PropTypes.func,
+    page: PropTypes.number,
+    numberOfPage: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentList);

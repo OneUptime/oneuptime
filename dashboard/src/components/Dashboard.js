@@ -138,6 +138,7 @@ export class DashboardApp extends Component {
                         route="/"
                         name={projectName}
                         projectId={projectId}
+                        slug={currentProject ? currentProject.slug : null}
                         switchToProjectViewerNav={switchToProjectViewerNav}
                     />
                 )}
@@ -339,7 +340,10 @@ export class DashboardApp extends Component {
                         incidentNotifications.length > 0
                     }
                 >
-                    <IncidentCreated notifications={incidentNotifications} />
+                    <IncidentCreated
+                        notifications={incidentNotifications}
+                        slug={currentProject ? currentProject.slug : null}
+                    />
                 </ShouldRender>
             </Fragment>
         );

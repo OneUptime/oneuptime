@@ -31,7 +31,9 @@ export class IncidentMessageThread extends Component {
             deleteMessageModalId,
             deleteIncidentMessage,
             page,
-            numberOfPages
+            numberOfPages,
+            count,
+            slug,
         } = this.props;
         return (
             <div className="Box-root">
@@ -1039,9 +1041,7 @@ export class IncidentMessageThread extends Component {
                                                                                     className="bs-duty-span"
                                                                                     onClick={() => {
                                                                                         history.push(
-                                                                                            `/dashboard/project/${
-                                                                                                incidentMessage.project
-                                                                                            }/sub-project/${incidentMessage.project &&
+                                                                                            `/dashboard/project/${slug}/sub-project/${incidentMessage.project &&
                                                                                                 incidentMessage.project}/schedule/${incidentMessage.schedule &&
                                                                                                 incidentMessage
                                                                                                     .schedule
@@ -1056,11 +1056,13 @@ export class IncidentMessageThread extends Component {
                                                                                     }{' '}
                                                                                 </span>
                                                                                 <span>
+                                                                                    call
+                                                                                    schedule
                                                                                     was
                                                                                     executed
                                                                                     for
                                                                                     this
-                                                                                    monitor
+                                                                                    incident
                                                                                 </span>
                                                                             </>
                                                                         ) : (
@@ -1121,13 +1123,15 @@ export class IncidentMessageThread extends Component {
                                                             <div
                                                                 className={`bs-incident-notes 
                                                                         ${
-                                                                            incidentMessage.eventType ===
+                                                                            (incidentMessage.eventType ===
                                                                                 'resolved' ||
-                                                                            incidentMessage.eventType ===
-                                                                                'identified'
+                                                                                incidentMessage.eventType ===
+                                                                                    'identified') &&
+                                                                            !incidentMessage.error
                                                                                 ? 'bs-note-resolved'
                                                                                 : incidentMessage.eventType ===
-                                                                                  'acknowledged'
+                                                                                      'acknowledged' &&
+                                                                                  !incidentMessage.error
                                                                                 ? 'bs-note-acknowleged'
                                                                                 : 'bs-note-offline'
                                                                         }`}
@@ -1207,10 +1211,6 @@ export class IncidentMessageThread extends Component {
                                                                             {
                                                                                 ' notified by '
                                                                             }
-                                                                            {incidentMessage.alertVia ===
-                                                                            'email'
-                                                                                ? 'an'
-                                                                                : 'a'}{' '}
                                                                             <span
                                                                                 style={{
                                                                                     fontSize:
@@ -1229,11 +1229,10 @@ export class IncidentMessageThread extends Component {
                                                                                 }
                                                                             </span>
                                                                             {
-                                                                                ' because an '
+                                                                                ' because '
                                                                             }
-                                                                            {incidentMessage.error
-                                                                                ? 'error ocurred'
-                                                                                : 'incident was '}
+                                                                            {!incidentMessage.error &&
+                                                                                'an incident was '}
                                                                             <span className="bs-in-style">
                                                                                 {!incidentMessage.error &&
                                                                                     (incidentMessage.eventType ===
@@ -1276,7 +1275,7 @@ export class IncidentMessageThread extends Component {
                                                                                                                     {incidentMessage.alertStatus ===
                                                                                                                     'Success'
                                                                                                                         ? incidentMessage.alertStatus
-                                                                                                                        : 'error'}
+                                                                                                                        : incidentMessage.errorMessage}
                                                                                                                 </span>
                                                                                                             </span>
                                                                                                         </div>
@@ -1356,27 +1355,13 @@ export class IncidentMessageThread extends Component {
                         <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    {numberOfPages >0 ?
-                                   `Page ${page} of ${numberOfPages} (${
-                                    incidentMessages && incidentMessages.incidentMessages.length
-                                    ? incidentMessages.incidentMessages
-                                          .length +
-                                      (incidentMessages.incidentMessages
-                                          .length > 1
-                                          ? ' Messages'
-                                          : ' Message')
-                                    : '0 Messages'
-                                  })`
-                                  : 
-                                  incidentMessages && incidentMessages.incidentMessages.length
-                                        ? incidentMessages.incidentMessages
-                                              .length +
-                                          (incidentMessages.incidentMessages
-                                              .length > 1
-                                              ? ' Messages'
-                                              : ' Message')
-                                        : '0 Messages'
-                                }
+                                    {numberOfPages > 0
+                                        ? `Page ${page} of ${numberOfPages} (${count} Message${
+                                              count === 1 ? '' : 's'
+                                          })`
+                                        : `${count} Message${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </span>
                         </div>
@@ -1438,6 +1423,7 @@ IncidentMessageThread.displayName = 'IncidentMessageThread';
 IncidentMessageThread.propTypes = {
     title: PropTypes.string,
     description: PropTypes.string,
+    slug: PropTypes.string,
     incident: PropTypes.object.isRequired,
     incidentMessages: PropTypes.object,
     canPrev: PropTypes.bool,
@@ -1452,6 +1438,9 @@ IncidentMessageThread.propTypes = {
     editMessageModalId: PropTypes.string,
     deleteMessageModalId: PropTypes.string,
     deleteIncidentMessage: PropTypes.func,
+    count: PropTypes.number,
+    numberOfPages: PropTypes.number,
+    page: PropTypes.number,
 };
 
 export default IncidentMessageThread;

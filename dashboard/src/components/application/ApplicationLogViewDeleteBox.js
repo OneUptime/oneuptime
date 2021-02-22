@@ -27,7 +27,7 @@ class ApplicationLogViewDeleteBox extends Component {
             this.props.applicationLog._id
         );
         history.push(
-            `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`
+            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentId}/application-log`
         );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(

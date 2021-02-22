@@ -223,7 +223,7 @@ const TeamMemberProjectBox = props => {
                         !props.team.teamUpdateRole.error
                     }
                 >
-                    <div className="bs-Tail-copy">
+                    <div className="bs-Tail-copy Text-fontWeight--medium">
                         <span id={`count_${props.subProjectName}`}>
                             {numberOfPages > 0
                                 ? `Page ${

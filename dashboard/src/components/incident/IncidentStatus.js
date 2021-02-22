@@ -11,6 +11,7 @@ import {
     resolveIncident,
     closeIncident,
     getIncidentTimeline,
+    updateIncident,
 } from '../../actions/incident';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -19,7 +20,7 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
-import EditIncident from '../modals/EditIncident';
+//import EditIncident from '../modals/EditIncident';
 import { history } from '../../store';
 import MessageBox from '../modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
@@ -27,6 +28,12 @@ import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import FooterButton from './FooterButton';
 import { animateSidebar } from '../../actions/animateSidebar';
+import { reduxForm, Field, formValueSelector } from 'redux-form';
+import { RenderField } from '../basic/RenderField';
+import { ValidateField } from '../../config';
+import { RenderSelect } from '../basic/RenderSelect';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
+
 export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
@@ -37,8 +44,114 @@ export class IncidentStatus extends Component {
             resolveLoad: false,
             value: undefined,
             stats: false,
+            firstIcon: false,
+            secondIcon: false,
+            thirdIcon: false,
         };
     }
+    getIcon = () => {
+        let currentIcon =
+            'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik01MTAuNDEzLDEyOS4yOTJjLTMuNzA1LTcuNDA5LTEyLjcxMy0xMC40MTMtMjAuMTI0LTYuNzA4bC02MCwzMGMtNy40MSwzLjcwNS0xMC40MTMsMTIuNzE1LTYuNzA4LDIwLjEyNQ0KCQkJYzMuNzA0LDcuNDA5LDEyLjcxMywxMC40MTMsMjAuMTI0LDYuNzA4bDYwLTMwQzUxMS4xMTUsMTQ1LjcxMiw1MTQuMTE4LDEzNi43MDIsNTEwLjQxMywxMjkuMjkyeiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNNTAzLjcwNSwzMDIuNTgzbC02MC0zMGMtNy40MDYtMy43MDMtMTYuNDE4LTAuNzAyLTIwLjEyNCw2LjcwOGMtMy43MDUsNy40MS0wLjcwMiwxNi40Miw2LjcwOCwyMC4xMjVsNjAsMzANCgkJCWM3LjQxLDMuNzA1LDE2LjQyLDAuNzAxLDIwLjEyNC02LjcwOEM1MTQuMTE4LDMxNS4yOTgsNTExLjExNSwzMDYuMjg4LDUwMy43MDUsMzAyLjU4M3oiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCgk8Zz4NCgkJPHBhdGggZD0iTTM0NS45OTgsMjQxSDExOS45OTl2LTc2YzAtNDEuMzU1LDM0LjA5NC03NSw3Ni03NWM0MS4zNTUsMCw3NSwzMy42NDUsNzUsNzV2MzBjMCw4LjI4NCw2LjcxNiwxNSwxNSwxNWg2MA0KCQkJYzguMjg0LDAsMTUtNi43MTYsMTUtMTV2LTMwYzAtOTAuOTgtNzQuMDE4LTE2NC45OTktMTY0Ljk5OS0xNjQuOTk5QzEwNC40NjcsMC4wMDIsMzAsNzQuMDIsMzAsMTY1LjAwMXY3OC41OA0KCQkJQzEyLjU0MSwyNDkuNzcyLDAsMjY2LjQ0NSwwLDI4NnYxODAuOTk5YzAsMjQuODEzLDIwLjE4Nyw0NSw0NSw0NWgzMDAuOTk4YzI0LjgxMywwLDQ1LTIwLjE4Nyw0NS00NVYyODYNCgkJCUMzOTAuOTk4LDI2MS4xODcsMzcwLjgxMSwyNDEsMzQ1Ljk5OCwyNDF6IE02MCwxNjUuMDAxYzAtNzQuNDM5LDYxLjAxLTEzNC45OTksMTM1Ljk5OS0xMzQuOTk5DQoJCQljNzQuNDM5LDAsMTM0Ljk5OSw2MC41NjEsMTM0Ljk5OSwxMzQuOTk5djE1aC0zMHYtMTVjMC01Ny44OTctNDcuMTAzLTEwNC45OTktMTA0Ljk5OS0xMDQuOTk5DQoJCQljLTU4LjA2OCwwLTEwNS45OTksNDcuMTItMTA1Ljk5OSwxMDQuOTk5djc2SDYwVjE2NS4wMDF6IE0zNjAuOTk4LDQ2Ni45OTljMCw4LjI3MS02LjcyOSwxNS0xNSwxNUg0NWMtOC4yNzEsMC0xNS02LjcyOS0xNS0xNQ0KCQkJVjI4NmMwLTguMjcxLDYuNzI5LTE1LDE1LTE1YzEzLjk4OCwwLDI4OC44ODMsMCwzMDAuOTk4LDBjOC4yNzEsMCwxNSw2LjcyOSwxNSwxNVY0NjYuOTk5eiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNMTk1Ljk5OSwzMDFjLTI0LjgxMywwLTQ1LDIwLjE4Ny00NSw0NWMwLDE5LjU1NSwxMi41NDEsMzYuMjI4LDMwLDQyLjQydjQ4LjU4YzAsOC4yODQsNi43MTYsMTUsMTUsMTVzMTUtNi43MTYsMTUtMTUNCgkJCXYtNDguNThjMTcuNDU5LTYuMTkyLDMwLTIyLjg2NSwzMC00Mi40MkMyNDAuOTk5LDMyMS4xODcsMjIwLjgxMiwzMDEsMTk1Ljk5OSwzMDF6IE0xOTUuOTk5LDM2MC45OTljLTguMjcxLDAtMTUtNi43MjktMTUtMTUNCgkJCXM2LjcyOS0xNSwxNS0xNXMxNSw2LjcyOSwxNSwxNVMyMDQuMjcsMzYwLjk5OSwxOTUuOTk5LDM2MC45OTl6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik00OTYuOTk3LDIxMWgtNjBjLTguMjg0LDAtMTUsNi43MTYtMTUsMTVzNi43MTYsMTUsMTUsMTVoNjBjOC4yODQsMCwxNS02LjcxNiwxNS0xNVM1MDUuMjgxLDIxMSw0OTYuOTk3LDIxMXoiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==';
+        if (this.state.firstIcon) {
+            currentIcon =
+                'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjY4MnB0IiB2aWV3Qm94PSItMTAzIC0yMSA2ODIgNjgyLjY2NjY5IiB3aWR0aD0iNjgycHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTQwMy43Njk1MzEgMjQ5LjMzNTkzOHYtNzguOTM3NWMwLTkzLjk1NzAzMi03Ni40NDUzMTItMTcwLjM5ODQzOC0xNzAuNDAyMzQzLTE3MC4zOTg0MzgtOTMuOTU3MDMyIDAtMTcwLjQwMjM0NCA3Ni40NDE0MDYtMTcwLjQwMjM0NCAxNzAuMzk4NDM4djc4LjkzNzVjLTM3LjYwOTM3NS41MjczNDMtNjguMDQ2ODc1IDMxLjI2OTUzMS02OC4wNDY4NzUgNjkuMDAzOTA2djI1Mi42MzI4MTJjMCAzOC4wNTg1OTQgMzAuOTY0ODQzIDY5LjAyNzM0NCA2OS4wMjczNDMgNjkuMDI3MzQ0aDMzOC44NDM3NWMzOC4wNTg1OTQgMCA2OS4wMjczNDQtMzAuOTY4NzUgNjkuMDI3MzQ0LTY5LjAyNzM0NHYtMjUyLjYzMjgxMmMwLTM3LjczNDM3NS0zMC40NDE0MDYtNjguNDc2NTYzLTY4LjA0Njg3NS02OS4wMDM5MDZ6bS0xNzAuNDAyMzQzLTIxMS44MzU5MzhjNzMuMjgxMjUgMCAxMzIuOTAyMzQzIDU5LjYxNzE4OCAxMzIuOTAyMzQzIDEzMi44OTg0Mzh2NzguOTE0MDYyaC0zNi43MzQzNzV2LTc4Ljc4OTA2MmMwLTUzLjA2MjUtNDMuMTQwNjI1LTk2LjIzMDQ2OS05Ni4xNzE4NzUtOTYuMjMwNDY5LTUzLjAyNzM0MyAwLTk2LjE2Nzk2OSA0My4xNjc5NjktOTYuMTY3OTY5IDk2LjIzMDQ2OXY3OC43ODkwNjJoLTM2LjczMDQ2OHYtNzguOTE0MDYyYzAtNzMuMjgxMjUgNTkuNjE3MTg3LTEzMi44OTg0MzggMTMyLjkwMjM0NC0xMzIuODk4NDM4em01OC42Njc5NjggMjExLjgxMjVoLTExNy4zMzk4NDR2LTc4Ljc4OTA2MmMwLTMyLjM4MjgxMyAyNi4zMjAzMTMtNTguNzMwNDY5IDU4LjY3MTg3Ni01OC43MzA0NjkgMzIuMzUxNTYyIDAgNTguNjY3OTY4IDI2LjM0NzY1NiA1OC42Njc5NjggNTguNzMwNDY5em0xNDIuMjgxMjUgMzIxLjY2MDE1NmMwIDE3LjM4MjgxMy0xNC4xNDQ1MzEgMzEuNTI3MzQ0LTMxLjUyNzM0NCAzMS41MjczNDRoLTMzOC44NDM3NWMtMTcuMzgyODEyIDAtMzEuNTI3MzQzLTE0LjE0NDUzMS0zMS41MjczNDMtMzEuNTI3MzQ0di0yNTIuNjMyODEyYzAtMTcuMzgyODEzIDE0LjE0MDYyNS0zMS41MjczNDQgMzEuNTI3MzQzLTMxLjUyNzM0NGgzMzguODQzNzVjMTcuMzgyODEzIDAgMzEuNTI3MzQ0IDE0LjE0NDUzMSAzMS41MjczNDQgMzEuNTI3MzQ0em0wIDAiLz48cGF0aCBkPSJtMzMwLjIwMzEyNSAzNTgtMTM3LjE5NTMxMyAxNDguNTkzNzUtNTYuODc4OTA2LTU3Ljg5ODQzOGMtNy4yNjE3MTgtNy4zODI4MTItMTkuMTMyODEyLTcuNDg4MjgxLTI2LjUxOTUzMS0uMjM0Mzc0LTcuMzgyODEzIDcuMjYxNzE4LTcuNDkyMTg3IDE5LjEzMjgxMi0uMjM0Mzc1IDI2LjUxOTUzMWw3MC42ODM1OTQgNzEuOTMzNTkzYzMuNTIzNDM3IDMuNTkzNzUgOC4zNDM3NSA1LjYwOTM3NiAxMy4zNzUgNS42MDkzNzZoLjI4NTE1NmM1LjEzMjgxMi0uMDgyMDMyIDEwLjAwNzgxMi0yLjI1NzgxMyAxMy40ODgyODEtNi4wMzEyNWwxNTAuNTQ2ODc1LTE2My4wNTg1OTRjNy4wMjczNDQtNy42MDkzNzUgNi41NTA3ODItMTkuNDY4NzUtMS4wNTQ2ODctMjYuNDk2MDk0LTcuNjA5Mzc1LTcuMDE5NTMxLTE5LjQ3MjY1Ny02LjU0Njg3NS0yNi40OTYwOTQgMS4wNjI1em0wIDAiLz48L3N2Zz4=';
+        }
+        return currentIcon;
+    };
+    firstFormSubmit = values => {
+        const incidentId = this.props.incident._id;
+        const projectId = this.props.incident.projectId;
+        const incidentType = this.props.incident.incidentType;
+        const description = this.props.incident.description;
+        const incidentPriority = this.props.incident.incidentPriority._id;
+
+        this.props
+            .updateIncident(
+                projectId,
+                incidentId,
+                incidentType,
+                values.title,
+                description,
+                incidentPriority
+            )
+            .then(() => {
+                this.firstFormIconFunction(false);
+            });
+    };
+    firstFormIconFunction = setEditState => {
+        this.setState(() => ({
+            firstIcon: setEditState,
+        }));
+    };
+    getSecondIcon = () => {
+        let currentIcon =
+            'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik01MTAuNDEzLDEyOS4yOTJjLTMuNzA1LTcuNDA5LTEyLjcxMy0xMC40MTMtMjAuMTI0LTYuNzA4bC02MCwzMGMtNy40MSwzLjcwNS0xMC40MTMsMTIuNzE1LTYuNzA4LDIwLjEyNQ0KCQkJYzMuNzA0LDcuNDA5LDEyLjcxMywxMC40MTMsMjAuMTI0LDYuNzA4bDYwLTMwQzUxMS4xMTUsMTQ1LjcxMiw1MTQuMTE4LDEzNi43MDIsNTEwLjQxMywxMjkuMjkyeiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNNTAzLjcwNSwzMDIuNTgzbC02MC0zMGMtNy40MDYtMy43MDMtMTYuNDE4LTAuNzAyLTIwLjEyNCw2LjcwOGMtMy43MDUsNy40MS0wLjcwMiwxNi40Miw2LjcwOCwyMC4xMjVsNjAsMzANCgkJCWM3LjQxLDMuNzA1LDE2LjQyLDAuNzAxLDIwLjEyNC02LjcwOEM1MTQuMTE4LDMxNS4yOTgsNTExLjExNSwzMDYuMjg4LDUwMy43MDUsMzAyLjU4M3oiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCgk8Zz4NCgkJPHBhdGggZD0iTTM0NS45OTgsMjQxSDExOS45OTl2LTc2YzAtNDEuMzU1LDM0LjA5NC03NSw3Ni03NWM0MS4zNTUsMCw3NSwzMy42NDUsNzUsNzV2MzBjMCw4LjI4NCw2LjcxNiwxNSwxNSwxNWg2MA0KCQkJYzguMjg0LDAsMTUtNi43MTYsMTUtMTV2LTMwYzAtOTAuOTgtNzQuMDE4LTE2NC45OTktMTY0Ljk5OS0xNjQuOTk5QzEwNC40NjcsMC4wMDIsMzAsNzQuMDIsMzAsMTY1LjAwMXY3OC41OA0KCQkJQzEyLjU0MSwyNDkuNzcyLDAsMjY2LjQ0NSwwLDI4NnYxODAuOTk5YzAsMjQuODEzLDIwLjE4Nyw0NSw0NSw0NWgzMDAuOTk4YzI0LjgxMywwLDQ1LTIwLjE4Nyw0NS00NVYyODYNCgkJCUMzOTAuOTk4LDI2MS4xODcsMzcwLjgxMSwyNDEsMzQ1Ljk5OCwyNDF6IE02MCwxNjUuMDAxYzAtNzQuNDM5LDYxLjAxLTEzNC45OTksMTM1Ljk5OS0xMzQuOTk5DQoJCQljNzQuNDM5LDAsMTM0Ljk5OSw2MC41NjEsMTM0Ljk5OSwxMzQuOTk5djE1aC0zMHYtMTVjMC01Ny44OTctNDcuMTAzLTEwNC45OTktMTA0Ljk5OS0xMDQuOTk5DQoJCQljLTU4LjA2OCwwLTEwNS45OTksNDcuMTItMTA1Ljk5OSwxMDQuOTk5djc2SDYwVjE2NS4wMDF6IE0zNjAuOTk4LDQ2Ni45OTljMCw4LjI3MS02LjcyOSwxNS0xNSwxNUg0NWMtOC4yNzEsMC0xNS02LjcyOS0xNS0xNQ0KCQkJVjI4NmMwLTguMjcxLDYuNzI5LTE1LDE1LTE1YzEzLjk4OCwwLDI4OC44ODMsMCwzMDAuOTk4LDBjOC4yNzEsMCwxNSw2LjcyOSwxNSwxNVY0NjYuOTk5eiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNMTk1Ljk5OSwzMDFjLTI0LjgxMywwLTQ1LDIwLjE4Ny00NSw0NWMwLDE5LjU1NSwxMi41NDEsMzYuMjI4LDMwLDQyLjQydjQ4LjU4YzAsOC4yODQsNi43MTYsMTUsMTUsMTVzMTUtNi43MTYsMTUtMTUNCgkJCXYtNDguNThjMTcuNDU5LTYuMTkyLDMwLTIyLjg2NSwzMC00Mi40MkMyNDAuOTk5LDMyMS4xODcsMjIwLjgxMiwzMDEsMTk1Ljk5OSwzMDF6IE0xOTUuOTk5LDM2MC45OTljLTguMjcxLDAtMTUtNi43MjktMTUtMTUNCgkJCXM2LjcyOS0xNSwxNS0xNXMxNSw2LjcyOSwxNSwxNVMyMDQuMjcsMzYwLjk5OSwxOTUuOTk5LDM2MC45OTl6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik00OTYuOTk3LDIxMWgtNjBjLTguMjg0LDAtMTUsNi43MTYtMTUsMTVzNi43MTYsMTUsMTUsMTVoNjBjOC4yODQsMCwxNS02LjcxNiwxNS0xNVM1MDUuMjgxLDIxMSw0OTYuOTk3LDIxMXoiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==';
+        if (this.state.secondIcon) {
+            currentIcon =
+                'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjY4MnB0IiB2aWV3Qm94PSItMTAzIC0yMSA2ODIgNjgyLjY2NjY5IiB3aWR0aD0iNjgycHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTQwMy43Njk1MzEgMjQ5LjMzNTkzOHYtNzguOTM3NWMwLTkzLjk1NzAzMi03Ni40NDUzMTItMTcwLjM5ODQzOC0xNzAuNDAyMzQzLTE3MC4zOTg0MzgtOTMuOTU3MDMyIDAtMTcwLjQwMjM0NCA3Ni40NDE0MDYtMTcwLjQwMjM0NCAxNzAuMzk4NDM4djc4LjkzNzVjLTM3LjYwOTM3NS41MjczNDMtNjguMDQ2ODc1IDMxLjI2OTUzMS02OC4wNDY4NzUgNjkuMDAzOTA2djI1Mi42MzI4MTJjMCAzOC4wNTg1OTQgMzAuOTY0ODQzIDY5LjAyNzM0NCA2OS4wMjczNDMgNjkuMDI3MzQ0aDMzOC44NDM3NWMzOC4wNTg1OTQgMCA2OS4wMjczNDQtMzAuOTY4NzUgNjkuMDI3MzQ0LTY5LjAyNzM0NHYtMjUyLjYzMjgxMmMwLTM3LjczNDM3NS0zMC40NDE0MDYtNjguNDc2NTYzLTY4LjA0Njg3NS02OS4wMDM5MDZ6bS0xNzAuNDAyMzQzLTIxMS44MzU5MzhjNzMuMjgxMjUgMCAxMzIuOTAyMzQzIDU5LjYxNzE4OCAxMzIuOTAyMzQzIDEzMi44OTg0Mzh2NzguOTE0MDYyaC0zNi43MzQzNzV2LTc4Ljc4OTA2MmMwLTUzLjA2MjUtNDMuMTQwNjI1LTk2LjIzMDQ2OS05Ni4xNzE4NzUtOTYuMjMwNDY5LTUzLjAyNzM0MyAwLTk2LjE2Nzk2OSA0My4xNjc5NjktOTYuMTY3OTY5IDk2LjIzMDQ2OXY3OC43ODkwNjJoLTM2LjczMDQ2OHYtNzguOTE0MDYyYzAtNzMuMjgxMjUgNTkuNjE3MTg3LTEzMi44OTg0MzggMTMyLjkwMjM0NC0xMzIuODk4NDM4em01OC42Njc5NjggMjExLjgxMjVoLTExNy4zMzk4NDR2LTc4Ljc4OTA2MmMwLTMyLjM4MjgxMyAyNi4zMjAzMTMtNTguNzMwNDY5IDU4LjY3MTg3Ni01OC43MzA0NjkgMzIuMzUxNTYyIDAgNTguNjY3OTY4IDI2LjM0NzY1NiA1OC42Njc5NjggNTguNzMwNDY5em0xNDIuMjgxMjUgMzIxLjY2MDE1NmMwIDE3LjM4MjgxMy0xNC4xNDQ1MzEgMzEuNTI3MzQ0LTMxLjUyNzM0NCAzMS41MjczNDRoLTMzOC44NDM3NWMtMTcuMzgyODEyIDAtMzEuNTI3MzQzLTE0LjE0NDUzMS0zMS41MjczNDMtMzEuNTI3MzQ0di0yNTIuNjMyODEyYzAtMTcuMzgyODEzIDE0LjE0MDYyNS0zMS41MjczNDQgMzEuNTI3MzQzLTMxLjUyNzM0NGgzMzguODQzNzVjMTcuMzgyODEzIDAgMzEuNTI3MzQ0IDE0LjE0NDUzMSAzMS41MjczNDQgMzEuNTI3MzQ0em0wIDAiLz48cGF0aCBkPSJtMzMwLjIwMzEyNSAzNTgtMTM3LjE5NTMxMyAxNDguNTkzNzUtNTYuODc4OTA2LTU3Ljg5ODQzOGMtNy4yNjE3MTgtNy4zODI4MTItMTkuMTMyODEyLTcuNDg4MjgxLTI2LjUxOTUzMS0uMjM0Mzc0LTcuMzgyODEzIDcuMjYxNzE4LTcuNDkyMTg3IDE5LjEzMjgxMi0uMjM0Mzc1IDI2LjUxOTUzMWw3MC42ODM1OTQgNzEuOTMzNTkzYzMuNTIzNDM3IDMuNTkzNzUgOC4zNDM3NSA1LjYwOTM3NiAxMy4zNzUgNS42MDkzNzZoLjI4NTE1NmM1LjEzMjgxMi0uMDgyMDMyIDEwLjAwNzgxMi0yLjI1NzgxMyAxMy40ODgyODEtNi4wMzEyNWwxNTAuNTQ2ODc1LTE2My4wNTg1OTRjNy4wMjczNDQtNy42MDkzNzUgNi41NTA3ODItMTkuNDY4NzUtMS4wNTQ2ODctMjYuNDk2MDk0LTcuNjA5Mzc1LTcuMDE5NTMxLTE5LjQ3MjY1Ny02LjU0Njg3NS0yNi40OTYwOTQgMS4wNjI1em0wIDAiLz48L3N2Zz4=';
+        }
+        return currentIcon;
+    };
+    secondFormSubmit = () => {
+        const incidentId = this.props.incident._id;
+        const projectId = this.props.incident.projectId;
+        const incidentType = this.props.incident.incidentType;
+        const title = this.props.incident.title;
+        const description = this.props.description;
+        const incidentPriority = this.props.incident.incidentPriority._id;
+        this.props
+            .updateIncident(
+                projectId,
+                incidentId,
+                incidentType,
+                title,
+                description,
+                incidentPriority
+            )
+            .then(() => {
+                this.secondFormIconFunction(false);
+            });
+    };
+    secondFormIconFunction = setEditState => {
+        this.setState(() => ({
+            secondIcon: setEditState,
+        }));
+    };
+
+    getThirdIcon = () => {
+        let currentIcon =
+            'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik01MTAuNDEzLDEyOS4yOTJjLTMuNzA1LTcuNDA5LTEyLjcxMy0xMC40MTMtMjAuMTI0LTYuNzA4bC02MCwzMGMtNy40MSwzLjcwNS0xMC40MTMsMTIuNzE1LTYuNzA4LDIwLjEyNQ0KCQkJYzMuNzA0LDcuNDA5LDEyLjcxMywxMC40MTMsMjAuMTI0LDYuNzA4bDYwLTMwQzUxMS4xMTUsMTQ1LjcxMiw1MTQuMTE4LDEzNi43MDIsNTEwLjQxMywxMjkuMjkyeiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNNTAzLjcwNSwzMDIuNTgzbC02MC0zMGMtNy40MDYtMy43MDMtMTYuNDE4LTAuNzAyLTIwLjEyNCw2LjcwOGMtMy43MDUsNy40MS0wLjcwMiwxNi40Miw2LjcwOCwyMC4xMjVsNjAsMzANCgkJCWM3LjQxLDMuNzA1LDE2LjQyLDAuNzAxLDIwLjEyNC02LjcwOEM1MTQuMTE4LDMxNS4yOTgsNTExLjExNSwzMDYuMjg4LDUwMy43MDUsMzAyLjU4M3oiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCgk8Zz4NCgkJPHBhdGggZD0iTTM0NS45OTgsMjQxSDExOS45OTl2LTc2YzAtNDEuMzU1LDM0LjA5NC03NSw3Ni03NWM0MS4zNTUsMCw3NSwzMy42NDUsNzUsNzV2MzBjMCw4LjI4NCw2LjcxNiwxNSwxNSwxNWg2MA0KCQkJYzguMjg0LDAsMTUtNi43MTYsMTUtMTV2LTMwYzAtOTAuOTgtNzQuMDE4LTE2NC45OTktMTY0Ljk5OS0xNjQuOTk5QzEwNC40NjcsMC4wMDIsMzAsNzQuMDIsMzAsMTY1LjAwMXY3OC41OA0KCQkJQzEyLjU0MSwyNDkuNzcyLDAsMjY2LjQ0NSwwLDI4NnYxODAuOTk5YzAsMjQuODEzLDIwLjE4Nyw0NSw0NSw0NWgzMDAuOTk4YzI0LjgxMywwLDQ1LTIwLjE4Nyw0NS00NVYyODYNCgkJCUMzOTAuOTk4LDI2MS4xODcsMzcwLjgxMSwyNDEsMzQ1Ljk5OCwyNDF6IE02MCwxNjUuMDAxYzAtNzQuNDM5LDYxLjAxLTEzNC45OTksMTM1Ljk5OS0xMzQuOTk5DQoJCQljNzQuNDM5LDAsMTM0Ljk5OSw2MC41NjEsMTM0Ljk5OSwxMzQuOTk5djE1aC0zMHYtMTVjMC01Ny44OTctNDcuMTAzLTEwNC45OTktMTA0Ljk5OS0xMDQuOTk5DQoJCQljLTU4LjA2OCwwLTEwNS45OTksNDcuMTItMTA1Ljk5OSwxMDQuOTk5djc2SDYwVjE2NS4wMDF6IE0zNjAuOTk4LDQ2Ni45OTljMCw4LjI3MS02LjcyOSwxNS0xNSwxNUg0NWMtOC4yNzEsMC0xNS02LjcyOS0xNS0xNQ0KCQkJVjI4NmMwLTguMjcxLDYuNzI5LTE1LDE1LTE1YzEzLjk4OCwwLDI4OC44ODMsMCwzMDAuOTk4LDBjOC4yNzEsMCwxNSw2LjcyOSwxNSwxNVY0NjYuOTk5eiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNMTk1Ljk5OSwzMDFjLTI0LjgxMywwLTQ1LDIwLjE4Ny00NSw0NWMwLDE5LjU1NSwxMi41NDEsMzYuMjI4LDMwLDQyLjQydjQ4LjU4YzAsOC4yODQsNi43MTYsMTUsMTUsMTVzMTUtNi43MTYsMTUtMTUNCgkJCXYtNDguNThjMTcuNDU5LTYuMTkyLDMwLTIyLjg2NSwzMC00Mi40MkMyNDAuOTk5LDMyMS4xODcsMjIwLjgxMiwzMDEsMTk1Ljk5OSwzMDF6IE0xOTUuOTk5LDM2MC45OTljLTguMjcxLDAtMTUtNi43MjktMTUtMTUNCgkJCXM2LjcyOS0xNSwxNS0xNXMxNSw2LjcyOSwxNSwxNVMyMDQuMjcsMzYwLjk5OSwxOTUuOTk5LDM2MC45OTl6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik00OTYuOTk3LDIxMWgtNjBjLTguMjg0LDAtMTUsNi43MTYtMTUsMTVzNi43MTYsMTUsMTUsMTVoNjBjOC4yODQsMCwxNS02LjcxNiwxNS0xNVM1MDUuMjgxLDIxMSw0OTYuOTk3LDIxMXoiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==';
+        if (this.state.thirdIcon) {
+            currentIcon =
+                'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjY4MnB0IiB2aWV3Qm94PSItMTAzIC0yMSA2ODIgNjgyLjY2NjY5IiB3aWR0aD0iNjgycHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTQwMy43Njk1MzEgMjQ5LjMzNTkzOHYtNzguOTM3NWMwLTkzLjk1NzAzMi03Ni40NDUzMTItMTcwLjM5ODQzOC0xNzAuNDAyMzQzLTE3MC4zOTg0MzgtOTMuOTU3MDMyIDAtMTcwLjQwMjM0NCA3Ni40NDE0MDYtMTcwLjQwMjM0NCAxNzAuMzk4NDM4djc4LjkzNzVjLTM3LjYwOTM3NS41MjczNDMtNjguMDQ2ODc1IDMxLjI2OTUzMS02OC4wNDY4NzUgNjkuMDAzOTA2djI1Mi42MzI4MTJjMCAzOC4wNTg1OTQgMzAuOTY0ODQzIDY5LjAyNzM0NCA2OS4wMjczNDMgNjkuMDI3MzQ0aDMzOC44NDM3NWMzOC4wNTg1OTQgMCA2OS4wMjczNDQtMzAuOTY4NzUgNjkuMDI3MzQ0LTY5LjAyNzM0NHYtMjUyLjYzMjgxMmMwLTM3LjczNDM3NS0zMC40NDE0MDYtNjguNDc2NTYzLTY4LjA0Njg3NS02OS4wMDM5MDZ6bS0xNzAuNDAyMzQzLTIxMS44MzU5MzhjNzMuMjgxMjUgMCAxMzIuOTAyMzQzIDU5LjYxNzE4OCAxMzIuOTAyMzQzIDEzMi44OTg0Mzh2NzguOTE0MDYyaC0zNi43MzQzNzV2LTc4Ljc4OTA2MmMwLTUzLjA2MjUtNDMuMTQwNjI1LTk2LjIzMDQ2OS05Ni4xNzE4NzUtOTYuMjMwNDY5LTUzLjAyNzM0MyAwLTk2LjE2Nzk2OSA0My4xNjc5NjktOTYuMTY3OTY5IDk2LjIzMDQ2OXY3OC43ODkwNjJoLTM2LjczMDQ2OHYtNzguOTE0MDYyYzAtNzMuMjgxMjUgNTkuNjE3MTg3LTEzMi44OTg0MzggMTMyLjkwMjM0NC0xMzIuODk4NDM4em01OC42Njc5NjggMjExLjgxMjVoLTExNy4zMzk4NDR2LTc4Ljc4OTA2MmMwLTMyLjM4MjgxMyAyNi4zMjAzMTMtNTguNzMwNDY5IDU4LjY3MTg3Ni01OC43MzA0NjkgMzIuMzUxNTYyIDAgNTguNjY3OTY4IDI2LjM0NzY1NiA1OC42Njc5NjggNTguNzMwNDY5em0xNDIuMjgxMjUgMzIxLjY2MDE1NmMwIDE3LjM4MjgxMy0xNC4xNDQ1MzEgMzEuNTI3MzQ0LTMxLjUyNzM0NCAzMS41MjczNDRoLTMzOC44NDM3NWMtMTcuMzgyODEyIDAtMzEuNTI3MzQzLTE0LjE0NDUzMS0zMS41MjczNDMtMzEuNTI3MzQ0di0yNTIuNjMyODEyYzAtMTcuMzgyODEzIDE0LjE0MDYyNS0zMS41MjczNDQgMzEuNTI3MzQzLTMxLjUyNzM0NGgzMzguODQzNzVjMTcuMzgyODEzIDAgMzEuNTI3MzQ0IDE0LjE0NDUzMSAzMS41MjczNDQgMzEuNTI3MzQ0em0wIDAiLz48cGF0aCBkPSJtMzMwLjIwMzEyNSAzNTgtMTM3LjE5NTMxMyAxNDguNTkzNzUtNTYuODc4OTA2LTU3Ljg5ODQzOGMtNy4yNjE3MTgtNy4zODI4MTItMTkuMTMyODEyLTcuNDg4MjgxLTI2LjUxOTUzMS0uMjM0Mzc0LTcuMzgyODEzIDcuMjYxNzE4LTcuNDkyMTg3IDE5LjEzMjgxMi0uMjM0Mzc1IDI2LjUxOTUzMWw3MC42ODM1OTQgNzEuOTMzNTkzYzMuNTIzNDM3IDMuNTkzNzUgOC4zNDM3NSA1LjYwOTM3NiAxMy4zNzUgNS42MDkzNzZoLjI4NTE1NmM1LjEzMjgxMi0uMDgyMDMyIDEwLjAwNzgxMi0yLjI1NzgxMyAxMy40ODgyODEtNi4wMzEyNWwxNTAuNTQ2ODc1LTE2My4wNTg1OTRjNy4wMjczNDQtNy42MDkzNzUgNi41NTA3ODItMTkuNDY4NzUtMS4wNTQ2ODctMjYuNDk2MDk0LTcuNjA5Mzc1LTcuMDE5NTMxLTE5LjQ3MjY1Ny02LjU0Njg3NS0yNi40OTYwOTQgMS4wNjI1em0wIDAiLz48L3N2Zz4=';
+        }
+        return currentIcon;
+    };
+    thirdFormIconFunction = setEditState => {
+        this.setState(() => ({
+            thirdIcon: setEditState,
+        }));
+        if (setEditState === false) {
+            this.thirdFormSubmit();
+        }
+    };
+    thirdFormSubmit = () => {
+        const incidentId = this.props.incident._id;
+        const projectId = this.props.incident.projectId;
+        const incidentType = this.props.incident.incidentType;
+        const title = this.props.incident.title;
+        const description = this.props.incident.description;
+        const incidentPriority = this.props.incidentPriority;
+
+        this.props.updateIncident(
+            projectId,
+            incidentId,
+            incidentType,
+            title,
+            description,
+            incidentPriority
+        );
+    };
     acknowledge = setLoading => {
         const userId = User.getUserId();
         this.props
@@ -186,18 +299,18 @@ export class IncidentStatus extends Component {
             ? this.props.incident.monitorId.componentId._id
             : '';
         const homeRoute = this.props.currentProject
-            ? '/dashboard/project/' + this.props.currentProject._id
+            ? '/dashboard/project/' + this.props.currentProject.slug
             : '';
         const monitorRoute = this.props.currentProject
             ? '/dashboard/project/' +
-              projectId +
+              this.props.currentProject.slug +
               '/' +
               componentId +
               '/monitoring'
             : '';
         const incidentRoute = this.props.currentProject
             ? '/dashboard/project/' +
-              projectId +
+              this.props.currentProject.slug +
               '/' +
               componentId +
               '/incidents/' +
@@ -534,15 +647,15 @@ export class IncidentStatus extends Component {
                                             ) : null}
                                         </div>
                                     </div>
-                                    <ShouldRender
+                                    {/* <ShouldRender
                                         if={
                                             !this.props.route ||
                                             (this.props.route &&
                                                 !(
                                                     this.props.route ===
-                                                        homeRoute ||
+                                                    homeRoute ||
                                                     this.props.route ===
-                                                        monitorRoute
+                                                    monitorRoute
                                                 ))
                                         }
                                     >
@@ -569,7 +682,7 @@ export class IncidentStatus extends Component {
                                         >
                                             <span>Edit Incident</span>
                                         </button>
-                                    </ShouldRender>
+                                    </ShouldRender> */}
                                 </div>
                             </div>
                             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -611,7 +724,10 @@ export class IncidentStatus extends Component {
                                                                     }}
                                                                     to={
                                                                         '/dashboard/project/' +
-                                                                        projectId +
+                                                                        this
+                                                                            .props
+                                                                            .currentProject
+                                                                            .slug +
                                                                         '/' +
                                                                         componentId +
                                                                         '/monitoring'
@@ -637,7 +753,10 @@ export class IncidentStatus extends Component {
                                                                     }}
                                                                     to={
                                                                         '/dashboard/project/' +
-                                                                        projectId +
+                                                                        this
+                                                                            .props
+                                                                            .currentProject
+                                                                            .slug +
                                                                         '/' +
                                                                         componentId +
                                                                         '/monitoring/' +
@@ -1405,16 +1524,82 @@ export class IncidentStatus extends Component {
                                                             <label className="">
                                                                 Title
                                                             </label>
-                                                            <div className="bs-content-inside">
-                                                                <span className="value">
-                                                                    {
-                                                                        this
-                                                                            .props
-                                                                            .incident
-                                                                            .title
-                                                                    }
-                                                                </span>
-                                                            </div>
+                                                            <ShouldRender
+                                                                if={
+                                                                    !this.props
+                                                                        .editable
+                                                                }
+                                                            >
+                                                                <div className="bs-content-inside">
+                                                                    <span className="value">
+                                                                        {
+                                                                            this
+                                                                                .props
+                                                                                .incident
+                                                                                .title
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={
+                                                                    this.props
+                                                                        .editable
+                                                                }
+                                                            >
+                                                                <form
+                                                                    onSubmit={this.props.handleSubmit(
+                                                                        this.firstFormSubmit.bind(
+                                                                            this
+                                                                        )
+                                                                    )}
+                                                                >
+                                                                    <div className="bs-Fieldset-fields">
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderField
+                                                                            }
+                                                                            name="title"
+                                                                            disabled={
+                                                                                !this
+                                                                                    .state
+                                                                                    .firstIcon
+                                                                            }
+                                                                            validate={[
+                                                                                ValidateField.required,
+                                                                            ]}
+                                                                            style={{
+                                                                                width: 212,
+                                                                            }}
+                                                                            onBlur={this.props.handleSubmit(
+                                                                                this
+                                                                                    .firstFormSubmit
+                                                                            )}
+                                                                            id="title"
+                                                                        />
+                                                                        <span>
+                                                                            <img
+                                                                                onClick={() =>
+                                                                                    this.firstFormIconFunction(
+                                                                                        !this
+                                                                                            .state
+                                                                                            .firstIcon
+                                                                                    )
+                                                                                }
+                                                                                style={{
+                                                                                    width: 20,
+                                                                                    height: 20,
+                                                                                    cursor:
+                                                                                        'pointer',
+                                                                                }}
+                                                                                src={this.getIcon()}
+                                                                                alt="firstFormIcon"
+                                                                            />
+                                                                        </span>
+                                                                    </div>
+                                                                </form>
+                                                            </ShouldRender>
                                                         </div>
                                                     )}
                                                     {this.props.incident
@@ -1423,16 +1608,83 @@ export class IncidentStatus extends Component {
                                                             <label className="">
                                                                 Description
                                                             </label>
-                                                            <div className="bs-content-inside">
-                                                                <ReactMarkdown
-                                                                    source={
-                                                                        this
-                                                                            .props
-                                                                            .incident
-                                                                            .description
-                                                                    }
-                                                                />
-                                                            </div>
+                                                            <ShouldRender
+                                                                if={
+                                                                    !this.props
+                                                                        .editable
+                                                                }
+                                                            >
+                                                                <div className="bs-content-inside">
+                                                                    <ReactMarkdown
+                                                                        source={
+                                                                            this
+                                                                                .props
+                                                                                .incident
+                                                                                .description
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={
+                                                                    this.props
+                                                                        .editable
+                                                                }
+                                                            >
+                                                                <form
+                                                                    onSubmit={this.props.handleSubmit(
+                                                                        this.secondFormSubmit.bind(
+                                                                            this
+                                                                        )
+                                                                    )}
+                                                                >
+                                                                    <div className="bs-Fieldset-fields">
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderCodeEditor
+                                                                            }
+                                                                            name="description"
+                                                                            readOnly={
+                                                                                !this
+                                                                                    .state
+                                                                                    .secondIcon
+                                                                            }
+                                                                            wrapEnabled={
+                                                                                true
+                                                                            }
+                                                                            mode="markdown"
+                                                                            height="125px"
+                                                                            width="100%"
+                                                                            placeholder="Please add a description"
+                                                                            onBlur={
+                                                                                this
+                                                                                    .secondFormSubmit
+                                                                            }
+                                                                            id="description"
+                                                                        />
+                                                                        <span>
+                                                                            <img
+                                                                                onClick={() =>
+                                                                                    this.secondFormIconFunction(
+                                                                                        !this
+                                                                                            .state
+                                                                                            .secondIcon
+                                                                                    )
+                                                                                }
+                                                                                style={{
+                                                                                    width: 20,
+                                                                                    height: 20,
+                                                                                    cursor:
+                                                                                        'pointer',
+                                                                                }}
+                                                                                src={this.getSecondIcon()}
+                                                                                alt="secondFormIcon"
+                                                                            />
+                                                                        </span>
+                                                                    </div>
+                                                                </form>
+                                                            </ShouldRender>
                                                         </div>
                                                     )}
                                                     {this.props.incident
@@ -1656,21 +1908,101 @@ export class IncidentStatus extends Component {
                                                                                 '30%',
                                                                         }}
                                                                     ></span>
-                                                                    <span
-                                                                        className="Text-fontWeight--medium"
-                                                                        style={{
-                                                                            color: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
-                                                                        }}
-                                                                    >
-                                                                        {
-                                                                            this
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            !this
                                                                                 .props
-                                                                                .incident
-                                                                                .incidentPriority
-                                                                                .name
+                                                                                .editable
                                                                         }
-                                                                    </span>
+                                                                    >
+                                                                        <span
+                                                                            className="Text-fontWeight--medium"
+                                                                            style={{
+                                                                                color: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                this
+                                                                                    .props
+                                                                                    .incident
+                                                                                    .incidentPriority
+                                                                                    .name
+                                                                            }
+                                                                        </span>
+                                                                    </ShouldRender>
                                                                 </div>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        this
+                                                                            .props
+                                                                            .editable
+                                                                    }
+                                                                >
+                                                                    <form
+                                                                        onSubmit={this.props.handleSubmit(
+                                                                            this.thirdFormSubmit.bind(
+                                                                                this
+                                                                            )
+                                                                        )}
+                                                                    >
+                                                                        <div
+                                                                            className="bs-Fieldset-fields"
+                                                                            style={{
+                                                                                marginTop: 2,
+                                                                            }}
+                                                                        >
+                                                                            <div>
+                                                                                <Field
+                                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                                    component={
+                                                                                        RenderSelect
+                                                                                    }
+                                                                                    name="incidentPriority"
+                                                                                    disabled={
+                                                                                        !this
+                                                                                            .state
+                                                                                            .thirdIcon
+                                                                                    }
+                                                                                    style={{
+                                                                                        width:
+                                                                                            '500px',
+                                                                                    }}
+                                                                                    id="incidentPriority"
+                                                                                    s
+                                                                                    options={[
+                                                                                        ...this.props.incidentPriorities.map(
+                                                                                            incidentPriority => ({
+                                                                                                value:
+                                                                                                    incidentPriority._id,
+                                                                                                label:
+                                                                                                    incidentPriority.name,
+                                                                                            })
+                                                                                        ),
+                                                                                    ]}
+                                                                                />
+                                                                            </div>
+                                                                            <div>
+                                                                                <img
+                                                                                    onClick={() =>
+                                                                                        this.thirdFormIconFunction(
+                                                                                            !this
+                                                                                                .state
+                                                                                                .thirdIcon
+                                                                                        )
+                                                                                    }
+                                                                                    style={{
+                                                                                        width: 20,
+                                                                                        height: 20,
+                                                                                        cursor:
+                                                                                            'pointer',
+                                                                                    }}
+                                                                                    src={this.getThirdIcon()}
+                                                                                    alt="thirdFormIcon"
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    </form>
+                                                                </ShouldRender>
                                                             </div>
                                                         </div>
                                                     )}
@@ -1760,7 +2092,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentId}/incidents/${incidentId}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false
@@ -1897,13 +2229,34 @@ export class IncidentStatus extends Component {
 
 IncidentStatus.displayName = 'IncidentStatus';
 
-const mapStateToProps = state => {
+const EditIncidentStatusForm = reduxForm({
+    form: 'IncidentStatusForm',
+    enableReinitialize: true,
+})(IncidentStatus);
+const selector = formValueSelector('IncidentStatusForm');
+const mapStateToProps = (state, ownProps) => {
+    const incident = ownProps.incident;
+    const initialValues = {
+        title: incident.title,
+        description: incident.description,
+        incidentPriority: incident.incidentPriority._id,
+    };
+    const { description, incidentPriority } = selector(
+        state,
+        'description',
+        'incidentPriority'
+    );
     return {
         currentProject: state.project.currentProject,
         closeincident: state.incident.closeincident,
         subProjects: state.subProject.subProjects.subProjects,
         incidentRequest: state.incident.incident,
         escalations: state.schedule.escalations,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        initialValues,
+        description,
+        incidentPriority,
     };
 };
 
@@ -1917,6 +2270,7 @@ const mapDispatchToProps = dispatch => {
             markAsRead,
             getIncidentTimeline,
             animateSidebar,
+            updateIncident,
         },
         dispatch
     );
@@ -1943,6 +2297,11 @@ IncidentStatus.propTypes = {
     getIncidentTimeline: PropTypes.func,
     animateSidebar: PropTypes.func,
     escalations: PropTypes.array,
+    editable: PropTypes.bool,
+    incidentPriorities: PropTypes.array.isRequired,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(EditIncidentStatusForm);

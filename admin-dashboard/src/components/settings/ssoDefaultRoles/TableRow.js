@@ -9,6 +9,7 @@ import { bindActionCreators } from 'redux';
 import { openModal } from '../../../actions/modal';
 import RoleDeleteModal from './RoleDeleteModal';
 import { UpdateDefaultRoleModal } from './DefaultRoleModal';
+import PropTypes from 'prop-types';
 
 const TableRow = ({
     data,
@@ -123,6 +124,14 @@ const TableRow = ({
     </tr>
 );
 
+TableRow.displayName = 'ssoDefaultTableRow';
+
+TableRow.propTypes = {
+    data: PropTypes.object,
+    fetchSsoDefaultRole: PropTypes.func,
+    deleteSsoDefaultRole: PropTypes.func,
+    openModal: PropTypes.func,
+};
 export default connect(null, dispatch =>
     bindActionCreators(
         {

@@ -31,7 +31,7 @@ class IncidentLog extends React.Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = { createIncidentModalId: uuid.v4() };
+        this.state = { createIncidentModalId: uuid.v4(), page: {} };
     }
 
     componentDidMount() {
@@ -52,6 +52,15 @@ class IncidentLog extends React.Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
+        const newPageState = Object.assign({}, this.state.page, {
+            [projectId]:
+                this.state.page[projectId] === 1
+                    ? 1
+                    : this.state.page[projectId] - 1,
+        });
+        this.setState({
+            page: newPageState,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT LOG > PREVIOUS BUTTON CLICKED'
@@ -61,6 +70,14 @@ class IncidentLog extends React.Component {
 
     nextClicked = (projectId, skip, limit) => {
         this.props.getProjectIncidents(projectId, skip + limit, 10);
+        const newPageState = Object.assign({}, this.state.page, {
+            [projectId]: !this.state.page[projectId]
+                ? 2
+                : this.state.page[projectId] + 1,
+        });
+        this.setState({
+            page: newPageState,
+        });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT LOG > NEXT BUTTON CLICKED'
@@ -129,6 +146,15 @@ class IncidentLog extends React.Component {
                                             subProjectIncidents.length
                                         }
                                         modalList={this.props.modalList}
+                                        page={
+                                            !this.state.page[
+                                                subProjectIncident._id
+                                            ]
+                                                ? 1
+                                                : this.state.page[
+                                                      subProjectIncident._id
+                                                  ]
+                                        }
                                     />
                                 </div>
                             </div>
@@ -183,6 +209,13 @@ class IncidentLog extends React.Component {
                                         subProjectIncidents.length
                                     }
                                     modalList={this.props.modalList}
+                                    page={
+                                        !this.state.page[projectIncident._id]
+                                            ? 1
+                                            : this.state.page[
+                                                  projectIncident._id
+                                              ]
+                                    }
                                 />
                             </div>
                         </div>
@@ -235,7 +268,9 @@ class IncidentLog extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { componentId, projectId } = props.match.params;
+    const { componentId } = props.match.params;
+    const projectId = state.project.currentProject &&
+    state.project.currentProject._id;
     let subProjects = state.subProject.subProjects.subProjects;
     let component;
     state.component.componentList.components.forEach(item => {
@@ -279,6 +314,7 @@ const mapStateToProps = (state, props) => {
         tutorialStat,
         component,
         modalList: state.modal.modals,
+        projectId,
     };
 };
 
