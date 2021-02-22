@@ -497,13 +497,13 @@
                                             <span><code>{{method}} <a href={{monitorUrl}} target="_blank"><u>{{monitorUrl}}</u></a></code></span><br>{{/if}}
                                             <strong>Started at:</strong> <span><span
                                                 style="white-space:nowrap">{{incidentTime}}</span></span><br>
-                                            <strong>Cause:</strong>
-                                              <ul style="list-style-type: square;">
-                                                {{#each reason}}                                                                                               
-                                                  <li>{{this}}</li>      
-                                                {{/each}}                                         
-                                              </ul> <br>   
-                                            {{#if probeName}}
+                                            <strong>Cause:</strong><br/>
+                                              {{#each reason}}                                                                                               
+                                                  <span
+                                                style="white-space:nowrap">{{this}}</span><br/>
+                                                {{/each}} 
+                                                {{#if probeName}}
+                                                
                                             <strong>Reported By:</strong> <span>{{probeName}}</span><br>
                                             {{/if}}
                                             {{#if criterionName}}
