@@ -8,6 +8,7 @@ import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import { formatDecimal, formatBytes } from '../../config';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
+import { Spinner } from '../basic/Loader';
 
 const calculateTime = (statuses, start, range) => {
     const timeBlock = [];
@@ -747,6 +748,28 @@ export function MonitorChart({
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                ) : kubeMonitoring && data.length === 0 ? (
+                    <div style={{ textAlign: 'center', flexBasis: 1 }}>
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
+                            style={{
+                                textAlign: 'center',
+                                width: '100%',
+                                fontSize: 14,
+                                fontWeight: '500',
+                                margin: 0,
+                                color: '#4c4c4c',
+                                lineHeight: 1.6,
+                                padding: '10px 0',
+                            }}
+                        >
+                            <Spinner style={{ stroke: '#8898aa' }} />{' '}
+                            <span style={{ width: 10 }} />
+                            We&apos;re currently in the process of collecting
+                            data for this monitor. More info will be available
+                            in few minutes
                         </div>
                     </div>
                 ) : (
