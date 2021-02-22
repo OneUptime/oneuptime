@@ -1021,7 +1021,7 @@ export function MonitorChart({
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Ready Deployments
+                                                    Healthy Deployments
                                                 </span>
                                             </div>
                                         </div>
@@ -1035,7 +1035,7 @@ export function MonitorChart({
                                                             ? data[0]
                                                                   .kubernetesLog
                                                                   .deploymentData
-                                                                  .readyDeployment
+                                                                  .healthy
                                                             : 0}
                                                     </span>
                                                 </span>
@@ -1049,7 +1049,7 @@ export function MonitorChart({
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Desired Deployment
+                                                    Unhealthy Deployments
                                                 </span>
                                             </div>
                                         </div>
@@ -1063,7 +1063,7 @@ export function MonitorChart({
                                                             ? data[0]
                                                                   .kubernetesLog
                                                                   .deploymentData
-                                                                  .desiredDeployment
+                                                                  .unhealthy
                                                             : 0}
                                                     </span>
                                                 </span>
@@ -1123,7 +1123,7 @@ export function MonitorChart({
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Ready Statefulset
+                                                    Healthy Statefulset
                                                 </span>
                                             </div>
                                         </div>
@@ -1137,7 +1137,7 @@ export function MonitorChart({
                                                             ? data[0]
                                                                   .kubernetesLog
                                                                   .statefulsetData
-                                                                  .readyStatefulsets
+                                                                  .healthy
                                                             : 0}
                                                     </span>
                                                 </span>
@@ -1151,7 +1151,7 @@ export function MonitorChart({
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Desired Statefulset
+                                                    Unhealthy Statefulset
                                                 </span>
                                             </div>
                                         </div>
@@ -1165,7 +1165,7 @@ export function MonitorChart({
                                                             ? data[0]
                                                                   .kubernetesLog
                                                                   .statefulsetData
-                                                                  .desiredStatefulsets
+                                                                  .unhealthy
                                                             : 0}
                                                     </span>
                                                 </span>
@@ -1184,40 +1184,6 @@ export function MonitorChart({
                                         kubeMonitoring && data.length === 0
                                     }
                                 />
-                            </div>
-                        </div>
-                        <div className="db-Trend">
-                            <div className="block-chart-side line-chart">
-                                <div className="db-TrendRow">
-                                    <div className="db-Trend-colInformation">
-                                        <div
-                                            className="db-Trend-rowTitle"
-                                            title="Running Services"
-                                        >
-                                            <div className="db-Trend-title">
-                                                <span className="chart-font">
-                                                    Running Services
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
-                                                    <span className="chart-font">
-                                                        {checkLogs &&
-                                                        data[0].kubernetesLog
-                                                            ? data[0]
-                                                                  .kubernetesLog
-                                                                  .serviceData
-                                                                  .runningServices
-                                                            : 0}
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </>
