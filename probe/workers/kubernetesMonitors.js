@@ -156,7 +156,8 @@ module.exports = {
                             // handle deployment output
                             let desiredDeployment = 0,
                                 readyDeployment = 0;
-                            const incompleteDeployment = [],
+                            const unhealthyDeployments = [],
+                                healthyDeployments = [],
                                 allDeployments = [];
                             deploymentOutput.items.forEach(item => {
                                 readyDeployment += item.status.readyReplicas;
@@ -166,7 +167,14 @@ module.exports = {
                                     item.status.readyReplicas !==
                                     item.status.replicas
                                 ) {
-                                    incompleteDeployment.push({
+                                    unhealthyDeployments.push({
+                                        deploymentName: item.metadata.name,
+                                        readyDeployment:
+                                            item.status.readyReplicas,
+                                        desiredDeployment: item.status.replicas,
+                                    });
+                                } else {
+                                    healthyDeployments.push({
                                         deploymentName: item.metadata.name,
                                         readyDeployment:
                                             item.status.readyReplicas,
@@ -183,14 +191,18 @@ module.exports = {
                             const deploymentData = {
                                 desiredDeployment,
                                 readyDeployment,
-                                incompleteDeployment,
+                                healthyDeployments,
+                                unhealthyDeployments,
                                 allDeployments,
+                                healthy: healthyDeployments.length,
+                                unhealthy: unhealthyDeployments.length,
                             };
 
                             // handle statefulset output
                             let desiredStatefulsets = 0,
                                 readyStatefulsets = 0;
-                            const incompleteStatefulset = [],
+                            const healthyStatefulsets = [],
+                                unhealthyStatefulsets = [],
                                 allStatefulset = [];
                             statefulsetOutput.items.forEach(item => {
                                 readyStatefulsets += item.status.readyReplicas;
@@ -200,7 +212,15 @@ module.exports = {
                                     item.status.readyReplicas !==
                                     item.status.replicas
                                 ) {
-                                    incompleteStatefulset.push({
+                                    unhealthyStatefulsets.push({
+                                        statefulsetName: item.metadata.name,
+                                        readyStatefulsets:
+                                            item.status.readyReplicas,
+                                        desiredStatefulsets:
+                                            item.status.replicas,
+                                    });
+                                } else {
+                                    healthyStatefulsets.push({
                                         statefulsetName: item.metadata.name,
                                         readyStatefulsets:
                                             item.status.readyReplicas,
@@ -219,8 +239,11 @@ module.exports = {
                             const statefulsetData = {
                                 readyStatefulsets,
                                 desiredStatefulsets,
-                                incompleteStatefulset,
+                                healthyStatefulsets,
+                                unhealthyStatefulsets,
                                 allStatefulset,
+                                healthy: healthyStatefulsets.length,
+                                unhealthy: unhealthyStatefulsets.length,
                             };
 
                             const data = {
