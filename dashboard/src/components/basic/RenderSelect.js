@@ -41,7 +41,7 @@ const RenderSelect = ({
             input.onChange(option.value);
         }
     };
-
+    console.log("Style: ",style);
     return (
         <span style={{ height: '28px', width: '250px', ...style }}>
             <div style={{ display: 'flex' }}>
