@@ -1482,6 +1482,76 @@ margin-left:10px;
   justify-content: flex-end;
 }
 
+.subscribe_box {
+  display: flex;
+  background-color: rgba(0,0,0,1);
+  color: #fff;
+  padding: 20px;
+  justify-content: space-between;
+  margin: auto;
+  width: 100%;
+  max-width: 850px;
+  box-sizing: border-box;
+}
+
+.subscribe_btn {
+  background-color: #00bce7;
+  text-transform: uppercase;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  border-color: #555 transparent transparent transparent;
+  padding: 8px 12px 7px;
+  font-size: 11px;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 10%);
+  letter-spacing: 2px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.subscribe_btn:focus {
+  outline: none;
+  border: none;
+}
+
+.subscribe_box div a {
+  border-color: #555 transparent transparent transparent;
+  color: #fff;
+  font-size: 20px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.no_monitor {
+  margin-top: 20px;
+  font-size: 16px;
+  color: #8898aa;
+}
+
+.incident_desc {
+  margin-bottom: 10px;
+  color: rgba(0,0,0,0.6);
+}
+
+.items_dis {
+  display: flex;
+}
+
+.list_items {
+  display: flex;
+  flex-direction: column;
+  margin-left: 6px;
+  margin-top: 3px;
+}
+
+.list_k {
+  margin-right: 6px;
+}
+
+.big_dot {
+  margin-right: 3px;
+}
+
 @media screen and (max-width: 650px) {
   .innernew {
     width: 90%;
