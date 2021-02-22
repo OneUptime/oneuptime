@@ -112,7 +112,7 @@ include:
   # JS-SDK
   - '/ci/spec/js-sdk/audit.yaml'
   - '/ci/spec/js-sdk/build-n-test.yaml'
-  # - '/ci/spec/js-sdk/deploy.yaml'
+  - '/ci/spec/js-sdk/deploy.yaml'
 
   # # PHP-SDK
   # - '/ci/spec/php-sdk/audit.yaml'
