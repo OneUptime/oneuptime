@@ -14,6 +14,7 @@ import {
     showIncidentCard,
 } from '../actions/status';
 import { openSubscribeMenu } from '../actions/subscribe';
+const countNum = 15;
 
 class NotesMain extends Component {
     constructor(props) {
@@ -33,7 +34,7 @@ class NotesMain extends Component {
             this.props.projectId,
             this.props.statusPageId,
             0,
-            this.props.theme && 15
+            this.props.theme && countNum
         );
     }
 
@@ -142,78 +143,205 @@ class NotesMain extends Component {
             webhookNotification ||
             emailNotification;
 
-        const data = [1, 2, 3, 4];
+        const formatMsg = data => {
+            let result = data.reduce(function(r, a) {
+                r[a.incident_state] = r[a.incident_state] || [];
+                r[a.incident_state].push(a);
+                return r;
+            }, Object.create({}));
+
+            return result;
+        };
+
+        let incidentNoteData = this.props.noteData;
+        if (
+            this.props.theme === 'New Theme' &&
+            this.props.noteData.notes.length > countNum &&
+            !this.props.noteData.notes[1].idNumber
+        ) {
+            this.props.noteData.notes.splice(1, 1);
+            incidentNoteData.notes = this.props.noteData.notes;
+        }
 
         if (this.props.theme === 'New Theme') {
-            return data && data.length > 1
-                ? data.map((d, i) => {
-                      return (
-                          <div className="incident-object">
-                              <div className="date-big">Feb 16, 2021</div>
-                              <div className="alerting-deplay">
-                                  Alerting deplay
-                              </div>
-                              <div className="new-mb-12">
-                                  <div>
-                                      <span className="incident-info">
-                                          Resolved -{' '}
-                                      </span>
-                                      <span className="incident-brief" title="World Health Organization">
-                                          This incident has been resolved.
-                                      </span>
-                                  </div>
-                                  <div className="incident-date">
-                                      <span>Feb 16, 06:38 PST</span>
-                                  </div>
-                              </div>
-                              <div className="new-mb-12">
-                                  <div>
-                                      <span className="incident-info">
-                                          Monitoring -{' '}
-                                      </span>
-                                      <span className="incident-brief">
-                                          A fix has been implemented and we are
-                                          monitoring the results. New alerts
-                                          will be processed as usual, old alerts
-                                          still have a delay.
-                                      </span>
-                                  </div>
-                                  <div className="incident-date">
-                                      <span>Feb 16, 06:38 PST</span>
-                                  </div>
-                              </div>
-                              <div className="new-mb-12">
-                                  <div>
-                                      <span className="incident-info">
-                                          Identified -{' '}
-                                      </span>
-                                      <span className="incident-brief">
-                                          The issue has been identified and a
-                                          fix is being implemented.
-                                      </span>
-                                  </div>
-                                  <div className="incident-date">
-                                      <span>Feb 16, 06:38 PST</span>
-                                  </div>
-                              </div>
-                              <div className="new-mb-12">
-                                  <div>
-                                      <span className="incident-info">
-                                          Investigating -{' '}
-                                      </span>
-                                      <span className="incident-brief">
-                                          We are currently investigating this
-                                          issue.
-                                      </span>
-                                  </div>
-                                  <div className="incident-date">
-                                      <span>Feb 16, 06:38 PST</span>
-                                  </div>
-                              </div>
-                          </div>
-                      );
-                  })
-                : null;
+            return incidentNoteData && incidentNoteData.notes.length > 1 ? (
+                incidentNoteData.notes.map((note, i) => {
+                    return (
+                        <div className="incident-object" key={i}>
+                            <div className="date-big">
+                                {moment(note.createdAt).format('LL')}
+                            </div>
+                            {note.idNumber ? (
+                                <>
+                                    <div className="alerting-deplay">
+                                        {note.title}
+                                    </div>
+                                    <div className="incident_desc">
+                                        {note.description}
+                                    </div>
+                                    {note &&
+                                        note.message &&
+                                        note.message.length > 0 &&
+                                        Object.keys(
+                                            formatMsg(note.message)
+                                        ).map(key => {
+                                            return (
+                                                <div className="new-mb-12">
+                                                    <div className="items_dis">
+                                                        <div className="incident-info">
+                                                            <span className="list_k">
+                                                                {key}
+                                                            </span>
+                                                            -{' '}
+                                                        </div>
+                                                        <div className="list_items">
+                                                            {formatMsg(
+                                                                note.message
+                                                            )[key].map(
+                                                                (item, i) => {
+                                                                    return (
+                                                                        <div
+                                                                            className="incident-brief"
+                                                                            key={
+                                                                                i
+                                                                            }
+                                                                        >
+                                                                            {formatMsg(
+                                                                                note.message
+                                                                            )[
+                                                                                key
+                                                                            ]
+                                                                                .length >
+                                                                                1 && (
+                                                                                <span className="big_dot">
+                                                                                    &#9679;
+                                                                                </span>
+                                                                            )}
+                                                                            {
+                                                                                item.content
+                                                                            }
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="incident-date">
+                                                        <span>
+                                                            {formatMsg(
+                                                                note.message
+                                                            )[key].map(
+                                                                (time, i) => {
+                                                                    return (
+                                                                        <>
+                                                                            {i ===
+                                                                                0 && (
+                                                                                <div
+                                                                                    key={
+                                                                                        i
+                                                                                    }
+                                                                                >
+                                                                                    {moment(
+                                                                                        time.createdAt
+                                                                                    ).format(
+                                                                                        'LLL'
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                        </>
+                                                                    );
+                                                                }
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    {/* <div className="new-mb-12">
+                                        <div>
+                                            <span className="incident-info">
+                                                Resolved -{' '}
+                                            </span>
+                                            <span
+                                                className="incident-brief"
+                                                title="World Health Organization"
+                                            >
+                                                This incident has
+                                                {!note.resolved && ' not '} been
+                                                resolved.
+                                            </span>
+                                        </div>
+                                        <div className="incident-date">
+                                            <span>
+                                                {moment(
+                                                    note.acknowledged
+                                                        ? note.acknowledgedAt
+                                                        : note.createdAt
+                                                ).format('LLL')}
+                                            </span>
+                                        </div>
+                                    </div> */}
+                                    {/* <div className="new-mb-12">
+                                        <div>
+                                            <span className="incident-info">
+                                                Monitoring -{' '}
+                                            </span>
+                                            <span className="incident-brief">
+                                                A fix has been implemented and
+                                                we are monitoring the results.
+                                                New alerts will be processed as
+                                                usual, old alerts still have a
+                                                delay.
+                                            </span>
+                                        </div>
+                                        <div className="incident-date">
+                                            <span>Feb 16, 06:38 PST</span>
+                                        </div>
+                                    </div>
+                                    <div className="new-mb-12">
+                                        <div>
+                                            <span className="incident-info">
+                                                Identified -{' '}
+                                            </span>
+                                            <span className="incident-brief">
+                                                The issue has been identified
+                                                and a fix is being implemented.
+                                            </span>
+                                        </div>
+                                        <div className="incident-date">
+                                            <span>
+                                                {moment(note.createdAt).format(
+                                                    'LLL'
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="new-mb-12">
+                                        <div>
+                                            <span className="incident-info">
+                                                Investigating -{' '}
+                                            </span>
+                                            <span className="incident-brief">
+                                                We are currently investigating
+                                                this issue.
+                                            </span>
+                                        </div>
+                                        <div className="incident-date">
+                                            <span>Feb 16, 06:38 PST</span>
+                                        </div>
+                                    </div> */}
+                                </>
+                            ) : (
+                                <div>No incident reported</div>
+                            )}
+                        </div>
+                    );
+                })
+            ) : (
+                <div className="no_monitor">
+                    A monitor is required to view incident logs
+                </div>
+            );
         } else {
             if (this.props.noteData && this.props.noteData.requesting) {
                 return (
