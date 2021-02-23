@@ -12,12 +12,8 @@ const criterionEventSchema = {
     default: { type: Boolean, default: false },
     name: String,
     criteria: {
-        type: {
-            type: String,
-        },
-        criteria: {
-            type: [Schema.Types.Mixed],
-        },
+        condition: String,
+        criteria: [Schema.Types.Mixed],
     },
 };
 
@@ -27,10 +23,10 @@ const criterionEventSchema = {
  * in addition to nested condition if present (the nested condition will follow the same structural pattern)
  *
  * criteria: {
- *  type: 'and',
+ *  condition: 'and',
  *  criteria: [
  *      {
- *         type: 'or',
+ *         condition: 'or',
  *         criteria: [
  *            {
  *               "responseType": "requestBody",
@@ -43,7 +39,7 @@ const criterionEventSchema = {
  *                "field1": "healthy"
  *            },
  *            {
- *               type: 'and',
+ *               condition: 'and',
  *               criteria: [{}, {}, ...]
  *            }
  *         ]

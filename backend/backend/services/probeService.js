@@ -642,8 +642,8 @@ module.exports = {
                 if (
                     condition &&
                     condition.criteria &&
-                    condition.criteria.type &&
-                    condition.criteria.type === 'and'
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'and'
                 ) {
                     stat = checkScriptAnd(
                         payload,
@@ -656,8 +656,8 @@ module.exports = {
                 } else if (
                     condition &&
                     condition.criteria &&
-                    condition.criteria.type &&
-                    condition.criteria.type === 'or'
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'or'
                 ) {
                     stat = checkScriptOr(
                         payload,
@@ -710,8 +710,8 @@ module.exports = {
                 if (
                     condition &&
                     condition.criteria &&
-                    condition.criteria.type &&
-                    condition.criteria.type === 'and'
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'and'
                 ) {
                     stat = await checkAnd(
                         payload,
@@ -729,8 +729,8 @@ module.exports = {
                 } else if (
                     condition &&
                     condition.criteria &&
-                    condition.criteria.type &&
-                    condition.criteria.type === 'or'
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'or'
                 ) {
                     stat = await checkOr(
                         payload,
@@ -1146,8 +1146,8 @@ module.exports = {
                 if (
                     condition &&
                     condition.criteria &&
-                    condition.criteria.type &&
-                    condition.criteria.type === 'and'
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'and'
                 ) {
                     respAnd = await incomingCheckAnd(
                         payload,
@@ -1158,8 +1158,8 @@ module.exports = {
                 if (
                     condition &&
                     condition.criteria &&
-                    condition.criteria.type &&
-                    condition.criteria.type === 'or'
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'or'
                 ) {
                     respOr = await incomingCheckOr(payload, condition.criteria);
                     countOr++;
@@ -1443,8 +1443,8 @@ const incomingCheckAnd = async (payload, condition) => {
                 condition.criteria[i].criteria.length > 0
             ) {
                 if (
-                    condition.criteria[i].type &&
-                    condition.criteria[i].type === 'and'
+                    condition.criteria[i].condition &&
+                    condition.criteria[i].condition === 'and'
                 ) {
                     // incoming check and
                     const tempAnd = await incomingCheckAnd(
@@ -1456,8 +1456,8 @@ const incomingCheckAnd = async (payload, condition) => {
                         incomingVal++;
                     }
                 } else if (
-                    condition.criteria[i].type &&
-                    condition.criteria[i].type === 'or'
+                    condition.criteria[i].condition &&
+                    condition.criteria[i].condition === 'or'
                 ) {
                     // incoming check or
                     const tempOr = await incomingCheckOr(
@@ -1593,8 +1593,8 @@ const incomingCheckOr = async (payload, condition) => {
                 condition.criteria[i].criteria.length > 0
             ) {
                 if (
-                    condition.criteria[i].type &&
-                    condition.criteria[i].type === 'or'
+                    condition.criteria[i].condition &&
+                    condition.criteria[i].condition === 'or'
                 ) {
                     // incoming check or
                     const tempor = await incomingCheckAnd(
@@ -1606,8 +1606,8 @@ const incomingCheckOr = async (payload, condition) => {
                         incomingVal++;
                     }
                 } else if (
-                    condition.criteria[i].type &&
-                    condition.criteria[i].type === 'and'
+                    condition.criteria[i].condition &&
+                    condition.criteria[i].condition === 'and'
                 ) {
                     const tempAnd = await incomingCheckAnd(
                         payload,
@@ -1751,7 +1751,10 @@ const checkAnd = async (
                 con.criteria[i].criteria &&
                 con.criteria[i].criteria.length > 0
             ) {
-                if (con.criteria[i].type && con.criteria[i].type === 'and') {
+                if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'and'
+                ) {
                     // check and again
                     const temp = await checkAnd(
                         payload,
@@ -1771,8 +1774,8 @@ const checkAnd = async (
                         validity = temp;
                     }
                 } else if (
-                    con.criteria[i].type &&
-                    con.criteria[i].type === 'or'
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'or'
                 ) {
                     // check or again
                     const temp1 = await checkOr(
@@ -4023,7 +4026,10 @@ const checkOr = async (
                 con.criteria[i].criteria &&
                 con.criteria[i].criteria.length > 0
             ) {
-                if (con.criteria[i].type && con.criteria[i].type === 'or') {
+                if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'or'
+                ) {
                     // check or again
                     const temp1 = await checkOr(
                         payload,
@@ -4042,8 +4048,8 @@ const checkOr = async (
                         validity = temp1;
                     }
                 } else if (
-                    con.criteria[i].type &&
-                    con.criteria[i].type === 'and'
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'and'
                 ) {
                     const temp = await checkAnd(
                         payload,
@@ -6277,7 +6283,10 @@ const checkScriptAnd = (
                 con.criteria[i].criteria &&
                 con.criteria[i].criteria.length > 0
             ) {
-                if (con.criteria[i].type && con.criteria[i].type === 'and') {
+                if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'and'
+                ) {
                     // check script and
                     const subConditionValid = checkScriptAnd(
                         payload,
@@ -6291,8 +6300,8 @@ const checkScriptAnd = (
                         valid = false;
                     }
                 } else if (
-                    con.criteria[i].type &&
-                    con.criteria[i].type === 'or'
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'or'
                 ) {
                     // check script or
                     const subConditionValid = checkScriptOr(
@@ -6343,7 +6352,10 @@ const checkScriptOr = (
                 con.criteria[i].criteria &&
                 con.criteria[i].criteria.length > 0
             ) {
-                if (con.criteria[i].type && con.criteria[i].type === 'or') {
+                if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'or'
+                ) {
                     // check script or
                     const subConditionValid = checkScriptOr(
                         payload,
@@ -6357,8 +6369,8 @@ const checkScriptOr = (
                         valid = true;
                     }
                 } else if (
-                    con.criteria[i].type &&
-                    con.criteria[i].type === 'and'
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'and'
                 ) {
                     // check script and
                     const subConditionValid = checkScriptAnd(

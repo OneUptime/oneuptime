@@ -548,10 +548,10 @@ const MonitorCriteriaService = {
             criteria.push(...nestVal);
 
             if (val[0].match && val[0].match.length && val[0].match === 'all') {
-                val2.type = 'and';
+                val2.condition = 'and';
             }
             if (val[0].match && val[0].match.length && val[0].match === 'any') {
-                val2.type = 'or';
+                val2.condition = 'or';
             }
         }
 
@@ -591,9 +591,10 @@ const MonitorCriteriaService = {
                 }
 
                 if (Object.keys(val.criteria[j]).includes('match')) {
-                    const type = val.criteria[j].match === 'all' ? 'and' : 'or';
+                    const condition =
+                        val.criteria[j].match === 'all' ? 'and' : 'or';
                     const criteria = [innerVal];
-                    nestVal.push({ type, criteria });
+                    nestVal.push({ condition, criteria });
                 } else {
                     nestVal[nestVal.length - 1].criteria.push(innerVal);
                 }
@@ -609,7 +610,7 @@ const MonitorCriteriaService = {
 
     mapCriteria: function(val) {
         const val2 = [];
-        if (val && val.criteria && val.criteria.type === 'and') {
+        if (val && val.criteria && val.criteria.condition === 'and') {
             for (let i = 0; i < val.criteria.criteria.length; i++) {
                 const val3 = {};
                 if (
@@ -641,8 +642,8 @@ const MonitorCriteriaService = {
                 if (
                     val.criteria.criteria[i].criteria &&
                     val.criteria.criteria[i].criteria.length > 0 &&
-                    (val.criteria.criteria[i].type === 'and' ||
-                        val.criteria.criteria[i].type === 'or')
+                    (val.criteria.criteria[i].condition === 'and' ||
+                        val.criteria.criteria[i].condition === 'or')
                 ) {
                     this.mapNestedCriteria(
                         val.criteria.criteria[i],
@@ -660,7 +661,7 @@ const MonitorCriteriaService = {
                 }
             }
             return val2;
-        } else if (val && val.criteria && val.criteria.type === 'or') {
+        } else if (val && val.criteria && val.criteria.condition === 'or') {
             for (let i = 0; i < val.criteria.criteria.length; i++) {
                 const val3 = {};
                 if (
@@ -692,8 +693,8 @@ const MonitorCriteriaService = {
                 if (
                     val.criteria.criteria[i].criteria &&
                     val.criteria.criteria[i].criteria.length > 0 &&
-                    (val.criteria.criteria[i].type === 'and' ||
-                        val.criteria.criteria[i].type === 'or')
+                    (val.criteria.criteria[i].condition === 'and' ||
+                        val.criteria.criteria[i].condition === 'or')
                 ) {
                     this.mapNestedCriteria(
                         val.criteria.criteria[i],
@@ -743,9 +744,9 @@ const MonitorCriteriaService = {
                 innerVal.field2 = criteriaObj.criteria[j].field2;
             }
 
-            if (j === 0 && criteriaObj.type === 'and') {
+            if (j === 0 && criteriaObj.condition === 'and') {
                 innerVal.match = 'all';
-            } else if (j === 0 && criteriaObj.type === 'or') {
+            } else if (j === 0 && criteriaObj.condition === 'or') {
                 innerVal.match = 'any';
             }
 
