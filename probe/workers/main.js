@@ -19,7 +19,7 @@ module.exports = {
     runJob: async function() {
         try {
             let monitors = await getApi('probe/monitors');
-            monitors = monitors.data;
+            monitors = JSON.parse(monitors.data); // parse the stringified data
             await Promise.all(
                 monitors.map(monitor => {
                     if (monitor.type === 'api') {

@@ -20,13 +20,13 @@ class DuplicateStatusPageConfirmation extends Component {
     }
 
     handleNavigation = () => {
-        const { subProjectId, projectId, statusPageId } = this.props;
+        const { subProjectId, slug, statusPageId } = this.props;
         this.props.closeModal({
             id: this.props.duplicateModalId,
         });
         this.props.fetchStatusPage(statusPageId);
         history.push(
-            `/dashboard/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPageId}`
+            `/dashboard/project/${slug}/sub-project/${subProjectId}/status-page/${statusPageId}`
         );
     };
 
@@ -116,7 +116,7 @@ const mapStateToProps = state => {
         duplicateModalId: state.modal.modals[0].id,
         statusPageId: state.modal.modals[0].statusPageId,
         subProjectId: state.modal.modals[0].subProjectId,
-        projectId: state.modal.modals[0].projectId,
+        slug: state.modal.modals[0].slug,
     };
 };
 const mapDispatchToProps = dispatch => {
@@ -129,10 +129,7 @@ const mapDispatchToProps = dispatch => {
 DuplicateStatusPageConfirmation.propTypes = {
     closeModal: PropTypes.func,
     duplicateModalId: PropTypes.string.isRequired,
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    slug: PropTypes.string.isRequired,
     statusPageId: PropTypes.string.isRequired,
     subProjectId: PropTypes.string.isRequired,
     fetchStatusPage: PropTypes.func,

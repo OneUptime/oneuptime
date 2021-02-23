@@ -180,7 +180,7 @@ export class MonitorTabularList extends Component {
                                                     '/dashboard/project/' +
                                                         this.props
                                                             .currentProject
-                                                            ._id +
+                                                            .slug +
                                                         '/' +
                                                         this.props.componentId +
                                                         '/monitoring/' +

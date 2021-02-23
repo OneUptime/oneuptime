@@ -1350,7 +1350,7 @@ function mapStateToProps(state) {
         twoFactorAuthSetting: state.profileSettings.twoFactorAuthSetting,
         initialValues: initValues,
         projectId:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject._id,
         otp:
             state.form.Profile &&

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const BoxFooter = ({
     recordsCount,
@@ -6,12 +7,17 @@ const BoxFooter = ({
     canNext,
     previousClicked,
     nextClicked,
+    page,
+    numberOfPages,
 }) => (
     <div className="bs-Tail bs-Tail--separated bs-Tail--short">
         <div className="bs-Tail-copy">
             <span>
-                {recordsCount} record
-                {recordsCount !== 1 && 's'}
+                {numberOfPages > 0
+                    ? `Page ${page} of ${numberOfPages} (${recordsCount} record${
+                          recordsCount === 1 ? '' : 's'
+                      })`
+                    : `${recordsCount} record${recordsCount === 1 ? '' : 's'}`}
             </span>
         </div>
         <div className="bs-Tail-actions">
@@ -56,5 +62,15 @@ const BoxFooter = ({
         </div>
     </div>
 );
+BoxFooter.displayName = 'ssoDefaultRoles';
 
+BoxFooter.propTypes = {
+    recordsCount: PropTypes.number,
+    canPrev: PropTypes.func,
+    canNext: PropTypes.func,
+    previousClicked: PropTypes.func,
+    nextClicked: PropTypes.func,
+    page: PropTypes.number,
+    numberOfPages: PropTypes.number,
+};
 export default BoxFooter;

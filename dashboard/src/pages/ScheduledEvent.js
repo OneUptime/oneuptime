@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import Fade from 'react-reveal/Fade';
+import { connect } from 'react-redux';
 import Dashboard from '../components/Dashboard';
 import ScheduledEventBox from '../components/scheduledEvent/ScheduledEvent';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -8,10 +9,8 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 class ScheduledEvent extends Component {
     render() {
         const {
-            match,
             location: { pathname },
         } = this.props;
-        const { projectId } = match.params;
 
         return (
             <Dashboard>
@@ -23,7 +22,7 @@ class ScheduledEvent extends Component {
                         containerType="Scheduled Maintenance Event"
                     />
                     <div id="scheduleEventsPage">
-                        <ScheduledEventBox projectId={projectId} />
+                        <ScheduledEventBox projectId={this.props.projectId} />
                     </div>
                 </Fade>
             </Dashboard>
@@ -33,11 +32,18 @@ class ScheduledEvent extends Component {
 
 ScheduledEvent.displayName = 'ScheduledEvent';
 
+const mapStateToProps = state => {
+    return {
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
+    };
+};
+
 ScheduledEvent.propTypes = {
-    match: PropTypes.object,
+    projectId: PropTypes.string,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
 };
 
-export default ScheduledEvent;
+export default connect(mapStateToProps)(ScheduledEvent);

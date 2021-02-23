@@ -34,7 +34,7 @@ export const groups = [
                 subRoutes: [],
                 isPublic: true,
                 visible: true,
-                index: 1,
+                index: 2,
             },
             {
                 title: 'Register',
@@ -44,7 +44,7 @@ export const groups = [
                 subRoutes: [],
                 isPublic: true,
                 visible: true,
-                index: 2,
+                index: 3,
             },
             {
                 title: 'Password Reset',
@@ -54,7 +54,7 @@ export const groups = [
                 subRoutes: [],
                 isPublic: true,
                 visible: true,
-                index: 3,
+                index: 4,
             },
             {
                 title: 'Change Password',
@@ -64,7 +64,7 @@ export const groups = [
                 subRoutes: [],
                 isPublic: true,
                 visible: true,
-                index: 4,
+                index: 5,
             },
             {
                 title: 'Resend Verification',
@@ -74,7 +74,7 @@ export const groups = [
                 subRoutes: [],
                 isPublic: true,
                 visible: true,
-                index: 5,
+                index: 6,
             },
             {
                 title: 'Verify Authenticator Token',
@@ -84,7 +84,7 @@ export const groups = [
                 subRoutes: [],
                 isPublic: true,
                 visible: true,
-                index: 5,
+                index: 7,
             },
             {
                 title: 'Verify Backup Code',
@@ -94,7 +94,7 @@ export const groups = [
                 subRoutes: [],
                 isPublic: true,
                 visible: true,
-                index: 6,
+                index: 8,
             },
         ],
     },

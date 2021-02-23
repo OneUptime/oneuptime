@@ -13,6 +13,7 @@ import { SsoAddModal, SsoUpdateModal } from './sso/SsoModal';
 export class Component extends React.Component {
     state = {
         ssoModalId: uuid.v4(),
+        page: 1,
     };
 
     async componentDidMount() {
@@ -50,6 +51,7 @@ export class Component extends React.Component {
             onConfirm: () => {},
             content: SsoAddModal,
         });
+        this.setState({ page: 1 });
     };
 
     deleteSso = async ssoId => {
@@ -79,12 +81,14 @@ export class Component extends React.Component {
         const { ssos } = this.props;
         const { skip, limit } = ssos;
         await this.props.fetchSsos(skip - limit >= 0 ? skip - limit : 0, limit);
+        this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = async () => {
         const { ssos } = this.props;
         const { skip, limit } = ssos;
         await this.props.fetchSsos(skip + limit, limit);
+        this.setState({ page: this.state.page + 1 });
     };
 
     render() {
@@ -92,6 +96,7 @@ export class Component extends React.Component {
         const { count, skip, limit } = ssos;
         const canPrev = skip > 0;
         const canNext = skip + limit < count;
+        const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
             <div
                 id="fyipeSso"
@@ -351,8 +356,15 @@ export class Component extends React.Component {
                         <div className="bs-Tail bs-Tail--separated bs-Tail--short">
                             <div id="sso-count" className="bs-Tail-copy">
                                 <span>
-                                    {ssos.count} SSO
-                                    {ssos.count === 1 ? '' : 's'}
+                                    {numberOfPages > 0
+                                        ? `Page ${
+                                              this.state.page
+                                          } of ${numberOfPages} (${count} SOS${
+                                              count === 1 ? '' : 's'
+                                          })`
+                                        : `${count} SOS${
+                                              count === 1 ? '' : 's'
+                                          }`}
                                 </span>
                             </div>
                             <div className="bs-Tail-actions">
@@ -416,6 +428,7 @@ Component.propTypes = {
     openModal: PropTypes.func.isRequired,
     modalId: PropTypes.string,
     modalList: PropTypes.array,
+    fetchSsoDefaultRoles: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch => {

@@ -6,6 +6,10 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
+                        field3: true,
+                    },
+                    {
+                        match: 'all',
                         responseType: 'statusCode',
                         filter: 'gtEqualTo',
                         field1: '200',
@@ -39,6 +43,10 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: false,
                 down_1000: [
                     {
+                        match: 'all',
+                        field3: true,
+                    },
+                    {
                         match: 'any',
                         responseType: 'doesRespond',
                         filter: 'isDown',
@@ -58,6 +66,10 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
                 degraded_1000: [
+                    {
+                        match: 'all',
+                        field3: true,
+                    },
                     {
                         match: 'all',
                         responseType: 'responseTime',
@@ -76,6 +88,10 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
+                        field3: true,
+                    },
+                    {
+                        match: 'all',
                         responseType: 'statusCode',
                         filter: 'gtEqualTo',
                         field1: '200',
@@ -109,6 +125,10 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: false,
                 down_1000: [
                     {
+                        match: 'all',
+                        field3: true,
+                    },
+                    {
                         match: 'any',
                         responseType: 'doesRespond',
                         filter: 'isDown',
@@ -130,6 +150,10 @@ const MonitorCriteriaService = {
                 degraded_1000: [
                     {
                         match: 'all',
+                        field3: true,
+                    },
+                    {
+                        match: 'all',
                         responseType: 'responseTime',
                         filter: 'greaterThan',
                         field1: '5000',
@@ -144,6 +168,10 @@ const MonitorCriteriaService = {
             },
             script: {
                 up_1000: [
+                    {
+                        match: 'all',
+                        field3: true,
+                    },
                     {
                         match: 'all',
                         responseType: 'executes',
@@ -165,6 +193,10 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: false,
                 down_1000: [
                     {
+                        match: 'all',
+                        field3: true,
+                    },
+                    {
                         match: 'any',
                         responseType: 'error',
                         filter: 'throwsError',
@@ -184,6 +216,10 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
                 degraded_1000: [
+                    {
+                        match: 'all',
+                        field3: true,
+                    },
                     {
                         match: 'all',
                         responseType: 'executes',
@@ -216,6 +252,10 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
+                        field3: true,
+                    },
+                    {
+                        match: 'all',
                         responseType: 'storageUsage',
                         filter: 'greaterThan',
                         field1: '10',
@@ -235,6 +275,10 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: false,
                 down_1000: [
                     {
+                        match: 'all',
+                        field3: true,
+                    },
+                    {
                         match: 'any',
                         responseType: 'storageUsage',
                         filter: 'lessThan',
@@ -247,6 +291,10 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
                 degraded_1000: [
+                    {
+                        match: 'all',
+                        field3: true,
+                    },
                     {
                         match: 'all',
                         responseType: 'storageUsage',
@@ -278,6 +326,10 @@ const MonitorCriteriaService = {
             default: {
                 up_1000: [
                     {
+                        match: 'all',
+                        field3: true,
+                    },
+                    {
                         match: '',
                         responseType: '',
                         filter: '',
@@ -291,6 +343,10 @@ const MonitorCriteriaService = {
                 up_1000_autoResolve: false,
                 down_1000: [
                     {
+                        match: 'all',
+                        field3: true,
+                    },
+                    {
                         match: '',
                         responseType: '',
                         filter: '',
@@ -303,6 +359,10 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
                 degraded_1000: [
+                    {
+                        match: 'all',
+                        field3: true,
+                    },
                     {
                         match: '',
                         responseType: '',
@@ -321,6 +381,10 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
+                        field3: true,
+                    },
+                    {
+                        match: 'all',
                         responseType: 'responseBody',
                         filter: 'notEmpty',
                         field1: '',
@@ -332,6 +396,10 @@ const MonitorCriteriaService = {
                 up_1000_autoAcknowledge: false,
                 up_1000_autoResolve: false,
                 down_1000: [
+                    {
+                        match: 'all',
+                        field3: true,
+                    },
                     {
                         match: 'any',
                         responseType: 'responseBody',
@@ -345,6 +413,10 @@ const MonitorCriteriaService = {
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
                 degraded_1000: [
+                    {
+                        match: 'all',
+                        field3: true,
+                    },
                     {
                         match: 'all',
                         responseType: 'responseBody',
@@ -361,6 +433,10 @@ const MonitorCriteriaService = {
             },
             kubernetes: {
                 up_1000: [
+                    {
+                        match: 'all',
+                        field3: true,
+                    },
                     {
                         match: 'any',
                         responseType: 'podStatus',
@@ -383,6 +459,21 @@ const MonitorCriteriaService = {
                         field2: '',
                         field3: false,
                     },
+                    {
+                        match: 'any',
+                        responseType: 'jobStatus',
+                        filter: 'equalTo',
+                        field1: 'running',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
+                        responseType: 'jobStatus',
+                        filter: 'equalTo',
+                        field1: 'succeeded',
+                        field2: '',
+                        field3: false,
+                    },
                 ],
                 up_1000_createAlert: false,
                 up_1000_autoAcknowledge: false,
@@ -394,6 +485,10 @@ const MonitorCriteriaService = {
             },
             ip: {
                 up_1000: [
+                    {
+                        match: 'all',
+                        field3: true,
+                    },
                     {
                         match: 'all',
                         responseType: 'respondsToPing',
@@ -409,6 +504,17 @@ const MonitorCriteriaService = {
                 down_1000: [
                     {
                         match: 'all',
+                        field3: true,
+                    },
+                    {
+                        match: 'any',
+                        responseType: 'respondsToPing',
+                        filter: 'isUp',
+                        field1: '',
+                        field2: '',
+                        field3: false,
+                    },
+                    {
                         responseType: 'respondsToPing',
                         filter: 'isDown',
                         field1: '',
@@ -489,12 +595,28 @@ const MonitorCriteriaService = {
     },
 
     makeCriteria: function(val) {
-        const val2 = {};
-        const and = [];
-        const or = [];
+        const val2 = { and: [], or: [] };
+        const finalVal = { and: {}, or: {} };
 
+        const parentCondition = val[0] && val[0].match;
+        val = val.filter(v => !v.field3);
+
+        let nextStage;
         for (let i = 0; i < val.length; i++) {
             const val3 = {};
+            let initCriteria = false;
+            if (val[i].match && val[i].match === 'all') {
+                nextStage = 'all';
+                initCriteria = true;
+                val3.match = val[i].match;
+                val2.and.push([]);
+            } else if (val[i].match && val[i].match === 'any') {
+                nextStage = 'any';
+                initCriteria = true;
+                val3.match = val[i].match;
+                val2.or.push([]);
+            }
+
             if (val[i].responseType && val[i].responseType.length) {
                 val3.responseType = val[i].responseType;
             }
@@ -502,92 +624,79 @@ const MonitorCriteriaService = {
                 val3.filter = val[i].filter;
             }
             if (val[i].field1 && val[i].field1.length) {
-                val3.field1 = val[i].field1;
+                val3.field1 =
+                    val[i].field1 &&
+                    typeof val[i].field1 === 'string' &&
+                    val[i].field1.indexOf(';')
+                        ? val[i].field1.replace(/;/g, '')
+                        : val[i].field1;
             }
             if (val[i].field2 && val[i].field2.length) {
-                val3.field2 = val[i].field2;
+                val3.field2 =
+                    val[i].field2 &&
+                    typeof val[i].field2 === 'string' &&
+                    val[i].field2.indexOf(';')
+                        ? val[i].field2.replace(/;/g, '')
+                        : val[i].field2;
             }
-            if (val[i].collection && val[i].collection.length) {
-                val3.collection = this.makeCriteria(val[i].collection);
+
+            if (
+                nextStage &&
+                nextStage === 'all' &&
+                (initCriteria || !val[i].match)
+            ) {
+                val2.and[val2.and.length - 1].push(val3);
             }
-            if (val[0].match && val[0].match.length && val[0].match === 'all') {
-                and.push(val3);
-            }
-            if (val[0].match && val[0].match.length && val[0].match === 'any') {
-                or.push(val3);
+
+            if (
+                nextStage &&
+                nextStage === 'any' &&
+                (initCriteria || !val[i].match)
+            ) {
+                val2.or[val2.or.length - 1].push(val3);
             }
         }
-        val2.and = and;
-        val2.or = or;
-        return val2;
+        if (parentCondition === 'all') {
+            finalVal.and = val2;
+        } else if (parentCondition === 'any') {
+            finalVal.or = val2;
+        }
+
+        return finalVal;
     },
 
     mapCriteria: function(val) {
         const val2 = [];
-        if (val && val.and && val.and.length) {
-            for (let i = 0; i < val.and.length; i++) {
-                const val3 = {};
-                if (val.and[i].responseType && val.and[i].responseType.length) {
-                    val3.responseType = val.and[i].responseType;
+        if (val && !isEmpty(val.and)) {
+            val2.push({ match: 'all', field3: true });
+            if (val.and && val.and.and && val.and.and.length > 0) {
+                for (let i = 0; i < val.and.and.length; i++) {
+                    val2.push(...val.and.and[i]);
                 }
-                if (val.and[i].filter && val.and[i].filter.length) {
-                    val3.filter = val.and[i].filter;
-                }
-                if (val.and[i].field1 && val.and[i].field1.length) {
-                    val3.field1 = val.and[i].field1;
-                }
-                if (val.and[i].field2 && val.and[i].field2.length) {
-                    val3.field2 = val.and[i].field2;
-                }
-                if (
-                    val.and[i].collection &&
-                    (val.and[i].collection.and || val.and[i].collection.or)
-                ) {
-                    val3.field3 = true;
-                    val3.collection = this.mapCriteria(val.and[i].collection);
-                } else {
-                    val3.field3 = false;
-                }
-                if (i === 0) {
-                    val3.match = 'all';
-                }
-                val2.push(val3);
             }
-            return val2;
-        } else if (val && val.or && val.or.length) {
-            for (let i = 0; i < val.or.length; i++) {
-                const val3 = {};
-                if (val.or[i].responseType && val.or[i].responseType.length) {
-                    val3.responseType = val.or[i].responseType;
+            if (val.and && val.and.or && val.and.or.length > 0) {
+                for (let i = 0; i < val.and.or.length; i++) {
+                    val2.push(...val.and.or[i]);
                 }
-                if (val.or[i].filter && val.or[i].filter.length) {
-                    val3.filter = val.or[i].filter;
-                }
-                if (val.or[i].field1 && val.or[i].field1.length) {
-                    val3.field1 = val.or[i].field1;
-                }
-                if (val.or[i].field2 && val.or[i].field2.length) {
-                    val3.field2 = val.or[i].field2;
-                }
-                if (
-                    val.or[i].collection &&
-                    (val.or[i].collection.and || val.or[i].collection.or)
-                ) {
-                    val3.field3 = true;
-                    val3.collection = this.mapCriteria(val.or[i].collection);
-                } else {
-                    val3.field3 = false;
-                }
-                if (i === 0) {
-                    val3.match = 'any';
-                }
-                val2.push(val3);
             }
-            return val2;
+        } else if (val && !isEmpty(val.or)) {
+            val2.push({ match: 'any', field3: true });
+            if (val.or && val.or.and && val.or.and.length > 0) {
+                for (let i = 0; i < val.and.and.length; i++) {
+                    val2.push(...val.or.and[i]);
+                }
+            }
+            if (val.or && val.or.or && val.or.or.length > 0) {
+                for (let i = 0; i < val.and.or.length; i++) {
+                    val2.push(...val.or.or[i]);
+                }
+            }
         }
+        return val2;
     },
 };
 
 const ErrorService = require('../services/errorService');
+const { isEmpty } = require('lodash');
 
 module.exports = MonitorCriteriaService;

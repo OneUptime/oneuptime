@@ -14,6 +14,8 @@ import {
     UPDATE_SSO_DEFAULT_ROLE_REQUEST,
     UPDATE_SSO_DEFAULT_ROLE_SUCCESS,
     UPDATE_SSO_DEFAULT_ROLE_FAILURE,
+    NEXT_PAGE,
+    PREV_PAGE,
 } from '../constants/ssoDefaultRoles';
 
 const INITIAL_STATE = {
@@ -47,6 +49,7 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    page: 1,
 };
 
 export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
@@ -71,6 +74,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
                     skip: action.payload.skip,
                     limit: action.payload.limit,
                 },
+                page: action.payload.skip === 0 ? 1 : state.page,
             });
         case FETCH_SSO_DEFAULT_ROLES_FAILURE:
             return Object.assign({}, state, {
@@ -94,6 +98,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: true,
                     error: null,
+                    skip: 0,
                 },
                 ssoDefaultRoles: {
                     ...state.ssoDefaultRoles,
@@ -125,6 +130,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
                     success: true,
                     error: null,
                 },
+                page: 1,
             });
         case ADD_SSO_DEFAULT_ROLE_FAILED:
             return Object.assign({}, state, {
@@ -184,6 +190,14 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
                     success: false,
                     error: action.payload,
                 },
+            });
+        case NEXT_PAGE:
+            return Object.assign({}, state, {
+                page: state.page + 1,
+            });
+        case PREV_PAGE:
+            return Object.assign({}, state, {
+                page: state.page > 1 ? state.page - 1 : 1,
             });
         default:
             return state;

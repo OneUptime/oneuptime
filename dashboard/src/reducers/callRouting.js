@@ -47,6 +47,11 @@ const initialState = {
         limit: 10,
         skip: null,
     },
+    introAudioState: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
 
 export default function card(state = initialState, action) {
@@ -298,6 +303,49 @@ export default function card(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                },
+            });
+
+        case types.REMOVE_INTRO_AUDIO_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+                introAudioState: {
+                    ...state.introAudioState,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case types.REMOVE_INTRO_AUDIO_SUCCESS:
+            return Object.assign({}, state, {
+                ...state,
+                introAudioState: {
+                    ...state.introAudioState,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                allNumbers: {
+                    ...state.allNumbers,
+                    numbers: state.allNumbers.numbers.map(n => {
+                        if (String(n._id) === String(action.payload._id)) {
+                            return action.payload;
+                        } else {
+                            return n;
+                        }
+                    }),
+                },
+            });
+
+        case types.REMOVE_INTRO_AUDIO_FAILURE:
+            return Object.assign({}, state, {
+                ...state,
+                introAudioState: {
+                    ...state.introAudioState,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
                 },
             });
 

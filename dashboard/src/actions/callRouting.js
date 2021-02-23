@@ -383,3 +383,57 @@ export function getCallRoutingLogsReset() {
         type: types.GET_CALL_ROUTING_LOGS_RESET,
     };
 }
+
+export function removeIntroAudio(projectId, callRoutingId) {
+    return function(dispatch) {
+        const promise = deleteApi(
+            `callRouting/${projectId}/${callRoutingId}/removeAudio`,
+            {
+                callRoutingId,
+            }
+        );
+        dispatch(removeIntroAudioRequest(callRoutingId));
+
+        promise.then(
+            function(numbers) {
+                dispatch(removeIntroAudioSuccess(numbers.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(removeIntroAudioFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function removeIntroAudioSuccess(numbers) {
+    return {
+        type: types.REMOVE_INTRO_AUDIO_SUCCESS,
+        payload: numbers,
+    };
+}
+
+export function removeIntroAudioRequest(callRoutingId) {
+    return {
+        type: types.REMOVE_INTRO_AUDIO_REQUEST,
+        payload: callRoutingId,
+    };
+}
+
+export function removeIntroAudioFailure(error) {
+    return {
+        type: types.REMOVE_INTRO_AUDIO_FAILURE,
+        payload: error,
+    };
+}

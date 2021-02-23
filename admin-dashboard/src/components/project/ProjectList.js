@@ -196,7 +196,7 @@ export class ProjectList extends Component {
                                                     onClick={() => {
                                                         history.push(
                                                             '/admin/projects/' +
-                                                                project._id
+                                                                project.slug
                                                         );
                                                     }}
                                                 >
