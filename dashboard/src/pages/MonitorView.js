@@ -171,7 +171,7 @@ class MonitorView extends React.Component {
             history,
             defaultSchedule,
         } = this.props;
-        const redirectTo = `/dashboard/project/${this.props.currentProject.slug}/on-call`;
+        const redirectTo = `/dashboard/project/${this.props.slug}/on-call`;
         let scheduleAlert;
         if (
             scheduleWarning.includes(monitorId) === false &&
@@ -979,6 +979,7 @@ const mapStateToProps = (state, props) => {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         monitorId,
+        slug: state.project.currentProject && state.project.currentProject.slug,
         componentId,
         monitor,
         edit: state.monitor.monitorsList.editMode ? true : false,
@@ -1015,6 +1016,7 @@ const mapDispatchToProps = dispatch => {
 
 MonitorView.propTypes = {
     projectId: PropTypes.string,
+    slug: PropTypes.string,
     monitorId: PropTypes.string,
     componentId: PropTypes.string,
     monitor: PropTypes.object,
