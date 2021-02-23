@@ -186,7 +186,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             const probeId = req.probe && req.probe.id ? req.probe.id : null;
             log = await ProbeService.probeHttpRequest(newMonitor, probeId);
         } else {
-            if (type === 'api' || type === 'url' || type === 'ip') {
+            if (type === 'api' || type === 'url') {
                 const {
                     stat: validUp,
                     successReasons: upSuccessReasons,
@@ -259,6 +259,59 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         ...degradedFailedReasons,
                         ...upFailedReasons,
                     ];
+                    if (monitor.criteria.down) {
+                        matchedCriterion = monitor.criteria.down.find(
+                            criterion => criterion.default === true
+                        );
+                    }
+                }
+                data.status = status;
+                data.reason = reason;
+            }
+            if (type === 'ip') {
+                const {
+                    stat: validUp,
+                    successReasons: upSuccessReasons,
+                    failedReasons: upFailedReasons,
+                    matchedCriterion: matchedUpCriterion,
+                } = await (monitor && monitor.criteria && monitor.criteria.up
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.up,
+                          res,
+                          resp,
+                          rawResp
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+                const {
+                    stat: validDown,
+                    successReasons: downSuccessReasons,
+                    failedReasons: downFailedReasons,
+                    matchedCriterion: matchedDownCriterion,
+                } = await (monitor && monitor.criteria && monitor.criteria.down
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          [
+                              ...monitor.criteria.down.filter(
+                                  criterion => criterion.default !== true
+                              ),
+                          ],
+                          res,
+                          resp,
+                          rawResp
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+                if (validUp) {
+                    status = 'online';
+                    reason = upSuccessReasons;
+                    matchedCriterion = matchedUpCriterion;
+                } else if (validDown) {
+                    matchedCriterion = matchedDownCriterion;
+                    status = 'offline';
+                    reason = [...downSuccessReasons, null, ...upFailedReasons];
+                } else {
+                    status = 'offline';
+                    reason = [...downFailedReasons, null, ...upFailedReasons];
                     if (monitor.criteria.down) {
                         matchedCriterion = monitor.criteria.down.find(
                             criterion => criterion.default === true
