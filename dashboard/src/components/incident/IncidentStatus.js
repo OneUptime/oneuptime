@@ -1978,11 +1978,7 @@ export class IncidentStatus extends Component {
                                                                                         name="incidentPriority"
                                                                                         disabled={
                                                                                             false
-                                                                                        }
-                                                                                        style={{
-                                                                                            width:
-                                                                                                '250px',
-                                                                                        }}
+                                                                                        }                                                                                        
                                                                                         id="incidentPriority"
 
                                                                                         options={[
