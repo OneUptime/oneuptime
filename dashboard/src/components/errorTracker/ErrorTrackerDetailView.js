@@ -111,7 +111,7 @@ class ErrorTrackerDetailView extends Component {
             componentId,
             openModal,
             errorTrackerStatus,
-            slug
+            slug,
         } = this.props;
         let skip =
             errorTrackerIssues && errorTrackerIssues.skip

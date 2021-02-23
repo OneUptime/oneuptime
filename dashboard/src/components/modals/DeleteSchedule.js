@@ -169,9 +169,7 @@ const mapStateToProps = state => {
         isRequesting: state.scheduledEvent.deletedScheduledEvent.requesting,
         deleteError: state.scheduledEvent.deletedScheduledEvent.error,
         modalId: state.modal.modals[0].id,
-        slug:
-        state.project.currentProject &&
-            state.project.currentProject.slug,
+        slug: state.project.currentProject && state.project.currentProject.slug,
     };
 };
 

@@ -384,9 +384,7 @@ const mapStateToProps = state => {
         scanContainerError: state.security.scanContainerSecurity.error,
         activeApplicationSecurity: state.security.activeApplicationSecurity,
         activeContainerSecurity: state.security.activeContainerSecurity,
-        slug:
-        state.project.currentProject &&
-            state.project.currentProject.slug,
+        slug: state.project.currentProject && state.project.currentProject.slug,
     };
 };
 
