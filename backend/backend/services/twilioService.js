@@ -315,7 +315,8 @@ const _this = {
         projectId,
         componentName,
         statusUrl,
-        customFields
+        customFields,
+        note
     ) {
         let smsBody;
         try {
@@ -331,6 +332,7 @@ const _this = {
                 componentName,
                 statusPageUrl: statusUrl,
                 ...customFields,
+                incidentNote: note,
             };
             template = template(data);
             smsBody = template;
