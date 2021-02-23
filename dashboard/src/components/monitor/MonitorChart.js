@@ -211,6 +211,7 @@ export function MonitorChart({
     showAll,
     activeProbe,
     probes,
+    requesting,
 }) {
     const [now, setNow] = useState(Date.now());
     const [kubeMonitoring] = useState(true);
@@ -750,7 +751,7 @@ export function MonitorChart({
                             </div>
                         </div>
                     </div>
-                ) : kubeMonitoring && data.length === 0 ? (
+                ) : requesting || (kubeMonitoring && data.length === 0) ? (
                     <div style={{ textAlign: 'center', flexBasis: 1 }}>
                         <div
                             className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
@@ -1839,12 +1840,14 @@ MonitorChart.propTypes = {
     showAll: PropTypes.bool,
     activeProbe: PropTypes.number,
     probes: PropTypes.array,
+    requesting: PropTypes.bool,
 };
 
 const mapStateToProps = state => {
     return {
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,
+        requesting: state.monitor.fetchMonitorLogsRequest,
     };
 };
 
