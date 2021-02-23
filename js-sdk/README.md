@@ -136,11 +136,11 @@ try {
     // your code logic
     NonExistingMethodCall();
 } catch (error) {
-    tracker.captureException(error);
+    tracker.captureException(error); // returns a promise
 }
 
 // capturing error message
-tracker.captureMessage('Message');
+tracker.captureMessage('Message'); // returns a promise
 ```
 
 ## API Documentation

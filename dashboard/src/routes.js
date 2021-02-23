@@ -127,8 +127,7 @@ export const groups = [
             },
             {
                 title: 'Logs',
-                path:
-                    '/dashboard/project/:slug/:componentId/application-log',
+                path: '/dashboard/project/:slug/:componentId/application-log',
                 icon: 'appLog',
                 visible: true,
                 exact: true,
@@ -151,8 +150,7 @@ export const groups = [
             },
             {
                 title: 'Error Tracking',
-                path:
-                    '/dashboard/project/:slug/:componentId/error-tracker',
+                path: '/dashboard/project/:slug/:componentId/error-tracker',
                 icon: 'errorTracking',
                 visible: true,
                 exact: true,
@@ -249,8 +247,7 @@ export const groups = [
             },
             {
                 title: 'Component Settings',
-                path:
-                    '/dashboard/project/:slug/:componentId/settings/basic',
+                path: '/dashboard/project/:slug/:componentId/settings/basic',
                 icon: 'businessSettings',
                 visible: true,
                 exact: true,
@@ -283,6 +280,23 @@ export const groups = [
                         exact: true,
                     },
                 ],
+            },
+        ],
+    },
+    {
+        group: 'visibleForProjectViewer',
+        visible: true,
+        visibleForProjectViewer: true,
+        routes: [
+            {
+                title: 'Status Pages',
+                path: '/dashboard/project/:slug/status-pages',
+                icon: 'radar',
+                visible: true,
+                shortcut: 'f+p',
+                subRoutes: [],
+                component: StatusPages,
+                index: 1,
             },
         ],
     },
@@ -445,8 +459,7 @@ export const groups = [
                     },
                     {
                         title: 'Integrations',
-                        path:
-                            '/dashboard/project/:slug/settings/integrations',
+                        path: '/dashboard/project/:slug/settings/integrations',
                         icon: 'integration',
                         visible: true,
                         subRoutes: [],
@@ -485,8 +498,7 @@ export const groups = [
                     },
                     {
                         title: 'Resources',
-                        path:
-                            '/dashboard/project/:slug/settings/resources',
+                        path: '/dashboard/project/:slug/settings/resources',
                         icon: 'monitor',
                         visible: true,
                         subRoutes: [],
@@ -506,8 +518,7 @@ export const groups = [
                     },
                     {
                         title: 'Incident Settings',
-                        path:
-                            '/dashboard/project/:slug/settings/incidents',
+                        path: '/dashboard/project/:slug/settings/incidents',
                         icon: 'incidentSettings',
                         visible: true,
                         subRoutes: [],
@@ -537,8 +548,7 @@ export const groups = [
                     },
                     {
                         title: 'Call Routing',
-                        path:
-                            '/dashboard/project/:slug/settings/callRouting',
+                        path: '/dashboard/project/:slug/settings/callRouting',
                         icon: 'callrouting',
                         visible: true,
                         subRoutes: [],
@@ -568,8 +578,7 @@ export const groups = [
                     },
                     {
                         title: 'Git Credentials',
-                        path:
-                            '/dashboard/project/:slug/settings/gitCredential',
+                        path: '/dashboard/project/:slug/settings/gitCredential',
                         icon: 'git',
                         visible: true,
                         subRoutes: [],
