@@ -1,4 +1,5 @@
 const mongoose = require('../config/db');
+const Schema = mongoose.Schema;
 
 // a schema definition for a criterion event, i.e up, down, or degraded
 const criterionEventSchema = {
@@ -8,15 +9,56 @@ const criterionEventSchema = {
     autoResolve: { type: Boolean, default: false },
     title: { type: String, default: '' },
     description: { type: String, default: '' },
-    // and: [Object],
-    // or: [Object],
-    and: Object,
-    or: Object,
     default: { type: Boolean, default: false },
     name: String,
+    criteria: {
+        condition: String,
+        criteria: [Schema.Types.Mixed],
+    },
 };
 
-const Schema = mongoose.Schema;
+/**
+ * SAMPLE STRUCTURE OF HOW CRITERIA WILL BE STRUCTURED IN THE DB
+ * Depending of on the level, criteria will house all the conditions,
+ * in addition to nested condition if present (the nested condition will follow the same structural pattern)
+ *
+ * criteria: {
+ *  condition: 'and',
+ *  criteria: [
+ *      {
+ *         condition: 'or',
+ *         criteria: [
+ *            {
+ *               "responseType": "requestBody",
+ *               "filter": "equalTo",
+ *                "field1": "ok"
+ *            },
+ *            {
+ *               "responseType": "requestBody",
+ *               "filter": "equalTo",
+ *                "field1": "healthy"
+ *            },
+ *            {
+ *               condition: 'and',
+ *               criteria: [{}, {}, ...]
+ *            }
+ *         ]
+ *      },
+ *      {
+ *          "responseType": "statusCode",
+ *           "filter": "equalTo",
+ *           "field1": "200"
+ *      },
+ *      {
+ *           "responseType": "requestTime",
+ *           "filter": "lessthan",
+ *           "field1": "1000"
+ *      },
+ *      ...
+ *   ]
+ * }
+ */
+
 const monitorSchema = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,

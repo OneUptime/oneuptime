@@ -2,9 +2,13 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Component } from 'react';
-import { Field, change } from 'redux-form';
+import { Field, change, formValueSelector } from 'redux-form';
 import PropTypes from 'prop-types';
-import { addArrayField, removeArrayField } from '../../actions/monitor';
+import {
+    addArrayField,
+    removeArrayField,
+    updateCriteriaField,
+} from '../../actions/monitor';
 import { ValidateField } from '../../config';
 import { RenderSelect } from './RenderSelect';
 import { RenderField } from './RenderField';
@@ -162,6 +166,7 @@ const placeholders = {
 export class RenderOption extends Component {
     render() {
         const {
+            addArrayField,
             removeArrayField,
             fieldnameprop,
             bodyfield,
@@ -178,13 +183,7 @@ export class RenderOption extends Component {
                 ? bodyfield.filter
                 : '';
         return (
-            <li
-                style={{
-                    display: 'flex',
-                    flexFlow: 'row wrap',
-                    margin: '0 30px',
-                }}
-            >
+            <li style={{ display: 'flex', flexFlow: 'row wrap' }}>
                 <div
                     className="bs-Fieldset-row"
                     style={Object.assign({}, flexStyle, {
@@ -1183,7 +1182,10 @@ export class RenderOption extends Component {
                                     className="bs-Button bs-DeprecatedButton"
                                     type="button"
                                     onClick={() =>
-                                        removeField(removeArrayField)
+                                        removeField(
+                                            removeArrayField,
+                                            this.props.updateCriteriaField
+                                        )
                                     }
                                     style={{
                                         borderRadius: '50%',
@@ -1192,6 +1194,49 @@ export class RenderOption extends Component {
                                 >
                                     <img
                                         src="/dashboard/assets/img/minus.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ display: 'inline-block', padding: '4px' }}
+                    >
+                        <label
+                            className="bs-Fieldset-label"
+                            style={{ padding: '6px' }}
+                        ></label>
+                        <div className="bs-Fieldset-fields">
+                            <div className="Box-root Flex-flex Flex-alignItems--center">
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    type="button"
+                                    onClick={() => {
+                                        addArrayField(fieldnameprop, [
+                                            ...(this.props.formCriteria || []),
+                                            {
+                                                match: '',
+                                                responseType: '',
+                                                filter: '',
+                                                field1: '',
+                                                field2: '',
+                                                field3: false,
+                                            },
+                                        ]);
+                                    }}
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0px 6px',
+                                    }}
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/more.svg"
                                         style={{
                                             height: '10px',
                                             width: '10px',
@@ -1220,22 +1265,34 @@ RenderOption.displayName = 'RenderOption';
 
 RenderOption.propTypes = {
     bodyfield: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
+    addArrayField: PropTypes.func,
     removeArrayField: PropTypes.func,
     addField: PropTypes.func,
     removeField: PropTypes.func,
+    updateCriteriaField: PropTypes.func,
     level: PropTypes.number,
     fieldnameprop: PropTypes.string,
     type: PropTypes.string,
     change: PropTypes.func.isRequired,
     criterionType: PropTypes.string,
+    formCriteria: PropTypes.oneOfType([
+        PropTypes.array,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ addArrayField, removeArrayField, change }, dispatch);
+    bindActionCreators(
+        { addArrayField, removeArrayField, change, updateCriteriaField },
+        dispatch
+    );
 
-function mapStateToProps() {
+function mapStateToProps(state, ownProps) {
+    const selector = formValueSelector('NewMonitor');
+    const formCriteria = selector(state, `${ownProps.fieldnameprop}.criteria`);
     return {
         // bodyfield: newSelector(state, `${ownProps.fieldname}`),
+        formCriteria,
     };
 }
 
