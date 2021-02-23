@@ -10,7 +10,7 @@ import MessageBox from '../components/MessageBox';
 import { identify, setUserId, logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS, DISABLE_SIGNUP } from '../config';
 import { history } from '../store';
-import { resendToken } from '../actions/resendToken';
+import { resendTokenReset, resendToken } from '../actions/resendToken';
 import { ButtonSpinner } from '../components/basic/Loader';
 
 class LoginPage extends React.Component {
@@ -88,14 +88,19 @@ class LoginPage extends React.Component {
                                                     textDecoration: 'underline',
                                                 }}
                                                 onClick={() => {
-                                                    login.user &&
-                                                    login.user.email
-                                                        ? this.props.resendToken(
-                                                              login.user
-                                                          )
-                                                        : history.push(
-                                                              '/accounts/user-verify/resend'
-                                                          );
+                                                    if (
+                                                        login.user &&
+                                                        login.user.email
+                                                    ) {
+                                                        this.props.resendToken(
+                                                            login.user
+                                                        );
+                                                    } else {
+                                                        this.props.resendTokenReset();
+                                                        history.push(
+                                                            '/accounts/user-verify/resend'
+                                                        );
+                                                    }
                                                 }}
                                             >
                                                 here
@@ -169,7 +174,7 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { loginUser, loginUserSso, loginError, resendToken },
+        { loginUser, loginUserSso, loginError, resendTokenReset, resendToken },
         dispatch
     );
 
@@ -185,6 +190,7 @@ LoginPage.propTypes = {
     requestingMasterAdmin: PropTypes.bool,
     resendToken: PropTypes.func,
     resendTokenRequest: PropTypes.object,
+    resendTokenReset: PropTypes.func,
 };
 
 LoginPage.displayName = 'LoginPage';
