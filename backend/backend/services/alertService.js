@@ -2942,7 +2942,8 @@ module.exports = {
                                 incident.projectId,
                                 component.name,
                                 statusUrl,
-                                customFields
+                                customFields,
+                                note,
                             );
                             alertStatus = 'Success';
                         } else {
