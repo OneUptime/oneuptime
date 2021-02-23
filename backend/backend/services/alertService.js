@@ -2943,7 +2943,7 @@ module.exports = {
                                 component.name,
                                 statusUrl,
                                 customFields,
-                                note,
+                                note
                             );
                             alertStatus = 'Success';
                         } else {

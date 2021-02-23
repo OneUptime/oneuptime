@@ -378,8 +378,8 @@ const mapStateToProps = (state, props) => {
         initialValues,
         monitors,
         isRequesting,
-        projectId: state.project.currentProject &&
-        state.project.currentProject._id,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
         subProjectId,
         currentProject,
         subProjects,

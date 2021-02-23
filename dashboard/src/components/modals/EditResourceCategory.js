@@ -200,8 +200,7 @@ const UpdateResourceCategoryForm = reduxForm({
 const mapStateToProps = (state, ownProps) => {
     return {
         projectId:
-        state.project.currentProject &&
-            state.project.currentProject._id,
+            state.project.currentProject && state.project.currentProject._id,
         EditResourceCategoryModalId: state.modal.modals[0].id,
         resourceCategory: state.resourceCategories.updatedResourceCategory,
         initialValues: state.resourceCategories.resourceCategoryList

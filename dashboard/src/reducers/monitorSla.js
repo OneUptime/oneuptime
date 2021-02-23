@@ -226,7 +226,7 @@ export default function monitorSla(state = initialState, action) {
         case types.PREV_MONITOR_SLA_PAGE:
             return {
                 ...state,
-                page: state.page > 1 ?  state.page - 1 : 1,
+                page: state.page > 1 ? state.page - 1 : 1,
             };
         case types.SET_ACTIVE_MONITOR_SLA:
             return {

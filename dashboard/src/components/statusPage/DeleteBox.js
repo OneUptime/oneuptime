@@ -114,9 +114,7 @@ const mapStateToProps = (state, props) => {
     return {
         // scheduleName,
         projectId,
-        slug:
-        state.project.currentProject &&
-            state.project.currentProject.slug,
+        slug: state.project.currentProject && state.project.currentProject.slug,
         scheduleId,
         isRequesting:
             state.statusPage &&

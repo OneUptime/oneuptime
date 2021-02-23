@@ -30,7 +30,6 @@ class Box extends React.Component {
     async componentDidMount() {
         this.props.fetchProjects(0, 0);
         await this.props.fetchSsoDefaultRoles(0, 10);
-
     }
     render() {
         const { ssoDefaultRoles, openModal, count } = this.props;

@@ -126,7 +126,7 @@ const Form = ({
                                                         id={field.key}
                                                         placeholder={
                                                             field.placeholder
-                                                        }                            
+                                                        }
                                                         component={
                                                             field.component
                                                         }

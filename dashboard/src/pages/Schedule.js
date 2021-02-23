@@ -154,8 +154,8 @@ const mapStateToProps = (state, props) => {
     return {
         schedule,
         escalations,
-        projectId: state.project.currentProject &&
-        state.project.currentProject._id,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
         subProjectId,
         scheduleId,
         teamMembers: state.team.teamMembers,

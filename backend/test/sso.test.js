@@ -67,7 +67,7 @@ describe('SSO API', function() {
 
     after(async function() {
         await GlobalConfig.removeTestConfig();
-        await ProjectService.hardDeleteBy({'users.userId':userId})
+        await ProjectService.hardDeleteBy({ 'users.userId': userId });
         await UserService.hardDeleteBy({
             email: {
                 $in: [
