@@ -46,7 +46,8 @@ async function run() {
             monitor.criteria.up.length > 0
         ) {
             for (const up of monitor.criteria.up) {
-                let and = [], or = [];
+                let and = [],
+                    or = [];
                 if (up.and && up.and.length > 0) {
                     and = [...up.and];
                 }
@@ -82,7 +83,8 @@ async function run() {
             monitor.criteria.down.length > 0
         ) {
             for (const down of monitor.criteria.down) {
-                let and = [], or = [];
+                let and = [],
+                    or = [];
                 if (down.and && down.and.length > 0) {
                     and = [...down.and];
                 }
@@ -118,7 +120,8 @@ async function run() {
             monitor.criteria.degraded.length > 0
         ) {
             for (const degraded of monitor.criteria.degraded) {
-                let and = [], or = [];
+                let and = [],
+                    or = [];
                 if (degraded.and && degraded.and.length > 0) {
                     and = [...degraded.and];
                 }
