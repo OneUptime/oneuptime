@@ -1,13 +1,14 @@
 import React from 'react';
 import { withRouter } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
 import { User } from '../../config';
 import SlackTeamList from './SlackTeamList';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 
 class Slack extends React.Component {
     render() {
-        const { projectId } = this.props.match.params;
+        const { projectId } = this.props;
         const userToken = User.getAccessToken();
         return (
             <div className="bs-BIM">
@@ -68,7 +69,11 @@ class Slack extends React.Component {
 Slack.displayName = 'Slack';
 
 Slack.propTypes = {
-    match: PropTypes.object.isRequired,
+    projectId: PropTypes.string.isRequired,
 };
 
-export default withRouter(Slack);
+const mapStateToProps = state => ({
+    projectId: state.project.currentProject && state.project.currentProject._id,
+});
+
+export default connect(mapStateToProps)(withRouter(Slack));

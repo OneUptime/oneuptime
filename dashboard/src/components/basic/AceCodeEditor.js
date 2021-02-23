@@ -5,16 +5,17 @@ import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/mode-java';
 import 'ace-builds/src-noconflict/mode-xml';
 import 'ace-builds/src-noconflict/theme-monokai';
+import 'ace-builds/src-noconflict/theme-github';
 import PropTypes from 'prop-types';
 
 class AceCodeEditor extends Component {
     render() {
-        const { value, mode, name, height } = this.props;
+        const { value, mode, name, height, markers, theme } = this.props;
         return (
             <AceEditor
                 name={name}
                 mode={mode}
-                theme="monokai"
+                theme={`${theme ? theme : 'monokai'}`}
                 value={value}
                 readOnly={true}
                 width={'100%'}
@@ -23,6 +24,7 @@ class AceCodeEditor extends Component {
                     showLineNumbers: false,
                 }}
                 fontSize="14px"
+                markers={markers}
             />
         );
     }
@@ -34,5 +36,7 @@ AceCodeEditor.propTypes = {
     mode: PropTypes.string,
     name: PropTypes.string,
     height: PropTypes.string,
+    markers: PropTypes.object,
+    theme: PropTypes.string,
 };
 export default AceCodeEditor;

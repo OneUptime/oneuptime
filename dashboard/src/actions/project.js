@@ -298,13 +298,13 @@ export function switchProject(dispatch, project, subProjects = []) {
             project
         );
         if (isViewer) {
-            history.push(`/dashboard/project/${project._id}/status-pages`);
+            history.push(`/dashboard/project/${project.slug}/status-pages`);
         } else {
-            history.push(`/dashboard/project/${project._id}`);
+            history.push(`/dashboard/project/${project.slug}`);
         }
         User.setCurrentProjectId(project._id);
     } else if (historyProjectId && historyProjectId === '/') {
-        history.push(`/dashboard/project/${project._id}`);
+        history.push(`/dashboard/project/${project.slug}`);
     }
 
     dispatch(resetSubProjects());

@@ -4,6 +4,7 @@ import UserForm from './UserForm';
 import CardForm from './CardForm';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
+import queryString from 'query-string';
 import {
     signupUser,
     incrementStep,
@@ -39,8 +40,15 @@ export class RegisterForm extends Component {
         this.props.isUserInvited(values).then(
             function(value) {
                 if (value.data) {
+                    const token = queryString.parse(
+                        thisObj.props.location.search
+                    ).token;
                     thisObj.props
-                        .signupUser({ ...values, planId: thisObj.props.planId })
+                        .signupUser({
+                            ...values,
+                            planId: thisObj.props.planId,
+                            token,
+                        })
                         .then(user => {
                             if (user && user.data && user.data.id) {
                                 if (SHOULD_LOG_ANALYTICS) {

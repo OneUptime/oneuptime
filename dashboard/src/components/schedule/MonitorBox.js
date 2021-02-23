@@ -47,6 +47,7 @@ function submitMonitorForm(values, dispatch, props) {
 export function MonitorBox(props) {
     const { currentProject, subProjects, subProjectId, schedule } = props;
     const currentProjectId = currentProject ? currentProject._id : null;
+    const slug = currentProject ? currentProject.slug : null;
     let subProject =
         currentProjectId === subProjectId || currentProjectId === subProjectId
             ? currentProject
@@ -103,7 +104,7 @@ export function MonitorBox(props) {
                                                         this schedule.{' '}
                                                     </span>
                                                     <Link
-                                                        to={`/dashboard/project/${props.projectId}/components`}
+                                                        to={`/dashboard/project/${slug}/components`}
                                                     >
                                                         <span className="Text-fontWeight--medium">
                                                             Please add one to
@@ -339,7 +340,7 @@ const AddMonitorsForm = new reduxForm({
 })(MonitorBox);
 
 const mapStateToProps = (state, props) => {
-    const { projectId, subProjectId, scheduleId } = props.match.params;
+    const { subProjectId, scheduleId } = props.match.params;
     const initialValues = {};
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
@@ -377,7 +378,8 @@ const mapStateToProps = (state, props) => {
         initialValues,
         monitors,
         isRequesting,
-        projectId,
+        projectId: state.project.currentProject &&
+        state.project.currentProject._id,
         subProjectId,
         currentProject,
         subProjects,
@@ -393,10 +395,6 @@ MonitorBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     currentProject: PropTypes.oneOfType([
         PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
     subProjectId: PropTypes.oneOfType([

@@ -212,6 +212,7 @@ export function MonitorChart({
     probes,
 }) {
     const [now, setNow] = useState(Date.now());
+    const [kubeMonitoring] = useState(true);
 
     const activeProbeObj =
         probes && probes.length > 0 && probes[activeProbe || 0]
@@ -848,6 +849,9 @@ export function MonitorChart({
                                     data={data}
                                     name={'pod'}
                                     symbol={'%'}
+                                    initMonitorScanning={
+                                        kubeMonitoring && data.length === 0
+                                    }
                                 />
                             </div>
                         </div>
@@ -857,11 +861,11 @@ export function MonitorChart({
                                     <div className="db-Trend-colInformation">
                                         <div
                                             className="db-Trend-rowTitle"
-                                            title="All Jobs"
+                                            title="Succeeded Jobs"
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    All Jobs
+                                                    Succeeded Jobs
                                                 </span>
                                             </div>
                                         </div>
@@ -876,7 +880,7 @@ export function MonitorChart({
                                                                   .kubernetesLog
                                                                   .jobData
                                                                   .jobStat
-                                                                  .totalJobs
+                                                                  .succeededJobs
                                                             : 0}
                                                     </span>
                                                 </span>
@@ -906,35 +910,6 @@ export function MonitorChart({
                                                                   .jobData
                                                                   .jobStat
                                                                   .runningJobs
-                                                            : 0}
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="db-Trend-colInformation">
-                                        <div
-                                            className="db-Trend-rowTitle"
-                                            title="Succeeded Jobs"
-                                        >
-                                            <div className="db-Trend-title">
-                                                <span className="chart-font">
-                                                    Succeeded Jobs
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
-                                                    <span className="chart-font">
-                                                        {checkLogs &&
-                                                        data[0].kubernetesLog
-                                                            ? data[0]
-                                                                  .kubernetesLog
-                                                                  .jobData
-                                                                  .jobStat
-                                                                  .succeededJobs
                                                             : 0}
                                                     </span>
                                                 </span>
@@ -978,6 +953,9 @@ export function MonitorChart({
                                     data={data}
                                     name={'job'}
                                     symbol={'%'}
+                                    initMonitorScanning={
+                                        kubeMonitoring && data.length === 0
+                                    }
                                 />
                             </div>
                         </div>
@@ -1077,6 +1055,9 @@ export function MonitorChart({
                                     data={data}
                                     name={'deployment'}
                                     symbol={'%'}
+                                    initMonitorScanning={
+                                        kubeMonitoring && data.length === 0
+                                    }
                                 />
                             </div>
                         </div>
@@ -1176,6 +1157,9 @@ export function MonitorChart({
                                     data={data}
                                     name={'statefulset'}
                                     symbol={'%'}
+                                    initMonitorScanning={
+                                        kubeMonitoring && data.length === 0
+                                    }
                                 />
                             </div>
                         </div>

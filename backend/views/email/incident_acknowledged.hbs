@@ -507,13 +507,12 @@
                                                 style="white-space:nowrap">{{acknowledgeTime}}</span></span><br>
                                             <strong>Length:</strong> <span><span
                                                 style="white-space:nowrap">{{length}}</span></span><br>
-                                            <strong>Cause:</strong>                                             
-                                              <ul style="list-style-type: square;">
+                                            <strong>Cause:</strong><br/>
                                                 {{#each reason}}                                                                                               
-                                                  <li>{{this}}</li>      
-                                                {{/each}}                                         
-                                              </ul><br>
-                                            {{#if criterionName}}
+                                                  <span><span
+                                                style="white-space:nowrap">{{this}}</span></span><br/>      
+                                                {{/each}}
+                                                {{#if criterionName}}
                                             <strong>Criterion:</strong> <span>{{criterionName}}</span>
                                             {{/if}}
                                         </td>

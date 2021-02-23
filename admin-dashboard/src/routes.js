@@ -54,7 +54,7 @@ export const groups = [
                 subRoutes: [
                     {
                         title: 'Project',
-                        path: '/admin/projects/:projectId',
+                        path: '/admin/projects/:slug',
                         icon: 'projects',
                         component: Project,
                         visible: true,

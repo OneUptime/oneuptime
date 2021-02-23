@@ -192,7 +192,7 @@ const CreateAddResourceCategoryForm = reduxForm({
 const mapStateToProps = state => {
     return {
         projectId:
-            state.project.currentProject !== null &&
+        state.project.currentProject &&
             state.project.currentProject._id,
         CreateResourceCategoryModalId: state.modal.modals[0].id,
         resourceCategory: state.resourceCategories.newResourceCategory,

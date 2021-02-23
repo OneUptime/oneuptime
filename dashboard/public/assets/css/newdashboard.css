@@ -11376,7 +11376,6 @@ table {
     margin-top: 16px;
 }
 .Stacktrace-Listing > * {
-    padding: 8px 16px;
     border-top: solid 1px #D8D2DE;
 }
 .Stacktrace-Listing:first-child {
@@ -11528,4 +11527,8 @@ table {
     {
         display:none;
     }
+}
+.error-marker {
+    background-color: rgb(109, 107, 107);
+    position: absolute;
 }

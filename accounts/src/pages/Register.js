@@ -8,6 +8,7 @@ import queryString from 'query-string';
 import { PricingPlan, IS_SAAS_SERVICE } from '../config';
 import MessageBox from '../components/MessageBox';
 import { savePlanId, signUpReset } from '../actions/register';
+import { history } from '../store';
 
 class RegisterPage extends React.Component {
     componentWillUnmount() {
@@ -40,6 +41,15 @@ class RegisterPage extends React.Component {
     }
 
     render() {
+        const { register, masterAdminExists } = this.props;
+        if (
+            register.success &&
+            !masterAdminExists &&
+            !register.cardRegistered
+        ) {
+            history.push('/accounts/login');
+        }
+
         return (
             <div id="wrap" style={{ paddingTop: 0 }}>
                 {/* Header */}

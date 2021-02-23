@@ -221,7 +221,7 @@ class SideNav extends Component {
                             switchToProjectViewerNav
                         ) {
                             route.path =
-                                '/dashboard/project/:projectId/status-pages';
+                                '/dashboard/project/:slug/status-pages';
                         }
                         return (
                             route.visible &&

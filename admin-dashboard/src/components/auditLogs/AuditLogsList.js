@@ -73,6 +73,9 @@ export class AuditLogsList extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(
+            parseInt(this.props.auditLogs && this.props.auditLogs.count) / 10
+        );
         return (
             <div onKeyDown={this.handleKeyBoard}>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -291,11 +294,16 @@ export class AuditLogsList extends Component {
                                 >
                                     {this.props.auditLogs &&
                                     this.props.auditLogs.count
-                                        ? this.props.auditLogs.count +
-                                          (this.props.auditLogs &&
-                                          this.props.auditLogs.count > 1
-                                              ? ' Logs'
-                                              : ' Log')
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${this.props
+                                              .auditLogs &&
+                                              this.props.auditLogs.count} Log${
+                                              this.props.auditLogs &&
+                                              this.props.auditLogs.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
                                         : null}
                                 </span>
                             </span>
@@ -398,6 +406,7 @@ AuditLogsList.propTypes = {
     ]),
     requesting: PropTypes.bool,
     openModal: PropTypes.func.isRequired,
+    page: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(AuditLogsList);

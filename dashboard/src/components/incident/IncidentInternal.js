@@ -141,6 +141,7 @@ export class IncidentInternal extends Component {
                         editMessageModalId={editMessageModalId}
                         deleteMessageModalId={deleteMessageModalId}
                         deleteIncidentMessage={this.deleteInvestigationMessage}
+                        slug={this.props.currentProject.slug}
                     />
                 </div>
             </div>
