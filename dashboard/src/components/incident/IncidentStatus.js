@@ -122,13 +122,13 @@ export class IncidentStatus extends Component {
             thirdVisibility: false
         })
     }
-    thirdFormSubmit = (e,value) => {
+    thirdFormSubmit = (e, value) => {
         const incidentId = this.props.incident._id;
         const projectId = this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const title = this.props.incident.title;
         const description = this.props.incident.description;
-        const incidentPriority = value;        
+        const incidentPriority = value;
         this.props.updateIncident(
             projectId,
             incidentId,
@@ -1517,6 +1517,7 @@ export class IncidentStatus extends Component {
                                                                 <label className="">
                                                                     Title
                                                             </label>
+
                                                                 <ShouldRender
                                                                     if={this.state.firstVisibility}
                                                                 >
@@ -1524,17 +1525,15 @@ export class IncidentStatus extends Component {
                                                                         onMouseEnter={() => this.setState({
                                                                             firstHover: {
                                                                                 display: 'inline',
-                                                                                height: '12px',
-                                                                                width: '12px',
-                                                                                cursor: 'pointer',
-                                                                                //color: 'yellow' 
                                                                             }
                                                                         })}
                                                                         onMouseLeave={() => this.setState({
                                                                             firstHover: { display: 'none' }
-                                                                        })}
-                                                                    >
-                                                                        <span className="value">
+                                                                        })}>
+                                                                        <span className="value"
+                                                                            onClick={ this.props.editable ? this.firstIconClick: null}
+                                                                            style={{cursor: this.props.editable ? 'pointer' : null}}
+                                                                        >
                                                                             {
                                                                                 this
                                                                                     .props
@@ -1548,11 +1547,9 @@ export class IncidentStatus extends Component {
                                                                             >
                                                                                 <img
                                                                                     style={this.state.firstHover}
+                                                                                    className="incidentEditIcon"
+                                                                                    alt=""
                                                                                     src={'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCA0MDEuNTIyODkgNDAxIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyIiB4bWw6c3BhY2U9InByZXNlcnZlIiBjbGFzcz0iIj48Zz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzAuNTg5ODQ0IDI1MC45NzI2NTZjLTUuNTIzNDM4IDAtMTAgNC40NzY1NjMtMTAgMTB2ODguNzg5MDYzYy0uMDE5NTMyIDE2LjU2MjUtMTMuNDM3NSAyOS45ODQzNzUtMzAgMzBoLTI4MC41ODk4NDRjLTE2LjU2MjUtLjAxNTYyNS0yOS45ODA0NjktMTMuNDM3NS0zMC0zMHYtMjYwLjU4OTg0NGMuMDE5NTMxLTE2LjU1ODU5NCAxMy40Mzc1LTI5Ljk4MDQ2OSAzMC0zMGg4OC43ODkwNjJjNS41MjM0MzggMCAxMC00LjQ3NjU2MyAxMC0xMCAwLTUuNTE5NTMxLTQuNDc2NTYyLTEwLTEwLTEwaC04OC43ODkwNjJjLTI3LjYwMTU2Mi4wMzEyNS00OS45Njg3NSAyMi4zOTg0MzctNTAgNTB2MjYwLjU5Mzc1Yy4wMzEyNSAyNy42MDE1NjMgMjIuMzk4NDM4IDQ5Ljk2ODc1IDUwIDUwaDI4MC41ODk4NDRjMjcuNjAxNTYyLS4wMzEyNSA0OS45Njg3NS0yMi4zOTg0MzcgNTAtNTB2LTg4Ljc5Mjk2OWMwLTUuNTIzNDM3LTQuNDc2NTYzLTEwLTEwLTEwem0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzYuNjI4OTA2IDEzLjQ0MTQwNmMtMTcuNTc0MjE4LTE3LjU3NDIxOC00Ni4wNjY0MDYtMTcuNTc0MjE4LTYzLjY0MDYyNSAwbC0xNzguNDA2MjUgMTc4LjQwNjI1Yy0xLjIyMjY1NiAxLjIyMjY1Ni0yLjEwNTQ2OSAyLjczODI4Mi0yLjU2NjQwNiA0LjQwMjM0NGwtMjMuNDYwOTM3IDg0LjY5OTIxOWMtLjk2NDg0NCAzLjQ3MjY1Ni4wMTU2MjQgNy4xOTE0MDYgMi41NjI1IDkuNzQyMTg3IDIuNTUwNzgxIDIuNTQ2ODc1IDYuMjY5NTMxIDMuNTI3MzQ0IDkuNzQyMTg3IDIuNTY2NDA2bDg0LjY5OTIxOS0yMy40NjQ4NDNjMS42NjQwNjItLjQ2MDkzOCAzLjE3OTY4Ny0xLjM0Mzc1IDQuNDAyMzQ0LTIuNTY2NDA3bDE3OC40MDIzNDMtMTc4LjQxMDE1NmMxNy41NDY4NzUtMTcuNTg1OTM3IDE3LjU0Njg3NS00Ni4wNTQ2ODcgMC02My42NDA2MjV6bS0yMjAuMjU3ODEyIDE4NC45MDYyNSAxNDYuMDExNzE4LTE0Ni4wMTU2MjUgNDcuMDg5ODQ0IDQ3LjA4OTg0NC0xNDYuMDE1NjI1IDE0Ni4wMTU2MjV6bS05LjQwNjI1IDE4Ljg3NSAzNy42MjEwOTQgMzcuNjI1LTUyLjAzOTA2MyAxNC40MTc5Njl6bTIyNy4yNTc4MTItMTQyLjU0Njg3NS0xMC42MDU0NjggMTAuNjA1NDY5LTQ3LjA5Mzc1LTQ3LjA5Mzc1IDEwLjYwOTM3NC0xMC42MDU0NjljOS43NjE3MTktOS43NjE3MTkgMjUuNTg5ODQ0LTkuNzYxNzE5IDM1LjM1MTU2MyAwbDExLjczODI4MSAxMS43MzQzNzVjOS43NDYwOTQgOS43NzM0MzggOS43NDYwOTQgMjUuNTg5ODQ0IDAgMzUuMzU5Mzc1em0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48L2c+PC9zdmc+Cg=='}
-                                                                                    alt='editIcon1'
-                                                                                // onMouseEnter={()=> this.setState({
-                                                                                //     firstHover:{color: '#DC143C'} 
-                                                                                // })}
                                                                                 />
                                                                             </span>
                                                                         </ShouldRender>
@@ -1612,17 +1609,19 @@ export class IncidentStatus extends Component {
                                                                         onMouseEnter={() => this.setState({
                                                                             secondHover: {
                                                                                 display: 'inline',
-                                                                                height: '12px',
-                                                                                width: '12px',
-                                                                                cursor: 'pointer',
                                                                             }
                                                                         })}
                                                                         onMouseLeave={() => this.setState({
                                                                             secondHover: { display: 'none' }
                                                                         })}
                                                                     >
-                                                                        <span style={{ display: 'inline-block' }}>
-                                                                            <ReactMarkdown
+                                                                        <span
+                                                                        onClick={ this.props.editable ? this.secondIconClick: null}                                        
+                                                                        style={{ 
+                                                                            display: 'inline-block',
+                                                                            cursor: this.props.editable ? 'pointer' : null
+                                                                         }}>
+                                                                            <ReactMarkdown                                                                    
                                                                                 source={
                                                                                     this
                                                                                         .props
@@ -1638,8 +1637,9 @@ export class IncidentStatus extends Component {
                                                                             >
                                                                                 <img
                                                                                     style={this.state.secondHover}
+                                                                                    className="incidentEditIcon"
+                                                                                    alt=""
                                                                                     src={'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCA0MDEuNTIyODkgNDAxIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyIiB4bWw6c3BhY2U9InByZXNlcnZlIiBjbGFzcz0iIj48Zz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzAuNTg5ODQ0IDI1MC45NzI2NTZjLTUuNTIzNDM4IDAtMTAgNC40NzY1NjMtMTAgMTB2ODguNzg5MDYzYy0uMDE5NTMyIDE2LjU2MjUtMTMuNDM3NSAyOS45ODQzNzUtMzAgMzBoLTI4MC41ODk4NDRjLTE2LjU2MjUtLjAxNTYyNS0yOS45ODA0NjktMTMuNDM3NS0zMC0zMHYtMjYwLjU4OTg0NGMuMDE5NTMxLTE2LjU1ODU5NCAxMy40Mzc1LTI5Ljk4MDQ2OSAzMC0zMGg4OC43ODkwNjJjNS41MjM0MzggMCAxMC00LjQ3NjU2MyAxMC0xMCAwLTUuNTE5NTMxLTQuNDc2NTYyLTEwLTEwLTEwaC04OC43ODkwNjJjLTI3LjYwMTU2Mi4wMzEyNS00OS45Njg3NSAyMi4zOTg0MzctNTAgNTB2MjYwLjU5Mzc1Yy4wMzEyNSAyNy42MDE1NjMgMjIuMzk4NDM4IDQ5Ljk2ODc1IDUwIDUwaDI4MC41ODk4NDRjMjcuNjAxNTYyLS4wMzEyNSA0OS45Njg3NS0yMi4zOTg0MzcgNTAtNTB2LTg4Ljc5Mjk2OWMwLTUuNTIzNDM3LTQuNDc2NTYzLTEwLTEwLTEwem0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzYuNjI4OTA2IDEzLjQ0MTQwNmMtMTcuNTc0MjE4LTE3LjU3NDIxOC00Ni4wNjY0MDYtMTcuNTc0MjE4LTYzLjY0MDYyNSAwbC0xNzguNDA2MjUgMTc4LjQwNjI1Yy0xLjIyMjY1NiAxLjIyMjY1Ni0yLjEwNTQ2OSAyLjczODI4Mi0yLjU2NjQwNiA0LjQwMjM0NGwtMjMuNDYwOTM3IDg0LjY5OTIxOWMtLjk2NDg0NCAzLjQ3MjY1Ni4wMTU2MjQgNy4xOTE0MDYgMi41NjI1IDkuNzQyMTg3IDIuNTUwNzgxIDIuNTQ2ODc1IDYuMjY5NTMxIDMuNTI3MzQ0IDkuNzQyMTg3IDIuNTY2NDA2bDg0LjY5OTIxOS0yMy40NjQ4NDNjMS42NjQwNjItLjQ2MDkzOCAzLjE3OTY4Ny0xLjM0Mzc1IDQuNDAyMzQ0LTIuNTY2NDA3bDE3OC40MDIzNDMtMTc4LjQxMDE1NmMxNy41NDY4NzUtMTcuNTg1OTM3IDE3LjU0Njg3NS00Ni4wNTQ2ODcgMC02My42NDA2MjV6bS0yMjAuMjU3ODEyIDE4NC45MDYyNSAxNDYuMDExNzE4LTE0Ni4wMTU2MjUgNDcuMDg5ODQ0IDQ3LjA4OTg0NC0xNDYuMDE1NjI1IDE0Ni4wMTU2MjV6bS05LjQwNjI1IDE4Ljg3NSAzNy42MjEwOTQgMzcuNjI1LTUyLjAzOTA2MyAxNC40MTc5Njl6bTIyNy4yNTc4MTItMTQyLjU0Njg3NS0xMC42MDU0NjggMTAuNjA1NDY5LTQ3LjA5Mzc1LTQ3LjA5Mzc1IDEwLjYwOTM3NC0xMC42MDU0NjljOS43NjE3MTktOS43NjE3MTkgMjUuNTg5ODQ0LTkuNzYxNzE5IDM1LjM1MTU2MyAwbDExLjczODI4MSAxMS43MzQzNzVjOS43NDYwOTQgOS43NzM0MzggOS43NDYwOTQgMjUuNTg5ODQ0IDAgMzUuMzU5Mzc1em0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48L2c+PC9zdmc+Cg=='}
-                                                                                    alt='editIcon2'
                                                                                 />
                                                                             </span>
                                                                         </ShouldRender>
@@ -1914,9 +1914,6 @@ export class IncidentStatus extends Component {
                                                                                 onMouseEnter={() => this.setState({
                                                                                     thirdHover: {
                                                                                         display: 'inline',
-                                                                                        height: '12px',
-                                                                                        width: '12px',
-                                                                                        cursor: 'pointer',
                                                                                     }
                                                                                 })}
                                                                                 onMouseLeave={() => this.setState({
@@ -1924,9 +1921,11 @@ export class IncidentStatus extends Component {
                                                                                 })}
                                                                             >
                                                                                 <span
+                                                                                    onClick={ this.props.editable ? this.thirdIconClick: null}                                                                                
                                                                                     className="Text-fontWeight--medium"
                                                                                     style={{
                                                                                         color: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
+                                                                                        cursor: this.props.editable ? 'pointer' : null
                                                                                     }}
                                                                                 >
                                                                                     {
@@ -1943,11 +1942,9 @@ export class IncidentStatus extends Component {
                                                                                     >
                                                                                         <img
                                                                                             style={this.state.thirdHover}
+                                                                                            className="incidentEditIcon"
+                                                                                            alt=""
                                                                                             src={'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCA0MDEuNTIyODkgNDAxIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyIiB4bWw6c3BhY2U9InByZXNlcnZlIiBjbGFzcz0iIj48Zz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzAuNTg5ODQ0IDI1MC45NzI2NTZjLTUuNTIzNDM4IDAtMTAgNC40NzY1NjMtMTAgMTB2ODguNzg5MDYzYy0uMDE5NTMyIDE2LjU2MjUtMTMuNDM3NSAyOS45ODQzNzUtMzAgMzBoLTI4MC41ODk4NDRjLTE2LjU2MjUtLjAxNTYyNS0yOS45ODA0NjktMTMuNDM3NS0zMC0zMHYtMjYwLjU4OTg0NGMuMDE5NTMxLTE2LjU1ODU5NCAxMy40Mzc1LTI5Ljk4MDQ2OSAzMC0zMGg4OC43ODkwNjJjNS41MjM0MzggMCAxMC00LjQ3NjU2MyAxMC0xMCAwLTUuNTE5NTMxLTQuNDc2NTYyLTEwLTEwLTEwaC04OC43ODkwNjJjLTI3LjYwMTU2Mi4wMzEyNS00OS45Njg3NSAyMi4zOTg0MzctNTAgNTB2MjYwLjU5Mzc1Yy4wMzEyNSAyNy42MDE1NjMgMjIuMzk4NDM4IDQ5Ljk2ODc1IDUwIDUwaDI4MC41ODk4NDRjMjcuNjAxNTYyLS4wMzEyNSA0OS45Njg3NS0yMi4zOTg0MzcgNTAtNTB2LTg4Ljc5Mjk2OWMwLTUuNTIzNDM3LTQuNDc2NTYzLTEwLTEwLTEwem0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzYuNjI4OTA2IDEzLjQ0MTQwNmMtMTcuNTc0MjE4LTE3LjU3NDIxOC00Ni4wNjY0MDYtMTcuNTc0MjE4LTYzLjY0MDYyNSAwbC0xNzguNDA2MjUgMTc4LjQwNjI1Yy0xLjIyMjY1NiAxLjIyMjY1Ni0yLjEwNTQ2OSAyLjczODI4Mi0yLjU2NjQwNiA0LjQwMjM0NGwtMjMuNDYwOTM3IDg0LjY5OTIxOWMtLjk2NDg0NCAzLjQ3MjY1Ni4wMTU2MjQgNy4xOTE0MDYgMi41NjI1IDkuNzQyMTg3IDIuNTUwNzgxIDIuNTQ2ODc1IDYuMjY5NTMxIDMuNTI3MzQ0IDkuNzQyMTg3IDIuNTY2NDA2bDg0LjY5OTIxOS0yMy40NjQ4NDNjMS42NjQwNjItLjQ2MDkzOCAzLjE3OTY4Ny0xLjM0Mzc1IDQuNDAyMzQ0LTIuNTY2NDA3bDE3OC40MDIzNDMtMTc4LjQxMDE1NmMxNy41NDY4NzUtMTcuNTg1OTM3IDE3LjU0Njg3NS00Ni4wNTQ2ODcgMC02My42NDA2MjV6bS0yMjAuMjU3ODEyIDE4NC45MDYyNSAxNDYuMDExNzE4LTE0Ni4wMTU2MjUgNDcuMDg5ODQ0IDQ3LjA4OTg0NC0xNDYuMDE1NjI1IDE0Ni4wMTU2MjV6bS05LjQwNjI1IDE4Ljg3NSAzNy42MjEwOTQgMzcuNjI1LTUyLjAzOTA2MyAxNC40MTc5Njl6bTIyNy4yNTc4MTItMTQyLjU0Njg3NS0xMC42MDU0NjggMTAuNjA1NDY5LTQ3LjA5Mzc1LTQ3LjA5Mzc1IDEwLjYwOTM3NC0xMC42MDU0NjljOS43NjE3MTktOS43NjE3MTkgMjUuNTg5ODQ0LTkuNzYxNzE5IDM1LjM1MTU2MyAwbDExLjczODI4MSAxMS43MzQzNzVjOS43NDYwOTQgOS43NzM0MzggOS43NDYwOTQgMjUuNTg5ODQ0IDAgMzUuMzU5Mzc1em0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48L2c+PC9zdmc+Cg=='}
-                                                                                            alt='editIcon3'
-                                                                                        // onMouseEnter={()=> this.setState({
-                                                                                        //     firstHover:{color: '#DC143C'} 
-                                                                                        // })}
                                                                                         />
                                                                                     </span>
                                                                                 </ShouldRender>
@@ -1964,7 +1961,7 @@ export class IncidentStatus extends Component {
                                                                                 this.thirdFormSubmit.bind(
                                                                                     this
                                                                                 )
-                                                                            )}                                                                            
+                                                                            )}
                                                                         >
                                                                             <div
                                                                                 className="bs-Fieldset-fields"
@@ -1974,7 +1971,7 @@ export class IncidentStatus extends Component {
                                                                             >
                                                                                 <div>
                                                                                     <Field
-                                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                                        className="db-select-nw"
                                                                                         component={
                                                                                             RenderSelect
                                                                                         }
@@ -1998,7 +1995,7 @@ export class IncidentStatus extends Component {
                                                                                                 })
                                                                                             ),
                                                                                         ]}
-                                                                                     onChange={this.thirdFormSubmit}
+                                                                                        onChange={this.thirdFormSubmit}
                                                                                     />
                                                                                 </div>
                                                                             </div>
