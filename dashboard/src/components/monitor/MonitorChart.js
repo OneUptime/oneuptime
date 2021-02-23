@@ -889,7 +889,7 @@ export function MonitorChart({
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Succeeded Jobs
+                                                    All Jobs
                                                 </span>
                                             </div>
                                         </div>
@@ -904,7 +904,7 @@ export function MonitorChart({
                                                                   .kubernetesLog
                                                                   .jobData
                                                                   .jobStat
-                                                                  .succeededJobs
+                                                                  .totalJobs
                                                             : 0}
                                                     </span>
                                                 </span>
@@ -918,7 +918,7 @@ export function MonitorChart({
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Running Jobs
+                                                    Healthy Jobs
                                                 </span>
                                             </div>
                                         </div>
@@ -933,7 +933,7 @@ export function MonitorChart({
                                                                   .kubernetesLog
                                                                   .jobData
                                                                   .jobStat
-                                                                  .runningJobs
+                                                                  .healthy
                                                             : 0}
                                                     </span>
                                                 </span>
@@ -947,7 +947,7 @@ export function MonitorChart({
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Failed Jobs
+                                                    Unhealthy Jobs
                                                 </span>
                                             </div>
                                         </div>
@@ -962,7 +962,7 @@ export function MonitorChart({
                                                                   .kubernetesLog
                                                                   .jobData
                                                                   .jobStat
-                                                                  .failedJobs
+                                                                  .unhealthy
                                                             : 0}
                                                     </span>
                                                 </span>
@@ -1095,7 +1095,7 @@ export function MonitorChart({
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    All Statefulset
+                                                    All Statefulsets
                                                 </span>
                                             </div>
                                         </div>
@@ -1124,7 +1124,7 @@ export function MonitorChart({
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Healthy Statefulset
+                                                    Healthy Statefulsets
                                                 </span>
                                             </div>
                                         </div>
@@ -1152,7 +1152,7 @@ export function MonitorChart({
                                         >
                                             <div className="db-Trend-title">
                                                 <span className="chart-font">
-                                                    Unhealthy Statefulset
+                                                    Unhealthy Statefulsets
                                                 </span>
                                             </div>
                                         </div>

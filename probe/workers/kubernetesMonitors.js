@@ -137,6 +137,10 @@ module.exports = {
                                         runningJobs.length +
                                         succeededJobs.length +
                                         failedJobs.length,
+                                    healthy:
+                                        runningJobs.length +
+                                        succeededJobs.length,
+                                    unhealthy: failedJobs.length,
                                 },
                                 runningJobs,
                                 succeededJobs,
