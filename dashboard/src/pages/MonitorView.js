@@ -828,7 +828,7 @@ const mapStateToProps = (state, props) => {
         initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
         initialValues[`deviceId_${monitor._id}`] =
             monitor.data && monitor.data.deviceId;
-        initialValues[`IPAddress_${monitor._id}`] =
+        initialValues[`ip_${monitor._id}`] =
             monitor.data && monitor.data.IPAddress;
         initialValues[`description_${monitor._id}`] =
             monitor.data && monitor.data.description;
