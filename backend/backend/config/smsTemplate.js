@@ -60,6 +60,6 @@ module.exports = [
         ],
         smsType: 'Investigation note is created',
         body:
-            'A new update has been added to an incident on {{monitorName}}. {{#if statusPageUrl}}Please check it out here {{statusPageUrl}}{{/if}} {{incidentNote}}',
+            'A new update has been added to an incident on {{monitorName}}. {{#if statusPageUrl}}Please check it out here {{statusPageUrl}}{{/if}} - {{incidentNote}}',
     },
 ];
