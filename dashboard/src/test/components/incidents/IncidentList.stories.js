@@ -224,11 +224,11 @@ const props = {
 };
 
 class MockIncidentPagination extends React.Component {
-    constructor(props){
+    constructor(props) {
         super(props);
         this.state = {
             page: 1,
-        }
+        };
     }
     prevClicked = () => {
         this.props.getIncidents(

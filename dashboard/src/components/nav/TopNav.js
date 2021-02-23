@@ -540,10 +540,10 @@ const mapStateToProps = (state, props) => {
               return project._id === projectId;
           })
         : [];
-    const currentProjectId = state.project.currentProject &&
-        state.project.currentProject._id;
-    const currentProjectSlug = state.project.currentProject
-        && state.project.currentProject.slug;
+    const currentProjectId =
+        state.project.currentProject && state.project.currentProject._id;
+    const currentProjectSlug =
+        state.project.currentProject && state.project.currentProject.slug;
     return {
         profilePic,
         feedback: state.feedback,

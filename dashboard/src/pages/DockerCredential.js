@@ -99,8 +99,7 @@ DockerCredential.propTypes = {
 const mapStateToProps = state => {
     return {
         projectId:
-        state.project.currentProject &&
-            state.project.currentProject._id,
+            state.project.currentProject && state.project.currentProject._id,
         dockerCredentials: state.credential.dockerCredentials,
         getError: state.credential.getCredential.error,
         isRequesting: state.credential.getCredential.requesting,

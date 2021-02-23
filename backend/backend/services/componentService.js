@@ -126,7 +126,7 @@ module.exports = {
                     }
                 );
             }
-            query.deleted = false
+            query.deleted = false;
             component = await this.findOneBy(query);
             await RealTimeService.componentEdit(component);
 
