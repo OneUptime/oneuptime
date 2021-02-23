@@ -227,6 +227,9 @@ class StatusPagesTable extends Component {
                                     modalList={this.props.modalList}
                                     project={currentProject}
                                     pages={this.state[projectStatusPage._id]}
+                                    switchToProjectViewerNav={
+                                        this.props.switchToProjectViewerNav
+                                    }
                                 />
                             </div>
                         </div>
@@ -309,6 +312,7 @@ function mapStateToProps(state) {
         isRequesting: state.statusPage.requesting,
         subProjects,
         modalList: state.modal.modals,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 }
 
@@ -328,6 +332,7 @@ StatusPagesTable.propTypes = {
     openModal: PropTypes.func.isRequired,
     subProjects: PropTypes.array.isRequired,
     modalList: PropTypes.array,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 StatusPagesTable.displayName = 'StatusPagesTable';
