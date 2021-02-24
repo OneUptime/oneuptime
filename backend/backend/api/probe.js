@@ -549,10 +549,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                       )
                     : { stat: false, successReasons: [], failedReasons: [] });
 
-                console.log('******** valid up case *******', validUp, upSuccessReasons, upFailedReasons);
-                console.log('******** valid Degraded **********', validDegraded, degradedSuccessReasons, degradedFailedReasons);
-                console.log('******* valid down **********', validDown, downSuccessReasons, downFailedReasons);
-
                 if (validUp) {
                     data.status = 'online';
                     data.reason = upSuccessReasons;
