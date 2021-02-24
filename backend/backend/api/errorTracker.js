@@ -952,7 +952,7 @@ router.post(
 );
 // Description: Delete an Issue  IssueId and errorTrackerId.
 router.delete(
-    '/:projectId/:componentId/:errorTrackerId/:issueId',
+    '/:projectId/:componentId/:errorTrackerId/issue/:issueId',
     getUser,
     isAuthorized,
     async function(req, res) {
