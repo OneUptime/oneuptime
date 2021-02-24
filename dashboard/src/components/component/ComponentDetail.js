@@ -125,7 +125,6 @@ export class ComponentDetail extends Component {
             0,
             5
         );
-        this.props.fetchMonitors(component.projectId._id);
     }
 
     render() {
