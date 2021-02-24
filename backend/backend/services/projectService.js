@@ -303,7 +303,7 @@ module.exports = {
             projectId,
             data.alertOptions
         );
-        if (chargeForBalance && !chargeForBalance.client_secret) {
+        if (chargeForBalance) {
             const newBalance = rechargeToBalance + currentBalance;
             updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,
@@ -316,12 +316,9 @@ module.exports = {
                 },
                 { new: true }
             );
-            return updatedProject;
-        } else if (chargeForBalance && chargeForBalance.client_secret) {
-            updatedProject = {
-                ...project,
-                paymentIntent: chargeForBalance.client_secret,
-            };
+            if (chargeForBalance.client_secret) {
+                updatedProject.paymentIntent = chargeForBalance.client_secret;
+            }
             return updatedProject;
         } else {
             const error = new Error('Cannot save project settings');
@@ -768,5 +765,3 @@ const generate = require('nanoid/generate');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const componentService = require('./componentService');
 const SsoDefaultRolesService = require('./ssoDefaultRolesService');
-const incidentService = require('./incidentService');
-

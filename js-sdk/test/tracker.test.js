@@ -297,40 +297,40 @@ describe('Capture Message', function() {
     });
 });
 describe('Capture Exception', function() {
-    it('should create an event ready for the server', function() {
+    it('should create an event ready for the server', async function() {
         const tracker = new FyipeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
         );
         const errorMessage = 'Error Found';
-        tracker.captureException(new Error(errorMessage));
+        await tracker.captureException(new Error(errorMessage));
         const event = tracker.getCurrentEvent();
         expect(event.type).to.equal('exception');
         expect(event.exception.message).to.equal(errorMessage);
     });
-    it('should create an event with a array of stacktrace ', function() {
+    it('should create an event with a array of stacktrace ', async function() {
         const tracker = new FyipeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
         );
         const errorMessage = 'Error Found';
-        tracker.captureException(new Error(errorMessage));
+        await tracker.captureException(new Error(errorMessage));
         const event = tracker.getCurrentEvent();
         expect(event.type).to.equal('exception');
         expect(event.exception.message).to.equal(errorMessage);
         expect(event.exception.stacktrace).to.be.an('object');
         expect(event.exception.stacktrace.frames).to.be.an('array');
     });
-    it('should create an event with the object of the stacktrace in place', function() {
+    it('should create an event with the object of the stacktrace in place', async function() {
         const tracker = new FyipeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
         );
         const errorMessage = 'Error Found';
-        tracker.captureException(new Error(errorMessage));
+        await tracker.captureException(new Error(errorMessage));
         const event = tracker.getCurrentEvent();
         const frame = event.exception.stacktrace.frames[0];
         expect(frame).to.have.property('methodName');

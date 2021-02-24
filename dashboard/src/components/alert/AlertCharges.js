@@ -150,8 +150,7 @@ class AlertCharge extends Component {
     }
 }
 
-const mapStateToProps = (state, props) => {
-    const { projectId } = props.match.params;
+const mapStateToProps = state => {
     const downloadedAlertCharges =
         state.alert.downloadedAlertCharges &&
         state.alert.downloadedAlertCharges.data;
@@ -159,7 +158,8 @@ const mapStateToProps = (state, props) => {
         state.alert.alertCharges !== null && state.alert.alertCharges.data;
     const { requesting, error } = state.alert.downloadedAlertCharges;
     return {
-        projectId,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
         downloadedAlertCharges,
         requesting,
         error,

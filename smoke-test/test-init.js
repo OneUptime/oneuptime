@@ -173,7 +173,7 @@ module.exports = {
                 page.waitForSelector('#users', {
                     visible: true,
                     timeout: 100000,
-                })
+                }),
             ]);
         } else {
             await this.loginEnterpriseUser(masterAdmin, page);

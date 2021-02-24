@@ -273,7 +273,7 @@ export class MonitorDetail extends Component {
                 : monitor && monitor.data && monitor.data.link
                 ? monitor.data.link
                 : null;
-        const probeUrl = `/dashboard/project/${monitor.projectId._id}/settings/probe`;
+        const probeUrl = `/dashboard/project/${currentProject.slug}/settings/probe`;
 
         monitor.error = null;
         if (
@@ -559,7 +559,7 @@ export class MonitorDetail extends Component {
                                 onClick={() => {
                                     history.push(
                                         '/dashboard/project/' +
-                                            currentProject._id +
+                                            currentProject.slug +
                                             '/' +
                                             componentId +
                                             '/monitoring/' +

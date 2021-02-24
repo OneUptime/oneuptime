@@ -965,7 +965,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: 'No phone number',
-                callProgress,
+                alertProgress: callProgress,
             });
         }
 
@@ -1010,7 +1010,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: errorMessageText,
-                callProgress,
+                alertProgress: callProgress,
             });
         }
 
@@ -1045,7 +1045,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: errorMessageText,
-                    callProgress,
+                    alertProgress: callProgress,
                 });
             }
 
@@ -1070,7 +1070,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: status.message,
-                    callProgress,
+                    alertProgress: callProgress,
                 });
             }
         }
@@ -1098,7 +1098,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: alertStatus.message,
-                callProgress,
+                alertProgress: callProgress,
             });
         } else if (alertStatus) {
             alert = await _this.create({
@@ -1112,7 +1112,7 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Success',
-                callProgress,
+                alertProgress: callProgress,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
@@ -2942,7 +2942,8 @@ module.exports = {
                                 incident.projectId,
                                 component.name,
                                 statusUrl,
-                                customFields
+                                customFields,
+                                note
                             );
                             alertStatus = 'Success';
                         } else {

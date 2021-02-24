@@ -15,7 +15,7 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 function submitUserForm(values, dispatch, props) {
-    const { projectId, scheduleId } = props.match.params;
+    const { scheduleId } = props.match.params;
     const users = [];
     /* eslint-disable no-unused-vars */
     for (const id in values) {
@@ -23,11 +23,11 @@ function submitUserForm(values, dispatch, props) {
             values[id] && users.push(id);
         }
     }
-    props.addUsers(projectId, scheduleId, { users });
+    props.addUsers(props.projectId, scheduleId, { users });
     if (SHOULD_LOG_ANALYTICS) {
         logEvent(
             'EVENT: DASHBOARD > PROJECT > SCHEDULE LIST > SCHEUDLE > ADD USER TO SCHEDULE',
-            { projectId, scheduleId, users }
+            { projectId: props.projectId, scheduleId, users }
         );
     }
 }
@@ -225,7 +225,8 @@ const mapStateToProps = (state, props) => {
     const users =
         state.teams.teamMembers.filter(user => user.name && user.name !== '') ||
         [];
-    const { projectId } = props.match.params;
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
     const isRequesting = state.teams.teamLoading.requesting;
     const addUserRequesting = state.schedule.addUser.requesting;
     const currentProject = state.project.currentProject;

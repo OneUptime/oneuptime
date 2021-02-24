@@ -70,7 +70,7 @@ export const resetSignup = () => {
 // Calls the API to register a user.
 export function signupUser(values) {
     return function(dispatch) {
-        const promise = postApi('user/signup', values);
+        const promise = postApi(`user/signup?token=${values.token}`, values);
         dispatch(signUpRequest(promise));
         promise.then(
             function(user) {

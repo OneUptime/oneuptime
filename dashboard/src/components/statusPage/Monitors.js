@@ -218,7 +218,7 @@ export class Monitors extends Component {
                                                                 '/dashboard/project/' +
                                                                 this.props
                                                                     .currentProject
-                                                                    ._id +
+                                                                    .slug +
                                                                 '/components'
                                                             }
                                                         >

@@ -54,10 +54,8 @@ class EventBox extends Component {
     };
 
     handleScheduledEventDetail = scheduledEventId => {
-        const { projectId, parentProjectId } = this.props;
         history.push(
-            `/dashboard/project/${parentProjectId ||
-                projectId}/scheduledEvents/${scheduledEventId}`
+            `/dashboard/project/${this.props.currentProject.slug}/scheduledEvents/${scheduledEventId}`
         );
     };
 
@@ -166,7 +164,6 @@ class EventBox extends Component {
                                                         CreateSchedule,
                                                         {
                                                             projectId,
-                                                        
                                                         }
                                                     ),
                                                 });
@@ -426,7 +423,7 @@ class EventBox extends Component {
                                         No monitors was added to this project.{' '}
                                         {parentProjectId ? (
                                             <Link
-                                                to={`/dashboard/project/${parentProjectId}/components`}
+                                                to={`/dashboard/project/${this.props.currentProject.slug}/components`}
                                                 style={{
                                                     textDecoration: 'underline',
                                                 }}
@@ -435,7 +432,7 @@ class EventBox extends Component {
                                             </Link>
                                         ) : (
                                             <Link
-                                                to={`/dashboard/project/${projectId}/components`}
+                                                to={`/dashboard/project/${this.props.currentProject.slug}/components`}
                                                 style={{
                                                     textDecoration: 'underline',
                                                 }}
@@ -488,9 +485,14 @@ class EventBox extends Component {
                                             >
                                                 {numberOfPages > 0
                                                     ? `Page ${
-                                                          !this.props.pages[projectId]
+                                                          !this.props.pages[
+                                                              projectId
+                                                          ]
                                                               ? 1
-                                                              : this.props.pages[projectId]
+                                                              : this.props
+                                                                    .pages[
+                                                                    projectId
+                                                                ]
                                                       } of ${numberOfPages} (${
                                                           this.props.count
                                                       } Event${

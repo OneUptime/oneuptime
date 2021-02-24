@@ -192,6 +192,7 @@ class DashboardView extends Component {
                 });
         }
         const currentProjectId = currentProject ? currentProject._id : null;
+        const currentProjectSlug = currentProject ? currentProject.slug : null;
 
         // SubProject Monitors List
         const monitors =
@@ -299,6 +300,9 @@ class DashboardView extends Component {
                                                         <CustomTutorial
                                                             monitors={
                                                                 allMonitors
+                                                            }
+                                                            slug={
+                                                                currentProjectSlug
                                                             }
                                                             tutorialStat={
                                                                 this.props
@@ -495,7 +499,9 @@ const mapDispatchToProps = dispatch => {
 };
 
 const mapStateToProps = (state, props) => {
-    const { componentId, projectId } = props.match.params;
+    const { componentId } = props.match.params;
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
     const monitor = state.monitor;
     let component;
     state.component.componentList.components.forEach(item => {

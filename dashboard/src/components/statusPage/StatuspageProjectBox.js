@@ -133,11 +133,13 @@ const StatusPageProjectBox = props => {
                                     Description
                                 </div>
                             </td>
-                            <td>
-                                <div className="bs-ObjectList-cell Text-typeface--upper Text-fontWeight--medium">
-                                    Monitors
-                                </div>
-                            </td>
+                            <ShouldRender if={!props.switchToProjectViewerNav}>
+                                <td>
+                                    <div className="bs-ObjectList-cell Text-typeface--upper Text-fontWeight--medium">
+                                        Monitors
+                                    </div>
+                                </td>
+                            </ShouldRender>
 
                             <td
                                 colSpan="6"
@@ -168,6 +170,9 @@ const StatusPageProjectBox = props => {
                                     key={i}
                                     statusPage={o}
                                     project={props.project}
+                                    switchToProjectViewerNav={
+                                        props.switchToProjectViewerNav
+                                    }
                                 />
                             );
                         })}
@@ -310,6 +315,7 @@ StatusPageProjectBox.propTypes = {
     modalList: PropTypes.array,
     project: PropTypes.object,
     pages: PropTypes.number,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 export default StatusPageProjectBox;

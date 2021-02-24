@@ -596,7 +596,7 @@ class CreateIncident extends Component {
                                                                         this
                                                                             .props
                                                                             .currentProject
-                                                                            ._id +
+                                                                            .slug +
                                                                         '/components'
                                                                 );
                                                             }}
@@ -735,13 +735,13 @@ function mapStateToProps(state, props) {
     const { subProjectId, componentId } = data;
     const { projects } = state.project.projects;
     const { subProjects } = state.subProject.subProjects;
-    let components = [];
+    const components = [];
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
             components.push(c);
         });
     });
-    let monitorsList = [];
+    const monitorsList = [];
     state.monitor.monitorsList.monitors.forEach(item => {
         item.monitors.forEach(m => {
             monitorsList.push(m);

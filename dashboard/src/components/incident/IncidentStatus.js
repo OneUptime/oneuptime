@@ -11,7 +11,7 @@ import {
     resolveIncident,
     closeIncident,
     getIncidentTimeline,
-    updateIncident
+    updateIncident,
 } from '../../actions/incident';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -28,12 +28,11 @@ import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import FooterButton from './FooterButton';
 import { animateSidebar } from '../../actions/animateSidebar';
-import { reduxForm, Field, formValueSelector} from 'redux-form';
+import { reduxForm, Field, formValueSelector } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
-import { RenderSelect } from '../basic/RenderSelect';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
-
+import { RenderSelect } from '../basic/RenderSelect';
 export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
@@ -44,18 +43,25 @@ export class IncidentStatus extends Component {
             resolveLoad: false,
             value: undefined,
             stats: false,
-            firstIcon : false,
-            secondIcon: false,
-            thirdIcon: false,
+            firstHover: {
+                display: 'none',
+            },
+            secondHover: {
+                display: 'none',
+            },
+            thirdHover: {
+                display: 'none',
+            },
+            firstVisibility: true,
+            secondVisibility: true,
+            thirdVisibility: true,
         };
     }
-    getIcon =()=>{
-        let currentIcon = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik01MTAuNDEzLDEyOS4yOTJjLTMuNzA1LTcuNDA5LTEyLjcxMy0xMC40MTMtMjAuMTI0LTYuNzA4bC02MCwzMGMtNy40MSwzLjcwNS0xMC40MTMsMTIuNzE1LTYuNzA4LDIwLjEyNQ0KCQkJYzMuNzA0LDcuNDA5LDEyLjcxMywxMC40MTMsMjAuMTI0LDYuNzA4bDYwLTMwQzUxMS4xMTUsMTQ1LjcxMiw1MTQuMTE4LDEzNi43MDIsNTEwLjQxMywxMjkuMjkyeiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNNTAzLjcwNSwzMDIuNTgzbC02MC0zMGMtNy40MDYtMy43MDMtMTYuNDE4LTAuNzAyLTIwLjEyNCw2LjcwOGMtMy43MDUsNy40MS0wLjcwMiwxNi40Miw2LjcwOCwyMC4xMjVsNjAsMzANCgkJCWM3LjQxLDMuNzA1LDE2LjQyLDAuNzAxLDIwLjEyNC02LjcwOEM1MTQuMTE4LDMxNS4yOTgsNTExLjExNSwzMDYuMjg4LDUwMy43MDUsMzAyLjU4M3oiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCgk8Zz4NCgkJPHBhdGggZD0iTTM0NS45OTgsMjQxSDExOS45OTl2LTc2YzAtNDEuMzU1LDM0LjA5NC03NSw3Ni03NWM0MS4zNTUsMCw3NSwzMy42NDUsNzUsNzV2MzBjMCw4LjI4NCw2LjcxNiwxNSwxNSwxNWg2MA0KCQkJYzguMjg0LDAsMTUtNi43MTYsMTUtMTV2LTMwYzAtOTAuOTgtNzQuMDE4LTE2NC45OTktMTY0Ljk5OS0xNjQuOTk5QzEwNC40NjcsMC4wMDIsMzAsNzQuMDIsMzAsMTY1LjAwMXY3OC41OA0KCQkJQzEyLjU0MSwyNDkuNzcyLDAsMjY2LjQ0NSwwLDI4NnYxODAuOTk5YzAsMjQuODEzLDIwLjE4Nyw0NSw0NSw0NWgzMDAuOTk4YzI0LjgxMywwLDQ1LTIwLjE4Nyw0NS00NVYyODYNCgkJCUMzOTAuOTk4LDI2MS4xODcsMzcwLjgxMSwyNDEsMzQ1Ljk5OCwyNDF6IE02MCwxNjUuMDAxYzAtNzQuNDM5LDYxLjAxLTEzNC45OTksMTM1Ljk5OS0xMzQuOTk5DQoJCQljNzQuNDM5LDAsMTM0Ljk5OSw2MC41NjEsMTM0Ljk5OSwxMzQuOTk5djE1aC0zMHYtMTVjMC01Ny44OTctNDcuMTAzLTEwNC45OTktMTA0Ljk5OS0xMDQuOTk5DQoJCQljLTU4LjA2OCwwLTEwNS45OTksNDcuMTItMTA1Ljk5OSwxMDQuOTk5djc2SDYwVjE2NS4wMDF6IE0zNjAuOTk4LDQ2Ni45OTljMCw4LjI3MS02LjcyOSwxNS0xNSwxNUg0NWMtOC4yNzEsMC0xNS02LjcyOS0xNS0xNQ0KCQkJVjI4NmMwLTguMjcxLDYuNzI5LTE1LDE1LTE1YzEzLjk4OCwwLDI4OC44ODMsMCwzMDAuOTk4LDBjOC4yNzEsMCwxNSw2LjcyOSwxNSwxNVY0NjYuOTk5eiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNMTk1Ljk5OSwzMDFjLTI0LjgxMywwLTQ1LDIwLjE4Ny00NSw0NWMwLDE5LjU1NSwxMi41NDEsMzYuMjI4LDMwLDQyLjQydjQ4LjU4YzAsOC4yODQsNi43MTYsMTUsMTUsMTVzMTUtNi43MTYsMTUtMTUNCgkJCXYtNDguNThjMTcuNDU5LTYuMTkyLDMwLTIyLjg2NSwzMC00Mi40MkMyNDAuOTk5LDMyMS4xODcsMjIwLjgxMiwzMDEsMTk1Ljk5OSwzMDF6IE0xOTUuOTk5LDM2MC45OTljLTguMjcxLDAtMTUtNi43MjktMTUtMTUNCgkJCXM2LjcyOS0xNSwxNS0xNXMxNSw2LjcyOSwxNSwxNVMyMDQuMjcsMzYwLjk5OSwxOTUuOTk5LDM2MC45OTl6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik00OTYuOTk3LDIxMWgtNjBjLTguMjg0LDAtMTUsNi43MTYtMTUsMTVzNi43MTYsMTUsMTUsMTVoNjBjOC4yODQsMCwxNS02LjcxNiwxNS0xNVM1MDUuMjgxLDIxMSw0OTYuOTk3LDIxMXoiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==';
-        if(this.state.firstIcon){
-            currentIcon = 'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjY4MnB0IiB2aWV3Qm94PSItMTAzIC0yMSA2ODIgNjgyLjY2NjY5IiB3aWR0aD0iNjgycHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTQwMy43Njk1MzEgMjQ5LjMzNTkzOHYtNzguOTM3NWMwLTkzLjk1NzAzMi03Ni40NDUzMTItMTcwLjM5ODQzOC0xNzAuNDAyMzQzLTE3MC4zOTg0MzgtOTMuOTU3MDMyIDAtMTcwLjQwMjM0NCA3Ni40NDE0MDYtMTcwLjQwMjM0NCAxNzAuMzk4NDM4djc4LjkzNzVjLTM3LjYwOTM3NS41MjczNDMtNjguMDQ2ODc1IDMxLjI2OTUzMS02OC4wNDY4NzUgNjkuMDAzOTA2djI1Mi42MzI4MTJjMCAzOC4wNTg1OTQgMzAuOTY0ODQzIDY5LjAyNzM0NCA2OS4wMjczNDMgNjkuMDI3MzQ0aDMzOC44NDM3NWMzOC4wNTg1OTQgMCA2OS4wMjczNDQtMzAuOTY4NzUgNjkuMDI3MzQ0LTY5LjAyNzM0NHYtMjUyLjYzMjgxMmMwLTM3LjczNDM3NS0zMC40NDE0MDYtNjguNDc2NTYzLTY4LjA0Njg3NS02OS4wMDM5MDZ6bS0xNzAuNDAyMzQzLTIxMS44MzU5MzhjNzMuMjgxMjUgMCAxMzIuOTAyMzQzIDU5LjYxNzE4OCAxMzIuOTAyMzQzIDEzMi44OTg0Mzh2NzguOTE0MDYyaC0zNi43MzQzNzV2LTc4Ljc4OTA2MmMwLTUzLjA2MjUtNDMuMTQwNjI1LTk2LjIzMDQ2OS05Ni4xNzE4NzUtOTYuMjMwNDY5LTUzLjAyNzM0MyAwLTk2LjE2Nzk2OSA0My4xNjc5NjktOTYuMTY3OTY5IDk2LjIzMDQ2OXY3OC43ODkwNjJoLTM2LjczMDQ2OHYtNzguOTE0MDYyYzAtNzMuMjgxMjUgNTkuNjE3MTg3LTEzMi44OTg0MzggMTMyLjkwMjM0NC0xMzIuODk4NDM4em01OC42Njc5NjggMjExLjgxMjVoLTExNy4zMzk4NDR2LTc4Ljc4OTA2MmMwLTMyLjM4MjgxMyAyNi4zMjAzMTMtNTguNzMwNDY5IDU4LjY3MTg3Ni01OC43MzA0NjkgMzIuMzUxNTYyIDAgNTguNjY3OTY4IDI2LjM0NzY1NiA1OC42Njc5NjggNTguNzMwNDY5em0xNDIuMjgxMjUgMzIxLjY2MDE1NmMwIDE3LjM4MjgxMy0xNC4xNDQ1MzEgMzEuNTI3MzQ0LTMxLjUyNzM0NCAzMS41MjczNDRoLTMzOC44NDM3NWMtMTcuMzgyODEyIDAtMzEuNTI3MzQzLTE0LjE0NDUzMS0zMS41MjczNDMtMzEuNTI3MzQ0di0yNTIuNjMyODEyYzAtMTcuMzgyODEzIDE0LjE0MDYyNS0zMS41MjczNDQgMzEuNTI3MzQzLTMxLjUyNzM0NGgzMzguODQzNzVjMTcuMzgyODEzIDAgMzEuNTI3MzQ0IDE0LjE0NDUzMSAzMS41MjczNDQgMzEuNTI3MzQ0em0wIDAiLz48cGF0aCBkPSJtMzMwLjIwMzEyNSAzNTgtMTM3LjE5NTMxMyAxNDguNTkzNzUtNTYuODc4OTA2LTU3Ljg5ODQzOGMtNy4yNjE3MTgtNy4zODI4MTItMTkuMTMyODEyLTcuNDg4MjgxLTI2LjUxOTUzMS0uMjM0Mzc0LTcuMzgyODEzIDcuMjYxNzE4LTcuNDkyMTg3IDE5LjEzMjgxMi0uMjM0Mzc1IDI2LjUxOTUzMWw3MC42ODM1OTQgNzEuOTMzNTkzYzMuNTIzNDM3IDMuNTkzNzUgOC4zNDM3NSA1LjYwOTM3NiAxMy4zNzUgNS42MDkzNzZoLjI4NTE1NmM1LjEzMjgxMi0uMDgyMDMyIDEwLjAwNzgxMi0yLjI1NzgxMyAxMy40ODgyODEtNi4wMzEyNWwxNTAuNTQ2ODc1LTE2My4wNTg1OTRjNy4wMjczNDQtNy42MDkzNzUgNi41NTA3ODItMTkuNDY4NzUtMS4wNTQ2ODctMjYuNDk2MDk0LTcuNjA5Mzc1LTcuMDE5NTMxLTE5LjQ3MjY1Ny02LjU0Njg3NS0yNi40OTYwOTQgMS4wNjI1em0wIDAiLz48L3N2Zz4=';
-        }
-        return currentIcon;
-    }
+    firstIconClick = () => {
+        this.setState({
+            firstVisibility: false,
+        });
+    };
     firstFormSubmit = values => {
         const incidentId = this.props.incident._id;
         const projectId = this.props.incident.projectId;
@@ -63,29 +69,29 @@ export class IncidentStatus extends Component {
         const description = this.props.incident.description;
         const incidentPriority = this.props.incident.incidentPriority._id;
 
-        this.props.updateIncident(
-            projectId,
-            incidentId,
-            incidentType,
-            values.title,
-            description,
-            incidentPriority
-        ).then(()=>{
-            this.firstFormIconFunction(false);
-        }) 
-    }
-    firstFormIconFunction = (setEditState) => {
-        this.setState(() =>({
-            firstIcon: setEditState
-        }))
-    }
-    getSecondIcon =()=>{
-        let currentIcon = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik01MTAuNDEzLDEyOS4yOTJjLTMuNzA1LTcuNDA5LTEyLjcxMy0xMC40MTMtMjAuMTI0LTYuNzA4bC02MCwzMGMtNy40MSwzLjcwNS0xMC40MTMsMTIuNzE1LTYuNzA4LDIwLjEyNQ0KCQkJYzMuNzA0LDcuNDA5LDEyLjcxMywxMC40MTMsMjAuMTI0LDYuNzA4bDYwLTMwQzUxMS4xMTUsMTQ1LjcxMiw1MTQuMTE4LDEzNi43MDIsNTEwLjQxMywxMjkuMjkyeiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNNTAzLjcwNSwzMDIuNTgzbC02MC0zMGMtNy40MDYtMy43MDMtMTYuNDE4LTAuNzAyLTIwLjEyNCw2LjcwOGMtMy43MDUsNy40MS0wLjcwMiwxNi40Miw2LjcwOCwyMC4xMjVsNjAsMzANCgkJCWM3LjQxLDMuNzA1LDE2LjQyLDAuNzAxLDIwLjEyNC02LjcwOEM1MTQuMTE4LDMxNS4yOTgsNTExLjExNSwzMDYuMjg4LDUwMy43MDUsMzAyLjU4M3oiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCgk8Zz4NCgkJPHBhdGggZD0iTTM0NS45OTgsMjQxSDExOS45OTl2LTc2YzAtNDEuMzU1LDM0LjA5NC03NSw3Ni03NWM0MS4zNTUsMCw3NSwzMy42NDUsNzUsNzV2MzBjMCw4LjI4NCw2LjcxNiwxNSwxNSwxNWg2MA0KCQkJYzguMjg0LDAsMTUtNi43MTYsMTUtMTV2LTMwYzAtOTAuOTgtNzQuMDE4LTE2NC45OTktMTY0Ljk5OS0xNjQuOTk5QzEwNC40NjcsMC4wMDIsMzAsNzQuMDIsMzAsMTY1LjAwMXY3OC41OA0KCQkJQzEyLjU0MSwyNDkuNzcyLDAsMjY2LjQ0NSwwLDI4NnYxODAuOTk5YzAsMjQuODEzLDIwLjE4Nyw0NSw0NSw0NWgzMDAuOTk4YzI0LjgxMywwLDQ1LTIwLjE4Nyw0NS00NVYyODYNCgkJCUMzOTAuOTk4LDI2MS4xODcsMzcwLjgxMSwyNDEsMzQ1Ljk5OCwyNDF6IE02MCwxNjUuMDAxYzAtNzQuNDM5LDYxLjAxLTEzNC45OTksMTM1Ljk5OS0xMzQuOTk5DQoJCQljNzQuNDM5LDAsMTM0Ljk5OSw2MC41NjEsMTM0Ljk5OSwxMzQuOTk5djE1aC0zMHYtMTVjMC01Ny44OTctNDcuMTAzLTEwNC45OTktMTA0Ljk5OS0xMDQuOTk5DQoJCQljLTU4LjA2OCwwLTEwNS45OTksNDcuMTItMTA1Ljk5OSwxMDQuOTk5djc2SDYwVjE2NS4wMDF6IE0zNjAuOTk4LDQ2Ni45OTljMCw4LjI3MS02LjcyOSwxNS0xNSwxNUg0NWMtOC4yNzEsMC0xNS02LjcyOS0xNS0xNQ0KCQkJVjI4NmMwLTguMjcxLDYuNzI5LTE1LDE1LTE1YzEzLjk4OCwwLDI4OC44ODMsMCwzMDAuOTk4LDBjOC4yNzEsMCwxNSw2LjcyOSwxNSwxNVY0NjYuOTk5eiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNMTk1Ljk5OSwzMDFjLTI0LjgxMywwLTQ1LDIwLjE4Ny00NSw0NWMwLDE5LjU1NSwxMi41NDEsMzYuMjI4LDMwLDQyLjQydjQ4LjU4YzAsOC4yODQsNi43MTYsMTUsMTUsMTVzMTUtNi43MTYsMTUtMTUNCgkJCXYtNDguNThjMTcuNDU5LTYuMTkyLDMwLTIyLjg2NSwzMC00Mi40MkMyNDAuOTk5LDMyMS4xODcsMjIwLjgxMiwzMDEsMTk1Ljk5OSwzMDF6IE0xOTUuOTk5LDM2MC45OTljLTguMjcxLDAtMTUtNi43MjktMTUtMTUNCgkJCXM2LjcyOS0xNSwxNS0xNXMxNSw2LjcyOSwxNSwxNVMyMDQuMjcsMzYwLjk5OSwxOTUuOTk5LDM2MC45OTl6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik00OTYuOTk3LDIxMWgtNjBjLTguMjg0LDAtMTUsNi43MTYtMTUsMTVzNi43MTYsMTUsMTUsMTVoNjBjOC4yODQsMCwxNS02LjcxNiwxNS0xNVM1MDUuMjgxLDIxMSw0OTYuOTk3LDIxMXoiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==';
-        if(this.state.secondIcon){
-            currentIcon = 'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjY4MnB0IiB2aWV3Qm94PSItMTAzIC0yMSA2ODIgNjgyLjY2NjY5IiB3aWR0aD0iNjgycHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTQwMy43Njk1MzEgMjQ5LjMzNTkzOHYtNzguOTM3NWMwLTkzLjk1NzAzMi03Ni40NDUzMTItMTcwLjM5ODQzOC0xNzAuNDAyMzQzLTE3MC4zOTg0MzgtOTMuOTU3MDMyIDAtMTcwLjQwMjM0NCA3Ni40NDE0MDYtMTcwLjQwMjM0NCAxNzAuMzk4NDM4djc4LjkzNzVjLTM3LjYwOTM3NS41MjczNDMtNjguMDQ2ODc1IDMxLjI2OTUzMS02OC4wNDY4NzUgNjkuMDAzOTA2djI1Mi42MzI4MTJjMCAzOC4wNTg1OTQgMzAuOTY0ODQzIDY5LjAyNzM0NCA2OS4wMjczNDMgNjkuMDI3MzQ0aDMzOC44NDM3NWMzOC4wNTg1OTQgMCA2OS4wMjczNDQtMzAuOTY4NzUgNjkuMDI3MzQ0LTY5LjAyNzM0NHYtMjUyLjYzMjgxMmMwLTM3LjczNDM3NS0zMC40NDE0MDYtNjguNDc2NTYzLTY4LjA0Njg3NS02OS4wMDM5MDZ6bS0xNzAuNDAyMzQzLTIxMS44MzU5MzhjNzMuMjgxMjUgMCAxMzIuOTAyMzQzIDU5LjYxNzE4OCAxMzIuOTAyMzQzIDEzMi44OTg0Mzh2NzguOTE0MDYyaC0zNi43MzQzNzV2LTc4Ljc4OTA2MmMwLTUzLjA2MjUtNDMuMTQwNjI1LTk2LjIzMDQ2OS05Ni4xNzE4NzUtOTYuMjMwNDY5LTUzLjAyNzM0MyAwLTk2LjE2Nzk2OSA0My4xNjc5NjktOTYuMTY3OTY5IDk2LjIzMDQ2OXY3OC43ODkwNjJoLTM2LjczMDQ2OHYtNzguOTE0MDYyYzAtNzMuMjgxMjUgNTkuNjE3MTg3LTEzMi44OTg0MzggMTMyLjkwMjM0NC0xMzIuODk4NDM4em01OC42Njc5NjggMjExLjgxMjVoLTExNy4zMzk4NDR2LTc4Ljc4OTA2MmMwLTMyLjM4MjgxMyAyNi4zMjAzMTMtNTguNzMwNDY5IDU4LjY3MTg3Ni01OC43MzA0NjkgMzIuMzUxNTYyIDAgNTguNjY3OTY4IDI2LjM0NzY1NiA1OC42Njc5NjggNTguNzMwNDY5em0xNDIuMjgxMjUgMzIxLjY2MDE1NmMwIDE3LjM4MjgxMy0xNC4xNDQ1MzEgMzEuNTI3MzQ0LTMxLjUyNzM0NCAzMS41MjczNDRoLTMzOC44NDM3NWMtMTcuMzgyODEyIDAtMzEuNTI3MzQzLTE0LjE0NDUzMS0zMS41MjczNDMtMzEuNTI3MzQ0di0yNTIuNjMyODEyYzAtMTcuMzgyODEzIDE0LjE0MDYyNS0zMS41MjczNDQgMzEuNTI3MzQzLTMxLjUyNzM0NGgzMzguODQzNzVjMTcuMzgyODEzIDAgMzEuNTI3MzQ0IDE0LjE0NDUzMSAzMS41MjczNDQgMzEuNTI3MzQ0em0wIDAiLz48cGF0aCBkPSJtMzMwLjIwMzEyNSAzNTgtMTM3LjE5NTMxMyAxNDguNTkzNzUtNTYuODc4OTA2LTU3Ljg5ODQzOGMtNy4yNjE3MTgtNy4zODI4MTItMTkuMTMyODEyLTcuNDg4MjgxLTI2LjUxOTUzMS0uMjM0Mzc0LTcuMzgyODEzIDcuMjYxNzE4LTcuNDkyMTg3IDE5LjEzMjgxMi0uMjM0Mzc1IDI2LjUxOTUzMWw3MC42ODM1OTQgNzEuOTMzNTkzYzMuNTIzNDM3IDMuNTkzNzUgOC4zNDM3NSA1LjYwOTM3NiAxMy4zNzUgNS42MDkzNzZoLjI4NTE1NmM1LjEzMjgxMi0uMDgyMDMyIDEwLjAwNzgxMi0yLjI1NzgxMyAxMy40ODgyODEtNi4wMzEyNWwxNTAuNTQ2ODc1LTE2My4wNTg1OTRjNy4wMjczNDQtNy42MDkzNzUgNi41NTA3ODItMTkuNDY4NzUtMS4wNTQ2ODctMjYuNDk2MDk0LTcuNjA5Mzc1LTcuMDE5NTMxLTE5LjQ3MjY1Ny02LjU0Njg3NS0yNi40OTYwOTQgMS4wNjI1em0wIDAiLz48L3N2Zz4=';
-        }
-        return currentIcon;
-    }
+        this.props
+            .updateIncident(
+                projectId,
+                incidentId,
+                incidentType,
+                values.title,
+                description,
+                incidentPriority
+            )
+            .then(() => {
+                this.setState({
+                    firstVisibility: true,
+                    firstHover: {
+                        display: 'none',
+                    },
+                });
+            });
+    };
+    secondIconClick = () => {
+        this.setState({
+            secondVisibility: false,
+        });
+    };
     secondFormSubmit = () => {
         const incidentId = this.props.incident._id;
         const projectId = this.props.incident.projectId;
@@ -93,56 +99,54 @@ export class IncidentStatus extends Component {
         const title = this.props.incident.title;
         const description = this.props.description;
         const incidentPriority = this.props.incident.incidentPriority._id;
-        this.props.updateIncident(
-            projectId,
-            incidentId,
-            incidentType,
-            title,
-            description,
-            incidentPriority
-        ).then(()=>{
-            this.secondFormIconFunction(false);
-        })
-
-    }
-    secondFormIconFunction = (setEditState) => {
-        this.setState(() =>({
-            secondIcon: setEditState
-        }))
-    }
-
-    getThirdIcon =()=>{
-        let currentIcon = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik01MTAuNDEzLDEyOS4yOTJjLTMuNzA1LTcuNDA5LTEyLjcxMy0xMC40MTMtMjAuMTI0LTYuNzA4bC02MCwzMGMtNy40MSwzLjcwNS0xMC40MTMsMTIuNzE1LTYuNzA4LDIwLjEyNQ0KCQkJYzMuNzA0LDcuNDA5LDEyLjcxMywxMC40MTMsMjAuMTI0LDYuNzA4bDYwLTMwQzUxMS4xMTUsMTQ1LjcxMiw1MTQuMTE4LDEzNi43MDIsNTEwLjQxMywxMjkuMjkyeiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNNTAzLjcwNSwzMDIuNTgzbC02MC0zMGMtNy40MDYtMy43MDMtMTYuNDE4LTAuNzAyLTIwLjEyNCw2LjcwOGMtMy43MDUsNy40MS0wLjcwMiwxNi40Miw2LjcwOCwyMC4xMjVsNjAsMzANCgkJCWM3LjQxLDMuNzA1LDE2LjQyLDAuNzAxLDIwLjEyNC02LjcwOEM1MTQuMTE4LDMxNS4yOTgsNTExLjExNSwzMDYuMjg4LDUwMy43MDUsMzAyLjU4M3oiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCgk8Zz4NCgkJPHBhdGggZD0iTTM0NS45OTgsMjQxSDExOS45OTl2LTc2YzAtNDEuMzU1LDM0LjA5NC03NSw3Ni03NWM0MS4zNTUsMCw3NSwzMy42NDUsNzUsNzV2MzBjMCw4LjI4NCw2LjcxNiwxNSwxNSwxNWg2MA0KCQkJYzguMjg0LDAsMTUtNi43MTYsMTUtMTV2LTMwYzAtOTAuOTgtNzQuMDE4LTE2NC45OTktMTY0Ljk5OS0xNjQuOTk5QzEwNC40NjcsMC4wMDIsMzAsNzQuMDIsMzAsMTY1LjAwMXY3OC41OA0KCQkJQzEyLjU0MSwyNDkuNzcyLDAsMjY2LjQ0NSwwLDI4NnYxODAuOTk5YzAsMjQuODEzLDIwLjE4Nyw0NSw0NSw0NWgzMDAuOTk4YzI0LjgxMywwLDQ1LTIwLjE4Nyw0NS00NVYyODYNCgkJCUMzOTAuOTk4LDI2MS4xODcsMzcwLjgxMSwyNDEsMzQ1Ljk5OCwyNDF6IE02MCwxNjUuMDAxYzAtNzQuNDM5LDYxLjAxLTEzNC45OTksMTM1Ljk5OS0xMzQuOTk5DQoJCQljNzQuNDM5LDAsMTM0Ljk5OSw2MC41NjEsMTM0Ljk5OSwxMzQuOTk5djE1aC0zMHYtMTVjMC01Ny44OTctNDcuMTAzLTEwNC45OTktMTA0Ljk5OS0xMDQuOTk5DQoJCQljLTU4LjA2OCwwLTEwNS45OTksNDcuMTItMTA1Ljk5OSwxMDQuOTk5djc2SDYwVjE2NS4wMDF6IE0zNjAuOTk4LDQ2Ni45OTljMCw4LjI3MS02LjcyOSwxNS0xNSwxNUg0NWMtOC4yNzEsMC0xNS02LjcyOS0xNS0xNQ0KCQkJVjI4NmMwLTguMjcxLDYuNzI5LTE1LDE1LTE1YzEzLjk4OCwwLDI4OC44ODMsMCwzMDAuOTk4LDBjOC4yNzEsMCwxNSw2LjcyOSwxNSwxNVY0NjYuOTk5eiIvPg0KCTwvZz4NCjwvZz4NCjxnPg0KCTxnPg0KCQk8cGF0aCBkPSJNMTk1Ljk5OSwzMDFjLTI0LjgxMywwLTQ1LDIwLjE4Ny00NSw0NWMwLDE5LjU1NSwxMi41NDEsMzYuMjI4LDMwLDQyLjQydjQ4LjU4YzAsOC4yODQsNi43MTYsMTUsMTUsMTVzMTUtNi43MTYsMTUtMTUNCgkJCXYtNDguNThjMTcuNDU5LTYuMTkyLDMwLTIyLjg2NSwzMC00Mi40MkMyNDAuOTk5LDMyMS4xODcsMjIwLjgxMiwzMDEsMTk1Ljk5OSwzMDF6IE0xOTUuOTk5LDM2MC45OTljLTguMjcxLDAtMTUtNi43MjktMTUtMTUNCgkJCXM2LjcyOS0xNSwxNS0xNXMxNSw2LjcyOSwxNSwxNVMyMDQuMjcsMzYwLjk5OSwxOTUuOTk5LDM2MC45OTl6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik00OTYuOTk3LDIxMWgtNjBjLTguMjg0LDAtMTUsNi43MTYtMTUsMTVzNi43MTYsMTUsMTUsMTVoNjBjOC4yODQsMCwxNS02LjcxNiwxNS0xNVM1MDUuMjgxLDIxMSw0OTYuOTk3LDIxMXoiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==';
-        if(this.state.thirdIcon){
-            currentIcon = 'data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjY4MnB0IiB2aWV3Qm94PSItMTAzIC0yMSA2ODIgNjgyLjY2NjY5IiB3aWR0aD0iNjgycHQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTQwMy43Njk1MzEgMjQ5LjMzNTkzOHYtNzguOTM3NWMwLTkzLjk1NzAzMi03Ni40NDUzMTItMTcwLjM5ODQzOC0xNzAuNDAyMzQzLTE3MC4zOTg0MzgtOTMuOTU3MDMyIDAtMTcwLjQwMjM0NCA3Ni40NDE0MDYtMTcwLjQwMjM0NCAxNzAuMzk4NDM4djc4LjkzNzVjLTM3LjYwOTM3NS41MjczNDMtNjguMDQ2ODc1IDMxLjI2OTUzMS02OC4wNDY4NzUgNjkuMDAzOTA2djI1Mi42MzI4MTJjMCAzOC4wNTg1OTQgMzAuOTY0ODQzIDY5LjAyNzM0NCA2OS4wMjczNDMgNjkuMDI3MzQ0aDMzOC44NDM3NWMzOC4wNTg1OTQgMCA2OS4wMjczNDQtMzAuOTY4NzUgNjkuMDI3MzQ0LTY5LjAyNzM0NHYtMjUyLjYzMjgxMmMwLTM3LjczNDM3NS0zMC40NDE0MDYtNjguNDc2NTYzLTY4LjA0Njg3NS02OS4wMDM5MDZ6bS0xNzAuNDAyMzQzLTIxMS44MzU5MzhjNzMuMjgxMjUgMCAxMzIuOTAyMzQzIDU5LjYxNzE4OCAxMzIuOTAyMzQzIDEzMi44OTg0Mzh2NzguOTE0MDYyaC0zNi43MzQzNzV2LTc4Ljc4OTA2MmMwLTUzLjA2MjUtNDMuMTQwNjI1LTk2LjIzMDQ2OS05Ni4xNzE4NzUtOTYuMjMwNDY5LTUzLjAyNzM0MyAwLTk2LjE2Nzk2OSA0My4xNjc5NjktOTYuMTY3OTY5IDk2LjIzMDQ2OXY3OC43ODkwNjJoLTM2LjczMDQ2OHYtNzguOTE0MDYyYzAtNzMuMjgxMjUgNTkuNjE3MTg3LTEzMi44OTg0MzggMTMyLjkwMjM0NC0xMzIuODk4NDM4em01OC42Njc5NjggMjExLjgxMjVoLTExNy4zMzk4NDR2LTc4Ljc4OTA2MmMwLTMyLjM4MjgxMyAyNi4zMjAzMTMtNTguNzMwNDY5IDU4LjY3MTg3Ni01OC43MzA0NjkgMzIuMzUxNTYyIDAgNTguNjY3OTY4IDI2LjM0NzY1NiA1OC42Njc5NjggNTguNzMwNDY5em0xNDIuMjgxMjUgMzIxLjY2MDE1NmMwIDE3LjM4MjgxMy0xNC4xNDQ1MzEgMzEuNTI3MzQ0LTMxLjUyNzM0NCAzMS41MjczNDRoLTMzOC44NDM3NWMtMTcuMzgyODEyIDAtMzEuNTI3MzQzLTE0LjE0NDUzMS0zMS41MjczNDMtMzEuNTI3MzQ0di0yNTIuNjMyODEyYzAtMTcuMzgyODEzIDE0LjE0MDYyNS0zMS41MjczNDQgMzEuNTI3MzQzLTMxLjUyNzM0NGgzMzguODQzNzVjMTcuMzgyODEzIDAgMzEuNTI3MzQ0IDE0LjE0NDUzMSAzMS41MjczNDQgMzEuNTI3MzQ0em0wIDAiLz48cGF0aCBkPSJtMzMwLjIwMzEyNSAzNTgtMTM3LjE5NTMxMyAxNDguNTkzNzUtNTYuODc4OTA2LTU3Ljg5ODQzOGMtNy4yNjE3MTgtNy4zODI4MTItMTkuMTMyODEyLTcuNDg4MjgxLTI2LjUxOTUzMS0uMjM0Mzc0LTcuMzgyODEzIDcuMjYxNzE4LTcuNDkyMTg3IDE5LjEzMjgxMi0uMjM0Mzc1IDI2LjUxOTUzMWw3MC42ODM1OTQgNzEuOTMzNTkzYzMuNTIzNDM3IDMuNTkzNzUgOC4zNDM3NSA1LjYwOTM3NiAxMy4zNzUgNS42MDkzNzZoLjI4NTE1NmM1LjEzMjgxMi0uMDgyMDMyIDEwLjAwNzgxMi0yLjI1NzgxMyAxMy40ODgyODEtNi4wMzEyNWwxNTAuNTQ2ODc1LTE2My4wNTg1OTRjNy4wMjczNDQtNy42MDkzNzUgNi41NTA3ODItMTkuNDY4NzUtMS4wNTQ2ODctMjYuNDk2MDk0LTcuNjA5Mzc1LTcuMDE5NTMxLTE5LjQ3MjY1Ny02LjU0Njg3NS0yNi40OTYwOTQgMS4wNjI1em0wIDAiLz48L3N2Zz4=';
-        }
-        return currentIcon;
-    }
-    thirdFormIconFunction = (setEditState) => {
-        this.setState(() =>({
-            thirdIcon: setEditState
-        }))
-        if(setEditState === false){
-            this.thirdFormSubmit();
-        }
-    }
-    thirdFormSubmit =()=>{
+        this.props
+            .updateIncident(
+                projectId,
+                incidentId,
+                incidentType,
+                title,
+                description,
+                incidentPriority
+            )
+            .then(() => {
+                this.setState({
+                    secondVisibility: true,
+                    secondHover: {
+                        display: 'none',
+                    },
+                });
+            });
+    };
+    thirdIconClick = () => {
+        this.setState({
+            thirdVisibility: false,
+        });
+    };
+    thirdFormSubmit = (e, value) => {
         const incidentId = this.props.incident._id;
         const projectId = this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const title = this.props.incident.title;
         const description = this.props.incident.description;
-        const incidentPriority = this.props.incidentPriority;
-
-        this.props.updateIncident(
-            projectId,
-            incidentId,
-            incidentType,
-            title,
-            description,
-            incidentPriority
-        )
-    }
+        const incidentPriority = value;
+        this.props
+            .updateIncident(
+                projectId,
+                incidentId,
+                incidentType,
+                title,
+                description,
+                incidentPriority
+            )
+            .then(() => {
+                this.setState({
+                    thirdVisibility: true,
+                    thirdHover: {
+                        display: 'none',
+                    },
+                });
+            });
+    };
     acknowledge = setLoading => {
         const userId = User.getUserId();
         this.props
@@ -290,18 +294,18 @@ export class IncidentStatus extends Component {
             ? this.props.incident.monitorId.componentId._id
             : '';
         const homeRoute = this.props.currentProject
-            ? '/dashboard/project/' + this.props.currentProject._id
+            ? '/dashboard/project/' + this.props.currentProject.slug
             : '';
         const monitorRoute = this.props.currentProject
             ? '/dashboard/project/' +
-            projectId +
+            this.props.currentProject.slug +
             '/' +
             componentId +
             '/monitoring'
             : '';
         const incidentRoute = this.props.currentProject
             ? '/dashboard/project/' +
-            projectId +
+            this.props.currentProject.slug +
             '/' +
             componentId +
             '/incidents/' +
@@ -715,7 +719,10 @@ export class IncidentStatus extends Component {
                                                                     }}
                                                                     to={
                                                                         '/dashboard/project/' +
-                                                                        projectId +
+                                                                        this
+                                                                            .props
+                                                                            .currentProject
+                                                                            .slug +
                                                                         '/' +
                                                                         componentId +
                                                                         '/monitoring'
@@ -741,7 +748,10 @@ export class IncidentStatus extends Component {
                                                                     }}
                                                                     to={
                                                                         '/dashboard/project/' +
-                                                                        projectId +
+                                                                        this
+                                                                            .props
+                                                                            .currentProject
+                                                                            .slug +
                                                                         '/' +
                                                                         componentId +
                                                                         '/monitoring/' +
@@ -1509,51 +1519,133 @@ export class IncidentStatus extends Component {
                                                                 <label className="">
                                                                     Title
                                                             </label>
-                                                            <ShouldRender
-                                                                if={!this.props.editable}
-                                                            >
-                                                                <div className="bs-content-inside">
-                                                                    <span className="value">
-                                                                        {
-                                                                            this
-                                                                                .props
-                                                                                .incident
-                                                                                .title
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                                </ShouldRender>
-                                                                <ShouldRender 
-                                                                    if={this.props.editable}
+
+                                                                <ShouldRender
+                                                                    if={
+                                                                        this.state
+                                                                            .firstVisibility
+                                                                    }
                                                                 >
-                                                                <form onSubmit={this.props.handleSubmit(this.firstFormSubmit.bind(this))}>
-                                                                    <div className="bs-Fieldset-fields">
-                                                                        <Field
-                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                            component={RenderField}
-                                                                            name="title"
-                                                                            disabled={!this.state.firstIcon}
-                                                                            validate={[
-                                                                                ValidateField.required,
-                                                                            ]}
-                                                                            style={{width:212}}
-                                                                            onBlur={this.props.handleSubmit(this.firstFormSubmit)}
-                                                                            id="title"
-                                                                        />
-                                                                        <span>
-                                                                            <img
-                                                                                onClick={()=>this.firstFormIconFunction(!this.state.firstIcon)}
-                                                                                style={{
-                                                                                    width: 20,
-                                                                                    height: 20,
-                                                                                    cursor: 'pointer'
-                                                                                }}
-                                                                                src={this.getIcon()}
-                                                                                alt="firstFormIcon"
-                                                                            />
-                                                                        </span>
+                                                                    <div
+                                                                        className="bs-content-inside"
+                                                                        onMouseEnter={() =>
+                                                                            this.setState(
+                                                                                {
+                                                                                    firstHover: {
+                                                                                        display:
+                                                                                            'inline',
+                                                                                    },
+                                                                                }
+                                                                            )
+                                                                        }
+                                                                        onMouseLeave={() =>
+                                                                            this.setState(
+                                                                                {
+                                                                                    firstHover: {
+                                                                                        display:
+                                                                                            'none',
+                                                                                    },
+                                                                                }
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <span
+                                                                            className="value"
+                                                                            onClick={
+                                                                                this
+                                                                                    .props
+                                                                                    .editable
+                                                                                    ? this
+                                                                                        .firstIconClick
+                                                                                    : null
+                                                                            }
+                                                                            style={{
+                                                                                cursor: this
+                                                                                    .props
+                                                                                    .editable
+                                                                                    ? 'pointer'
+                                                                                    : null,
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                this
+                                                                                    .props
+                                                                                    .incident
+                                                                                    .title
+                                                                            }
+                                                                        </span>{' '}
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                this
+                                                                                    .props
+                                                                                    .editable
+                                                                            }
+                                                                        >
+                                                                            <span
+                                                                                onClick={
+                                                                                    this
+                                                                                        .firstIconClick
+                                                                                }
+                                                                            >
+                                                                                <img
+                                                                                    style={
+                                                                                        this
+                                                                                            .state
+                                                                                            .firstHover
+                                                                                    }
+                                                                                    className="incidentEditIcon"
+                                                                                    alt=""
+                                                                                    src={
+                                                                                        'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCA0MDEuNTIyODkgNDAxIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyIiB4bWw6c3BhY2U9InByZXNlcnZlIiBjbGFzcz0iIj48Zz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzAuNTg5ODQ0IDI1MC45NzI2NTZjLTUuNTIzNDM4IDAtMTAgNC40NzY1NjMtMTAgMTB2ODguNzg5MDYzYy0uMDE5NTMyIDE2LjU2MjUtMTMuNDM3NSAyOS45ODQzNzUtMzAgMzBoLTI4MC41ODk4NDRjLTE2LjU2MjUtLjAxNTYyNS0yOS45ODA0NjktMTMuNDM3NS0zMC0zMHYtMjYwLjU4OTg0NGMuMDE5NTMxLTE2LjU1ODU5NCAxMy40Mzc1LTI5Ljk4MDQ2OSAzMC0zMGg4OC43ODkwNjJjNS41MjM0MzggMCAxMC00LjQ3NjU2MyAxMC0xMCAwLTUuNTE5NTMxLTQuNDc2NTYyLTEwLTEwLTEwaC04OC43ODkwNjJjLTI3LjYwMTU2Mi4wMzEyNS00OS45Njg3NSAyMi4zOTg0MzctNTAgNTB2MjYwLjU5Mzc1Yy4wMzEyNSAyNy42MDE1NjMgMjIuMzk4NDM4IDQ5Ljk2ODc1IDUwIDUwaDI4MC41ODk4NDRjMjcuNjAxNTYyLS4wMzEyNSA0OS45Njg3NS0yMi4zOTg0MzcgNTAtNTB2LTg4Ljc5Mjk2OWMwLTUuNTIzNDM3LTQuNDc2NTYzLTEwLTEwLTEwem0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzYuNjI4OTA2IDEzLjQ0MTQwNmMtMTcuNTc0MjE4LTE3LjU3NDIxOC00Ni4wNjY0MDYtMTcuNTc0MjE4LTYzLjY0MDYyNSAwbC0xNzguNDA2MjUgMTc4LjQwNjI1Yy0xLjIyMjY1NiAxLjIyMjY1Ni0yLjEwNTQ2OSAyLjczODI4Mi0yLjU2NjQwNiA0LjQwMjM0NGwtMjMuNDYwOTM3IDg0LjY5OTIxOWMtLjk2NDg0NCAzLjQ3MjY1Ni4wMTU2MjQgNy4xOTE0MDYgMi41NjI1IDkuNzQyMTg3IDIuNTUwNzgxIDIuNTQ2ODc1IDYuMjY5NTMxIDMuNTI3MzQ0IDkuNzQyMTg3IDIuNTY2NDA2bDg0LjY5OTIxOS0yMy40NjQ4NDNjMS42NjQwNjItLjQ2MDkzOCAzLjE3OTY4Ny0xLjM0Mzc1IDQuNDAyMzQ0LTIuNTY2NDA3bDE3OC40MDIzNDMtMTc4LjQxMDE1NmMxNy41NDY4NzUtMTcuNTg1OTM3IDE3LjU0Njg3NS00Ni4wNTQ2ODcgMC02My42NDA2MjV6bS0yMjAuMjU3ODEyIDE4NC45MDYyNSAxNDYuMDExNzE4LTE0Ni4wMTU2MjUgNDcuMDg5ODQ0IDQ3LjA4OTg0NC0xNDYuMDE1NjI1IDE0Ni4wMTU2MjV6bS05LjQwNjI1IDE4Ljg3NSAzNy42MjEwOTQgMzcuNjI1LTUyLjAzOTA2MyAxNC40MTc5Njl6bTIyNy4yNTc4MTItMTQyLjU0Njg3NS0xMC42MDU0NjggMTAuNjA1NDY5LTQ3LjA5Mzc1LTQ3LjA5Mzc1IDEwLjYwOTM3NC0xMC42MDU0NjljOS43NjE3MTktOS43NjE3MTkgMjUuNTg5ODQ0LTkuNzYxNzE5IDM1LjM1MTU2MyAwbDExLjczODI4MSAxMS43MzQzNzVjOS43NDYwOTQgOS43NzM0MzggOS43NDYwOTQgMjUuNTg5ODQ0IDAgMzUuMzU5Mzc1em0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48L2c+PC9zdmc+Cg=='
+                                                                                    }
+                                                                                />
+                                                                            </span>
+                                                                        </ShouldRender>
                                                                     </div>
-                                                                </form>
+                                                                </ShouldRender>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        !this.state
+                                                                            .firstVisibility
+                                                                    }
+                                                                >
+                                                                    <form
+                                                                        onSubmit={this.props.handleSubmit(
+                                                                            this.firstFormSubmit.bind(
+                                                                                this
+                                                                            )
+                                                                        )}
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '3px',
+                                                                            marginLeft:
+                                                                                '-3px',
+                                                                        }}
+                                                                    >
+                                                                        <div className="bs-Fieldset-fields">
+                                                                            <Field
+                                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                                component={
+                                                                                    RenderField
+                                                                                }
+                                                                                name="title"
+                                                                                disabled={
+                                                                                    false
+                                                                                }
+                                                                                validate={[
+                                                                                    ValidateField.required,
+                                                                                ]}
+                                                                                style={{
+                                                                                    width: 212,
+                                                                                }}
+                                                                                onBlur={this.props.handleSubmit(
+                                                                                    this
+                                                                                        .firstFormSubmit
+                                                                                )}
+                                                                                id="title"
+                                                                            />
+                                                                        </div>
+                                                                    </form>
                                                                 </ShouldRender>
                                                             </div>
                                                         )}
@@ -1563,52 +1655,132 @@ export class IncidentStatus extends Component {
                                                                 <label className="">
                                                                     Description
                                                             </label>
-                                                            <ShouldRender if={!this.props.editable}>
-                                                                <div className="bs-content-inside">
-                                                                    <ReactMarkdown
-                                                                        source={
-                                                                            this
-                                                                                .props
-                                                                                .incident
-                                                                                .description
+                                                                <ShouldRender
+                                                                    if={
+                                                                        this.state
+                                                                            .secondVisibility
+                                                                    }
+                                                                >
+                                                                    <div
+                                                                        className="bs-content-inside"
+                                                                        onMouseEnter={() =>
+                                                                            this.setState(
+                                                                                {
+                                                                                    secondHover: {
+                                                                                        display:
+                                                                                            'inline',
+                                                                                    },
+                                                                                }
+                                                                            )
                                                                         }
-                                                                    />
-                                                                </div>
-                                                                </ShouldRender>
-                                                                <ShouldRender if={this.props.editable}>
-                                                                <form onSubmit={this.props.handleSubmit(this.secondFormSubmit.bind(this))}>
-                                                                    <div className="bs-Fieldset-fields">
-                                                                        
-                                                                        <Field
-                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                            component={RenderCodeEditor}
-                                                                            name="description"
-                                                                            readOnly={!this.state.secondIcon}                                                                            
-                                                                            wrapEnabled ={true}
-                                                                            mode="markdown"
-                                                                            height="125px"
-                                                                            width="100%"                                                                            
-                                                                            placeholder="Please add a description"
-                                                                            onBlur={this.secondFormSubmit}
-                                                                            id="description"
-                                                                        />
-                                                                        <span>
-                                                                            <img
-                                                                                onClick={()=>this.secondFormIconFunction(!this.state.secondIcon)}
-                                                                                style={{
-                                                                                    width: 20,
-                                                                                    height: 20,
-                                                                                    cursor: 'pointer'
-                                                                                }}
-                                                                                src={this.getSecondIcon()}
-                                                                                alt="secondFormIcon"
-                                                                            />
-                                                                        </span>
+                                                                        onMouseLeave={() =>
+                                                                            this.setState(
+                                                                                {
+                                                                                    secondHover: {
+                                                                                        display:
+                                                                                            'none',
+                                                                                    },
+                                                                                }
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <p
+                                                                            onClick={
+                                                                                this
+                                                                                    .props
+                                                                                    .editable
+                                                                                    ? this
+                                                                                        .secondIconClick
+                                                                                    : null
+                                                                            }
+                                                                            style={{
+                                                                                display: 'inline',                                                                                 
+                                                                                wordBreak:'break-word',                                                                              
+                                                                                cursor: this
+                                                                                    .props
+                                                                                    .editable
+                                                                                    ? 'pointer'
+                                                                                    : null,
+                                                                            }}>
+                                                                            {this.props.incident.description}                                                                            
+                                                                        </p>
+                                                                        {' '}
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                this
+                                                                                    .props
+                                                                                    .editable
+                                                                            }
+                                                                        >
+                                                                            <span
+                                                                                onClick={
+                                                                                    this
+                                                                                        .secondIconClick
+                                                                                }
+                                                                            >
+                                                                                <img
+                                                                                    style={
+                                                                                        this
+                                                                                            .state
+                                                                                            .secondHover
+                                                                                    }
+                                                                                    className="incidentEditIcon"
+                                                                                    alt=""
+                                                                                    src={
+                                                                                        'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCA0MDEuNTIyODkgNDAxIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyIiB4bWw6c3BhY2U9InByZXNlcnZlIiBjbGFzcz0iIj48Zz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzAuNTg5ODQ0IDI1MC45NzI2NTZjLTUuNTIzNDM4IDAtMTAgNC40NzY1NjMtMTAgMTB2ODguNzg5MDYzYy0uMDE5NTMyIDE2LjU2MjUtMTMuNDM3NSAyOS45ODQzNzUtMzAgMzBoLTI4MC41ODk4NDRjLTE2LjU2MjUtLjAxNTYyNS0yOS45ODA0NjktMTMuNDM3NS0zMC0zMHYtMjYwLjU4OTg0NGMuMDE5NTMxLTE2LjU1ODU5NCAxMy40Mzc1LTI5Ljk4MDQ2OSAzMC0zMGg4OC43ODkwNjJjNS41MjM0MzggMCAxMC00LjQ3NjU2MyAxMC0xMCAwLTUuNTE5NTMxLTQuNDc2NTYyLTEwLTEwLTEwaC04OC43ODkwNjJjLTI3LjYwMTU2Mi4wMzEyNS00OS45Njg3NSAyMi4zOTg0MzctNTAgNTB2MjYwLjU5Mzc1Yy4wMzEyNSAyNy42MDE1NjMgMjIuMzk4NDM4IDQ5Ljk2ODc1IDUwIDUwaDI4MC41ODk4NDRjMjcuNjAxNTYyLS4wMzEyNSA0OS45Njg3NS0yMi4zOTg0MzcgNTAtNTB2LTg4Ljc5Mjk2OWMwLTUuNTIzNDM3LTQuNDc2NTYzLTEwLTEwLTEwem0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzYuNjI4OTA2IDEzLjQ0MTQwNmMtMTcuNTc0MjE4LTE3LjU3NDIxOC00Ni4wNjY0MDYtMTcuNTc0MjE4LTYzLjY0MDYyNSAwbC0xNzguNDA2MjUgMTc4LjQwNjI1Yy0xLjIyMjY1NiAxLjIyMjY1Ni0yLjEwNTQ2OSAyLjczODI4Mi0yLjU2NjQwNiA0LjQwMjM0NGwtMjMuNDYwOTM3IDg0LjY5OTIxOWMtLjk2NDg0NCAzLjQ3MjY1Ni4wMTU2MjQgNy4xOTE0MDYgMi41NjI1IDkuNzQyMTg3IDIuNTUwNzgxIDIuNTQ2ODc1IDYuMjY5NTMxIDMuNTI3MzQ0IDkuNzQyMTg3IDIuNTY2NDA2bDg0LjY5OTIxOS0yMy40NjQ4NDNjMS42NjQwNjItLjQ2MDkzOCAzLjE3OTY4Ny0xLjM0Mzc1IDQuNDAyMzQ0LTIuNTY2NDA3bDE3OC40MDIzNDMtMTc4LjQxMDE1NmMxNy41NDY4NzUtMTcuNTg1OTM3IDE3LjU0Njg3NS00Ni4wNTQ2ODcgMC02My42NDA2MjV6bS0yMjAuMjU3ODEyIDE4NC45MDYyNSAxNDYuMDExNzE4LTE0Ni4wMTU2MjUgNDcuMDg5ODQ0IDQ3LjA4OTg0NC0xNDYuMDE1NjI1IDE0Ni4wMTU2MjV6bS05LjQwNjI1IDE4Ljg3NSAzNy42MjEwOTQgMzcuNjI1LTUyLjAzOTA2MyAxNC40MTc5Njl6bTIyNy4yNTc4MTItMTQyLjU0Njg3NS0xMC42MDU0NjggMTAuNjA1NDY5LTQ3LjA5Mzc1LTQ3LjA5Mzc1IDEwLjYwOTM3NC0xMC42MDU0NjljOS43NjE3MTktOS43NjE3MTkgMjUuNTg5ODQ0LTkuNzYxNzE5IDM1LjM1MTU2MyAwbDExLjczODI4MSAxMS43MzQzNzVjOS43NDYwOTQgOS43NzM0MzggOS43NDYwOTQgMjUuNTg5ODQ0IDAgMzUuMzU5Mzc1em0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48L2c+PC9zdmc+Cg=='
+                                                                                    }
+                                                                                />
+                                                                            </span>
+                                                                        </ShouldRender>
                                                                     </div>
-                                                                </form>
+                                                                </ShouldRender>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        !this.state
+                                                                            .secondVisibility
+                                                                    }
+                                                                >
+                                                                    <form
+                                                                        onSubmit={this.props.handleSubmit(
+                                                                            this.secondFormSubmit.bind(
+                                                                                this
+                                                                            )
+                                                                        )}
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '3px',
+                                                                            marginLeft:
+                                                                                '-3px',
+                                                                        }}
+                                                                    >
+                                                                        <div className="bs-Fieldset-fields">
+                                                                            <Field
+                                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                                component={
+                                                                                    RenderCodeEditor
+                                                                                }
+                                                                                name="description"
+                                                                                readOnly={
+                                                                                    false
+                                                                                }
+                                                                                required={true}
+                                                                                wrapEnabled={
+                                                                                    true
+                                                                                }
+                                                                                mode="markdown"
+                                                                                height="125px"
+                                                                                width="100%"
+                                                                                placeholder="Please add a description"
+                                                                                onBlur={
+                                                                                    this
+                                                                                        .secondFormSubmit
+                                                                                }
+                                                                                id="description"
+                                                                            />
+                                                                        </div>
+                                                                    </form>
                                                                 </ShouldRender>
                                                             </div>
-                                                            
                                                         )}
                                                     {this.props.incident
                                                         .manuallyCreated &&
@@ -1671,10 +1843,46 @@ export class IncidentStatus extends Component {
                                                                 >
                                                                     <ReactMarkdown
                                                                         source={`${incidentReason &&
-                                                                            incidentReason.length >
-                                                                            1
-                                                                            ? incidentReason
-                                                                                .map(
+                                                                                incidentReason.length >
+                                                                                1
+                                                                                ? incidentReason
+                                                                                    .map(
+                                                                                        a => {
+                                                                                            if (
+                                                                                                a.includes(
+                                                                                                    'Response Time'
+                                                                                                )
+                                                                                            ) {
+                                                                                                const milliSeconds = a.match(
+                                                                                                    /\d+/
+                                                                                                )[0];
+                                                                                                const time = formatMonitorResponseTime(
+                                                                                                    Number(
+                                                                                                        milliSeconds
+                                                                                                    )
+                                                                                                );
+                                                                                                return (
+                                                                                                    '- **&middot; ' +
+                                                                                                    a.replace(
+                                                                                                        milliSeconds +
+                                                                                                        ' ms',
+                                                                                                        time
+                                                                                                    ) +
+                                                                                                    '**.'
+                                                                                                );
+                                                                                            } else {
+                                                                                                return (
+                                                                                                    '- **&middot; ' +
+                                                                                                    a +
+                                                                                                    '**.'
+                                                                                                );
+                                                                                            }
+                                                                                        }
+                                                                                    )
+                                                                                    .join(
+                                                                                        '\n'
+                                                                                    )
+                                                                                : incidentReason.map(
                                                                                     a => {
                                                                                         if (
                                                                                             a.includes(
@@ -1690,7 +1898,7 @@ export class IncidentStatus extends Component {
                                                                                                 )
                                                                                             );
                                                                                             return (
-                                                                                                '- **&middot; ' +
+                                                                                                ' **' +
                                                                                                 a.replace(
                                                                                                     milliSeconds +
                                                                                                     ' ms',
@@ -1700,49 +1908,13 @@ export class IncidentStatus extends Component {
                                                                                             );
                                                                                         } else {
                                                                                             return (
-                                                                                                '- **&middot; ' +
+                                                                                                ' **' +
                                                                                                 a +
                                                                                                 '**.'
                                                                                             );
                                                                                         }
                                                                                     }
                                                                                 )
-                                                                                .join(
-                                                                                    '\n'
-                                                                                )
-                                                                            : incidentReason.map(
-                                                                                a => {
-                                                                                    if (
-                                                                                        a.includes(
-                                                                                            'Response Time'
-                                                                                        )
-                                                                                    ) {
-                                                                                        const milliSeconds = a.match(
-                                                                                            /\d+/
-                                                                                        )[0];
-                                                                                        const time = formatMonitorResponseTime(
-                                                                                            Number(
-                                                                                                milliSeconds
-                                                                                            )
-                                                                                        );
-                                                                                        return (
-                                                                                            ' **' +
-                                                                                            a.replace(
-                                                                                                milliSeconds +
-                                                                                                ' ms',
-                                                                                                time
-                                                                                            ) +
-                                                                                            '**.'
-                                                                                        );
-                                                                                    } else {
-                                                                                        return (
-                                                                                            ' **' +
-                                                                                            a +
-                                                                                            '**.'
-                                                                                        );
-                                                                                    }
-                                                                                }
-                                                                            )
                                                                             }`}
                                                                     />
                                                                 </div>
@@ -1815,76 +1987,157 @@ export class IncidentStatus extends Component {
                                                                     Priority
                                                             </label>
                                                                 <div className="bs-content-inside">
-                                                                    <div className="Flex-flex Flex-alignItems--center bs-justify-cont">
-                                                                        <span
-                                                                            className="Margin-right--4"
-                                                                            style={{
-                                                                                display:
-                                                                                    'inline-block',
-                                                                                backgroundColor: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
-                                                                                height:
-                                                                                    '15px',
-                                                                                width:
-                                                                                    '15px',
-                                                                                borderRadius:
-                                                                                    '30%',
-                                                                            }}
-                                                                        ></span>
-                                                                        <ShouldRender if={!this.props.editable}>
-                                                                        <span
-                                                                            className="Text-fontWeight--medium"
-                                                                            style={{
-                                                                                color: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
-                                                                            }}
-                                                                        >
-                                                                            {
-                                                                                this
-                                                                                    .props
-                                                                                    .incident
-                                                                                    .incidentPriority
-                                                                                    .name
-                                                                            }
-                                                                        </span>
-                                                                        </ShouldRender>
-                                                                    </div>
-                                                                    <ShouldRender if={this.props.editable}>
-                                                                    <form onSubmit={this.props.handleSubmit(this.thirdFormSubmit.bind(this))}>
-                                                                    <div className="bs-Fieldset-fields" style={{marginTop:2}}>
-                                                                        <div>
-                                                                        <Field
-                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                            component={RenderSelect}
-                                                                            name="incidentPriority"
-                                                                            disabled={!this.state.thirdIcon} 
-                                                                            style={{width:'500px'}}                                                                                                                               
-                                                                            id="incidentPriority"s                                                                            
-                                                                            options={[                                                                                
-                                                                                ...this.props.incidentPriorities.map(
-                                                                                    incidentPriority => ({
-                                                                                        value:
-                                                                                            incidentPriority._id,
-                                                                                        label:
-                                                                                            incidentPriority.name,
-                                                                                    })
-                                                                                ),
-                                                                            ]}
-                                                                        />
-                                                                        </div>
-                                                                        <div>
-                                                                            <img
-                                                                               onClick={()=>this.thirdFormIconFunction(!this.state.thirdIcon)}
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .state
+                                                                                .thirdVisibility
+                                                                        }
+                                                                    >
+                                                                        <div className="Flex-flex Flex-alignItems--center bs-justify-cont">
+                                                                            <span
+                                                                                className="Margin-right--4"
                                                                                 style={{
-                                                                                    width: 20,
-                                                                                    height: 20,
-                                                                                    cursor: 'pointer'
+                                                                                    display:
+                                                                                        'inline',
+                                                                                    backgroundColor: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
+                                                                                    height:
+                                                                                        '15px',
+                                                                                    width:
+                                                                                        '15px',
+                                                                                    borderRadius:
+                                                                                        '30%',
                                                                                 }}
-                                                                                src={this.getThirdIcon()}
-                                                                                alt="thirdFormIcon"
-                                                                            />
+                                                                            ></span>
+                                                                            <span
+                                                                                onMouseEnter={() =>
+                                                                                    this.setState(
+                                                                                        {
+                                                                                            thirdHover: {
+                                                                                                display:
+                                                                                                    'inline',
+                                                                                            },
+                                                                                        }
+                                                                                    )
+                                                                                }
+                                                                                onMouseLeave={() =>
+                                                                                    this.setState(
+                                                                                        {
+                                                                                            thirdHover: {
+                                                                                                display:
+                                                                                                    'none',
+                                                                                            },
+                                                                                        }
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <span
+                                                                                    onClick={
+                                                                                        this
+                                                                                            .props
+                                                                                            .editable
+                                                                                            ? this
+                                                                                                .thirdIconClick
+                                                                                            : null
+                                                                                    }
+                                                                                    className="Text-fontWeight--medium"
+                                                                                    style={{
+                                                                                        color: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
+                                                                                        cursor: this
+                                                                                            .props
+                                                                                            .editable
+                                                                                            ? 'pointer'
+                                                                                            : null,
+                                                                                    }}
+                                                                                >
+                                                                                    {
+                                                                                        this
+                                                                                            .props
+                                                                                            .incident
+                                                                                            .incidentPriority
+                                                                                            .name
+                                                                                    }
+                                                                                </span>{' '}
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        this
+                                                                                            .props
+                                                                                            .editable
+                                                                                    }
+                                                                                >
+                                                                                    <span
+                                                                                        onClick={
+                                                                                            this
+                                                                                                .thirdIconClick
+                                                                                        }
+                                                                                    >
+                                                                                        <img
+                                                                                            style={
+                                                                                                this
+                                                                                                    .state
+                                                                                                    .thirdHover
+                                                                                            }
+                                                                                            className="incidentEditIcon"
+                                                                                            alt=""
+                                                                                            src={
+                                                                                                'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCA0MDEuNTIyODkgNDAxIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyIiB4bWw6c3BhY2U9InByZXNlcnZlIiBjbGFzcz0iIj48Zz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzAuNTg5ODQ0IDI1MC45NzI2NTZjLTUuNTIzNDM4IDAtMTAgNC40NzY1NjMtMTAgMTB2ODguNzg5MDYzYy0uMDE5NTMyIDE2LjU2MjUtMTMuNDM3NSAyOS45ODQzNzUtMzAgMzBoLTI4MC41ODk4NDRjLTE2LjU2MjUtLjAxNTYyNS0yOS45ODA0NjktMTMuNDM3NS0zMC0zMHYtMjYwLjU4OTg0NGMuMDE5NTMxLTE2LjU1ODU5NCAxMy40Mzc1LTI5Ljk4MDQ2OSAzMC0zMGg4OC43ODkwNjJjNS41MjM0MzggMCAxMC00LjQ3NjU2MyAxMC0xMCAwLTUuNTE5NTMxLTQuNDc2NTYyLTEwLTEwLTEwaC04OC43ODkwNjJjLTI3LjYwMTU2Mi4wMzEyNS00OS45Njg3NSAyMi4zOTg0MzctNTAgNTB2MjYwLjU5Mzc1Yy4wMzEyNSAyNy42MDE1NjMgMjIuMzk4NDM4IDQ5Ljk2ODc1IDUwIDUwaDI4MC41ODk4NDRjMjcuNjAxNTYyLS4wMzEyNSA0OS45Njg3NS0yMi4zOTg0MzcgNTAtNTB2LTg4Ljc5Mjk2OWMwLTUuNTIzNDM3LTQuNDc2NTYzLTEwLTEwLTEwem0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48cGF0aCB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGQ9Im0zNzYuNjI4OTA2IDEzLjQ0MTQwNmMtMTcuNTc0MjE4LTE3LjU3NDIxOC00Ni4wNjY0MDYtMTcuNTc0MjE4LTYzLjY0MDYyNSAwbC0xNzguNDA2MjUgMTc4LjQwNjI1Yy0xLjIyMjY1NiAxLjIyMjY1Ni0yLjEwNTQ2OSAyLjczODI4Mi0yLjU2NjQwNiA0LjQwMjM0NGwtMjMuNDYwOTM3IDg0LjY5OTIxOWMtLjk2NDg0NCAzLjQ3MjY1Ni4wMTU2MjQgNy4xOTE0MDYgMi41NjI1IDkuNzQyMTg3IDIuNTUwNzgxIDIuNTQ2ODc1IDYuMjY5NTMxIDMuNTI3MzQ0IDkuNzQyMTg3IDIuNTY2NDA2bDg0LjY5OTIxOS0yMy40NjQ4NDNjMS42NjQwNjItLjQ2MDkzOCAzLjE3OTY4Ny0xLjM0Mzc1IDQuNDAyMzQ0LTIuNTY2NDA3bDE3OC40MDIzNDMtMTc4LjQxMDE1NmMxNy41NDY4NzUtMTcuNTg1OTM3IDE3LjU0Njg3NS00Ni4wNTQ2ODcgMC02My42NDA2MjV6bS0yMjAuMjU3ODEyIDE4NC45MDYyNSAxNDYuMDExNzE4LTE0Ni4wMTU2MjUgNDcuMDg5ODQ0IDQ3LjA4OTg0NC0xNDYuMDE1NjI1IDE0Ni4wMTU2MjV6bS05LjQwNjI1IDE4Ljg3NSAzNy42MjEwOTQgMzcuNjI1LTUyLjAzOTA2MyAxNC40MTc5Njl6bTIyNy4yNTc4MTItMTQyLjU0Njg3NS0xMC42MDU0NjggMTAuNjA1NDY5LTQ3LjA5Mzc1LTQ3LjA5Mzc1IDEwLjYwOTM3NC0xMC42MDU0NjljOS43NjE3MTktOS43NjE3MTkgMjUuNTg5ODQ0LTkuNzYxNzE5IDM1LjM1MTU2MyAwbDExLjczODI4MSAxMS43MzQzNzVjOS43NDYwOTQgOS43NzM0MzggOS43NDYwOTQgMjUuNTg5ODQ0IDAgMzUuMzU5Mzc1em0wIDAiIGZpbGw9IiM5ZjljOWMiIGRhdGEtb3JpZ2luYWw9IiMwMDAwMDAiIHN0eWxlPSIiLz48L2c+PC9zdmc+Cg=='
+                                                                                            }
+                                                                                        />
+                                                                                    </span>
+                                                                                </ShouldRender>
+                                                                            </span>
                                                                         </div>
-                                                                    </div>
-                                                                </form>
-                                                                </ShouldRender>
+                                                                    </ShouldRender>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            !this
+                                                                                .state
+                                                                                .thirdVisibility
+                                                                        }
+                                                                    >
+                                                                        <form
+                                                                            onSubmit={this.props.handleSubmit(
+                                                                                this.thirdFormSubmit.bind(
+                                                                                    this
+                                                                                )
+                                                                            )}
+                                                                        >
+                                                                            <div
+                                                                                className="bs-Fieldset-fields"
+                                                                                style={{
+                                                                                    marginTop: 2,
+                                                                                }}
+                                                                            >
+                                                                                <div>
+                                                                                    <Field
+                                                                                        className="db-select-nw"
+                                                                                        component={
+                                                                                            RenderSelect
+                                                                                        }
+                                                                                        name="incidentPriority"
+                                                                                        disabled={
+                                                                                            false
+                                                                                        }
+                                                                                        id="incidentPriority"
+                                                                                        options={[
+                                                                                            ...this.props.incidentPriorities.map(
+                                                                                                incidentPriority => ({
+                                                                                                    value:
+                                                                                                        incidentPriority._id,
+                                                                                                    label:
+                                                                                                        incidentPriority.name,
+                                                                                                })
+                                                                                            ),
+                                                                                        ]}
+                                                                                        onChange={
+                                                                                            this
+                                                                                                .thirdFormSubmit
+                                                                                        }
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        </form>
+                                                                    </ShouldRender>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -1974,7 +2227,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                                    `/dashboard/project/${this.props.currentProject.slug}/${componentId}/incidents/${incidentId}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false
@@ -2113,17 +2366,21 @@ IncidentStatus.displayName = 'IncidentStatus';
 
 const EditIncidentStatusForm = reduxForm({
     form: 'IncidentStatusForm',
-    enableReinitialize: true
-})(IncidentStatus)
+    enableReinitialize: true,
+})(IncidentStatus);
 const selector = formValueSelector('IncidentStatusForm');
 const mapStateToProps = (state, ownProps) => {
     const incident = ownProps.incident;
     const initialValues = {
         title: incident.title,
         description: incident.description,
-        incidentPriority: incident.incidentPriority._id
-    }
-    const {description, incidentPriority} = selector(state,'description','incidentPriority');
+        incidentPriority: incident.incidentPriority._id,
+    };
+    const { description, incidentPriority } = selector(
+        state,
+        'description',
+        'incidentPriority'
+    );
     return {
         currentProject: state.project.currentProject,
         closeincident: state.incident.closeincident,
@@ -2133,8 +2390,8 @@ const mapStateToProps = (state, ownProps) => {
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         initialValues,
-        description,       
-        incidentPriority,       
+        description,
+        incidentPriority,
     };
 };
 
@@ -2148,7 +2405,7 @@ const mapDispatchToProps = dispatch => {
             markAsRead,
             getIncidentTimeline,
             animateSidebar,
-            updateIncident
+            updateIncident,
         },
         dispatch
     );
@@ -2179,4 +2436,7 @@ IncidentStatus.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(EditIncidentStatusForm);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(EditIncidentStatusForm);

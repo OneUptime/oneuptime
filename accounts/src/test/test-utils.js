@@ -21,6 +21,8 @@ const puppeteerLaunchConfig = {
         '--disable-web-security',
         '--disable-features=IsolateOrigins,site-per-process', // fix issue with cross origin policy
     ],
+    defaultViewport: null,
+    headless: true, //change this to `false` debug locally.
 };
 
 const user = faker.helpers.createCard();

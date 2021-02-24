@@ -501,12 +501,13 @@
                                                 style="white-space:nowrap">{{resolveTime}}</span></span><br>
                                             <strong>Length:</strong> <span><span
                                                 style="white-space:nowrap">{{length}}</span></span><br>
-                                            <strong>Cause:</strong>                                           
-                                              <ul style="list-style-type: square;">
+                                            <strong>Cause:</strong><br/>
+                                             
                                                 {{#each reason}}                                                                                               
-                                                  <li>{{this}}</li>      
+                                                  <span><span
+                                                style="white-space:nowrap">{{this}}</span></span><br/>      
                                                 {{/each}}                                         
-                                              </ul>
+                                              
                                             {{#if criterionName}}
                                             <strong>Criterion:</strong> <span>{{criterionName}}</span>
                                             {{/if}}

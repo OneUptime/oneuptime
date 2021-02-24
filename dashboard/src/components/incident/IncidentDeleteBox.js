@@ -39,7 +39,7 @@ export class IncidentDeleteBox extends Component {
                 );
             }
             history.push(
-                `/dashboard/project/${projectId}/${componentId}/monitoring/${monitorId}`
+                `/dashboard/project/${this.props.currentProject.slug}/${componentId}/monitoring/${monitorId}`
             );
         });
         return promise;
@@ -127,6 +127,7 @@ IncidentDeleteBox.propTypes = {
     incident: PropTypes.object.isRequired,
     deleteIncident: PropTypes.func.isRequired,
     deleting: PropTypes.bool.isRequired,
+    currentProject: PropTypes.object,
     componentId: PropTypes.string,
 };
 

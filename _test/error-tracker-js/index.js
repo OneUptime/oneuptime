@@ -8,8 +8,8 @@ const options = {
 };
 const tracker = new fyipe.ErrorTracker(
     'https://staging.fyipe.com/api',
-    '600a7517992d2b0012843954',
-    'ac12b24f-c70a-4f34-b84d-af6ec621e59d',
+    '6032095890b38500151c0a5c',
+    '15efd1fb-e423-46f8-a2aa-b25710205644',
     options // Optional Field
 );
 
