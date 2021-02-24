@@ -458,9 +458,7 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = state => ({
-    projectId:
-    state.project.currentProject &&
-        state.project.currentProject._id,
+    projectId: state.project.currentProject && state.project.currentProject._id,
     resourceCategories:
         state.resourceCategories.resourceCategoryList.resourceCategories,
     skip: state.resourceCategories.resourceCategoryList.skip,

@@ -235,8 +235,7 @@ const mapStateToProps = (state, ownProps) => {
 
     return {
         projectId:
-        state.project.currentProject &&
-            state.project.currentProject._id,
+            state.project.currentProject && state.project.currentProject._id,
         componentId,
         containerSecurityId,
         containerSecurity: state.security.containerSecurity,

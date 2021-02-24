@@ -429,8 +429,7 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = state => {
     return {
         projectId:
-        state.project.currentProject &&
-            state.project.currentProject._id,
+            state.project.currentProject && state.project.currentProject._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
         alertCharges:
             state.alert.alertCharges !== null && state.alert.alertCharges.data,

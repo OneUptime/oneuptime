@@ -157,6 +157,15 @@ export class MonitorTitle extends Component {
                                             {monitor.data.description}
                                         </span>
                                     )}
+                                {monitor.type === 'ip' &&
+                                    monitor.data &&
+                                    monitor.data.IPAddress &&
+                                    monitor.data.IPAddress !== '' && (
+                                        <span>
+                                            Currently Monitoring:{' '}
+                                            {monitor.data.IPAddress}
+                                        </span>
+                                    )}
                             </span>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">

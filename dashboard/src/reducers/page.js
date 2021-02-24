@@ -2,14 +2,14 @@ import {
     PAGE_LOAD_REQUEST,
     PAGE_LOAD_SUCCESS,
     PAGE_LOAD_RESET,
-    TOGGLE_PROJECT_SETTINGS_MORE
+    TOGGLE_PROJECT_SETTINGS_MORE,
 } from '../constants/page';
 
 const initialState = {
     requesting: false,
     title: '',
     sidenavopen: false,
-    toggleProjectSettingsMore: false
+    toggleProjectSettingsMore: false,
 };
 
 export default (state = initialState, action) => {

@@ -341,7 +341,7 @@ const DockerCredentialList = ({
                         >
                             <div className="Box-root">
                                 <span className="Text-fontWeight--medium">
-                                {numberOfPages > 0
+                                    {numberOfPages > 0
                                         ? `Page ${page} of ${numberOfPages} (${count} Git Credential${
                                               count === 1 ? '' : 's'
                                           })`
