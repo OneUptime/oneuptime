@@ -97,6 +97,7 @@ export class ResponseParent extends Component {
                                           const lastCriteriaIndex = fields.name.lastIndexOf(
                                               'criteria'
                                           );
+
                                           if (
                                               bodyfield[j] &&
                                               Object.keys(
@@ -108,6 +109,9 @@ export class ResponseParent extends Component {
                                                       (field, i) => {
                                                           if (i === j + 1) {
                                                               if (
+                                                                  bodyfield[
+                                                                      j
+                                                                  ] &&
                                                                   bodyfield[j]
                                                                       .criteria &&
                                                                   bodyfield[j]
@@ -123,11 +127,24 @@ export class ResponseParent extends Component {
                                                                           ]
                                                                               .match,
                                                                       field3: true,
-                                                                      criteria:
+                                                                      criteria: [
+                                                                          ...(bodyfield[
+                                                                              i
+                                                                          ] &&
                                                                           bodyfield[
+                                                                              i
+                                                                          ]
+                                                                              .criteria
+                                                                              ? bodyfield[
+                                                                                    i
+                                                                                ]
+                                                                                    .criteria
+                                                                              : []),
+                                                                          ...bodyfield[
                                                                               j
                                                                           ]
                                                                               .criteria,
+                                                                      ],
                                                                   };
                                                               } else {
                                                                   field = {
@@ -174,11 +191,31 @@ export class ResponseParent extends Component {
                                                               field = {
                                                                   ...field,
                                                                   field3: true,
-                                                                  criteria:
+                                                                  criteria: [
+                                                                      ...(bodyfield[
+                                                                          j + 1
+                                                                      ] &&
+                                                                      bodyfield[
+                                                                          j + 1
+                                                                      ].criteria
+                                                                          ? bodyfield[
+                                                                                j +
+                                                                                    1
+                                                                            ]
+                                                                                .criteria
+                                                                          : []),
+                                                                      ...(bodyfield[
+                                                                          j
+                                                                      ] &&
                                                                       bodyfield[
                                                                           j
-                                                                      ]
-                                                                          .criteria,
+                                                                      ].criteria
+                                                                          ? bodyfield[
+                                                                                j
+                                                                            ]
+                                                                                .criteria
+                                                                          : []),
+                                                                  ],
                                                               };
                                                           }
                                                           return field;
@@ -208,11 +245,31 @@ export class ResponseParent extends Component {
                                                               field = {
                                                                   ...field,
                                                                   field3: true,
-                                                                  criteria:
+                                                                  criteria: [
+                                                                      ...(bodyfield[
+                                                                          j - 1
+                                                                      ] &&
+                                                                      bodyfield[
+                                                                          j - 1
+                                                                      ].criteria
+                                                                          ? bodyfield[
+                                                                                j -
+                                                                                    1
+                                                                            ]
+                                                                                .criteria
+                                                                          : []),
+                                                                      ...(bodyfield[
+                                                                          j
+                                                                      ] &&
                                                                       bodyfield[
                                                                           j
-                                                                      ]
-                                                                          .criteria,
+                                                                      ].criteria
+                                                                          ? bodyfield[
+                                                                                j
+                                                                            ]
+                                                                                .criteria
+                                                                          : []),
+                                                                  ],
                                                               };
                                                           }
                                                           return field;
