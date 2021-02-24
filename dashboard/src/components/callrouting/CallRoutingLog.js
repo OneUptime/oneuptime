@@ -103,6 +103,9 @@ class CallRoutingLog extends Component {
                                         Forwarded To
                                     </div>
                                     <div className="bs-ObjectList-cell">
+                                        Status
+                                    </div>
+                                    <div className="bs-ObjectList-cell">
                                         Created At
                                     </div>
                                     <div className="bs-ObjectList-cell">
@@ -114,62 +117,105 @@ class CallRoutingLog extends Component {
                                 </header>
                                 {logs &&
                                     logs.length > 0 &&
-                                    logs.map(log => (
-                                        <div
-                                            key={log._id}
-                                            className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                                            style={{
-                                                backgroundColor: 'white',
-                                                cursor: 'pointer',
-                                            }}
-                                            id={`logs_${log._id}`}
-                                        >
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {formatNumber(log.calledTo)}
+                                    logs.map(log => {
+                                        let dialedLog = {};
+                                        const dialed =
+                                            log.dialTo && log.dialTo.length
+                                                ? log.dialTo
+                                                : [];
+                                        const newDialed = dialed.filter(
+                                            d =>
+                                                d.status &&
+                                                d.status === 'completed'
+                                        );
+                                        if (newDialed && newDialed.length) {
+                                            dialedLog = newDialed[0];
+                                        } else if (
+                                            dialed &&
+                                            dialed.length < 2
+                                        ) {
+                                            dialedLog = dialed[0];
+                                        }
+                                        return (
+                                            <div
+                                                key={log._id}
+                                                className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                style={{
+                                                    backgroundColor: 'white',
+                                                    cursor: 'pointer',
+                                                }}
+                                                id={`logs_${log._id}`}
+                                            >
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {formatNumber(
+                                                            log.calledTo
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {formatNumber(
+                                                            log.calledFrom
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {dialedLog &&
+                                                        dialedLog.userId &&
+                                                        dialedLog.userId.length
+                                                            ? dialedLog.userId
+                                                            : dialedLog &&
+                                                              dialedLog.scheduleId &&
+                                                              dialedLog
+                                                                  .scheduleId
+                                                                  .length
+                                                            ? dialedLog.scheduleId
+                                                            : dialedLog &&
+                                                              dialedLog.phoneNumber &&
+                                                              dialedLog
+                                                                  .phoneNumber
+                                                                  .length
+                                                            ? dialedLog.phoneNumber
+                                                            : 'unknown user'}
+                                                    </div>
+                                                </div>
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {dialedLog &&
+                                                        dialedLog.status
+                                                            ? dialedLog.status
+                                                            : 'unknown status'}
+                                                    </div>
+                                                </div>
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {moment(
+                                                            log.createdAt
+                                                        ).format(
+                                                            'MMMM Do YYYY, h:mm:ss a'
+                                                        )}{' '}
+                                                        (
+                                                        {moment(
+                                                            log.createdAt
+                                                        ).fromNow()}
+                                                        )
+                                                    </div>
+                                                </div>
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {log.duration || ''} sec
+                                                    </div>
+                                                </div>
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {log.price}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {formatNumber(
-                                                        log.calledFrom
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {log.userId &&
-                                                    log.userId.name
-                                                        ? log.userId.name
-                                                        : 'unknown user'}
-                                                </div>
-                                            </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {moment(
-                                                        log.createdAt
-                                                    ).format(
-                                                        'MMMM Do YYYY, h:mm:ss a'
-                                                    )}{' '}
-                                                    (
-                                                    {moment(
-                                                        log.createdAt
-                                                    ).fromNow()}
-                                                    )
-                                                </div>
-                                            </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {log.duration || ''} sec
-                                                </div>
-                                            </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {log.price}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 <ShouldRender
                                     if={
                                         !(

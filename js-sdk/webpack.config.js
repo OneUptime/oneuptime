@@ -29,6 +29,9 @@ const serverBuild = {
     resolve: {
         extensions: ['.js'],
     },
+    node: {
+        fs: 'empty',
+    },
 };
 const webBuild = {
     ...serverBuild,

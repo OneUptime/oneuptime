@@ -71,6 +71,9 @@ export class SmsLogsList extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(
+            parseInt(this.props.smsLogs && this.props.smsLogs.count) / 10
+        );
         return (
             <div onKeyDown={this.handleKeyBoard}>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -385,11 +388,16 @@ export class SmsLogsList extends Component {
                                 >
                                     {this.props.smsLogs &&
                                     this.props.smsLogs.count
-                                        ? this.props.smsLogs.count +
-                                          (this.props.smsLogs &&
-                                          this.props.smsLogs.count > 1
-                                              ? ' Logs'
-                                              : ' Log')
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${this.props
+                                              .smsLogs &&
+                                              this.props.smsLogs.count} Log${
+                                              this.props.smsLogs &&
+                                              this.props.smsLogs.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
                                         : null}
                                 </span>
                             </span>
@@ -492,6 +500,7 @@ SmsLogsList.propTypes = {
     ]),
     requesting: PropTypes.bool,
     openModal: PropTypes.func.isRequired,
+    page: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SmsLogsList);
