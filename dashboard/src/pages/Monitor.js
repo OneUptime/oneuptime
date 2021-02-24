@@ -192,6 +192,7 @@ class DashboardView extends Component {
                 });
         }
         const currentProjectId = currentProject ? currentProject._id : null;
+        const currentProjectSlug = currentProject ? currentProject.slug : null;
 
         // SubProject Monitors List
         const monitors =
@@ -301,9 +302,7 @@ class DashboardView extends Component {
                                                                 allMonitors
                                                             }
                                                             slug={
-                                                                this.props
-                                                                    .currentProject
-                                                                    .slug
+                                                                currentProjectSlug
                                                             }
                                                             tutorialStat={
                                                                 this.props
