@@ -367,7 +367,7 @@ const MonitorCriteriaService = {
                         filter: 'equalTo',
                         field1: 'readyDeployment',
                         field2: '',
-                        field3: false,
+                        field3: true,
                         criteria: [
                             {
                                 match: 'any',
