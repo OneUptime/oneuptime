@@ -66,8 +66,13 @@ module.exports = {
                                         podName: item.metadata.name,
                                         podStatus: item.status.phase,
                                         podRestart:
+                                            item.status &&
+                                            item.status.containerStatuses &&
                                             item.status.containerStatuses[0]
-                                                .restartCount,
+                                                ? item.status
+                                                      .containerStatuses[0]
+                                                      .restartCount
+                                                : 0,
                                     });
                                     failedPods += 1;
                                 } else {
@@ -75,8 +80,13 @@ module.exports = {
                                         podName: item.metadata.name,
                                         podStatus: item.status.phase,
                                         podRestart:
+                                            item.status &&
+                                            item.status.containerStatuses &&
                                             item.status.containerStatuses[0]
-                                                .restartCount,
+                                                ? item.status
+                                                      .containerStatuses[0]
+                                                      .restartCount
+                                                : 0,
                                     });
                                     if (item.status.phase === 'Pending')
                                         ++pendingPods;
