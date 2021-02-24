@@ -566,7 +566,11 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     matchedCriterion = matchedDegradedCriterion;
                 } else if (validDown) {
                     data.status = 'offline';
-                    data.reason = [...downSuccessReasons, ...upFailedReasons];
+                    data.reason = [
+                        ...downSuccessReasons,
+                        ...degradedFailedReasons,
+                        ...upFailedReasons,
+                    ];
                     matchedCriterion = matchedDownCriterion;
                 } else {
                     data.status = 'offline';

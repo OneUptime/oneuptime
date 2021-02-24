@@ -3727,6 +3727,7 @@ const checkAnd = async (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'podStatus'
                 ) {
+                    const healthyPods = ['running', 'pending', 'succeeded'];
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -3753,9 +3754,15 @@ const checkAnd = async (
                                     );
                                 } else {
                                     validity = false;
-                                    failedReasons.push(
-                                        `${pod.podName} pod status is ${pod.podStatus}`
-                                    );
+                                    if (
+                                        !healthyPods.includes(
+                                            pod.podStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${pod.podName} pod status is ${pod.podStatus}`
+                                        );
+                                    }
                                 }
                             });
                         }
@@ -3805,9 +3812,15 @@ const checkAnd = async (
                                     );
                                 } else {
                                     validity = false;
-                                    failedReasons.push(
-                                        `${pod.podName} pod status is ${pod.podStatus}`
-                                    );
+                                    if (
+                                        !healthyPods.includes(
+                                            pod.podStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${pod.podName} pod status is ${pod.podStatus}`
+                                        );
+                                    }
                                 }
                             });
                         }
@@ -3836,6 +3849,7 @@ const checkAnd = async (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'jobStatus'
                 ) {
+                    const healthyJobs = ['running', 'succeeded'];
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -3862,9 +3876,15 @@ const checkAnd = async (
                                     );
                                 } else {
                                     validity = false;
-                                    failedReasons.push(
-                                        `${job.jobName} job status is ${job.jobStatus}`
-                                    );
+                                    if (
+                                        !healthyJobs.includes(
+                                            job.jobStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${job.jobName} job status is ${job.jobStatus}`
+                                        );
+                                    }
                                 }
                             });
                         }
@@ -3914,9 +3934,15 @@ const checkAnd = async (
                                     );
                                 } else {
                                     validity = false;
-                                    failedReasons.push(
-                                        `${job.jobName} job status is ${job.jobStatus}`
-                                    );
+                                    if (
+                                        !healthyJobs.includes(
+                                            job.jobStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${job.jobName} job status is ${job.jobStatus}`
+                                        );
+                                    }
                                 }
                             });
                         }
@@ -6106,6 +6132,7 @@ const checkOr = async (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'podStatus'
                 ) {
+                    const healthyPods = ['running', 'pending', 'succeeded'];
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -6131,9 +6158,15 @@ const checkOr = async (
                                         `${pod.podName} pod status is ${pod.podStatus}`
                                     );
                                 } else {
-                                    failedReasons.push(
-                                        `${pod.podName} pod status is ${pod.podStatus}`
-                                    );
+                                    if (
+                                        !healthyPods.includes(
+                                            pod.podStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${pod.podName} pod status is ${pod.podStatus}`
+                                        );
+                                    }
                                 }
                             });
                         }
@@ -6162,9 +6195,15 @@ const checkOr = async (
                                         `${pod.podName} pod status is ${pod.podStatus}`
                                     );
                                 } else {
-                                    failedReasons.push(
-                                        `${pod.podName} pod status is ${pod.podStatus}`
-                                    );
+                                    if (
+                                        !healthyPods.includes(
+                                            pod.podStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${pod.podName} pod status is ${pod.podStatus}`
+                                        );
+                                    }
                                 }
                             });
                         }
@@ -6173,6 +6212,7 @@ const checkOr = async (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'jobStatus'
                 ) {
+                    const healthyJobs = ['running', 'succeeded'];
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -6198,9 +6238,15 @@ const checkOr = async (
                                         `${job.jobName} job status is ${job.jobStatus}`
                                     );
                                 } else {
-                                    failedReasons.push(
-                                        `${job.jobName} job status is ${job.jobStatus}`
-                                    );
+                                    if (
+                                        !healthyJobs.includes(
+                                            job.jobStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${job.jobName} job status is ${job.jobStatus}`
+                                        );
+                                    }
                                 }
                             });
                         }
@@ -6229,9 +6275,15 @@ const checkOr = async (
                                         `${job.jobName} job status is ${job.jobStatus}`
                                     );
                                 } else {
-                                    failedReasons.push(
-                                        `${job.jobName} job status is ${job.jobStatus}`
-                                    );
+                                    if (
+                                        !healthyJobs.includes(
+                                            job.jobStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${job.jobName} job status is ${job.jobStatus}`
+                                        );
+                                    }
                                 }
                             });
                         }
