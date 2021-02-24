@@ -34,10 +34,20 @@ class ErrorEventHeader extends Component {
             errorEvent,
             errorTrackerIssue,
             errorTrackerStatus,
+            openDeleteModal,
+            errorTrackerState,
         } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
         const canPrev = errorEvent.previous;
         const canNext = errorEvent.next;
+        let deleting = false;
+        if (
+            errorTrackerState &&
+            errorTrackerState.deleteErrorTrackerIssue &&
+            errorTrackerState.deleteErrorTrackerIssue === errorTrackerIssue._id
+        ) {
+            deleting = true;
+        }
         return (
             <div>
                 <ShouldRender if={errorEvent.requesting}>
@@ -221,6 +231,31 @@ class ErrorEventHeader extends Component {
                                             </button>
                                         }
                                     />
+                                    <button
+                                        className={`bs-Button ${
+                                            errorTrackerStatus &&
+                                            errorTrackerStatus[
+                                                errorTrackerIssue._id
+                                            ] &&
+                                            errorTrackerStatus[
+                                                errorTrackerIssue._id
+                                            ].requestingResolve
+                                                ? ''
+                                                : 'bs-Button--icon bs-Button--delete'
+                                        }  `}
+                                        disabled={deleting}
+                                        type="button"
+                                        onClick={() =>
+                                            openDeleteModal(errorTrackerIssue)
+                                        }
+                                    >
+                                        <ShouldRender if={!deleting}>
+                                            <span>Delete</span>
+                                        </ShouldRender>
+                                        <ShouldRender if={deleting}>
+                                            <FormLoader2 />
+                                        </ShouldRender>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -386,6 +421,8 @@ ErrorEventHeader.propTypes = {
     unresolveErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.func,
     errorTrackerStatus: PropTypes.object,
+    openDeleteModal: PropTypes.func,
+    errorTrackerState: PropTypes.object,
 };
 ErrorEventHeader.displayName = 'ErrorEventHeader';
 export default ErrorEventHeader;
