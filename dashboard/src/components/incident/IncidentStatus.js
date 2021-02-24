@@ -1695,7 +1695,7 @@ export class IncidentStatus extends Component {
                                                                             }
                                                                             style={{
                                                                                 display: 'inline',                                                                                 
-                                                                                wordBreak:'break-all',                                                                              
+                                                                                wordBreak:'break-word',                                                                              
                                                                                 cursor: this
                                                                                     .props
                                                                                     .editable
