@@ -31,7 +31,7 @@ import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
-import secondsToHms from '../utils/secondsToHms';
+import secondsToHms from '../utils/secondsToHms'
 
 class Incident extends React.Component {
     constructor(props) {
