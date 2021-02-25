@@ -10,6 +10,8 @@ import {
     resetIncidents,
     getIncidents,
     getProjectIncidents,
+    getComponentIncidents,
+    getProjectComponentIncidents,
 } from '../actions/incident';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import PropTypes from 'prop-types';
@@ -41,17 +43,37 @@ class IncidentLog extends React.Component {
     }
 
     ready = () => {
-        this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
+        const { componentId } = this.props;
+        if (componentId) {
+            this.props.getComponentIncidents(
+                this.props.currentProject._id,
+                componentId
+            );
+        } else {
+            this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
+        }
+
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
     };
 
     prevClicked = (projectId, skip, limit) => {
-        this.props.getProjectIncidents(
-            projectId,
-            (skip || 0) > (limit || 10) ? skip - limit : 0,
-            10
-        );
+        const { componentId } = this.props;
+        if (componentId) {
+            this.props.getProjectComponentIncidents(
+                projectId,
+                componentId,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
+        } else {
+            this.props.getProjectIncidents(
+                projectId,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
+        }
+
         const newPageState = Object.assign({}, this.state.page, {
             [projectId]:
                 this.state.page[projectId] === 1
@@ -69,7 +91,17 @@ class IncidentLog extends React.Component {
     };
 
     nextClicked = (projectId, skip, limit) => {
-        this.props.getProjectIncidents(projectId, skip + limit, 10);
+        const { componentId } = this.props;
+        if (componentId) {
+            this.props.getProjectComponentIncidents(
+                projectId,
+                componentId,
+                skip + limit,
+                10
+            );
+        } else {
+            this.props.getProjectIncidents(projectId, skip + limit, 10);
+        }
         const newPageState = Object.assign({}, this.state.page, {
             [projectId]: !this.state.page[projectId]
                 ? 2
@@ -331,6 +363,8 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
+            getComponentIncidents,
+            getProjectComponentIncidents,
         },
         dispatch
     );
@@ -361,6 +395,8 @@ IncidentLog.propTypes = {
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     modalList: PropTypes.array,
+    getComponentIncidents: PropTypes.func,
+    getProjectComponentIncidents: PropTypes.func,
 };
 
 IncidentLog.displayName = 'IncidentLog';
