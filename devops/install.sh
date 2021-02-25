@@ -52,7 +52,7 @@ else
   fi
 
   # STEP 2: create directories
-  mkdir -p ~/.kube/
+  mkdir -p ~/.kube
   mkdir -p ~/Documents/backup
 
   # STEP: copy remote kube config and replace local
