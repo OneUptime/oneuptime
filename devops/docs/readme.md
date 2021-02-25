@@ -1,18 +1,20 @@
 # Fyipe Database Backup/Restore
 
-To carry out backup/restore from a remote vm you first have to setup your local system for remote access.
+To carry out backup/restore of the fyipe database on a remote virtual machine, you first have to setup your local system to acess the remote cluster.
 
 ## Set up local VM
 
--   ssh into the local VN and upload scripts install.sh, backup.sh and restore.sh
+-   ssh into the local VN and upload scripts install.sh, backup.sh and restore.sh to the root user.
 
-The script install.sh will automatically install the latest kubectl version if non is present, create default backup path and kube-config paths as well as ssh into the remote server where database is setup.
+The script install.sh will automatically install the latest kubectl version if non is present, create default backup path and kube-config paths as well as copy the remote server kubernetes config file.
 
 -   Open a new terminal on the VN and run script: `install.sh -a <IP_ADDRESS>`
 
-The _IP_ADDRESS_ is the address of remote server.
+The _IP_ADDRESS_ is the address of remote server where database is hosted.
 
-You will be asked for your login credentials, and proceed to backup or restore.
+You will be asked for the password.
+
+Proceed to backup or restore.
 
 ## Backing up the database
 
@@ -35,7 +37,7 @@ The first thing to take note of is passing the right arguments.
 
 _ex: To create a backup of a database without username or password and database name is 'fyipe'_
 
-The command will be `/Users/root/Document/backup bash backup.sh -u '' -p '' -n 'fyipe'`
+The command will be `bash backup.sh -u '' -p '' -n 'fyipe'`
 
 **_Step 2 : Set-up a cronJob_**
 
@@ -50,7 +52,7 @@ The next step is to schedule the job
 -   Select your default text editor _(For first time use)_
 -   Proceed to schedule your job. For example, to backup the database every 12 hours, the command would be
 
-`0 */12 * * * /Users/root/Document/backup/backup.sh -u '' -p '' -n 'fyipe'`
+`0 */12 * * * /root/scripts/backup.sh -u '' -p '' -n 'fyipe'`
 
 -   Save crontab and exit.
 

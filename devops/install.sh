@@ -56,6 +56,6 @@ else
   mkdir -p ~/Documents/backup
 
   # STEP: copy remote kube config and replace local
-  scp root@${IP_ADDRESS}:$HOME/.kube/config $HOME/.kube/config
+  scp root@${IP_ADDRESS}:~/.kube/config ~/.kube
 fi
 
