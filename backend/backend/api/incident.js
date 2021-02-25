@@ -315,10 +315,15 @@ router.post(
             callScheduleStatus = await Services.checkCallSchedule(
                 callScheduleStatus
             );
-            incidentMessages = [
-                ...incidentMessages,
+            const timelineAlerts = [
                 ...timeline,
                 ...alerts,
+                ...incidentMessages,
+            ].sort((a, b) => {
+                return b.createdAt - a.createdAt;
+            });
+            incidentMessages = [
+                ...timelineAlerts,
                 ...subAlerts,
                 ...callScheduleStatus,
             ];
@@ -382,10 +387,15 @@ router.post(
             callScheduleStatus = await Services.checkCallSchedule(
                 callScheduleStatus
             );
-            incidentMessages = [
-                ...incidentMessages,
+            const timelineAlerts = [
                 ...timeline,
                 ...alerts,
+                ...incidentMessages,
+            ].sort((a, b) => {
+                return b.createdAt - a.createdAt;
+            });
+            incidentMessages = [
+                ...timelineAlerts,
                 ...subAlerts,
                 ...callScheduleStatus,
             ];
@@ -650,10 +660,15 @@ router.post(
                     callScheduleStatus = await Services.checkCallSchedule(
                         callScheduleStatus
                     );
-                    incidentMessages = [
-                        ...incidentMessages,
+                    const timelineAlerts = [
                         ...timeline,
                         ...alerts,
+                        ...incidentMessages,
+                    ].sort((a, b) => {
+                        return b.createdAt - a.createdAt;
+                    });
+                    incidentMessages = [
+                        ...timelineAlerts,
                         ...subAlerts,
                         ...callScheduleStatus,
                     ];
@@ -764,10 +779,15 @@ router.delete(
                     const subAlerts = await Services.deduplicate(
                         subscriberAlerts
                     );
-                    incidentMessages = [
-                        ...incidentMessages,
+                    const timelineAlerts = [
                         ...timeline,
                         ...alerts,
+                        ...incidentMessages,
+                    ].sort((a, b) => {
+                        return b.createdAt - a.createdAt;
+                    });
+                    incidentMessages = [
+                        ...timelineAlerts,
                         ...subAlerts,
                         ...callScheduleStatus,
                     ];
@@ -849,10 +869,15 @@ router.get(
                 callScheduleStatus = await Services.checkCallSchedule(
                     callScheduleStatus
                 );
-                incidentMessages = [
-                    ...incidentMessages,
+                const timelineAlerts = [
                     ...timeline,
                     ...alerts,
+                    ...incidentMessages
+                ].sort((a, b) => {
+                    return b.createdAt - a.createdAt;
+                });
+                incidentMessages = [
+                    ...timelineAlerts,
                     ...subAlerts,
                     ...callScheduleStatus,
                 ];
