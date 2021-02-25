@@ -45,9 +45,6 @@ module.exports = {
                                 loadStatefulsetOutput(configPath, namespace),
                             ]);
 
-                            // remove the config file
-                            await deleteFile(configPath);
-
                             if (
                                 podOutput &&
                                 jobOutput &&
@@ -304,6 +301,9 @@ module.exports = {
                                     kubernetesData: data,
                                     type: monitor.type,
                                 });
+
+                                // remove the config file
+                                await deleteFile(configPath);
                             }
                         });
                         dest.on('error', async error => {
