@@ -1,4 +1,6 @@
 import React from 'react';
+import PropTypes from 'prop-types';
+
 const Button = ({ id, onClick = () => {}, text, shortcut }) => (
     <button
         id={id}
@@ -17,5 +19,14 @@ const Button = ({ id, onClick = () => {}, text, shortcut }) => (
         </span>
     </button>
 );
+
+Button.displayName = 'Button';
+
+Button.propTypes = {
+    text: PropTypes.string,
+    shortcut: PropTypes.string,
+    id: PropTypes.string,
+    onClick: PropTypes.func,
+};
 
 export default Button;

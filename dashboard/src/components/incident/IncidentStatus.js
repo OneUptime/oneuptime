@@ -852,7 +852,7 @@ export class IncidentStatus extends Component {
                                                                     <div className="bs-margin-right">
                                                                         <span className="bs-content-create bs-text-bold">
                                                                             Created
-                                                                            by{' '}
+                                                                            by
                                                                         </span>
                                                                         <span className=" bs-text-bold">
                                                                             {this
@@ -915,7 +915,7 @@ export class IncidentStatus extends Component {
                                                                     </div>
                                                                 </div>
 
-                                                                <div className="bs-flex-display bs-margin-top-1 bs-justify-cont bs-margin-bottom">
+                                                                <div className="bs-flex-display bs-margin-top-1 bs-justify-cont bs-margin-bottom bs-padding-left">
                                                                     <span className="bs-bullet-container">
                                                                         <span className="bs-dark-bullet"></span>
                                                                     </span>
@@ -1156,7 +1156,7 @@ export class IncidentStatus extends Component {
                                                                                 )}
                                                                             </div>
                                                                         </div>
-                                                                        <div className="bs-flex-display bs-justify-cont bs-margin-top-1">
+                                                                        <div className="bs-flex-display bs-justify-cont bs-margin-top-1  bs-padding-left ">
                                                                             <span className="bs-bullet-container">
                                                                                 <span className="bs-dark-bullet"></span>
                                                                             </span>
@@ -1197,7 +1197,7 @@ export class IncidentStatus extends Component {
                                                                                 }
                                                                             </div>
                                                                         </div>
-                                                                        <div className="bs-flex-display bs-justify-cont">
+                                                                        <div className="bs-flex-display bs-justify-cont  bs-padding-left">
                                                                             <span className="bs-bullet-container">
                                                                                 <span className="bs-dark-bullet"></span>
                                                                             </span>
@@ -1303,7 +1303,7 @@ export class IncidentStatus extends Component {
                                                                                     )}
                                                                                 </div>
                                                                             </div>
-                                                                            <div className="bs-flex-display bs-justify-cont bs-margin-top-1">
+                                                                            <div className="bs-flex-display bs-justify-cont bs-margin-top-1  bs-padding-left">
                                                                                 <span className="bs-bullet-container">
                                                                                     <span className="bs-dark-bullet"></span>
                                                                                 </span>
@@ -1345,7 +1345,7 @@ export class IncidentStatus extends Component {
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                        <div className="bs-flex-display bs-justify-cont">
+                                                                        <div className="bs-flex-display bs-justify-cont  bs-padding-left">
                                                                             <span className="bs-bullet-container">
                                                                                 <span className="bs-dark-bullet"></span>
                                                                             </span>
@@ -1684,7 +1684,7 @@ export class IncidentStatus extends Component {
                                                                         )
                                                                     }
                                                                 >
-                                                                    <span
+                                                                    <p
                                                                         onClick={
                                                                             this
                                                                                 .props
@@ -1695,7 +1695,9 @@ export class IncidentStatus extends Component {
                                                                         }
                                                                         style={{
                                                                             display:
-                                                                                'inline-block',
+                                                                                'inline',
+                                                                            wordBreak:
+                                                                                'break-word',
                                                                             cursor: this
                                                                                 .props
                                                                                 .editable
@@ -1703,15 +1705,13 @@ export class IncidentStatus extends Component {
                                                                                 : null,
                                                                         }}
                                                                     >
-                                                                        <ReactMarkdown
-                                                                            source={
-                                                                                this
-                                                                                    .props
-                                                                                    .incident
-                                                                                    .description
-                                                                            }
-                                                                        />
-                                                                    </span>{' '}
+                                                                        {
+                                                                            this
+                                                                                .props
+                                                                                .incident
+                                                                                .description
+                                                                        }
+                                                                    </p>{' '}
                                                                     <ShouldRender
                                                                         if={
                                                                             this
@@ -1769,6 +1769,9 @@ export class IncidentStatus extends Component {
                                                                             name="description"
                                                                             readOnly={
                                                                                 false
+                                                                            }
+                                                                            required={
+                                                                                true
                                                                             }
                                                                             wrapEnabled={
                                                                                 true

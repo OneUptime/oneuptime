@@ -528,7 +528,6 @@ ProbeList.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     requesting: PropTypes.bool,
-    initialValues: {},
     updateRequesting: PropTypes.bool,
     updateProbe: PropTypes.func,
     page: PropTypes.number,

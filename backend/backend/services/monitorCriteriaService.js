@@ -363,16 +363,9 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'any',
-                        responseType: 'podStatus',
+                        responseType: 'desiredDeployment',
                         filter: 'equalTo',
-                        field1: 'running',
-                        field2: '',
-                        field3: false,
-                    },
-                    {
-                        responseType: 'jobStatus',
-                        filter: 'equalTo',
-                        field1: 'succeeded',
+                        field1: 'readyDeployment',
                         field2: '',
                         field3: true,
                         criteria: [
@@ -387,14 +380,29 @@ const MonitorCriteriaService = {
                             {
                                 responseType: 'podStatus',
                                 filter: 'equalTo',
+                                field1: 'running',
+                                field2: '',
+                                field3: false,
+                            },
+                            {
+                                responseType: 'podStatus',
+                                filter: 'equalTo',
                                 field1: 'succeeded',
+                                field2: '',
+                                field3: false,
+                            },
+                            {
+                                match: 'any',
+                                responseType: 'jobStatus',
+                                filter: 'equalTo',
+                                field1: 'running',
                                 field2: '',
                                 field3: false,
                             },
                             {
                                 responseType: 'jobStatus',
                                 filter: 'equalTo',
-                                field1: 'running',
+                                field1: 'succeeded',
                                 field2: '',
                                 field3: false,
                             },
