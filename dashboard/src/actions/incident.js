@@ -35,6 +35,7 @@ export const resetProjectIncidents = () => {
 export function getProjectIncidents(projectId, skip, limit) {
     skip = parseInt(skip);
     limit = parseInt(limit);
+    console.log(skip, limit);
 
     return function(dispatch) {
         let promise = null;
@@ -50,6 +51,52 @@ export function getProjectIncidents(projectId, skip, limit) {
         promise.then(
             function(incidents) {
                 const data = incidents.data;
+                data.projectId = projectId;
+                dispatch(projectIncidentsSuccess(data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(projectIncidentsError(errors(error)));
+            }
+        );
+    };
+}
+
+//get all icident for a project belonging to a component
+export function getProjectComponentIncidents(
+    projectId,
+    componentId,
+    skip,
+    limit
+) {
+    skip = parseInt(skip);
+    limit = parseInt(limit);
+
+    return function(dispatch) {
+        let promise = null;
+        if (skip >= 0 && limit >= 0) {
+            promise = getApi(
+                `incident/${projectId}/incidents/${componentId}?skip=${skip}&limit=${limit}`
+            );
+        } else {
+            promise = getApi(`incident/${projectId}/incidents/${componentId}`);
+        }
+        dispatch(projectIncidentsRequest(promise));
+
+        promise.then(
+            function(incidents) {
+                const data = incidents.data;
+                data.count = incidents.data.data.count;
+                data.data = incidents.data.data.incidents;
                 data.projectId = projectId;
                 dispatch(projectIncidentsSuccess(data));
             },
@@ -103,6 +150,34 @@ export const resetIncidents = () => {
 export function getIncidents(projectId) {
     return function(dispatch) {
         const promise = getApi(`incident/${projectId}`);
+        dispatch(incidentsRequest(promise));
+
+        promise.then(
+            function(incidents) {
+                dispatch(incidentsSuccess(incidents.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(incidentsError(errors(error)));
+            }
+        );
+    };
+}
+//get component incidents
+export function getComponentIncidents(projectId, componentId) {
+    return function(dispatch) {
+        const promise = getApi(
+            `incident/${projectId}/${componentId}/incidents`
+        );
         dispatch(incidentsRequest(promise));
 
         promise.then(

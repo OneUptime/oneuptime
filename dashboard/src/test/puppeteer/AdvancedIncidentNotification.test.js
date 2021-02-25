@@ -110,7 +110,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     elem.click()
                 );
                 await page.click('#saveIncidentNotification');
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
@@ -152,7 +152,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     elem.click()
                 );
                 await page.click('#saveIncidentNotification');
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
@@ -194,7 +194,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     elem.click()
                 );
                 await page.click('#saveIncidentNotification');
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
@@ -279,7 +279,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     elem.click()
                 );
                 await page.click('#saveIncidentNotification');
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
@@ -321,7 +321,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     elem.click()
                 );
                 await page.click('#saveIncidentNotification');
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
@@ -363,7 +363,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     elem.click()
                 );
                 await page.click('#saveIncidentNotification');
-                await page.waitFor(2000);
+                await page.waitForTimeout(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });

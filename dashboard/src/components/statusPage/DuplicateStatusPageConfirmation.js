@@ -5,6 +5,10 @@ import ClickOutside from 'react-click-outside';
 import { bindActionCreators } from 'redux';
 import { history } from '../../store';
 import { closeModal } from '../../actions/modal';
+import {
+    fetchStatusPage,
+    duplicateStatusPageReset,
+} from '../../actions/statusPage';
 
 class DuplicateStatusPageConfirmation extends Component {
     componentDidMount() {
@@ -16,19 +20,20 @@ class DuplicateStatusPageConfirmation extends Component {
     }
 
     handleNavigation = () => {
-        const { subProjectId, projectId, statusPageId } = this.props;
+        const { subProjectId, slug, statusPageId } = this.props;
         this.props.closeModal({
             id: this.props.duplicateModalId,
         });
+        this.props.fetchStatusPage(statusPageId);
         history.push(
-            `/dashboard/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPageId}`
+            `/dashboard/project/${slug}/sub-project/${subProjectId}/status-page/${statusPageId}`
         );
     };
 
     handleKeyboard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal();
+                return this.handleCloseModal();
             case 'Enter':
                 return this.handleNavigation();
             default:
@@ -36,8 +41,14 @@ class DuplicateStatusPageConfirmation extends Component {
         }
     };
 
+    handleCloseModal = () => {
+        this.props.duplicateStatusPageReset();
+        this.props.closeModal({
+            id: this.props.duplicateModalId,
+        });
+    };
+
     render() {
-        const { closeModal } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -47,7 +58,9 @@ class DuplicateStatusPageConfirmation extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <ClickOutside onClickOutside={closeModal}>
+                            <ClickOutside
+                                onClickOutside={this.handleCloseModal}
+                            >
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -65,7 +78,7 @@ class DuplicateStatusPageConfirmation extends Component {
                                         <button
                                             className={`bs-Button btn__modal`}
                                             type="button"
-                                            onClick={closeModal}
+                                            onClick={this.handleCloseModal}
                                         >
                                             <span>Close</span>
                                             <span className="cancel-btn__keycode">
@@ -103,22 +116,24 @@ const mapStateToProps = state => {
         duplicateModalId: state.modal.modals[0].id,
         statusPageId: state.modal.modals[0].statusPageId,
         subProjectId: state.modal.modals[0].subProjectId,
-        projectId: state.modal.modals[0].projectId,
+        slug: state.modal.modals[0].slug,
     };
 };
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ closeModal }, dispatch);
+    return bindActionCreators(
+        { closeModal, fetchStatusPage, duplicateStatusPageReset },
+        dispatch
+    );
 };
 
 DuplicateStatusPageConfirmation.propTypes = {
     closeModal: PropTypes.func,
     duplicateModalId: PropTypes.string.isRequired,
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    slug: PropTypes.string.isRequired,
     statusPageId: PropTypes.string.isRequired,
     subProjectId: PropTypes.string.isRequired,
+    fetchStatusPage: PropTypes.func,
+    duplicateStatusPageReset: PropTypes.func,
 };
 
 export default connect(

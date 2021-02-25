@@ -69,6 +69,19 @@ ul.columns>li{
     justify-content:center; 
     margin: 30px auto;
     width: 900px;
+    position: relative;
+}
+
+.play{
+    top:50%;
+    height: 100px;
+    position:absolute;
+}
+
+.videoClass{
+    position:relative;
+    display:none;
+    cursor:default;
 }
 @media screen and (max-width:1020px){
     ul.columns>li{

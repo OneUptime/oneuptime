@@ -8,10 +8,11 @@ import { loadPage } from '../../actions/page';
 import { navKeyBind, cleanBind } from '../../utils/keybinding';
 import { animateSidebar } from '../../actions/animateSidebar';
 import { history } from '../../store';
+import { toggleProjectSettingsMore } from '../../actions/page';
+
 export class SidebarNavItem extends Component {
     constructor(props) {
         super(props);
-
         this.RenderListItems = this.RenderListItems.bind(this);
     }
 
@@ -46,29 +47,44 @@ export class SidebarNavItem extends Component {
     mainRoute = () => {
         const { match, currentProject, route } = this.props;
         return route.path
-            .replace(
-                ':projectId',
-                match.params.projectId || (currentProject || {})._id
-            )
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
             .replace(':applicationLogId', match.params.applicationLogId)
             .replace(':errorTrackerId', match.params.errorTrackerId);
     };
-
+    handleShowMore = () => {
+        this.props.toggleProjectSettingsMore(!this.props.toggleMoreBtn);
+    };
     subRoute = subRoute => {
         const { match, currentProject } = this.props;
-        return subRoute.path
-            .replace(
-                ':projectId',
-                match.params.projectId || (currentProject || {})._id
-            )
+        const subRoutePath = subRoute.path
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':componentId', match.params.componentId)
             .replace(/:issueId/, match.params.issueId)
             .replace(/:scheduleId/, match.params.scheduleId)
             .replace(/:incidentId/, match.params.incidentId)
             .replace(/:monitorId/, match.params.monitorId);
+        const projectSettingsSubRoutes =
+            subRoute.title === 'Monitor' ||
+            subRoute.title === 'Incident Settings' ||
+            subRoute.title === 'Email' ||
+            subRoute.title === 'SMS & Calls' ||
+            subRoute.title === 'Call Routing' ||
+            subRoute.title === 'Webhooks' ||
+            subRoute.title === 'Probe' ||
+            subRoute.title === 'Git Credentials' ||
+            subRoute.title === 'Docker Credentials' ||
+            subRoute.title === 'Resources';
+        if (projectSettingsSubRoutes) {
+            if (match.url === subRoutePath) {
+                this.props.toggleProjectSettingsMore(true);
+            }
+        } else {
+            this.props.toggleProjectSettingsMore(false);
+        }
+        return subRoutePath;
     };
 
     camalize = function camalize(str) {
@@ -86,12 +102,10 @@ export class SidebarNavItem extends Component {
             match,
             currentProject,
             loadPage,
+            toggleMoreBtn,
         } = this.props;
         const path = route.path
-            .replace(
-                ':projectId',
-                match.params.projectId || (currentProject || {})._id
-            )
+            .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
@@ -100,55 +114,52 @@ export class SidebarNavItem extends Component {
         const isLinkActive =
             location.pathname === path ||
             (location.pathname.match(
-                /project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/subProject\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/
             ) &&
                 route.title === 'Status Pages') ||
             (location.pathname.match(
-                /project\/([0-9]|[a-z])*\/subProject\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/subProject\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
             ) &&
                 route.title === 'On-Call Duty') ||
             (location.pathname.match(
-                /project\/([0-9]|[a-z])*\/monitors\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/monitors\/([0-9]|[a-z])*/
             ) &&
                 route.title === 'Monitors') ||
-            (location.pathname.match(/project\/([0-9]|[a-z])*\/components*/) &&
+            (location.pathname.match(/project\/([A-Za-z0-9-]+)\/components*/) &&
                 route.title === 'Components') ||
             (location.pathname.match(
-                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/monitoring*/
+                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/monitoring*/
             ) &&
                 route.title === 'Monitors') ||
             (location.pathname.match(
-                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
             ) &&
                 route.title === 'Incident Log') ||
             (location.pathname.match(
-                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/application-log*/
+                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/application-log*/
             ) &&
                 route.title === 'Logs') ||
             (location.pathname.match(
-                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security/
+                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security/
             ) &&
                 route.title === 'Security') ||
             (location.pathname.match(
-                /project\/([0-9]|[a-z])*\/scheduledEvents/
+                /project\/([A-Za-z0-9-]+)\/scheduledEvents/
             ) &&
                 route.title === 'Component Settings') ||
             (location.pathname.match(
-                /project\/([0-9]|[a-z])*\/settings\/basic/
+                /project\/([A-Za-z0-9-]+)\/settings\/basic/
             ) &&
                 route.title === 'Scheduled Maintenance') ||
-            (location.pathname.match(/project\/([0-9]|[a-z])*\/consulting/) &&
+            (location.pathname.match(/project\/([A-Za-z0-9-]+)\/consulting/) &&
                 route.title === 'Consulting & Services') ||
             (location.pathname.match(
-                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/error-track*/
+                /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/error-track*/
             ) &&
                 route.title === 'Error Tracking');
 
         const isChildLinkActive = route.subRoutes.some(link => {
-            let newPath = link.path.replace(
-                /:projectId/,
-                match.params.projectId
-            );
+            let newPath = link.path.replace(/:slug/, match.params.slug);
             newPath = newPath.replace(/:issueId/, match.params.issueId);
             newPath = newPath.replace(/:scheduleId/, match.params.scheduleId);
             newPath = newPath.replace(/:incidentId/, match.params.incidentId);
@@ -167,31 +178,31 @@ export class SidebarNavItem extends Component {
                 newPath === match.url
                     ? true
                     : (location.pathname.match(
-                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
                       ) &&
                           link.title === 'Incident') ||
                       (location.pathname.match(
-                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container/
                       ) &&
                           link.title === 'Container') ||
                       (location.pathname.match(
-                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/application/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application/
                       ) &&
                           link.title === 'Application') ||
                       (location.pathname.match(
-                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/application\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application\/([0-9]|[a-z])*/
                       ) &&
                           link.title === 'Application Detail') ||
                       (location.pathname.match(
-                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container\/([0-9]|[a-z])*/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container\/([0-9]|[a-z])*/
                       ) &&
                           link.title === 'Container Detail') ||
                       (location.pathname.match(
-                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/settings\/advanced/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/settings\/advanced/
                       ) &&
                           link.title === 'Advanced') ||
                       (location.pathname.match(
-                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/settings\/basic/
+                          /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/settings\/basic/
                       ) &&
                           link.title === 'Basic')
                     ? true
@@ -202,7 +213,7 @@ export class SidebarNavItem extends Component {
         const isSubLinkActive = route.subRoutes.some(link =>
             link.title === 'Status Page' &&
             location.pathname.match(
-                /project\/([0-9]|[a-z])*\/sub-project\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/sub-project\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/
             )
                 ? true
                 : false
@@ -210,7 +221,7 @@ export class SidebarNavItem extends Component {
         const isScheduleLinkActive = route.subRoutes.some(link =>
             link.title === 'Schedule' &&
             location.pathname.match(
-                /project\/([0-9]|[a-z])*\/sub-project\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
+                /project\/([A-Za-z0-9-]+)\/sub-project\/([0-9]|[a-z])*\/schedule\/([0-9]|[a-z])*/
             )
                 ? true
                 : false
@@ -236,6 +247,7 @@ export class SidebarNavItem extends Component {
                         id={this.camalize(route.title)}
                         style={{ cursor: 'pointer' }}
                         onClick={() => {
+                            this.props.toggleProjectSettingsMore(false);
                             if (route.title === 'Back to Dashboard') {
                                 this.props.animateSidebar(true);
                                 setTimeout(() => {
@@ -281,7 +293,10 @@ export class SidebarNavItem extends Component {
                                         }
                                     >
                                         <span
-                                            id={`${route.title}-text`}
+                                            id={`${route.title.replace(
+                                                ' ',
+                                                ''
+                                            )}-text`}
                                             style={route.textStyle}
                                         >
                                             {route.title === 'Incident Log'
@@ -310,11 +325,15 @@ export class SidebarNavItem extends Component {
                             }
                         >
                             <RenderListItems
-                                projectId={match.params.projectId}
+                                slug={this.props.currentProject.slug}
                                 schedule={schedule}
                                 active={match.url}
                                 onLoad={title => loadPage(title)}
                                 componentId={match.params.componentId}
+                                showMore={toggleMoreBtn}
+                                handleShowMore={
+                                    this.props.toggleProjectSettingsMore
+                                }
                             />
                         </ShouldRender>
                     </span>
@@ -323,7 +342,15 @@ export class SidebarNavItem extends Component {
         );
     }
 
-    RenderListItems({ projectId, schedule, active, onLoad, componentId }) {
+    RenderListItems({
+        slug,
+        schedule,
+        active,
+        onLoad,
+        componentId,
+        showMore,
+        handleShowMore,
+    }) {
         return this.props.route.subRoutes.map((child, index) => {
             const removedLinks = [
                 'Schedule',
@@ -340,35 +367,45 @@ export class SidebarNavItem extends Component {
                 'Error Tracking View',
                 'Error Tracking Detail View',
             ];
-
+            const moreRoutes =
+                child.title === 'Monitor' ||
+                child.title === 'Incident Settings' ||
+                child.title === 'Email' ||
+                child.title === 'SMS & Calls' ||
+                child.title === 'Call Routing' ||
+                child.title === 'Webhooks' ||
+                child.title === 'Probe' ||
+                child.title === 'Git Credentials' ||
+                child.title === 'Docker Credentials' ||
+                child.title === 'Resources';
             if (removedLinks.some(link => link === child.title)) return null;
 
             if (child.visible) {
                 let link = child.path
-                    .replace(':projectId', projectId)
+                    .replace(':slug', slug)
                     .replace(':componentId', componentId);
                 link =
                     schedule && schedule._id
                         ? link.replace(':scheduleId', schedule._id)
                         : link;
                 const incidentLogLink = active.match(
-                    /project\/([0-9]|[a-z])*\/incidents\/([0-9]|[a-z])*/
+                    /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]|[a-z])*/
                 )
                     ? active
                     : false;
 
                 const applicationDetailLink = active.match(
-                    /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/application*/
+                    /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/application*/
                 )
                     ? active
                     : false;
                 const containerDetailLink = active.match(
-                    /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container*/
+                    /project\/([A-Za-z0-9-]+)\/([0-9]|[a-z])*\/security\/container*/
                 )
                     ? active
                     : false;
                 const scheduledEventDetailLink = active.match(
-                    /project\/([0-9]|[a-z])*\/scheduledEvents\/([0-9]|[a-z])*/
+                    /project\/([A-Za-z0-9-]+)\/scheduledEvents\/([0-9]|[a-z])*/
                 )
                     ? active
                     : false;
@@ -388,14 +425,16 @@ export class SidebarNavItem extends Component {
                         : false;
 
                 const routes = child.shortcut && child.shortcut.split('+');
-
-                return (
-                    <ul key={`nav ${index}`}>
-                        <li id={this.camalize(child.title)}>
-                            <div style={{ position: 'relative' }}>
-                                <Link
-                                    to={link}
-                                    onClick={() => onLoad(child.title)}
+                if (child.title === 'More') {
+                    return (
+                        <ul key={`nav ${index}`}>
+                            <li id={this.camalize(child.title)}>
+                                <div
+                                    style={{
+                                        position: 'relative',
+                                        cursor: 'pointer',
+                                    }}
+                                    onClick={() => handleShowMore(!showMore)}
                                 >
                                     <div style={{ outline: 'none' }}>
                                         <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
@@ -403,42 +442,91 @@ export class SidebarNavItem extends Component {
                                                 <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <span
                                                         className={
-                                                            link === active ||
-                                                            incidentLogLink ===
-                                                                active ||
-                                                            isSubrouteActive
+                                                            showMore
                                                                 ? 'Text-color--fyipeblue Text-fontWeight--bold'
                                                                 : ''
                                                         }
                                                     >
-                                                        {child.title ===
-                                                        'Incident Settings'
-                                                            ? 'Incidents'
-                                                            : child.title}
+                                                        {child.title}
                                                     </span>
                                                 </span>
-                                                {child.shortcut && (
-                                                    <span className="tooltiptext">
-                                                        <strong>
-                                                            {routes[0]}
-                                                        </strong>
-                                                        <span> then </span>
-                                                        <strong>
-                                                            {routes[1]}
-                                                        </strong>
-                                                    </span>
-                                                )}
+                                                <div className="Box-root Margin-left--8">
+                                                    {showMore ? (
+                                                        <div className="db-AccountSwitcherX-chevron"></div>
+                                                    ) : (
+                                                        <div className="more-btn-chevron-right"></div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </Link>
-                                <div className="db-SideNav-item--root">
-                                    <span></span>
+                                    <div className="db-SideNav-item--root">
+                                        <span></span>
+                                    </div>
                                 </div>
-                            </div>
-                        </li>
-                    </ul>
-                );
+                            </li>
+                        </ul>
+                    );
+                } else {
+                    if (!showMore && moreRoutes) {
+                        return null;
+                    }
+                    return (
+                        <ul key={`nav ${index}`}>
+                            <li id={this.camalize(child.title)}>
+                                <div style={{ position: 'relative' }}>
+                                    <Link
+                                        to={link}
+                                        onClick={() => {
+                                            !moreRoutes &&
+                                                handleShowMore(false);
+                                            onLoad(child.title);
+                                        }}
+                                    >
+                                        <div style={{ outline: 'none' }}>
+                                            <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
+                                                <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32 tooltip">
+                                                    <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <span
+                                                            className={
+                                                                link ===
+                                                                    active ||
+                                                                incidentLogLink ===
+                                                                    active ||
+                                                                isSubrouteActive
+                                                                    ? 'Text-color--fyipeblue Text-fontWeight--bold'
+                                                                    : ''
+                                                            }
+                                                        >
+                                                            {child.title ===
+                                                            'Incident Settings'
+                                                                ? 'Incidents'
+                                                                : child.title}
+                                                        </span>
+                                                    </span>
+                                                    {child.shortcut && (
+                                                        <span className="tooltiptext">
+                                                            <strong>
+                                                                {routes[0]}
+                                                            </strong>
+                                                            <span> then </span>
+                                                            <strong>
+                                                                {routes[1]}
+                                                            </strong>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                    <div className="db-SideNav-item--root">
+                                        <span></span>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    );
+                }
             } else {
                 return null;
             }
@@ -456,10 +544,14 @@ const mapStateToProps = state => ({
         state.schedule.schedules &&
         state.schedule.schedules.data &&
         state.schedule.schedules.data[0],
+    toggleMoreBtn: state.page.toggleProjectSettingsMore,
 });
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ loadPage, animateSidebar }, dispatch);
+    bindActionCreators(
+        { loadPage, animateSidebar, toggleProjectSettingsMore },
+        dispatch
+    );
 
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,
@@ -473,6 +565,9 @@ SidebarNavItem.propTypes = {
     component: PropTypes.object, // eslint-disable-line
     loadPage: PropTypes.func.isRequired,
     animateSidebar: PropTypes.func,
+    toggleProjectSettingsMore: PropTypes.func.isRequired,
+    closeMoreRoute: PropTypes.func.isRequired,
+    toggleMoreBtn: PropTypes.bool.isRequired,
 };
 
 export default withRouter(

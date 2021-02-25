@@ -10,22 +10,28 @@ import ProjectRestoreBox from '../components/project/ProjectRestoreBox';
 import ProjectBlockBox from '../components/project/ProjectBlockBox';
 import ProjectAlertLimitBox from '../components/project/ProjectAlertLimitBox';
 import ProjectUnblockBox from '../components/project/ProjectUnblockBox';
+import ProjectUsers from '../components/project/ProjectUsers';
 import ProjectUpgrade from '../components/project/ProjectUpgrade';
 import AdminNotes from '../components/adminNote/AdminNotes';
-import { addProjectNote, fetchProject } from '../actions/project';
+import { addProjectNote, fetchProject, paginate } from '../actions/project';
 import { IS_SAAS_SERVICE } from '../config';
+import { fetchProjectTeam } from '../actions/project';
 
 class Project extends Component {
     componentDidMount() {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Project page Loaded');
         }
+        this.props.fetchProjectTeam(
+            this.props.currentProject && this.props.currentProject._id
+        );
     }
 
     ready = async () => {
         const { fetchProject } = this.props;
-
-        await fetchProject(this.props.match.params.projectId);
+        await fetchProject(
+            this.props.currentProject && this.props.currentProject._id
+        );
     };
 
     render() {
@@ -55,6 +61,72 @@ class Project extends Component {
                                                     }
                                                     initialValues={
                                                         this.props.initialValues
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectUsers
+                                                    paginate={
+                                                        this.props.paginate
+                                                    }
+                                                    projectName={
+                                                        this.props.project &&
+                                                        this.props.project.name
+                                                    }
+                                                    users={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .team
+                                                    }
+                                                    projectId={
+                                                        this.props
+                                                            .currentProject &&
+                                                        this.props
+                                                            .currentProject._id
+                                                    }
+                                                    pages={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .page
+                                                    }
+                                                    membersPerPage={10}
+                                                    count={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .team &&
+                                                        this.props.projectUsers
+                                                            .team.count
+                                                    }
+                                                    page={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .page
+                                                    }
+                                                    canPaginateBackward={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .page > 1
+                                                            ? true
+                                                            : false
+                                                    }
+                                                    canPaginateForward={
+                                                        this.props
+                                                            .projectUsers &&
+                                                        this.props.projectUsers
+                                                            .team &&
+                                                        this.props.projectUsers
+                                                            .team.count >
+                                                            this.props
+                                                                .projectUsers
+                                                                .page *
+                                                                10
+                                                            ? true
+                                                            : false
                                                     }
                                                 />
                                             </div>
@@ -141,13 +213,22 @@ class Project extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ addProjectNote, fetchProject }, dispatch);
+    return bindActionCreators(
+        { addProjectNote, fetchProject, fetchProjectTeam, paginate },
+        dispatch
+    );
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
     const project = state.project.project.project || {};
+    const projectUsers = state.project.projectTeam;
+    const currentProject = state.project.projects.projects.find(el => {
+        return el.slug === props.match.params.slug;
+    });
     return {
         project,
+        currentProject,
+        projectUsers,
         adminNote: state.adminNote,
         initialValues: { adminNotes: project.adminNotes || [] },
     };
@@ -160,9 +241,12 @@ Project.contextTypes = {
 Project.propTypes = {
     addProjectNote: PropTypes.func.isRequired,
     initialValues: PropTypes.object,
-    match: PropTypes.object.isRequired,
+    currentProject: PropTypes.object.isRequired,
     fetchProject: PropTypes.func.isRequired,
     project: PropTypes.object.isRequired,
+    fetchProjectTeam: PropTypes.func.isRequired,
+    projectUsers: PropTypes.object.isRequired,
+    paginate: PropTypes.func.isRequired,
 };
 
 Project.displayName = 'Project';

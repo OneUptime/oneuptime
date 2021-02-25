@@ -15,6 +15,7 @@ class ErrorTracker {
     #fingerprint = [];
     #options = {
         maxTimeline: 5,
+        captureCodeSnippet: true,
     };
     #MAX_ITEMS_ALLOWED_IN_STACK = 100;
     #configKeys = ['baseUrl', 'maxTimeline'];
@@ -36,7 +37,7 @@ class ErrorTracker {
             this.#isWindow,
             this.#options
         ); // Initialize Listener for timeline
-        this.#utilObj = new Util();
+        this.#utilObj = new Util(this.#options);
         // set up error listener
         if (this.#isWindow) {
             this._setUpErrorListener();
@@ -57,13 +58,18 @@ class ErrorTracker {
         for (const [key, value] of Object.entries(options)) {
             // proceed with current key if it is not in the config keys
             if (!this.#configKeys.includes(key)) {
+                // if key is in allowed options keys
                 if (this.#options[key]) {
-                    // set max timeline properly after checkig conditions
+                    // set max timeline properly after checking conditions
                     if (
                         key === 'maxTimeline' &&
                         (value > this.#MAX_ITEMS_ALLOWED_IN_STACK || value < 1)
                     ) {
                         this.#options[key] = this.#MAX_ITEMS_ALLOWED_IN_STACK;
+                    } else if (key === 'captureCodeSnippet') {
+                        const isBoolean = typeof value === 'boolean'; // check if the passed value is a boolean
+                        // set boolean value if boolean or set default `true` if annything other than boolean is passed
+                        this.#options[key] = isBoolean ? value : true;
                     } else {
                         this.#options[key] = value;
                     }
@@ -133,7 +139,7 @@ class ErrorTracker {
     // set up error listener
     _setUpErrorListener() {
         const _this = this;
-        window.onerror = function(message, file, line, col, error) {
+        window.onerror = async function(message, file, line, col, error) {
             const errorEvent = { message, file, line, col, error };
 
             const string = errorEvent.message
@@ -144,7 +150,9 @@ class ErrorTracker {
                 return; // third party error
             } else {
                 // construct the error object
-                const errorObj = _this.#utilObj._getErrorStackTrace(errorEvent);
+                const errorObj = await _this.#utilObj._getErrorStackTrace(
+                    errorEvent
+                );
 
                 // log error event
                 const content = {
@@ -180,9 +188,9 @@ class ErrorTracker {
                 _this._manageErrorNode(err);
             });
     }
-    _manageErrorNode(error) {
+    async _manageErrorNode(error) {
         // construct the error object
-        const errorObj = this.#utilObj._getErrorStackTrace(error);
+        const errorObj = await this.#utilObj._getErrorStackTrace(error);
 
         // log error event
         const content = {
@@ -218,9 +226,9 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    captureException(error) {
+    async captureException(error) {
         // construct the error object
-        const errorObj = this.#utilObj._getErrorStackTrace(error);
+        const errorObj = await this.#utilObj._getErrorStackTrace(error);
 
         // set the a handled tag
         this.setTag('handled', 'true');
@@ -230,7 +238,18 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
+    _setHost() {
+        if (this.#isWindow) {
+            // Web apps
+            this.setTag('url', window.location.origin);
+        } else {
+            // JS Backend
+            // TODO create a way to get host on the backend
+        }
+    }
     prepareErrorObject(type, errorStackTrace) {
+        // set the host as a tag to be used later
+        this._setHost();
         // get current timeline
         const timeline = this.getTimeline();
         // get device location and details

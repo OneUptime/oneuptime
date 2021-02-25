@@ -10,6 +10,7 @@ const EmailStatusService = require('./emailStatusService');
 const DateTime = require('../utils/DateTime');
 const Path = require('path');
 const fsp = require('fs/promises');
+const moment = require('moment');
 
 const helpers = {
     year: DateTime.getCurrentYear,
@@ -340,21 +341,35 @@ const _this = {
         try {
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: 'noreply@fyipe.com',
+                to: 'support@fyipe.com',
                 subject: 'New Lead Added',
                 template: 'lead_to_fyipe_team',
                 context: {
+                    templateName: lead.templateName,
+                    airtableId: lead.airtableId,
+                    page: lead.page,
+                    projectId: lead.projectId,
+                    createdById: lead.createdById,
                     homeURL: global.homeHost,
-                    text: lead,
-                    deleted: JSON.stringify(lead.deleted),
-                    _id: JSON.stringify(lead._id),
-                    createdAt: JSON.stringify(lead.createdAt),
-                    message: JSON.stringify(lead.message),
-                    page: JSON.stringify(lead.page),
-                    projectId: JSON.stringify(lead.projectId),
-                    createdById: JSON.stringify(lead.createdById),
-                    projectName: JSON.stringify(lead.project.name),
-                    airtableId: JSON.stringify(lead.airtableId),
+                    _id: lead._id,
+                    message: lead.message,
+                    createdAt: moment(lead.createdAt).format('LLLL'),
+                    projectName:
+                        lead.project && lead.project.name
+                            ? lead.project.name
+                            : '',
+                    userName: lead.userName
+                        ? lead.userName
+                        : lead.name
+                        ? lead.name
+                        : '',
+                    userPhone: lead.phone,
+                    userEmail: lead.email,
+                    type: lead.type,
+                    country: lead.country,
+                    website: lead.website,
+                    companySize: lead.companySize,
+                    whitepaperName: lead.whitepaperName,
                 },
             };
 
@@ -1255,6 +1270,8 @@ const _this = {
         incidentType,
         projectName,
         criterionName,
+        probeName,
+        emailProgress,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1262,6 +1279,7 @@ const _this = {
             const accountMail = await _this.getProjectSmtpSettings(projectId);
             let iconColor = '#94c800';
             let incidentShow = 'Offline';
+            let subject;
             if (incidentType && incidentType === 'online') {
                 iconColor = '#75d380';
                 incidentShow = 'Online';
@@ -1272,11 +1290,16 @@ const _this = {
                 iconColor = '#ffde24';
                 incidentShow = 'Degraded';
             }
+            if (emailProgress) {
+                subject = `Reminder ${emailProgress.current}/${emailProgress.total}: Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
+            } else {
+                subject = `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
+            }
             const iconStyle = `display:inline-block;width:16px;height:16px;background:${iconColor};border-radius:16px`;
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
-                subject: `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`,
+                subject: subject,
                 template: 'new_incident_created',
                 context: {
                     homeURL: global.homeHost,
@@ -1301,6 +1324,7 @@ const _this = {
                     projectName,
                     dashboardURL: global.dashboardHost,
                     criterionName,
+                    probeName,
                 },
             };
             EmailBody = await _this.getEmailBody(mailOptions);
@@ -1482,6 +1506,7 @@ const _this = {
         acknowledgeTime,
         length,
         criterionName,
+        acknowledgedBy,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1513,6 +1538,7 @@ const _this = {
                     projectName,
                     dashboardURL: global.dashboardHost,
                     criterionName,
+                    acknowledgedBy,
                 },
             };
             const mailer = await _this.createMailer(accountMail);
@@ -1574,6 +1600,7 @@ const _this = {
         resolveTime,
         length,
         criterionName,
+        resolvedBy,
     }) {
         let mailOptions = {};
         let EmailBody;
@@ -1604,6 +1631,7 @@ const _this = {
                     projectName,
                     dashboardURL: global.dashboardHost,
                     criterionName,
+                    resolvedBy,
                 },
             };
             const mailer = await _this.createMailer(accountMail);

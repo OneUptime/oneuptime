@@ -21,7 +21,7 @@ module.exports = {
                 .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
-                .populate('probes.probeId', 'probeName')
+                .populate('probes.probeId')
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
@@ -121,9 +121,7 @@ module.exports = {
                                 ? matchedCriterion.description
                                 : descriptionTemplate(templatesInput);
                         incident.criterionCause = {
-                            name: matchedCriterion.default
-                                ? 'Default'
-                                : matchedCriterion.name,
+                            ...matchedCriterion,
                         };
 
                         incident.incidentPriority =
@@ -257,7 +255,7 @@ module.exports = {
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
                 .populate('incidentPriority', 'name color')
-                .populate('probes.probeId', 'probeName')
+                .populate('probes.probeId')
                 .populate({
                     path: 'monitorId',
                     select: '_id name',
@@ -286,13 +284,14 @@ module.exports = {
                 deleted: { $ne: null },
             });
 
-            const notClosedBy = oldIncident.notClosedBy;
+            const notClosedBy = oldIncident && oldIncident.notClosedBy;
             if (data.notClosedBy) {
                 data.notClosedBy = notClosedBy.concat(data.notClosedBy);
             }
             data.manuallyCreated =
-                data.manuallyCreated || oldIncident.manuallyCreated || false;
-
+                data.manuallyCreated ||
+                (oldIncident && oldIncident.manuallyCreated) ||
+                false;
             let updatedIncident = await IncidentModel.findOneAndUpdate(
                 query,
                 {
@@ -300,13 +299,12 @@ module.exports = {
                 },
                 { new: true }
             );
-
             updatedIncident = await updatedIncident
                 .populate('acknowledgedBy', 'name')
                 .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
-                .populate('probes.probeId', 'probeName')
+                .populate('probes.probeId')
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
@@ -720,6 +718,51 @@ module.exports = {
         return subProjectIncidents;
     },
 
+    getComponentIncidents: async function(subProjectIds, componentId) {
+        const _this = this;
+        const monitors = await MonitorService.findBy({
+            componentId: componentId,
+        });
+        const monitorIds = monitors.map(monitor => monitor._id);
+        const componentIncidents = await Promise.all(
+            subProjectIds.map(async id => {
+                const incidents = await _this.findBy(
+                    { projectId: id, monitorId: { $in: monitorIds } },
+                    10,
+                    0
+                );
+                const count = await _this.countBy({
+                    projectId: id,
+                    monitorId: { $in: monitorIds },
+                });
+                return { incidents, count, _id: id, skip: 0, limit: 10 };
+            })
+        );
+        return componentIncidents;
+    },
+
+    getProjectComponentIncidents: async function(
+        projectId,
+        componentId,
+        limit,
+        skip
+    ) {
+        const _this = this;
+        const monitors = await MonitorService.findBy({
+            componentId: componentId,
+        });
+        const monitorIds = monitors.map(monitor => monitor._id);
+        const incidents = await _this.findBy(
+            { projectId: projectId, monitorId: { $in: monitorIds } },
+            limit,
+            skip
+        );
+        const count = await _this.countBy({
+            projectId: projectId,
+            monitorId: { $in: monitorIds },
+        });
+        return { incidents, count, _id: projectId };
+    },
     sendIncidentResolvedNotification: async function(incident, name) {
         try {
             const _this = this;
@@ -809,13 +852,14 @@ module.exports = {
         const _this = this;
         query.deleted = true;
         let incident = await _this.findBy(query);
-        if (incident && incident.length > 1) {
+        if (incident && incident.length > 0) {
             const incidents = await Promise.all(
                 incident.map(async incident => {
                     const incidentId = incident._id;
                     incident = await _this.updateOneBy(
                         {
                             _id: incidentId,
+                            deleted: true,
                         },
                         {
                             deleted: false,

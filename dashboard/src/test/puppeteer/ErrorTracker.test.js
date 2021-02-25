@@ -209,7 +209,7 @@ describe('Error Trackers', () => {
                 await page.waitForSelector(`#edit_${errorTrackerName}`);
                 await page.click(`#edit_${errorTrackerName}`);
 
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
                 let spanElement = await page.waitForSelector(
                     `#error-tracker-edit-title-${errorTrackerName}`
                 );
@@ -476,7 +476,7 @@ describe('Error Trackers', () => {
                 await page.click(`#delete_${categoryName}`);
                 await page.waitForSelector('#deleteResourceCategory');
                 await page.click('#deleteResourceCategory');
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
 
                 // go back to log details and confirm it is not there anymore
                 const spanElementBadge = await page.$(

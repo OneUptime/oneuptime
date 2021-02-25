@@ -76,12 +76,13 @@ describe('Enterprise Monitor API', () => {
                 // Redirects automatically component to details page
                 await init.addComponent(data.componentName, page);
 
-                await page.waitForSelector('#monitors');
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
-                await page.type('input[id=name]', data.monitorName);
+                await page.type('input[id=name]', monitorName);
+                await page.click('[data-testId=type_url]');
+                await page.waitForSelector('#url');
                 await page.click('#url');
-                await page.type('input[name=url_1000]', 'https://google.com');
+                await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
 
                 let spanElement = await page.waitForSelector(

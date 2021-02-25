@@ -82,9 +82,6 @@ export class MonitorTitle extends Component {
             case 'manual':
                 badgeColor = 'red';
                 break;
-            case 'device':
-                badgeColor = 'green';
-                break;
             default:
                 badgeColor = 'blue';
                 break;
@@ -158,6 +155,15 @@ export class MonitorTitle extends Component {
                                         <span>
                                             Description:{' '}
                                             {monitor.data.description}
+                                        </span>
+                                    )}
+                                {monitor.type === 'ip' &&
+                                    monitor.data &&
+                                    monitor.data.IPAddress &&
+                                    monitor.data.IPAddress !== '' && (
+                                        <span>
+                                            Currently Monitoring:{' '}
+                                            {monitor.data.IPAddress}
                                         </span>
                                     )}
                             </span>

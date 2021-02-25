@@ -24,7 +24,7 @@ const {
     updateSchedule,
     verifyToken,
     getChargedAlerts,
-} = require('./test-utils');
+} = require('./utils/test-utils');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const ComponentService = require('../backend/services/componentService');
@@ -112,10 +112,10 @@ describe('SMS/Calls Incident Alerts', function() {
             payload: {
                 componentId,
                 projectId,
-                type: 'device',
+                type: null, //Please add a new monitor type here. IOT Device Monitor has been removed.
                 name: 'test monitor ',
-                data: { deviceId: 'abcdef' },
-                deviceId: 'abcdef',
+                data: null,
+                deviceId: null,
                 criteria: {},
             },
         });

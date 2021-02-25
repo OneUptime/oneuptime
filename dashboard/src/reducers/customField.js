@@ -16,6 +16,7 @@ const initialState = {
         skip: 0,
         limit: 10,
     },
+    page: 1,
 };
 
 export default function customField(state = initialState, action) {
@@ -40,6 +41,7 @@ export default function customField(state = initialState, action) {
                     error: null,
                     field: action.payload,
                 },
+                page: 1,
             };
 
         case types.CREATE_CUSTOM_FIELD_FAILURE:
@@ -171,6 +173,16 @@ export default function customField(state = initialState, action) {
                     success: false,
                     error: action.payload,
                 },
+            };
+        case types.NEXT_PAGE:
+            return {
+                ...state,
+                page: state.page + 1,
+            };
+        case types.PREV_PAGE:
+            return {
+                ...state,
+                page: state.page > 1 ? state.page - 1 : 1,
             };
 
         default:

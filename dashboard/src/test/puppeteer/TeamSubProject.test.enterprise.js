@@ -66,7 +66,7 @@ describe('Enterprise Team SubProject API', () => {
                 await page.type(`#emails_${subProjectName}`, newUser.email);
                 await page.click(`#${role}_${subProjectName}`);
                 await page.click(`#btn_modal_${subProjectName}`);
-                await page.waitFor(5000);
+                await page.waitForTimeout(5000);
             });
         },
         operationTimeOut

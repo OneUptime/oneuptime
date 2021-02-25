@@ -20,6 +20,11 @@ const initialState = {
         requesting: false,
         success: false,
     },
+    updateProbe: {
+        error: null,
+        requesting: false,
+        success: false,
+    },
 };
 
 export default function probes(state = initialState, action) {
@@ -151,6 +156,55 @@ export default function probes(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
+                },
+            });
+
+        case types.UPDATE_PROBE_REQUEST:
+            return Object.assign({}, state, {
+                updateProbe: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case types.UPDATE_PROBE_FAILED:
+            return Object.assign({}, state, {
+                updateProbe: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case types.UPDATE_PROBE_RESET:
+            return Object.assign({}, state, {
+                updateProbe: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case types.UPDATE_PROBE_SUCCESS:
+            return Object.assign({}, state, {
+                probes: {
+                    ...state.probes,
+
+                    data:
+                        state.probes.data.length > 0
+                            ? state.probes.data.map(probe => {
+                                  return probe._id === action.payload._id
+                                      ? action.payload
+                                      : probe;
+                              })
+                            : [action.payload],
+                },
+
+                updateProbe: {
+                    error: null,
+                    requesting: false,
+                    success: true,
                 },
             });
 

@@ -8,11 +8,13 @@ function BreadCrumbItem({
     route,
     name,
     projectId,
+    slug,
     pageTitle,
     type,
     status,
     containerType,
     icon,
+    switchToProjectViewerNav,
 }) {
     const id = name ? name.split(' ').join('') : '';
     const pages = pageTitles();
@@ -22,9 +24,12 @@ function BreadCrumbItem({
         history.push(getRoute(route, projectId));
     };
 
-    const getRoute = (route, projectId) => {
+    const getRoute = route => {
         if (route === '/') {
-            return `/dashboard/project/${projectId}`;
+            if (switchToProjectViewerNav) {
+                return `/dashboard/project/${slug}/status-pages`;
+            }
+            return `/dashboard/project/${slug}`;
         }
         return route;
     };
@@ -81,11 +86,13 @@ BreadCrumbItem.propTypes = {
     route: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
     projectId: PropTypes.string,
+    slug: PropTypes.string,
     pageTitle: PropTypes.string,
     type: PropTypes.string,
     status: PropTypes.string,
     containerType: PropTypes.string,
     icon: PropTypes.string,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 export default BreadCrumbItem;

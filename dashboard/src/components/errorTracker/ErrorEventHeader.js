@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import moment from 'moment';
-import { FormLoader, ListLoader } from '../basic/Loader';
+import { ListLoader, FormLoader2 } from '../basic/Loader';
 import TooltipMini from '../basic/TooltipMini';
 
 class ErrorEventHeader extends Component {
@@ -14,11 +14,11 @@ class ErrorEventHeader extends Component {
         return;
     };
     handleIgnoreButton = errorTrackerIssue => {
-        const { ignoreErrorEvent, unresolveErrorEvent } = this.props;
+        const { ignoreErrorEvent } = this.props;
         if (!errorTrackerIssue.ignored) {
             ignoreErrorEvent(errorTrackerIssue._id);
         } else {
-            unresolveErrorEvent(errorTrackerIssue._id);
+            ignoreErrorEvent(errorTrackerIssue._id, true); // set this to true to unresolve an ignored Issue
         }
     };
     handleResolveButton = errorTrackerIssue => {
@@ -34,10 +34,20 @@ class ErrorEventHeader extends Component {
             errorEvent,
             errorTrackerIssue,
             errorTrackerStatus,
+            openDeleteModal,
+            errorTrackerState,
         } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
         const canPrev = errorEvent.previous;
         const canNext = errorEvent.next;
+        let deleting = false;
+        if (
+            errorTrackerState &&
+            errorTrackerState.deleteErrorTrackerIssue &&
+            errorTrackerState.deleteErrorTrackerIssue === errorTrackerIssue._id
+        ) {
+            deleting = true;
+        }
         return (
             <div>
                 <ShouldRender if={errorEvent.requesting}>
@@ -120,7 +130,7 @@ class ErrorEventHeader extends Component {
                                                     errorTrackerStatus[
                                                         errorTrackerIssue._id
                                                     ].requestingResolve
-                                                        ? 'bs-Button--blue'
+                                                        ? ''
                                                         : 'bs-Button--icon bs-Button--check'
                                                 }  `}
                                                 type="button"
@@ -143,7 +153,7 @@ class ErrorEventHeader extends Component {
                                                     errorTrackerStatus[
                                                         errorTrackerIssue._id
                                                     ].requestingResolve ? (
-                                                        <FormLoader />
+                                                        <FormLoader2 />
                                                     ) : (
                                                         <span>Resolve</span>
                                                     )}
@@ -161,7 +171,7 @@ class ErrorEventHeader extends Component {
                                                     errorTrackerStatus[
                                                         errorTrackerIssue._id
                                                     ].requestingResolve ? (
-                                                        <FormLoader />
+                                                        <FormLoader2 />
                                                     ) : (
                                                         <span>Unresolve</span>
                                                     )}
@@ -186,7 +196,7 @@ class ErrorEventHeader extends Component {
                                                     errorTrackerStatus[
                                                         errorTrackerIssue._id
                                                     ].requestingIgnore
-                                                        ? 'bs-Button--blue'
+                                                        ? ''
                                                         : 'bs-Button--icon bs-Button--block'
                                                 }  `}
                                                 type="button"
@@ -197,10 +207,7 @@ class ErrorEventHeader extends Component {
                                                 }
                                             >
                                                 <ShouldRender
-                                                    if={
-                                                        errorTrackerIssue &&
-                                                        !errorTrackerIssue.ignored
-                                                    }
+                                                    if={errorTrackerIssue}
                                                 >
                                                     {errorTrackerStatus &&
                                                     errorTrackerStatus[
@@ -209,14 +216,46 @@ class ErrorEventHeader extends Component {
                                                     errorTrackerStatus[
                                                         errorTrackerIssue._id
                                                     ].requestingIgnore ? (
-                                                        <FormLoader />
+                                                        <FormLoader2 />
                                                     ) : (
-                                                        <span>Ignore</span>
+                                                        <ShouldRender
+                                                            if={
+                                                                errorTrackerIssue &&
+                                                                !errorTrackerIssue.ignored
+                                                            }
+                                                        >
+                                                            <span>Ignore</span>
+                                                        </ShouldRender>
                                                     )}
                                                 </ShouldRender>
                                             </button>
                                         }
                                     />
+                                    <button
+                                        className={`bs-Button ${
+                                            errorTrackerStatus &&
+                                            errorTrackerStatus[
+                                                errorTrackerIssue._id
+                                            ] &&
+                                            errorTrackerStatus[
+                                                errorTrackerIssue._id
+                                            ].requestingResolve
+                                                ? ''
+                                                : 'bs-Button--icon bs-Button--delete'
+                                        }  `}
+                                        disabled={deleting}
+                                        type="button"
+                                        onClick={() =>
+                                            openDeleteModal(errorTrackerIssue)
+                                        }
+                                    >
+                                        <ShouldRender if={!deleting}>
+                                            <span>Delete</span>
+                                        </ShouldRender>
+                                        <ShouldRender if={deleting}>
+                                            <FormLoader2 />
+                                        </ShouldRender>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -382,6 +421,8 @@ ErrorEventHeader.propTypes = {
     unresolveErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.func,
     errorTrackerStatus: PropTypes.object,
+    openDeleteModal: PropTypes.func,
+    errorTrackerState: PropTypes.object,
 };
 ErrorEventHeader.displayName = 'ErrorEventHeader';
 export default ErrorEventHeader;

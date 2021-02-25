@@ -12,7 +12,7 @@ spec:
     selector:
         matchLabels:
             app: {{ printf "%s-%s" .Release.Name "haraka"  }}
-    replicas: {{ .Values.replicaCount }}
+    replicas: 1
     template:
         metadata:
             labels:
@@ -27,6 +27,14 @@ spec:
                         value: {{ .Values.haraka.user }}
                       - name: SMTP_PASSWORD
                         value: {{ .Values.haraka.password }}
+                      - name: DOMAIN
+                        value: {{ .Values.haraka.domain }}
+                      - name: PRIVATE_KEY
+                        value: {{ .Values.haraka.privateKey }}
+                      - name: TLS_CERT
+                        value: {{ .Values.haraka.tlsCert }}
+                      - name: TLS_KEY
+                        value: {{ .Values.haraka.tlsKey }}
                   ports:
                       - containerPort: {{ .Values.host.harakaPort }}
                         hostPort: {{ .Values.host.harakaPort }}

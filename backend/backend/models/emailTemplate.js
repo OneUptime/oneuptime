@@ -8,7 +8,7 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const emailTemplateSchema = new Schema({
-    projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
     subject: { type: String },
     body: { type: String },
     emailType: {
@@ -28,7 +28,7 @@ const emailTemplateSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: Schema.Types.ObjectId, ref: 'User' },
+    deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 });
 
 module.exports = mongoose.model('EmailTemplate', emailTemplateSchema);

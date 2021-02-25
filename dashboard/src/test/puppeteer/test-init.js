@@ -337,27 +337,14 @@ module.exports = {
         }
         await page.waitFor(1000);
     },
-    addMonitorToComponent: async function(
-        component,
-        monitorName,
-        page,
-        componentName
-    ) {
+    addMonitorToComponent: async function(component, monitorName, page) {
         component && (await this.addComponent(component, page));
-        componentName = component || componentName;
-
-        await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector('#components', { visible: true });
-        await page.click('#components');
-        await page.waitForSelector('#component0', { visible: true });
-        await page.click(`#more-details-${componentName}`);
-
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await page.waitForSelector('button[id=showMoreMonitors]');
         await page.click('button[id=showMoreMonitors]');
-        await page.click('#device');
+        await page.click('[data-testId=type_device]');
         await page.waitForSelector('#deviceId');
         await page.click('#deviceId');
         await page.type('#deviceId', utils.generateRandomString());
@@ -370,8 +357,13 @@ module.exports = {
      *  adds an api monitor with js expressions for up and degraded events
      * @param {*} page a page instance of puppeteer
      * @param {string} monitorName the name of the new monitor
+     * @param {{createAlertForOnline : boolean, createAlertForDegraded : boolean, createAlertForDown : boolean}} options
      */
-    addAPIMonitorWithJSExpression: async function(page, monitorName) {
+    addAPIMonitorWithJSExpression: async function(
+        page,
+        monitorName,
+        options = {}
+    ) {
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
@@ -419,6 +411,17 @@ module.exports = {
             'ul[data-testId=up_criteria_list]> li:last-of-type #value',
             "response.body.status === 'ok';"
         );
+
+        if (options.createAlertForOnline) {
+            await page.click('[data-testId=criterionAdvancedOptions_up]');
+
+            await page.waitForSelector('input[name^=createAlert_up]', {
+                visible: true,
+            });
+            await page.$eval('input[name^=createAlert_up]', element =>
+                element.click()
+            );
+        }
 
         // degraded criteria
         await page.$$eval(
@@ -474,10 +477,7 @@ module.exports = {
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        await this.selectByText('#type', 'device', page);
-        await page.waitForSelector('#deviceId');
-        await page.click('#deviceId');
-        await page.type('#deviceId', utils.generateRandomString());
+        //Please add a new monitor type here. IOT Device Monitor has been removed.
         await page.click('button[type=submit]');
         await page.waitForSelector(`#monitor-title-${monitorName}`, {
             visible: true,

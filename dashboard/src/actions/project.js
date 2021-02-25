@@ -33,6 +33,7 @@ import { deleteProjectIncidents } from './incident';
 import { getSubProjects, resetSubProjects } from './subProject';
 import { resetFetchComponentResources } from './component';
 import errors from '../errors';
+import isMainProjectViewer from '../utils/isMainProjectViewer';
 
 export function changeDeleteModal() {
     return {
@@ -126,7 +127,6 @@ export function getProjects(switchToProjectId) {
             function(projects) {
                 projects = projects.data && projects.data.data;
                 dispatch(projectsSuccess(projects));
-
                 if (projects.length > 0 && !switchToProjectId) {
                     if (User.getCurrentProjectId()) {
                         const project = projects.filter(
@@ -151,8 +151,10 @@ export function getProjects(switchToProjectId) {
                             project =>
                                 project._id === User.getCurrentProjectId()
                         );
-                        dispatch(switchProject(dispatch, project[0]));
-                        projectSwitched = true;
+                        if (project.length > 0) {
+                            dispatch(switchProject(dispatch, project[0]));
+                            projectSwitched = true;
+                        }
                     }
                     !projectSwitched &&
                         dispatch(switchProject(dispatch, projects[0]));
@@ -277,14 +279,32 @@ export function createProject(values) {
     };
 }
 
-export function switchProject(dispatch, project) {
+export function switchToProjectViewerNav(userId, subProjects, currentProject) {
+    return function(dispatch) {
+        dispatch({
+            type: types.SHOW_VIEWER_MENU,
+            payload: isMainProjectViewer(userId, subProjects, currentProject),
+        });
+    };
+}
+
+export function switchProject(dispatch, project, subProjects = []) {
     const currentProjectId = User.getCurrentProjectId();
     const historyProjectId = history.location.pathname.split('project')[1];
     if (!currentProjectId || project._id !== currentProjectId) {
-        history.push(`/dashboard/project/${project._id}`);
+        const isViewer = isMainProjectViewer(
+            User.getUserId(),
+            subProjects,
+            project
+        );
+        if (isViewer) {
+            history.push(`/dashboard/project/${project.slug}/status-pages`);
+        } else {
+            history.push(`/dashboard/project/${project.slug}`);
+        }
         User.setCurrentProjectId(project._id);
     } else if (historyProjectId && historyProjectId === '/') {
-        history.push(`/dashboard/project/${project._id}`);
+        history.push(`/dashboard/project/${project.slug}`);
     }
 
     dispatch(resetSubProjects());

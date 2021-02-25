@@ -110,10 +110,7 @@ class TopContent extends Component {
     };
 
     handleActiveIncidentClick = () => {
-        const projectId = this.props.currentProject
-            ? this.props.currentProject._id
-            : '';
-        history.push(`/dashboard/project/${projectId}`);
+        history.push(`/dashboard/project/${this.props.currentProjectSlug}`);
     };
 
     renderActiveIncidents = (incidentCounter, topNavCardClass) => (
@@ -194,6 +191,7 @@ class TopContent extends Component {
     renderOnCallSchedule = (
         activeSchedules,
         currentProjectId,
+        currentProjectSlug,
         topNavCardClass
     ) => {
         return (
@@ -207,6 +205,7 @@ class TopContent extends Component {
                             status: 'active',
                             schedules: activeSchedules,
                             currentProjectId: currentProjectId,
+                            currentProjectSlug: currentProjectSlug,
                         }),
                     })
                 }
@@ -265,10 +264,13 @@ class TopContent extends Component {
             escalations.map(escalation => {
                 return escalation.teams
                     .map(team => {
-                        const schedule = team.teamMembers
-                            .map(teamMember => teamMember)
-                            .filter(user => user.userId === this.props.user.id)
-                            .pop();
+                        const schedule = team.teamMembers.find(
+                            user =>
+                                String(user.userId) ===
+                                String(
+                                    this.props.user.id || this.props.user._id
+                                )
+                        );
                         if (schedule) {
                             schedule.projectId = escalation.projectId;
                             schedule.scheduleId = escalation.scheduleId;
@@ -414,6 +416,7 @@ class TopContent extends Component {
                                     {this.renderOnCallSchedule(
                                         activeSchedules,
                                         this.props.currentProjectId,
+                                        this.props.currentProjectSlug,
                                         topNavCardClass
                                     )}
                                 </ShouldRender>
@@ -537,9 +540,10 @@ const mapStateToProps = (state, props) => {
               return project._id === projectId;
           })
         : [];
-    const currentProjectId = state.project.currentProject
-        ? state.project.currentProject._id
-        : '';
+    const currentProjectId =
+        state.project.currentProject && state.project.currentProject._id;
+    const currentProjectSlug =
+        state.project.currentProject && state.project.currentProject.slug;
     return {
         profilePic,
         feedback: state.feedback,
@@ -547,6 +551,7 @@ const mapStateToProps = (state, props) => {
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
         currentProjectId,
+        currentProjectSlug,
         monitors,
         escalation: state.schedule.escalation,
         escalations: state.schedule.escalations,
@@ -605,6 +610,7 @@ TopContent.propTypes = {
     userScheduleRequest: PropTypes.func,
     user: PropTypes.object.isRequired,
     currentProjectId: PropTypes.string.isRequired,
+    currentProjectSlug: PropTypes.string.isRequired,
     updateProfileSetting: PropTypes.func.isRequired,
 };
 

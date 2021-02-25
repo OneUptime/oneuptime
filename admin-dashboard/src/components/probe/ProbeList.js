@@ -7,14 +7,18 @@ import { ListLoader, FormLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
+import { updateProbe } from '../../actions/probe';
 import ProbeDeleteModal from './ProbeDeleteModal';
 import uuid from 'uuid';
+import { reduxForm, Field } from 'redux-form';
+import { UploadFile } from '../basic/UploadFile';
+import { API_URL } from '../../config';
 
 export class ProbeList extends Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = { deleteModalId: uuid.v4() };
+        this.state = { deleteModalId: uuid.v4(), selectedProbe: '' };
     }
 
     handleClick = probeId => {
@@ -26,12 +30,33 @@ export class ProbeList extends Component {
         });
     };
 
+    handleChange = (probe, e) => {
+        e.preventDefault();
+
+        this.setState({ selectedProbe: probe._id });
+        const reader = new FileReader();
+        const file = e.target.files[0];
+
+        // reader.onloadend = () => {
+        //     this.props.logFile(reader.result);
+        // };
+        try {
+            reader.readAsDataURL(file);
+            const data = { id: probe._id, probeImage: file };
+            this.props.updateProbe(data);
+        } catch (error) {
+            return;
+        }
+    };
+
     render() {
+        const { selectedProbe } = this.state;
         const {
             probes,
             deleteRequesting,
             probeRequesting,
             addRequesting,
+            updateRequesting,
         } = this.props;
         if (probes && probes.skip && typeof probes.skip === 'string') {
             probes.skip = parseInt(probes.skip, 10);
@@ -57,6 +82,7 @@ export class ProbeList extends Component {
             canNext = false;
             canPrev = false;
         }
+        const numberOfPages = Math.ceil(parseInt(probes.count) / 10);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -161,6 +187,24 @@ export class ProbeList extends Component {
                               probes.data &&
                               probes.data.length > 0 ? (
                                 probes.data.map(probe => {
+                                    const fileData =
+                                        probe && probe.probeImage
+                                            ? `${API_URL}/file/${probe.probeImage}`
+                                            : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                                    let imageTag = <span />;
+
+                                    imageTag = (
+                                        <img
+                                            src={fileData}
+                                            alt=""
+                                            className="image-small-circle"
+                                            style={{
+                                                width: '25px',
+                                                height: '25px',
+                                            }}
+                                        />
+                                    );
+
                                     return (
                                         <tr
                                             key={probe._id}
@@ -175,8 +219,21 @@ export class ProbeList extends Component {
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16">
-                                                            <span>
+                                                        <div
+                                                            className="Box-root Margin-right--16"
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems:
+                                                                    'center',
+                                                            }}
+                                                        >
+                                                            {imageTag}
+                                                            <span
+                                                                style={{
+                                                                    marginLeft:
+                                                                        '5px',
+                                                                }}
+                                                            >
                                                                 {
                                                                     probe.probeName
                                                                 }
@@ -247,20 +304,54 @@ export class ProbeList extends Component {
                                                 </div>
                                             </td>
                                             <td
-                                                aria-hidden="true"
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{
-                                                    height: '1px',
-                                                    maxWidth: '48px',
-                                                    minWidth: '48px',
-                                                    width: '48px',
-                                                }}
+                                                className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
                                             >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        ⁣
+                                                <form onSubmit>
+                                                    <div className="bs-Button bs-DeprecatedButton Margin-left--8">
+                                                        <ShouldRender
+                                                            if={
+                                                                probe.probeImage
+                                                            }
+                                                        >
+                                                            <span className="bs-Button--icon bs-Button--new"></span>
+                                                            <span>
+                                                                Update Image
+                                                            </span>
+                                                        </ShouldRender>
+                                                        <ShouldRender
+                                                            if={
+                                                                !probe.probeImage
+                                                            }
+                                                        >
+                                                            <span className="bs-Button--icon bs-Button--new"></span>
+                                                            <span>
+                                                                Upload Image
+                                                            </span>
+                                                        </ShouldRender>
+                                                        <Field
+                                                            className="bs-FileUploadButton-input"
+                                                            component={
+                                                                UploadFile
+                                                            }
+                                                            name="profilePic"
+                                                            id="profilePic"
+                                                            accept="image/jpeg, image/jpg, image/png"
+                                                            onChange={e =>
+                                                                this.handleChange(
+                                                                    probe,
+                                                                    e
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                updateRequesting &&
+                                                                selectedProbe ===
+                                                                    probe.id
+                                                            }
+                                                            fileInputKey={Math.round()}
+                                                        />
                                                     </div>
-                                                </div>
+                                                </form>
                                             </td>
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -336,10 +427,14 @@ export class ProbeList extends Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {probes && probes.count
-                                        ? probes.count +
-                                          (probes && probes.count > 1
-                                              ? ' probes'
-                                              : ' Probe')
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${probes &&
+                                              probes.count} Probe${
+                                              probes && probes.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
                                         : null}
                                 </span>
                             </span>
@@ -404,7 +499,7 @@ export class ProbeList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ openModal, closeModal }, dispatch);
+    return bindActionCreators({ openModal, closeModal, updateProbe }, dispatch);
 };
 
 function mapStateToProps(state) {
@@ -414,6 +509,8 @@ function mapStateToProps(state) {
         deleteRequesting:
             state.probe.deleteProbe && state.probe.deleteProbe.requesting,
         addRequesting: state.probe.addProbe && state.probe.addProbe.requesting,
+        updateRequesting:
+            state.probe.updateProbe && state.probe.updateProbe.requesting,
     };
 }
 
@@ -431,6 +528,15 @@ ProbeList.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     requesting: PropTypes.bool,
+    updateRequesting: PropTypes.bool,
+    updateProbe: PropTypes.func,
+    page: PropTypes.number,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(ProbeList);
+const ProbeSettingsForm = reduxForm({
+    form: 'probeForm', // a unique identifier for this form,
+    enableReinitialize: true,
+    // validate, // <--- validation function given to redux-for
+})(ProbeList);
+
+export default connect(mapStateToProps, mapDispatchToProps)(ProbeSettingsForm);

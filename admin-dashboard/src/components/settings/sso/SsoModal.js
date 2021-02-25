@@ -6,6 +6,7 @@ import { RenderField } from '../../basic/RenderField';
 import { Validate } from '../../../config';
 import { reduxForm, Field } from 'redux-form';
 import { addSso, fetchSsos, updateSso } from '../../../actions/sso';
+import { fetchSsoDefaultRoles } from '../../../actions/ssoDefaultRoles';
 
 // Client side validation
 function validate(values) {
@@ -129,6 +130,7 @@ class Component extends React.Component {
         const { _id: id } = data;
         await this.props.onSubmit({ id, data });
         await this.props.fetchSsos();
+        await this.props.fetchSsoDefaultRoles();
         closeThisDialog();
     };
 
@@ -268,6 +270,7 @@ Component.propTypes = {
     // eslint-disable-next-line react/no-unused-prop-types
     addSso: PropTypes.func.isRequired,
     fetchSsos: PropTypes.func.isRequired,
+    fetchSsoDefaultRoles: PropTypes.func.isRequired,
     // eslint-disable-next-line react/no-unused-prop-types
     initialValues: PropTypes.object,
     closeThisDialog: PropTypes.func.isRequired,
@@ -296,6 +299,7 @@ export const SsoAddModal = connect(
             {
                 onSubmit: addSso,
                 fetchSsos,
+                fetchSsoDefaultRoles,
             },
             dispatch
         );
@@ -316,6 +320,7 @@ export const SsoUpdateModal = connect(
             {
                 onSubmit: updateSso,
                 fetchSsos,
+                fetchSsoDefaultRoles,
             },
             dispatch
         );

@@ -6,11 +6,13 @@ const resourceCategorySchema = new Schema({
         type: String,
         ref: 'Project',
         alias: 'project',
+        index: true,
     },
     name: String,
     createdById: {
         type: String,
         ref: 'User',
+        index: true,
     },
     createdAt: {
         type: Date,
@@ -26,6 +28,7 @@ const resourceCategorySchema = new Schema({
     deletedById: {
         type: String,
         ref: 'User',
+        index: true,
     },
 });
 

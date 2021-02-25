@@ -224,6 +224,12 @@ const props = {
 };
 
 class MockIncidentPagination extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            page: 1,
+        };
+    }
     prevClicked = () => {
         this.props.getIncidents(
             this.props.currentProject._id,
@@ -233,6 +239,9 @@ class MockIncidentPagination extends React.Component {
                 : 0,
             10
         );
+        this.setState({
+            page: this.state.page === 1 ? 1 : this.state.page - 1,
+        });
     };
 
     nextClicked = () => {
@@ -241,10 +250,8 @@ class MockIncidentPagination extends React.Component {
             this.props.incidents.skip + this.props.incidents.limit,
             10
         );
+        this.setState({ page: this.state.page + 1 });
     };
-    constructor(props) {
-        super(props);
-    }
 
     render() {
         return (
@@ -253,6 +260,7 @@ class MockIncidentPagination extends React.Component {
                 prevClicked={this.prevClicked}
                 nextClicked={this.nextClicked}
                 {...props}
+                page={this.state.page}
             />
         );
     }

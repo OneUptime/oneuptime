@@ -39,29 +39,20 @@ export class StatusPageForm extends React.Component {
 
     submitForm = values => {
         const { data } = this.props;
-        readStatusPage(data.statusPageId, values)
-            .then(response => {
-                const statusPageData = response.data;
-                delete statusPageData._id;
-                statusPageData.name = values.name;
-                return new Promise(resolve => {
-                    resolve(statusPageData);
+        this.props.readStatusPage(data.statusPageId, values).then(res => {
+            this.props.createDuplicateStatusPage(res).then(res => {
+                this.props.closeModal({
+                    id: this.props.duplicateModalId,
                 });
-            })
-            .then(res => {
-                createDuplicateStatusPage(res).then(res => {
-                    this.props.closeModal({
-                        id: this.props.duplicateModalId,
-                    });
-                    this.props.openModal({
-                        id: this.props.duplicateModalId,
-                        content: DuplicateStatusPageConfirmation,
-                        statusPageId: res.data._id,
-                        subProjectId: data.subProjectId,
-                        projectId: data.projectId,
-                    });
+                this.props.openModal({
+                    id: this.props.duplicateModalId,
+                    content: DuplicateStatusPageConfirmation,
+                    statusPageId: res.data._id,
+                    subProjectId: data.subProjectId,
+                    slug: this.props.currentProject.slug,
                 });
             });
+        });
     };
 
     handleKeyBoard = e => {
@@ -110,13 +101,15 @@ export class StatusPageForm extends React.Component {
                                             <ShouldRender
                                                 if={
                                                     this.props.statusPage
-                                                        .newStatusPage.error
+                                                        .duplicateStatusPage
+                                                        .error
                                                 }
                                             >
                                                 <p className="bs-Modal-message">
                                                     {
                                                         this.props.statusPage
-                                                            .newStatusPage.error
+                                                            .duplicateStatusPage
+                                                            .error
                                                     }
                                                 </p>
                                             </ShouldRender>
@@ -136,7 +129,8 @@ export class StatusPageForm extends React.Component {
                                             }}
                                             disabled={
                                                 this.props.statusPage
-                                                    .newStatusPage.requesting
+                                                    .duplicateStatusPage
+                                                    .requesting
                                             }
                                             autoFocus={true}
                                         />
@@ -144,9 +138,10 @@ export class StatusPageForm extends React.Component {
                                     <div className="bs-Modal-footer">
                                         <div className="bs-Modal-footer-actions">
                                             <button
-                                                className={`bs-Button bs-DeprecatedButton btn__modal ${this
+                                                className={`bs-Button bs-DeprecatedButton btn__modal  ${this
                                                     .props.statusPage
-                                                    .newStatusPage.requesting &&
+                                                    .duplicateStatusPage
+                                                    .requesting &&
                                                     'bs-is-disabled'}`}
                                                 type="button"
                                                 onClick={() => {
@@ -157,7 +152,7 @@ export class StatusPageForm extends React.Component {
                                                 }}
                                                 disabled={
                                                     this.props.statusPage
-                                                        .newStatusPage
+                                                        .duplicateStatusPage
                                                         .requesting
                                                 }
                                             >
@@ -170,25 +165,25 @@ export class StatusPageForm extends React.Component {
                                                 id="btnDuplicateStatusPage"
                                                 className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
                                                     .props.statusPage
-                                                    .newStatusPage.requesting &&
+                                                    .duplicateStatusPage
+                                                    .requesting &&
                                                     'bs-is-disabled'}`}
                                                 type="save"
                                                 disabled={
                                                     this.props.statusPage
-                                                        .newStatusPage
+                                                        .duplicateStatusPage
                                                         .requesting
                                                 }
                                             >
                                                 <ShouldRender
                                                     if={
                                                         this.props.statusPage
-                                                            .newStatusPage
+                                                            .duplicateStatusPage
                                                             .requesting
                                                     }
                                                 >
                                                     <Spinner />
                                                 </ShouldRender>
-
                                                 <span>Duplicate</span>
                                                 <span className="create-btn__keycode">
                                                     <span className="keycode__icon keycode__icon--enter" />
@@ -222,17 +217,22 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ openModal, closeModal }, dispatch);
+    return bindActionCreators(
+        { openModal, closeModal, readStatusPage, createDuplicateStatusPage },
+        dispatch
+    );
 };
 
 StatusPageForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
+    readStatusPage: PropTypes.func,
+    createDuplicateStatusPage: PropTypes.func,
     duplicateModalId: PropTypes.string.isRequired,
-
-    statusPage: PropTypes.object,
     statusPageId: PropTypes.string.isRequired,
+    statusPage: PropTypes.object,
+    currentProject: PropTypes.object,
     subProjectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
 };

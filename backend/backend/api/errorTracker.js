@@ -28,6 +28,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const IssueService = require('../services/issueService');
 const TeamService = require('../services/teamService');
 const IssueMemberService = require('../services/issueMemberService');
+const IssueTimelineService = require('../services/issueTimelineService');
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -443,7 +444,7 @@ router.post(
         }
     }
 );
-// Description: Ignore, Resolve and Unresolve an issue by _id and errorTrackerId.
+// Description: Ignore, Resolve and Unresolve issues by _id and errorTrackerId.
 router.post(
     '/:projectId/:componentId/:errorTrackerId/issues/action',
     getUser,
@@ -555,10 +556,26 @@ router.post(
                 };
                 const currentIssue = await IssueService.findOneBy(query);
                 if (currentIssue) {
-                    const issue = await IssueService.updateOneBy(
+                    let issue = await IssueService.updateOneBy(
                         query,
                         updateData
                     );
+
+                    // add action to timeline for this particular issue
+                    const timelineData = {
+                        issueId: currentIssueId,
+                        createdById: req.user ? req.user.id : null,
+                        status: action,
+                    };
+
+                    await IssueTimelineService.create(timelineData);
+                    issue = JSON.parse(JSON.stringify(issue));
+
+                    // get the timeline attahced to this issue annd add it to the issue
+
+                    issue.timeline = await IssueTimelineService.findBy({
+                        issueId: currentIssueId,
+                    });
                     issues.push(issue);
 
                     // update a timeline object
@@ -928,6 +945,67 @@ router.post(
                 removed: false,
             });
             return sendItemResponse(req, res, { issueId, members });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+// Description: Delete an Issue  IssueId and errorTrackerId.
+router.delete(
+    '/:projectId/:componentId/:errorTrackerId/issue/:issueId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const componentId = req.params.componentId;
+            if (!componentId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Component ID is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+            if (!errorTrackerId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Tracker ID is required',
+                });
+            }
+            const issueId = req.params.issueId;
+            if (!issueId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Issue ID is required',
+                });
+            }
+
+            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+                _id: errorTrackerId,
+                componentId,
+            });
+            if (!currentErrorTracker) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
+
+            const issue = await IssueService.deleteBy(
+                {
+                    _id: issueId,
+                    errorTrackerId,
+                },
+                req.user.id,
+                componentId
+            );
+            if (issue) {
+                return sendItemResponse(req, res, issue);
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Issue not found',
+                });
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

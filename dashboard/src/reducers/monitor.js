@@ -62,6 +62,10 @@ import {
     UPLOAD_IDENTITY_FILE_REQUEST,
     UPLOAD_IDENTITY_FILE_SUCCESS,
     RESET_UPLOAD_IDENTITY_FILE,
+    UPLOAD_CONFIGURATION_FILE_REQUEST,
+    UPLOAD_CONFIGURATION_FILE_SUCCESS,
+    RESET_UPLOAD_CONFIGURATION_FILE,
+    SET_CONFIGURATION_FILE_INPUT_KEY,
 } from '../constants/monitor';
 import moment from 'moment';
 
@@ -123,6 +127,9 @@ const INITIAL_STATE = {
     file: null,
     fileInputKey: null,
     uploadFileRequest: false,
+    configFile: null,
+    uploadConfigRequest: false,
+    configFileInputKey: null,
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
@@ -180,6 +187,32 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 fileInputKey: action.payload,
             });
+
+        case SET_CONFIGURATION_FILE_INPUT_KEY:
+            return {
+                ...state,
+                configFileInputKey: action.payload,
+            };
+
+        case UPLOAD_CONFIGURATION_FILE_REQUEST:
+            return {
+                ...state,
+                uploadConfigRequest: true,
+            };
+
+        case UPLOAD_CONFIGURATION_FILE_SUCCESS:
+            return {
+                ...state,
+                configFile: action.payload,
+                uploadConfigRequest: false,
+            };
+
+        case RESET_UPLOAD_CONFIGURATION_FILE:
+            return {
+                ...state,
+                configFile: null,
+                uploadConfigRequest: false,
+            };
 
         case CREATE_MONITOR_SUCCESS:
         case 'CREATE_MONITOR': {
@@ -667,8 +700,47 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
             });
 
-        case 'UPDATE_MONITOR_LOG':
+        case 'UPDATE_MONITOR_LOG': {
+            const isPresent =
+                state.monitorLogs &&
+                state.monitorLogs[action.payload.monitorId] &&
+                state.monitorLogs[action.payload.monitorId].logs
+                    ? true
+                    : false;
+            const newMonitorLogs = isPresent
+                ? {
+                      ...state.monitorLogs,
+                      [action.payload.monitorId]: {
+                          ...state.monitorLogs[action.payload.monitorId],
+                          logs: (() => {
+                              state.monitorLogs[
+                                  action.payload.monitorId
+                              ].logs.unshift(action.payload.logData);
+                              state.monitorLogs[
+                                  action.payload.monitorId
+                              ].logs.pop();
+                              return state.monitorLogs[action.payload.monitorId]
+                                  .logs;
+                          })(),
+                          count:
+                              state.monitorLogs[action.payload.monitorId]
+                                  .count + 1,
+                      },
+                  }
+                : {
+                      ...state.monitorLogs,
+                      [action.payload.monitorId]: {
+                          logs: [action.payload.logData],
+                          error: null,
+                          requesting: false,
+                          success: false,
+                          skip: 0,
+                          limit: 10,
+                          count: 1,
+                      },
+                  };
             return Object.assign({}, state, {
+                monitorLogs: newMonitorLogs,
                 monitorsList: {
                     ...state.monitorsList,
                     requesting: false,
@@ -867,6 +939,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
                 fetchMonitorLogsRequest: false,
             });
+        }
 
         case 'UPDATE_MONITOR_STATUS':
             return Object.assign({}, state, {
@@ -891,7 +964,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                                           const isValidProbe =
                                               (monitor.type === 'url' ||
                                                   monitor.type === 'api' ||
-                                                  monitor.type === 'device') &&
+                                                  monitor.type === 'ip') &&
                                               probes &&
                                               probes.length > 0;
 
@@ -1089,16 +1162,20 @@ export default function monitor(state = INITIAL_STATE, action) {
                                           monitor.data &&
                                           action.payload.data.logs.lighthouseLogs.some(
                                               log =>
+                                                  monitor.currentLighthouseLog &&
                                                   log._id ===
-                                                  monitor.currentLighthouseLog
-                                                      ._id
+                                                      monitor
+                                                          .currentLighthouseLog
+                                                          ._id
                                           )
                                       ) {
                                           monitor.currentLighthouseLog = action.payload.data.logs.lighthouseLogs.filter(
                                               log =>
+                                                  monitor.currentLighthouseLog &&
                                                   log._id ===
-                                                  monitor.currentLighthouseLog
-                                                      ._id
+                                                      monitor
+                                                          .currentLighthouseLog
+                                                          ._id
                                           )[0];
                                       }
                                       if (
@@ -1161,7 +1238,9 @@ export default function monitor(state = INITIAL_STATE, action) {
                         monitorType === 'api' ||
                         monitorType === 'script' ||
                         monitorType === 'server-monitor' ||
-                        monitorType === 'incomingHttpRequest')
+                        monitorType === 'incomingHttpRequest' ||
+                        monitorType === 'kubernetes' ||
+                        monitorType === 'ip')
                     ? state.monitorCriteria.criteria[monitorType]
                     : null
             );
@@ -1179,6 +1258,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                         monitorSla: action.payload.monitorSla,
                         incidentCommunicationSla:
                             action.payload.incidentCommunicationSla,
+                        kubernetesNamespace_1000:
+                            action.payload.kubernetesNamespace || 'default',
                     },
                 },
             });

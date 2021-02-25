@@ -22,7 +22,6 @@ const RenderCodeEditor = ({
     height,
     width,
     onLoad = () => {},
-    onBlur = () => {},
 }) => (
     <AceEditor
         id={id}
@@ -43,12 +42,13 @@ const RenderCodeEditor = ({
         readOnly={readOnly || false}
         wrapEnabled={wrapEnabled}
         onLoad={() => onLoad(input)}
-        onBlur={() => onBlur(input)}
+        onBlur={input.onBlur}
         onChange={input.onChange}
         style={style}
         placeholder={placeholder}
         height={height}
         width={width}
+        fontSize="14px"
     />
 );
 

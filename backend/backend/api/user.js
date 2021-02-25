@@ -25,6 +25,7 @@ const VerificationTokenModel = require('../models/verificationToken');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
+const SsoDefaultRolesService = require('../services/ssoDefaultRolesService');
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 router.post('/signup', async function(req, res) {
@@ -127,6 +128,22 @@ router.post('/signup', async function(req, res) {
             });
         }
         let user = await UserService.findOneBy({ email: data.email });
+        let verified = true;
+
+        const token = await VerificationTokenModel.findOne({
+            token: req.query.token,
+        });
+        if (token) {
+            user = await UserModel.findOne({
+                _id: token.userId,
+            });
+            if (!user) {
+                user = await UserService.findOneBy({ email: data.email });
+                verified = false;
+            }
+        } else {
+            verified = false;
+        }
         //Checks if user is registered with only email
         if (user) {
             if (!user.password) {
@@ -142,18 +159,33 @@ router.post('/signup', async function(req, res) {
                         name: data.name,
                         password: hash,
                         jwtRefreshToken: jwtRefreshToken,
+                        isVerified: verified,
                     }
                 );
 
                 // Call the MailService.
                 MailService.sendSignupMail(user.email, user.name);
-                UserService.sendToken(user, user.email);
+                if (!verified) {
+                    UserService.sendToken(user, user.email);
+                }
                 // create access token and refresh token.
                 const authUserObj = {
                     id: user._id,
                     name: user.name,
                     email: user.email,
                     cardRegistered: user.stripeCustomerId ? true : false,
+                    tokens: {
+                        jwtAccessToken: `${jwt.sign(
+                            {
+                                id: user._id,
+                            },
+                            jwtSecretKey,
+                            { expiresIn: 8640000 }
+                        )}`,
+                        jwtRefreshToken: user.jwtRefreshToken,
+                    },
+                    role: user.role || null,
+                    verificationToken: user.verificationToken || null,
                 };
                 winston.info('User just signed up');
                 return sendItemResponse(req, res, authUserObj);
@@ -195,6 +227,7 @@ router.post('/signup', async function(req, res) {
             user = await UserService.signup(data);
             // Call the MailService.
             MailService.sendSignupMail(user.email, user.name);
+
             // create access token and refresh token.
             const authUserObj = {
                 id: user._id,
@@ -351,7 +384,22 @@ router.post('/sso/callback', async function(req, res) {
         if (!user) {
             // User is not create yet
             try {
-                user = await UserService.create({ email, sso: sso._id });
+                user = await UserService.create({
+                    email,
+                    sso: sso._id,
+                });
+                if (!user) {
+                    return sendErrorResponse(req, res, {
+                        code: 401,
+                        message: 'USER creation failed.',
+                    });
+                }
+                const { _id: userId } = user;
+                const { _id: domain } = sso;
+                await SsoDefaultRolesService.addUserToDefaultProjects({
+                    domain,
+                    userId,
+                });
             } catch (error) {
                 return sendErrorResponse(req, res, {
                     code: 400,

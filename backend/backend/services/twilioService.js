@@ -15,7 +15,6 @@ const SmsCountService = require('./smsCountService');
 const CallLogsService = require('./callLogsService');
 const AlertService = require('./alertService');
 const { IS_TESTING } = require('../config/server');
-const IncidentService = require('./incidentService');
 
 const _this = {
     findByOne: async function(query) {
@@ -62,24 +61,19 @@ const _this = {
         userId,
         name,
         incidentType,
-        projectId
+        projectId,
+        smsProgress
     ) {
         let smsBody;
         try {
-            const incident = await IncidentService.findOneBy({
-                _id: incidentId,
-            });
-            const criterionName =
-                !incident.manuallyCreated && incident.criterionCause
-                    ? incident.criterionCause.name
-                    : '';
-
+            let smsMessage;
+            if (smsProgress) {
+                smsMessage = `Reminder ${smsProgress.current}/${smsProgress.total}: `;
+            } else {
+                smsMessage = '';
+            }
             const options = {
-                body: `Fyipe Alert: Monitor ${monitorName} is ${incidentType} ${
-                    criterionName
-                        ? `according to criterion - ${criterionName}`
-                        : ''
-                }. Please acknowledge or resolve this incident on Fyipe Dashboard.`,
+                body: `${smsMessage} Fyipe Alert: Monitor ${monitorName} is ${incidentType}. Please acknowledge or resolve this incident on Fyipe Dashboard.`,
                 to: number,
             };
             smsBody = options.body;
@@ -321,7 +315,8 @@ const _this = {
         projectId,
         componentName,
         statusUrl,
-        customFields
+        customFields,
+        note
     ) {
         let smsBody;
         try {
@@ -337,6 +332,7 @@ const _this = {
                 componentName,
                 statusPageUrl: statusUrl,
                 ...customFields,
+                incidentNote: note,
             };
             template = template(data);
             smsBody = template;
@@ -741,16 +737,25 @@ const _this = {
         accessToken,
         incidentId,
         projectId,
-        incidentType
+        incidentType,
+        callProgress
     ) {
         let callBody;
         try {
+            const extraInfo = callProgress
+                ? `This is the ${await _this.getProgressText(
+                      callProgress.current
+                  )} 
+                    reminder.`
+                : '';
             const message =
                 '<Say voice="alice">This is an alert from Fyipe. Your monitor ' +
                 monitorName +
                 ' is ' +
                 incidentType +
-                '. Please go to Fyipe Dashboard or Mobile app to acknowledge or resolve this incident.</Say>';
+                '. Please go to Fyipe Dashboard or Mobile app to acknowledge or resolve this incident. ' +
+                extraInfo +
+                '</Say>';
             const hangUp = '<Hangup />';
             const twiml = '<Response> ' + message + hangUp + '</Response>';
             callBody = twiml;
@@ -842,6 +847,46 @@ const _this = {
             );
             throw error;
         }
+    },
+
+    getProgressText: async function(number) {
+        const special = [
+            'zeroth',
+            'first',
+            'second',
+            'third',
+            'fourth',
+            'fifth',
+            'sixth',
+            'seventh',
+            'eighth',
+            'ninth',
+            'tenth',
+            'eleventh',
+            'twelfth',
+            'thirteenth',
+            'fourteenth',
+            'fifteenth',
+            'sixteenth',
+            'seventeenth',
+            'eighteenth',
+            'nineteenth',
+        ];
+        const deca = [
+            'twent',
+            'thirt',
+            'fort',
+            'fift',
+            'sixt',
+            'sevent',
+            'eight',
+            'ninet',
+        ];
+
+        if (number < 20) return special[number];
+        if (number % 10 === 0)
+            return deca[Math.floor(number / 10) - 2] + 'ieth';
+        return deca[Math.floor(number / 10) - 2] + 'y-' + special[number % 10];
     },
 
     getTemplate: async function(smsTemplate, smsTemplateType) {
@@ -974,6 +1019,196 @@ const _this = {
             throw error;
         }
     },
+
+    // Fetch Available numbers to buy from twilio
+    fetchPhoneNumbers: async (projectId, countryCode, numberType) => {
+        let accountSid = null;
+        let authToken = null;
+        let numbers;
+        const data = {
+            phoneNumber: '',
+            locality: '',
+            region: '',
+            capabilities: {},
+            price: '',
+            priceUnit: '',
+        };
+        try {
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (customTwilioSettings) {
+                accountSid = customTwilioSettings.accountSid;
+                authToken = customTwilioSettings.authToken;
+            } else {
+                const creds = await _this.getSettings();
+                accountSid = creds['account-sid'];
+                authToken = creds['authentication-token'];
+            }
+            const twilioClient = _this.getClient(accountSid, authToken);
+            const priceList = await twilioClient.pricing.v1.phoneNumbers
+                .countries(countryCode)
+                .fetch();
+            const localPrice = {};
+            const mobilePrice = {};
+            const tollFreePrice = {};
+            priceList &&
+                priceList.phoneNumberPrices &&
+                priceList.phoneNumberPrices.map(p => {
+                    if (p.number_type && p.number_type === 'local') {
+                        localPrice.basePrice = p.base_price;
+                        localPrice.currentPrice = p.current_price;
+                    } else if (p.number_type && p.number_type === 'toll free') {
+                        mobilePrice.basePrice = p.base_price;
+                        mobilePrice.currentPrice = p.current_price;
+                    } else if (p.number_type && p.number_type === 'mobile') {
+                        tollFreePrice.basePrice = p.base_price;
+                        tollFreePrice.currentPrice = p.current_price;
+                    }
+                    return p;
+                });
+
+            data.priceUnit = priceList.priceUnit;
+
+            if (numberType === 'Local') {
+                numbers = await twilioClient
+                    .availablePhoneNumbers(countryCode)
+                    .local.list({ limit: 1 });
+                data.price = await _this.calculatePrice(
+                    localPrice.currentPrice,
+                    localPrice.basePrice
+                );
+            } else if (numberType === 'Mobile') {
+                numbers = await twilioClient
+                    .availablePhoneNumbers(countryCode)
+                    .mobile.list({ limit: 1 });
+                data.price = await _this.calculatePrice(
+                    mobilePrice.currentPrice,
+                    mobilePrice.basePrice
+                );
+            } else if (numberType === 'TollFree') {
+                numbers = await twilioClient
+                    .availablePhoneNumbers(countryCode)
+                    .tollFree.list({ limit: 1 });
+                data.price = await _this.calculatePrice(
+                    tollFreePrice.currentPrice,
+                    tollFreePrice.basePrice
+                );
+            }
+
+            if (numbers && numbers[0] && numbers[0].phoneNumber) {
+                numbers = numbers[0];
+            }
+            data.phoneNumber = numbers.phoneNumber;
+            data.locality = numbers.locality;
+            data.region = numbers.region;
+            data.capabilities = numbers.capabilities;
+            return data;
+        } catch (error) {
+            ErrorService.log('twillioService.fetchNumbers', error);
+            throw error;
+        }
+    },
+
+    buyPhoneNumber: async (projectId, phoneNumber) => {
+        let accountSid = null;
+        let authToken = null;
+        try {
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (customTwilioSettings) {
+                accountSid = customTwilioSettings.accountSid;
+                authToken = customTwilioSettings.authToken;
+            } else {
+                const creds = await _this.getSettings();
+                accountSid = creds['account-sid'];
+                authToken = creds['authentication-token'];
+            }
+            const twilioClient = _this.getClient(accountSid, authToken);
+
+            const numbers = await twilioClient.incomingPhoneNumbers.create({
+                phoneNumber: phoneNumber,
+                voiceUrl: `${global.apiHost}/callRouting/routeCalls`,
+                voiceMethod: 'POST',
+                statusCallback: `${global.apiHost}/callRouting/statusCallback`,
+                statusCallbackMethod: 'POST',
+            });
+            return numbers;
+        } catch (error) {
+            ErrorService.log('twillioService.buyPhoneNumber', error);
+            throw error;
+        }
+    },
+
+    releasePhoneNumber: async (projectId, sid) => {
+        let accountSid = null;
+        let authToken = null;
+        try {
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (customTwilioSettings) {
+                accountSid = customTwilioSettings.accountSid;
+                authToken = customTwilioSettings.authToken;
+            } else {
+                const creds = await _this.getSettings();
+                accountSid = creds['account-sid'];
+                authToken = creds['authentication-token'];
+            }
+            const twilioClient = _this.getClient(accountSid, authToken);
+
+            const numbers = await twilioClient
+                .incomingPhoneNumbers(sid)
+                .remove();
+            return numbers;
+        } catch (error) {
+            ErrorService.log('twillioService.releasePhoneNumber', error);
+            throw error;
+        }
+    },
+
+    getCallDetails: async (projectId, CallSid) => {
+        let accountSid = null;
+        let authToken = null;
+        try {
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (customTwilioSettings) {
+                accountSid = customTwilioSettings.accountSid;
+                authToken = customTwilioSettings.authToken;
+            } else {
+                const creds = await _this.getSettings();
+                accountSid = creds['account-sid'];
+                authToken = creds['authentication-token'];
+            }
+            const twilioClient = _this.getClient(accountSid, authToken);
+
+            const details = await twilioClient.calls(CallSid).fetch();
+            return details;
+        } catch (error) {
+            ErrorService.log('twillioService.getCallDetails', error);
+            throw error;
+        }
+    },
+
+    calculatePrice: async (currentPrice, basePrice) => {
+        let price =
+            currentPrice && basePrice
+                ? currentPrice > basePrice
+                    ? currentPrice * 10
+                    : basePrice * 10
+                : 'Not available';
+        if (currentPrice && !basePrice) price = currentPrice * 10;
+        else if (basePrice && !currentPrice) price = basePrice * 10;
+        return price;
+    },
+
     hasCustomSettings: async function(projectId) {
         return await _this.findByOne({
             projectId,

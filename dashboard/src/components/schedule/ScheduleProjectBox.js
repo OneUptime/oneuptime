@@ -44,7 +44,7 @@ const ScheduleProjectBox = props => {
             window.removeEventListener('keydown', handleKeyboard);
         };
     });
-
+    const numberOfPages = Math.ceil(parseInt(props.count) / 10);
     return (
         <div className="Box-root">
             <div>
@@ -143,6 +143,7 @@ const ScheduleProjectBox = props => {
                                 schedules={sortByName(props.schedules)}
                                 requesting={props.isRequesting}
                                 subProjectId={props.subProjectSchedule._id}
+                                slug={props.currentProject.slug}
                                 bottonTitle="View On-Call Duty"
                             />
                         </tbody>
@@ -182,10 +183,21 @@ const ScheduleProjectBox = props => {
                                     id={`schedule_count_${props.subProjectName}`}
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
-                                    {props.count}
-                                    {props.numberOfSchedules === 1
-                                        ? ' duty'
-                                        : ' duties'}
+                                    {numberOfPages > 0
+                                        ? `Page ${
+                                              !props.page ? 1 : props.page
+                                          } of ${numberOfPages} (${
+                                              props.count
+                                          } ${
+                                              props.numberOfSchedules === 1
+                                                  ? 'duty'
+                                                  : 'duties'
+                                          })`
+                                        : `${props.count} ${
+                                              props.numberOfSchedules === 1
+                                                  ? ' duty'
+                                                  : ' duties'
+                                          }`}
                                 </span>
                             </span>
                         </span>
@@ -281,6 +293,7 @@ ScheduleProjectBox.propTypes = {
     subProjects: PropTypes.array,
     allScheduleLength: PropTypes.number,
     modalList: PropTypes.array,
+    page: PropTypes.number,
 };
 
 export default ScheduleProjectBox;

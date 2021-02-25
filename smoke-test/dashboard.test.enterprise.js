@@ -65,6 +65,12 @@ describe('Enterprise Dashboard API', () => {
             await page.waitForSelector('#components');
             await page.click('#components');
 
+            await page.waitForSelector(`#more-details-${componentName}`);
+            await page.click(`#more-details-${componentName}`);
+            await page.waitForSelector(`#componentSettings`);
+            await page.click(`#componentSettings`);
+            await page.waitForSelector(`#advanced`);
+            await page.click(`#advanced`);
             await page.waitForSelector(`#delete-component-${componentName}`);
             await page.click(`#delete-component-${componentName}`);
             await page.waitForSelector('#deleteComponent');
@@ -82,40 +88,41 @@ describe('Enterprise Dashboard API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle2',
+                    waitUntil: 'networkidle0',
                 });
-                await page.waitForSelector('#components');
-                await page.click('#components');
+
+                await page.$eval('#components', el => el.click());
 
                 // Fill and submit New Component form
                 await page.waitForSelector('#form-new-component');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.$eval('#components', el => el.click());
 
                 // Navigate to details page of component created in previous test
                 await page.waitForSelector(`#more-details-${componentName}`);
                 await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#form-new-monitor', {
+                await page.waitForTimeout(3000);
+                await page.$('#form-new-monitor', {
                     visible: true,
                 });
 
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]', { visible: true });
                 await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'url', page);
+                await page.click('[data-testId=type_url]');
                 await page.waitForSelector('#url');
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
+                await page.waitForTimeout(3000);
 
                 let spanElement;
-                spanElement = await page.waitForSelector(
-                    `#monitor-title-${monitorName}`
-                );
+                spanElement = await page.$(`#monitor-title-${monitorName}`);
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
@@ -130,27 +137,30 @@ describe('Enterprise Dashboard API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle2',
+                    waitUntil: 'networkidle0',
                 });
-                await page.waitForSelector('#components');
-                await page.click('#components');
+
+                await page.$eval('#components', el => el.click());
 
                 // Navigate to details page of component created in previous test
                 await page.waitForSelector(`#more-details-${componentName}`);
                 await page.click(`#more-details-${componentName}`);
-                await page.waitForSelector('#form-new-monitor', {
+                await page.waitForTimeout(3000);
+                await page.$('#form-new-monitor', {
                     visible: true,
                 });
 
                 // Submit New Monitor form with incorrect details
                 await page.waitForSelector('#name');
-                await init.selectByText('#type', 'url', page);
-                await page.waitForSelector('#url');
+                await page.click('[data-testId=type_url]');
+                await page.waitForTimeout(3000);
+                await page.$('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
+                await page.waitForTimeout(3000);
 
                 let spanElement;
-                spanElement = await page.waitForSelector(
+                spanElement = await page.$(
                     '#form-new-monitor span#field-error'
                 );
                 spanElement = await spanElement.getProperty('innerText');

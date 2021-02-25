@@ -151,9 +151,13 @@ describe('Registration API', () => {
 
     it('Should register User with valid details', async () => {
         await init.registerUser(user, page);
-        const html = await page.$eval('#success-step', e => {
-            return e.innerHTML;
-        });
-        html.should.containEql('Activate your Fyipe account');
+        await page.waitFor(5000);
+        await page.waitForSelector('#titleText');
+        const innerText = await page.$eval(
+            '#titleText',
+            elem => elem.innerText
+        );
+        page.url().should.containEql(utils.DASHBOARD_URL);
+        expect(innerText).toEqual('Home');
     }, 160000);
 });

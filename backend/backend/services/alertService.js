@@ -118,8 +118,13 @@ module.exports = {
         error,
         errorMessage,
         eventType,
+        alertProgress,
     }) {
         try {
+            const _this = this;
+            alertProgress =
+                alertProgress &&
+                `${alertProgress.current}/${alertProgress.total}`;
             const alert = new AlertModel();
             alert.projectId = projectId;
             alert.onCallScheduleStatus = onCallScheduleStatus;
@@ -131,6 +136,7 @@ module.exports = {
             alert.incidentId = incidentId;
             alert.alertStatus = alertStatus;
             alert.eventType = eventType;
+            alert.alertProgress = alertProgress;
 
             if (error) {
                 alert.error = error;
@@ -139,11 +145,69 @@ module.exports = {
 
             const savedAlert = await alert.save();
 
+            await _this.sendRealTimeUpdate({
+                incidentId,
+                projectId,
+            });
             return savedAlert;
         } catch (error) {
             ErrorService.log('alertService.create', error);
             throw error;
         }
+    },
+
+    sendRealTimeUpdate: async function({ incidentId, projectId }) {
+        const _this = this;
+        let result;
+        let incidentMessages = await IncidentMessageService.findBy({
+            incidentId,
+            type: 'internal',
+        });
+        const timeline = await IncidentTimelineService.findBy({
+            incidentId,
+        });
+        const alerts = await _this.findBy({
+            query: { incidentId },
+        });
+        const subscriberAlerts = await SubscriberAlertService.findBy({
+            incidentId,
+            projectId,
+        });
+        const subAlerts = await Services.deduplicate(subscriberAlerts);
+        let callScheduleStatus = await OnCallScheduleStatusService.findBy({
+            query: { incident: incidentId },
+        });
+        callScheduleStatus = await Services.checkCallSchedule(
+            callScheduleStatus
+        );
+        const timelineAlerts = [
+            ...timeline,
+            ...alerts,
+            ...incidentMessages
+        ].sort((a, b) => {
+            return b.createdAt - a.createdAt;
+        });
+        incidentMessages = [
+            ...timelineAlerts,
+            ...subAlerts,
+            ...callScheduleStatus,
+        ];
+        incidentMessages.sort(
+            (a, b) =>
+                typeof a.schedule !== 'object' && b.createdAt - a.createdAt
+        );
+        let filteredMsg = incidentMessages.filter(
+            a =>
+                a.status !== 'internal notes added' &&
+                a.status !== 'internal notes updated'
+        );
+        filteredMsg = await Services.rearrangeDuty(filteredMsg);
+        result = {
+            data: filteredMsg,
+            incidentId,
+            projectId,
+        };
+        await RealTimeService.sendIncidentTimeline(result);
     },
 
     countBy: async function(query) {
@@ -236,10 +300,22 @@ module.exports = {
 
                 const schedules = await this.getSchedulesForAlerts(incident);
 
-                for (const schedule of schedules) {
-                    _this.sendAlertsToTeamMembersInSchedule({
-                        schedule,
-                        incident,
+                if (schedules.length > 0) {
+                    for (const schedule of schedules) {
+                        _this.sendAlertsToTeamMembersInSchedule({
+                            schedule,
+                            incident,
+                        });
+                    }
+                } else {
+                    OnCallScheduleStatusService.create({
+                        project: incident.projectId,
+                        incident: incident._id,
+                        activeEscalation: null,
+                        schedule: null,
+                        incidentAcknowledged: false,
+                        escalations: [],
+                        isOnDuty: false,
                     });
                 }
             }
@@ -321,6 +397,35 @@ module.exports = {
             return;
         }
 
+        const alertProgress = {
+            emailProgress: null,
+            smsProgress: null,
+            callProgress: null,
+        };
+        const emailRem = currentEscalationStatus.emailRemindersSent + 1;
+        const smsRem = currentEscalationStatus.smsRemindersSent + 1;
+        const callRem = currentEscalationStatus.callRemindersSent + 1;
+        if (emailRem > 1) {
+            alertProgress.emailProgress = {
+                current: emailRem,
+                total: escalation.emailReminders,
+            };
+        }
+
+        if (callRem > 1) {
+            alertProgress.callProgress = {
+                current: callRem,
+                total: escalation.callReminders,
+            };
+        }
+
+        if (smsRem > 1) {
+            alertProgress.smsProgress = {
+                current: smsRem,
+                total: escalation.smsReminders,
+            };
+        }
+
         shouldSendSMSReminder =
             escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
         shouldSendCallReminder =
@@ -335,7 +440,7 @@ module.exports = {
             !shouldSendEmailReminder &&
             !shouldSendCallReminder
         ) {
-            _this.escalate({ schedule, incident });
+            _this.escalate({ schedule, incident, alertProgress });
         } else {
             _this.sendAlertsToTeamMembersInEscalationPolicy({
                 escalation,
@@ -343,11 +448,12 @@ module.exports = {
                 incident,
                 schedule,
                 onCallScheduleStatus,
+                alertProgress,
             });
         }
     },
 
-    escalate: async function({ schedule, incident }) {
+    escalate: async function({ schedule, incident, alertProgress }) {
         const _this = this;
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
@@ -414,6 +520,7 @@ module.exports = {
             incident,
             schedule,
             onCallScheduleStatus: callScheduleStatus,
+            alertProgress,
         });
     },
 
@@ -423,6 +530,7 @@ module.exports = {
         monitor,
         schedule,
         onCallScheduleStatus,
+        alertProgress,
     }) {
         const _this = this;
         const monitorId = monitor._id;
@@ -476,6 +584,17 @@ module.exports = {
                 teamMember.endTime
             );
 
+            if (
+                (JSON.stringify(escalation.scheduleId._id) ==
+                    JSON.stringify(onCallScheduleStatus.schedule._id) ||
+                    JSON.stringify(escalation.scheduleId._id) ==
+                        JSON.stringify(onCallScheduleStatus.schedule)) &&
+                isOnDuty
+            ) {
+                onCallScheduleStatus.isOnDuty = true;
+                onCallScheduleStatus.save();
+            }
+
             const user = await UserService.findOneBy({
                 _id: teamMember.userId,
             });
@@ -497,6 +616,7 @@ module.exports = {
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
                         eventType: 'identified',
+                        alertProgress: alertProgress.callProgress,
                     });
                 }
                 if (escalation.email && shouldSendEmailReminder) {
@@ -511,6 +631,7 @@ module.exports = {
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
                         eventType: 'identified',
+                        alertProgress: alertProgress.emailProgress,
                     });
                 }
                 if (escalation.sms && shouldSendSMSReminder) {
@@ -525,6 +646,7 @@ module.exports = {
                         onCallScheduleStatus: onCallScheduleStatus,
                         alertStatus: 'Not on Duty',
                         eventType: 'identified',
+                        alertProgress: alertProgress.smsProgress,
                     });
                 }
 
@@ -546,6 +668,7 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
+                        smsProgress: alertProgress.smsProgress,
                     });
                 }
 
@@ -559,6 +682,7 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
+                        emailProgress: alertProgress.emailProgress,
                     });
                 }
 
@@ -572,6 +696,7 @@ module.exports = {
                         escalation,
                         onCallScheduleStatus,
                         eventType: 'identified',
+                        callProgress: alertProgress.callProgress,
                     });
                 }
             }
@@ -587,9 +712,11 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
+        emailProgress,
     }) {
         const _this = this;
-
+        const probeName =
+            incident.probes.length > 0 && incident.probes[0].probeId.probeName;
         let date = new Date();
         const monitorId = monitor._id;
         const accessToken = UserService.getAccessToken({
@@ -650,6 +777,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: errorMessageText,
+                    alertProgress: emailProgress,
                 });
             }
             const incidentcreatedBy =
@@ -665,8 +793,8 @@ module.exports = {
                         : null,
                 incidentId: `#${incident.idNumber}`,
                 reason: incident.reason
-                    ? incident.reason
-                    : `This incident was created by ${incidentcreatedBy}`,
+                    ? incident.reason.split('\n')
+                    : [`This incident was created by ${incidentcreatedBy}`],
                 view_url,
                 method:
                     monitor.data && monitor.data.url
@@ -688,6 +816,8 @@ module.exports = {
                     !incident.manuallyCreated && incident.criterionCause
                         ? incident.criterionCause.name
                         : '',
+                probeName,
+                emailProgress,
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -700,6 +830,7 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Success',
+                alertProgress: emailProgress,
             });
         } catch (e) {
             return await _this.create({
@@ -715,6 +846,7 @@ module.exports = {
                 alertStatus: 'Cannot Send',
                 error: true,
                 errorMessage: e.message,
+                alertProgress: emailProgress,
             });
         }
     },
@@ -814,6 +946,7 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
+        callProgress,
     }) {
         const _this = this;
         let alert;
@@ -837,6 +970,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: 'No phone number',
+                alertProgress: callProgress,
             });
         }
 
@@ -881,6 +1015,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: errorMessageText,
+                alertProgress: callProgress,
             });
         }
 
@@ -915,6 +1050,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: errorMessageText,
+                    alertProgress: callProgress,
                 });
             }
 
@@ -939,6 +1075,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: status.message,
+                    alertProgress: callProgress,
                 });
             }
         }
@@ -949,7 +1086,8 @@ module.exports = {
             accessToken,
             incident._id,
             incident.projectId,
-            incident.incidentType
+            incident.incidentType,
+            callProgress
         );
         if (alertStatus && alertStatus.code && alertStatus.code === 400) {
             return await _this.create({
@@ -965,6 +1103,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: alertStatus.message,
+                alertProgress: callProgress,
             });
         } else if (alertStatus) {
             alert = await _this.create({
@@ -978,6 +1117,7 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus: 'Success',
+                alertProgress: callProgress,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
@@ -1011,6 +1151,7 @@ module.exports = {
         escalation,
         onCallScheduleStatus,
         eventType,
+        smsProgress,
     }) {
         const _this = this;
         let alert;
@@ -1031,6 +1172,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: 'No phone number',
+                alertProgress: smsProgress,
             });
         }
 
@@ -1077,6 +1219,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: errorMessageText,
+                alertProgress: smsProgress,
             });
         }
 
@@ -1111,6 +1254,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: errorMessageText,
+                    alertProgress: smsProgress,
                 });
             }
 
@@ -1135,6 +1279,7 @@ module.exports = {
                     error: true,
                     eventType,
                     errorMessage: status.message,
+                    alertProgress: smsProgress,
                 });
             }
         }
@@ -1147,7 +1292,8 @@ module.exports = {
             user._id,
             user.name,
             incident.incidentType,
-            projectId
+            projectId,
+            smsProgress
         );
 
         if (sendResult && sendResult.code && sendResult.code === 400) {
@@ -1164,6 +1310,7 @@ module.exports = {
                 error: true,
                 eventType,
                 errorMessage: sendResult.message,
+                alertProgress: smsProgress,
             });
         } else if (sendResult) {
             const alertStatus = 'Success';
@@ -1178,6 +1325,7 @@ module.exports = {
                 incidentId: incident._id,
                 eventType,
                 alertStatus,
+                alertProgress: smsProgress,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 // calculate charge per 160 chars
@@ -1599,6 +1747,7 @@ module.exports = {
                     downtime / 60
                 )} hours ${Math.floor(downtime % 60)} minutes`;
             }
+
             await MailService.sendIncidentAcknowledgedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
@@ -1606,10 +1755,11 @@ module.exports = {
                     monitor && monitor.data && monitor.data.url
                         ? monitor.data.url
                         : null,
+
                 incidentId: `#${incident.idNumber}`,
                 reason: incident.reason
-                    ? incident.reason
-                    : `This incident was created by ${incidentcreatedBy}`,
+                    ? incident.reason.split('\n')
+                    : [`This incident was created by ${incidentcreatedBy}`],
                 view_url,
                 method:
                     monitor.data && monitor.data.url
@@ -1632,6 +1782,13 @@ module.exports = {
                     !incident.manuallyCreated && incident.criterionCause
                         ? incident.criterionCause.name
                         : '',
+                acknowledgedBy: incident.acknowledgedByZapier
+                    ? 'Zapier'
+                    : incident.acknowledgedByIncomingHttpRequest
+                    ? 'Incoming HTTP Request'
+                    : incident.acknowledgedBy && incident.acknowledgedBy.name
+                    ? incident.acknowledgedBy.name
+                    : 'Unknown User',
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -1906,8 +2063,8 @@ module.exports = {
                         : null,
                 incidentId: `#${incident.idNumber}`,
                 reason: incident.reason
-                    ? incident.reason
-                    : `This incident was created by ${incidentcreatedBy}`,
+                    ? incident.reason.split('\n')
+                    : [`This incident was created by ${incidentcreatedBy}`],
                 view_url,
                 method:
                     monitor.data && monitor.data.url
@@ -1929,6 +2086,13 @@ module.exports = {
                     !incident.manuallyCreated && incident.criterionCause
                         ? incident.criterionCause.name
                         : '',
+                resolvedBy: incident.resolvedByZapier
+                    ? 'Zapier'
+                    : incident.resolvedByIncomingHttpRequest
+                    ? 'Incoming HTTP Request'
+                    : incident.resolvedBy
+                    ? incident.resolvedBy.name
+                    : 'Unknown User',
             });
             return await _this.create({
                 projectId: incident.projectId,
@@ -2783,7 +2947,8 @@ module.exports = {
                                 incident.projectId,
                                 component.name,
                                 statusUrl,
-                                customFields
+                                customFields,
+                                note
                             );
                             alertStatus = 'Success';
                         } else {
@@ -3133,3 +3298,7 @@ const {
     calculateHumanReadableDownTime,
     getIncidentLength,
 } = require('../utils/incident');
+const IncidentMessageService = require('./incidentMessageService');
+const IncidentTimelineService = require('./incidentTimelineService');
+const Services = require('../utils/services');
+const RealTimeService = require('./realTimeService');

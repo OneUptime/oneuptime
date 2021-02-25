@@ -54,6 +54,7 @@ import ErrorTracking from './ErrorTracking';
 import Advanced from './Advanced';
 import ComponentSettings from './ComponentSettings';
 import ComponentSettingsAdvanced from './ComponentSettingsAdvanced';
+import CallRouting from './CallRouting';
 
 export default {
     ChangePassword,
@@ -101,4 +102,5 @@ export default {
     ComponentSettings,
     ComponentSettingsAdvanced,
     MonitorSettings,
+    CallRouting,
 };

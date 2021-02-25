@@ -801,13 +801,13 @@ export function fetchIncidentNotesFailure(error) {
     };
 }
 
-export function fetchIncidentNotes(projectId, incidentId, type) {
+export function fetchIncidentNotes(projectId, incidentId, postOnStatusPage) {
     return async function(dispatch) {
         try {
             dispatch(fetchIncidentNotesRequest());
 
             const response = await getApi(
-                `statusPage/${projectId}/${incidentId}/incidentNotes?type=${type}`
+                `statusPage/${projectId}/${incidentId}/incidentNotes?postOnStatusPage=${postOnStatusPage}`
             );
             dispatch(fetchIncidentNotesSuccess(response.data));
         } catch (error) {
@@ -844,13 +844,13 @@ export function moreIncidentNotesFailure(error) {
     };
 }
 
-export function moreIncidentNotes(projectId, incidentId, type, skip) {
+export function moreIncidentNotes(projectId, incidentId, postOnStatusPage, skip) {
     return async function(dispatch) {
         try {
             dispatch(moreIncidentNotesRequest());
 
             const response = await getApi(
-                `statusPage/${projectId}/${incidentId}/incidentNotes?type=${type}&skip=${skip}`
+                `statusPage/${projectId}/${incidentId}/incidentNotes?postOnStatusPage=${postOnStatusPage}&skip=${skip}`
             );
             dispatch(moreIncidentNotesSuccess(response.data));
         } catch (error) {

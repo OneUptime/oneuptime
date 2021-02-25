@@ -126,8 +126,8 @@ module.exports = {
                     }
                 );
             }
+            query.deleted = false;
             component = await this.findOneBy(query);
-
             await RealTimeService.componentEdit(component);
 
             return component;
