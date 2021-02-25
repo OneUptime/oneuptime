@@ -444,7 +444,7 @@ router.post(
         }
     }
 );
-// Description: Ignore, Resolve and Unresolve an issue by _id and errorTrackerId.
+// Description: Ignore, Resolve and Unresolve issues by _id and errorTrackerId.
 router.post(
     '/:projectId/:componentId/:errorTrackerId/issues/action',
     getUser,
@@ -945,6 +945,67 @@ router.post(
                 removed: false,
             });
             return sendItemResponse(req, res, { issueId, members });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+// Description: Delete an Issue  IssueId and errorTrackerId.
+router.delete(
+    '/:projectId/:componentId/:errorTrackerId/issue/:issueId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const componentId = req.params.componentId;
+            if (!componentId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Component ID is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+            if (!errorTrackerId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Tracker ID is required',
+                });
+            }
+            const issueId = req.params.issueId;
+            if (!issueId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Issue ID is required',
+                });
+            }
+
+            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+                _id: errorTrackerId,
+                componentId,
+            });
+            if (!currentErrorTracker) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
+
+            const issue = await IssueService.deleteBy(
+                {
+                    _id: issueId,
+                    errorTrackerId,
+                },
+                req.user.id,
+                componentId
+            );
+            if (issue) {
+                return sendItemResponse(req, res, issue);
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Issue not found',
+                });
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

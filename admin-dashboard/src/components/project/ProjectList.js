@@ -184,20 +184,18 @@ export class ProjectList extends Component {
                                                 key={project._id}
                                                 className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                                                 id={`project_${index}`}
+                                                onClick={() => {
+                                                    history.push(
+                                                        '/admin/projects/' +
+                                                            project.slug
+                                                    );
+                                                }}
                                             >
                                                 <td
                                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                                     style={{
                                                         height: '1px',
                                                         minWidth: '270px',
-                                                        textDecoration:
-                                                            'underline',
-                                                    }}
-                                                    onClick={() => {
-                                                        history.push(
-                                                            '/admin/projects/' +
-                                                                project.slug
-                                                        );
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -216,18 +214,6 @@ export class ProjectList extends Component {
                                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{
                                                         height: '1px',
-                                                        textDecoration:
-                                                            'underline',
-                                                    }}
-                                                    onClick={() => {
-                                                        if (
-                                                            projectOwner.userId
-                                                        ) {
-                                                            history.push(
-                                                                '/admin/users/' +
-                                                                    projectOwner.userId
-                                                            );
-                                                        }
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-link">
