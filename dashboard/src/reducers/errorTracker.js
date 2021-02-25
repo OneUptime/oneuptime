@@ -45,6 +45,9 @@ import {
     UPDATE_ERROR_EVENT_MEMBER_RESET,
     UPDATE_ERROR_EVENT_MEMBER_SUCCESS,
     NEW_ERROR_EVENT_SUCCESS,
+    DELETE_ERROR_TRACKER_ISSUE_FAILURE,
+    DELETE_ERROR_TRACKER_ISSUE_REQUEST,
+    DELETE_ERROR_TRACKER_ISSUE_SUCCESS,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -76,6 +79,7 @@ const INITIAL_STATE = {
     },
     deleteErrorTracker: false,
     errorTrackerIssueMembers: {},
+    deleteErrorTrackerIssue: false,
 };
 export default function errorTracker(state = INITIAL_STATE, action) {
     let temporaryIssues,
@@ -764,6 +768,51 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                         errorTrackerIssues: temporaryIssues,
                     },
                 },
+            });
+        case DELETE_ERROR_TRACKER_ISSUE_SUCCESS:
+            temporaryIssues =
+                state.errorTrackerIssues[action.payload.errorTrackerId]
+                    .errorTrackerIssues;
+
+            temporaryIssues = temporaryIssues.filter(
+                ({ _id }) => _id !== action.payload._id
+            );
+            return Object.assign({}, state, {
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    [action.payload.errorTrackerId]: {
+                        ...state.errorTrackerIssues[
+                            action.payload.errorTrackerId
+                        ],
+                        errorTrackerIssues: temporaryIssues,
+                    },
+                },
+                deleteErrorTracker: false,
+            });
+
+        case DELETE_ERROR_TRACKER_ISSUE_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                deleteErrorTrackerIssue: false,
+            });
+
+        case DELETE_ERROR_TRACKER_ISSUE_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+                deleteErrorTrackerIssue: action.payload,
             });
         default:
             return state;
