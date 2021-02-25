@@ -35198,7 +35198,7 @@ span.CodeMirror-selectedtext {
 }
 
 .bs-custom-incident-tab, .bs-custom-incident-slider {
-  width: 20% !important
+  width: 25% !important
 }
 
 .bs-in-style {
@@ -35326,5 +35326,12 @@ span.CodeMirror-selectedtext {
 @media screen and (max-width: 500px){
   #Add-Criteria-Button{
     margin: 0!important;
+  }
+}
+
+@media screen and (min-width: 508px) {
+  .bs-post {
+    width: 233px;
+    margin: auto;
   }
 }
