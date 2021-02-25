@@ -3766,26 +3766,6 @@ const checkAnd = async (
                                 }
                             });
                         }
-                        // payload.podData.allPods.forEach(pod => {
-                        //     if (
-                        //         !(
-                        //             con.criteria[i] &&
-                        //             con.criteria[i].field1 &&
-                        //             pod.podStatus &&
-                        //             pod.podStatus.toLowerCase() ===
-                        //                 con.criteria[i].field1.toLowerCase()
-                        //         )
-                        //     ) {
-                        //         validity = false;
-                        //         failedReasons.push(
-                        //             `${pod.podName} pod status is ${pod.podStatus}`
-                        //         );
-                        //     } else {
-                        //         successReasons.push(
-                        //             `${pod.podName} pod status is ${pod.podStatus}`
-                        //         );
-                        //     }
-                        // });
                     } else if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -3824,26 +3804,6 @@ const checkAnd = async (
                                 }
                             });
                         }
-                        // payload.podData.allPods.forEach(pod => {
-                        //     if (
-                        //         !(
-                        //             con.criteria[i] &&
-                        //             con.criteria[i].field1 &&
-                        //             pod.podStatus &&
-                        //             pod.podStatus.toLowerCase() !==
-                        //                 con.criteria[i].field1.toLowerCase()
-                        //         )
-                        //     ) {
-                        //         validity = false;
-                        //         failedReasons.push(
-                        //             `${pod.podName} pod status is ${pod.podStatus}`
-                        //         );
-                        //     } else {
-                        //         successReasons.push(
-                        //             `${pod.podName} pod status is ${pod.podStatus}`
-                        //         );
-                        //     }
-                        // });
                     }
                 } else if (
                     con.criteria[i] &&
@@ -3888,26 +3848,6 @@ const checkAnd = async (
                                 }
                             });
                         }
-                        // payload.jobData.allJobs.forEach(job => {
-                        //     if (
-                        //         !(
-                        //             con.criteria[i] &&
-                        //             con.criteria[i].field1 &&
-                        //             job.jobStatus &&
-                        //             job.jobStatus.toLowerCase() ===
-                        //                 con.criteria[i].field1.toLowerCase()
-                        //         )
-                        //     ) {
-                        //         validity = false;
-                        //         failedReasons.push(
-                        //             `${job.jobName} job status is ${job.jobStatus}`
-                        //         );
-                        //     } else {
-                        //         successReasons.push(
-                        //             `${job.jobName} job status is ${job.jobStatus}`
-                        //         );
-                        //     }
-                        // });
                     } else if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -3946,26 +3886,6 @@ const checkAnd = async (
                                 }
                             });
                         }
-                        // payload.jobData.allJobs.forEach(job => {
-                        //     if (
-                        //         !(
-                        //             con.criteria[i] &&
-                        //             con.criteria[i].field1 &&
-                        //             job.jobStatus &&
-                        //             job.jobStatus.toLowerCase() !==
-                        //                 con.criteria[i].field1.toLowerCase()
-                        //         )
-                        //     ) {
-                        //         validity = false;
-                        //         failedReasons.push(
-                        //             `${job.jobName} job status is ${job.jobStatus}`
-                        //         );
-                        //     } else {
-                        //         successReasons.push(
-                        //             `${job.jobName} job status is ${job.jobStatus}`
-                        //         );
-                        //     }
-                        // });
                     }
                 } else if (
                     con.criteria[i] &&
@@ -4002,26 +3922,6 @@ const checkAnd = async (
                                 }
                             );
                         }
-                        // payload.deploymentData.allDeployments.forEach(
-                        //     // eslint-disable-next-line no-loop-func
-                        //     deployment => {
-                        //         if (
-                        //             !(
-                        //                 deployment.desiredDeployment ===
-                        //                 deployment.readyDeployment
-                        //             )
-                        //         ) {
-                        //             validity = false;
-                        //             failedReasons.push(
-                        //                 `${deployment.deploymentName} deployment state is (${deployment.readyDeployment}/${deployment.desiredDeployment})`
-                        //             );
-                        //         } else {
-                        //             successReasons.push(
-                        //                 `${deployment.deploymentName} deployment state is (${deployment.readyDeployment}/${deployment.desiredDeployment})`
-                        //             );
-                        //         }
-                        //     }
-                        // );
                     } else if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -4053,26 +3953,6 @@ const checkAnd = async (
                                 }
                             );
                         }
-                        // payload.deploymentData.allDeployments.forEach(
-                        //     // eslint-disable-next-line no-loop-func
-                        //     deployment => {
-                        //         if (
-                        //             !(
-                        //                 deployment.desiredDeployment !==
-                        //                 deployment.readyDeployment
-                        //             )
-                        //         ) {
-                        //             validity = false;
-                        //             failedReasons.push(
-                        //                 `${deployment.deploymentName} deployment state is (${deployment.readyDeployment}/${deployment.desiredDeployment})`
-                        //             );
-                        //         } else {
-                        //             successReasons.push(
-                        //                 `${deployment.deploymentName} deployment state is (${deployment.readyDeployment}/${deployment.desiredDeployment})`
-                        //             );
-                        //         }
-                        //     }
-                        // );
                     }
                 } else if (
                     con.criteria[i] &&
@@ -4109,26 +3989,6 @@ const checkAnd = async (
                                 }
                             );
                         }
-                        // payload.statefulsetData.allStatefulset.forEach(
-                        //     // eslint-disable-next-line no-loop-func
-                        //     statefulset => {
-                        //         if (
-                        //             !(
-                        //                 statefulset.desiredStatefulsets ===
-                        //                 statefulset.readyStatefulsets
-                        //             )
-                        //         ) {
-                        //             validity = false;
-                        //             failedReasons.push(
-                        //                 `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        //             );
-                        //         } else {
-                        //             successReasons.push(
-                        //                 `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        //             );
-                        //         }
-                        //     }
-                        // );
                     } else if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -4160,26 +4020,6 @@ const checkAnd = async (
                                 }
                             );
                         }
-                        // payload.statefulsetData.allStatefulset.forEach(
-                        //     // eslint-disable-next-line no-loop-func
-                        //     statefulset => {
-                        //         if (
-                        //             !(
-                        //                 statefulset.desiredStatefulsets !==
-                        //                 statefulset.readyStatefulsets
-                        //             )
-                        //         ) {
-                        //             validity = false;
-                        //             failedReasons.push(
-                        //                 `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        //             );
-                        //         } else {
-                        //             successReasons.push(
-                        //                 `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                        //             );
-                        //         }
-                        //     }
-                        // );
                     }
                 } else if (
                     con.criteria[i] &&
