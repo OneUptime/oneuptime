@@ -34,7 +34,7 @@ BoxHeader.displayName = 'BoxHeader';
 BoxHeader.propTypes = {
     title: PropTypes.string,
     description: PropTypes.string,
-    buttons: PropTypes.func
+    buttons: PropTypes.func,
 };
 
 export default BoxHeader;

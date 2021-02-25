@@ -219,7 +219,6 @@ Form.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
 };
 
-
 export const CreateDefaultRoleModal = connect(
     state => ({
         formTitle: 'Create New Default Role',
