@@ -298,6 +298,8 @@ module.exports = {
                                     deploymentData,
                                     statefulsetData,
                                 };
+                                console.log('******* monitor ********', monitor.name);
+                                console.log('******* output data *********', JSON.stringify(data, null, 4));
                                 await ApiService.ping(monitor._id, {
                                     monitor,
                                     kubernetesData: data,
