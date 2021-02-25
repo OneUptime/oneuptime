@@ -763,3 +763,64 @@ export function getErrorEventSuccess(data) {
         payload: data,
     };
 }
+//Delete an errorTracker Issue
+export function deleteErrorTrackerIssue(
+    projectId,
+    componentId,
+    errorTrackerId,
+    issueId
+) {
+    return function(dispatch) {
+        const promise = deleteApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issue/${issueId}`
+        );
+        dispatch(deleteErrorTrackerIssueRequest(issueId));
+
+        promise.then(
+            function(errorTracker) {
+                dispatch(deleteErrorTrackerIssueSuccess(errorTracker.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    deleteErrorTrackerIssueFailure({
+                        error: errors(error),
+                        issueId,
+                    })
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function deleteErrorTrackerIssueSuccess(removedErrorTrackerIssue) {
+    return {
+        type: types.DELETE_ERROR_TRACKER_ISSUE_SUCCESS,
+        payload: removedErrorTrackerIssue,
+    };
+}
+
+export function deleteErrorTrackerIssueRequest(errorTrackerIssueId) {
+    return {
+        type: types.DELETE_ERROR_TRACKER_ISSUE_REQUEST,
+        payload: errorTrackerIssueId,
+    };
+}
+
+export function deleteErrorTrackerIssueFailure(error) {
+    return {
+        type: types.DELETE_ERROR_TRACKER_ISSUE_FAILURE,
+        payload: error,
+    };
+}
