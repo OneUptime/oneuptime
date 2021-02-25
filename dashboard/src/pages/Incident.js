@@ -380,13 +380,6 @@ class Incident extends React.Component {
                                     Alert Logs
                                 </Tab>
                                 <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
-                                    }
-                                >
-                                    Status Page Notes
-                                </Tab>
-                                <Tab
                                     id="tab-advance"
                                     className={
                                         'custom-tab custom-tab-6 bs-custom-incident-tab'
@@ -527,14 +520,6 @@ class Incident extends React.Component {
                                     previous={this.previousSubscribers}
                                     incident={this.props.incident}
                                     page={this.state.subscribeAlertPage}
-                                />
-                            </Fade>
-                        </TabPanel>
-                        <TabPanel>
-                            <Fade>
-                                <IncidentStatusPages />
-                                <IncidentInvestigation
-                                    incident={this.props.incident}
                                 />
                             </Fade>
                         </TabPanel>
