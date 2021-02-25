@@ -351,15 +351,6 @@ export class IncidentList extends Component {
                                                                     cursor:
                                                                         'pointer',
                                                                 }}
-                                                                onClick={e => {
-                                                                    e.stopPropagation();
-                                                                    history.push(
-                                                                        '/dashboard/profile/' +
-                                                                            incident
-                                                                                .createdById
-                                                                                ._id
-                                                                    );
-                                                                }}
                                                             >
                                                                 <img
                                                                     src="/dashboard/assets/img/profile-user.svg"
@@ -634,15 +625,6 @@ export class IncidentList extends Component {
                                                                                                 cursor:
                                                                                                     'pointer',
                                                                                             }}
-                                                                                            onClick={e => {
-                                                                                                e.stopPropagation();
-                                                                                                history.push(
-                                                                                                    '/dashboard/profile/' +
-                                                                                                        incident
-                                                                                                            .acknowledgedBy
-                                                                                                            ._id
-                                                                                                );
-                                                                                            }}
                                                                                         >
                                                                                             <img
                                                                                                 src="/dashboard/assets/img/profile-user.svg"
@@ -818,15 +800,6 @@ export class IncidentList extends Component {
                                                                                 style={{
                                                                                     cursor:
                                                                                         'pointer',
-                                                                                }}
-                                                                                onClick={e => {
-                                                                                    e.stopPropagation();
-                                                                                    history.push(
-                                                                                        '/dashboard/profile/' +
-                                                                                            incident
-                                                                                                .resolvedBy
-                                                                                                ._id
-                                                                                    );
                                                                                 }}
                                                                             >
                                                                                 <img
