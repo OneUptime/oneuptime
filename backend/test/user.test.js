@@ -6,7 +6,7 @@ const data = require('./data/user');
 const profile = require('./data/user').profile;
 const chai = require('chai');
 chai.use(require('chai-http'));
-const decode = require('urldecode');
+// const decode = require('urldecode'); unused
 const queryString = require('query-string');
 const app = require('../server');
 const GlobalConfig = require('./utils/globalConfig');

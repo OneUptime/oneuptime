@@ -159,8 +159,7 @@ const mapStateToProps = state => {
     const { requesting, error } = state.alert.downloadedAlertCharges;
     return {
         projectId:
-        state.project.currentProject &&
-            state.project.currentProject._id,
+            state.project.currentProject && state.project.currentProject._id,
         downloadedAlertCharges,
         requesting,
         error,

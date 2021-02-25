@@ -1087,16 +1087,28 @@ export function addSeatReset() {
     };
 }
 
-export function addArrayField(val) {
+export function addArrayField(val, insert) {
     return function(dispatch) {
         dispatch(change('NewMonitor', `${val}.field3`, true));
+        dispatch(change('NewMonitor', `${val}.criteria`, insert));
     };
 }
 
 export function removeArrayField(val) {
     return function(dispatch) {
         dispatch(change('NewMonitor', `${val}.field3`, false));
-        dispatch(autofill('NewMonitor', `${val}.collection`, undefined));
+        dispatch(autofill('NewMonitor', `${val}.criteria`, undefined));
+    };
+}
+
+export function updateCriteriaField(field, val, noCriteria) {
+    if (noCriteria) {
+        return function(dispatch) {
+            dispatch(change('NewMonitor', field, val));
+        };
+    }
+    return function(dispatch) {
+        dispatch(change('NewMonitor', `${field}.criteria`, val));
     };
 }
 

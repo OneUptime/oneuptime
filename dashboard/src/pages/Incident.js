@@ -258,7 +258,8 @@ class Incident extends React.Component {
     }
 
     ready = () => {
-        const { projectId, incidentId } = this.props.match.params;
+        const { incidentId } = this.props.match.params;
+        const { projectId } = this.props;
         this.fetchAllIncidentData();
         this.props.fetchIncidentStatusPages(projectId, incidentId);
         this.props.fetchDefaultCommunicationSla(projectId);
@@ -377,13 +378,6 @@ class Incident extends React.Component {
                                     }
                                 >
                                     Alert Logs
-                                </Tab>
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
-                                    }
-                                >
-                                    Status Page Notes
                                 </Tab>
                                 <Tab
                                     id="tab-advance"
@@ -531,14 +525,6 @@ class Incident extends React.Component {
                         </TabPanel>
                         <TabPanel>
                             <Fade>
-                                <IncidentStatusPages />
-                                <IncidentInvestigation
-                                    incident={this.props.incident}
-                                />
-                            </Fade>
-                        </TabPanel>
-                        <TabPanel>
-                            <Fade>
                                 <RenderIfSubProjectAdmin>
                                     <IncidentDeleteBox
                                         incident={this.props.incident}
@@ -671,8 +657,8 @@ const mapStateToProps = (state, props) => {
         type: monitor && monitor.type ? monitor.type : null,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
-        projectId: state.project.currentProject &&
-        state.project.currentProject._id,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
         incidentTimeline: state.incident.incident,
         count: state.alert.incidentalerts.count,
         skip: state.alert.incidentalerts.skip,

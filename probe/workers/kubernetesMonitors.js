@@ -32,6 +32,7 @@ module.exports = {
                             const [
                                 podOutput,
                                 jobOutput,
+                                // eslint-disable-next-line no-unused-vars
                                 serviceOutput,
                                 deploymentOutput,
                                 statefulsetOutput,
@@ -46,195 +47,263 @@ module.exports = {
                             // remove the config file
                             await deleteFile(configPath);
 
-                            // handle pod output
-                            const healthyPods = [],
-                                unhealthyPods = [];
-                            let pendingPods = 0,
-                                runningPods = 0,
-                                completedPods = 0,
-                                failedPods = 0;
-                            podOutput.items.forEach(item => {
-                                /**
-                                 *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
-                                 */
-                                if (
-                                    item.status.phase !== 'Running' &&
-                                    item.status.phase !== 'Pending' &&
-                                    item.status.phase !== 'Succeeded'
-                                ) {
-                                    unhealthyPods.push({
-                                        podName: item.metadata.name,
-                                        podStatus: item.status.phase,
-                                        podRestart:
-                                            item.status.containerStatuses[0]
-                                                .restartCount,
-                                    });
-                                    failedPods += 1;
-                                } else {
-                                    healthyPods.push({
-                                        podName: item.metadata.name,
-                                        podStatus: item.status.phase,
-                                        podRestart:
-                                            item.status.containerStatuses[0]
-                                                .restartCount,
-                                    });
-                                    if (item.status.phase === 'Pending')
-                                        ++pendingPods;
-                                    if (item.status.phase === 'Running')
-                                        ++runningPods;
-                                    if (item.status.phase === 'Succeeded')
-                                        ++completedPods;
-                                }
-                            });
-                            const podData = {
-                                podStat: {
-                                    healthy: healthyPods.length,
-                                    unhealthy: unhealthyPods.length,
-                                    pendingPods,
-                                    runningPods,
-                                    completedPods,
-                                    failedPods,
-                                    totalPods: podOutput.items.length,
-                                },
-                                healthyPods,
-                                unhealthyPods,
-                                allPods: [...healthyPods, ...unhealthyPods],
-                            };
+                            if (
+                                podOutput &&
+                                jobOutput &&
+                                // serviceOutput &&
+                                deploymentOutput &&
+                                statefulsetOutput
+                            ) {
+                                // handle pod output
+                                const healthyPods = [],
+                                    unhealthyPods = [];
+                                let pendingPods = 0,
+                                    runningPods = 0,
+                                    completedPods = 0,
+                                    failedPods = 0;
+                                podOutput.items.forEach(item => {
+                                    /**
+                                     *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
+                                     */
+                                    if (
+                                        item.status.phase !== 'Running' &&
+                                        item.status.phase !== 'Pending' &&
+                                        item.status.phase !== 'Succeeded'
+                                    ) {
+                                        unhealthyPods.push({
+                                            podName: item.metadata.name,
+                                            podStatus: item.status.phase,
+                                            podRestart:
+                                                item.status &&
+                                                item.status.containerStatuses &&
+                                                item.status.containerStatuses[0]
+                                                    ? item.status
+                                                          .containerStatuses[0]
+                                                          .restartCount
+                                                    : 0,
+                                        });
+                                        failedPods += 1;
+                                    } else {
+                                        healthyPods.push({
+                                            podName: item.metadata.name,
+                                            podStatus: item.status.phase,
+                                            podRestart:
+                                                item.status &&
+                                                item.status.containerStatuses &&
+                                                item.status.containerStatuses[0]
+                                                    ? item.status
+                                                          .containerStatuses[0]
+                                                          .restartCount
+                                                    : 0,
+                                        });
+                                        if (item.status.phase === 'Pending')
+                                            ++pendingPods;
+                                        if (item.status.phase === 'Running')
+                                            ++runningPods;
+                                        if (item.status.phase === 'Succeeded')
+                                            ++completedPods;
+                                    }
+                                });
+                                const podData = {
+                                    podStat: {
+                                        healthy: healthyPods.length,
+                                        unhealthy: unhealthyPods.length,
+                                        pendingPods,
+                                        runningPods,
+                                        completedPods,
+                                        failedPods,
+                                        totalPods: podOutput.items.length,
+                                    },
+                                    healthyPods,
+                                    unhealthyPods,
+                                    allPods: [...healthyPods, ...unhealthyPods],
+                                };
 
-                            // handle job output
-                            const runningJobs = [],
-                                succeededJobs = [],
-                                failedJobs = [];
-                            jobOutput.items.forEach(item => {
-                                /**
-                                 * https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#job-v1-batch
-                                 */
-                                if (item.status.active > 0) {
-                                    runningJobs.push({
-                                        jobName: item.metadata.name,
-                                        jobStatus: 'running',
-                                    });
-                                }
-                                if (item.status.succeeded > 0) {
-                                    succeededJobs.push({
-                                        jobName: item.metadata.name,
-                                        jobStatus: 'succeeded',
-                                    });
-                                }
-                                if (item.status.failed > 0) {
-                                    failedJobs.push({
-                                        jobName: item.metadata.name,
-                                        jobStatus: 'failed',
-                                    });
-                                }
-                            });
-                            const jobData = {
-                                jobStat: {
-                                    runningJobs: runningJobs.length,
-                                    succeededJobs: succeededJobs.length,
-                                    failedJobs: failedJobs.length,
-                                    totalJobs:
-                                        runningJobs.length +
-                                        succeededJobs.length +
-                                        failedJobs.length,
-                                },
-                                runningJobs,
-                                succeededJobs,
-                                failedJobs,
-                                allJobs: [
-                                    ...runningJobs,
-                                    ...succeededJobs,
-                                    ...failedJobs,
-                                ],
-                            };
+                                // handle job output
+                                const runningJobs = [],
+                                    succeededJobs = [],
+                                    failedJobs = [];
+                                jobOutput.items.forEach(item => {
+                                    /**
+                                     * https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#job-v1-batch
+                                     */
+                                    if (item.status && item.status.active > 0) {
+                                        runningJobs.push({
+                                            jobName: item.metadata.name,
+                                            jobStatus: 'running',
+                                        });
+                                    } else if (
+                                        item.status &&
+                                        item.status.succeeded > 0
+                                    ) {
+                                        succeededJobs.push({
+                                            jobName: item.metadata.name,
+                                            jobStatus: 'succeeded',
+                                        });
+                                    } else if (
+                                        item.status &&
+                                        item.status.failed > 0
+                                    ) {
+                                        failedJobs.push({
+                                            jobName: item.metadata.name,
+                                            jobStatus: 'failed',
+                                        });
+                                    } else {
+                                        failedJobs.push({
+                                            jobName: item.metadata.name,
+                                            jobStatus: 'failed',
+                                        });
+                                    }
+                                });
+                                const jobData = {
+                                    jobStat: {
+                                        runningJobs: runningJobs.length,
+                                        succeededJobs: succeededJobs.length,
+                                        failedJobs: failedJobs.length,
+                                        totalJobs:
+                                            runningJobs.length +
+                                            succeededJobs.length +
+                                            failedJobs.length,
+                                        healthy:
+                                            runningJobs.length +
+                                            succeededJobs.length,
+                                        unhealthy: failedJobs.length,
+                                    },
+                                    runningJobs,
+                                    succeededJobs,
+                                    failedJobs,
+                                    allJobs: [
+                                        ...runningJobs,
+                                        ...succeededJobs,
+                                        ...failedJobs,
+                                    ],
+                                };
 
-                            // handle services output
-                            const serviceData = {
-                                runningServices: serviceOutput.items.length,
-                            };
+                                // handle services output
+                                // const serviceData = {
+                                //     runningServices: serviceOutput.items.length,
+                                // };
 
-                            // handle deployment output
-                            let desiredDeployment = 0,
-                                readyDeployment = 0;
-                            const incompleteDeployment = [],
-                                allDeployments = [];
-                            deploymentOutput.items.forEach(item => {
-                                readyDeployment += item.status.readyReplicas;
-                                desiredDeployment += item.status.replicas;
+                                // handle deployment output
+                                let desiredDeployment = 0,
+                                    readyDeployment = 0;
+                                const unhealthyDeployments = [],
+                                    healthyDeployments = [],
+                                    allDeployments = [];
+                                deploymentOutput.items.forEach(item => {
+                                    if (item.status.readyReplicas) {
+                                        readyDeployment +=
+                                            item.status.readyReplicas;
+                                    } else {
+                                        readyDeployment += 0;
+                                    }
+                                    desiredDeployment += item.status.replicas;
 
-                                if (
-                                    item.status.readyReplicas !==
-                                    item.status.replicas
-                                ) {
-                                    incompleteDeployment.push({
+                                    if (
+                                        item.status.readyReplicas !==
+                                        item.status.replicas
+                                    ) {
+                                        unhealthyDeployments.push({
+                                            deploymentName: item.metadata.name,
+                                            readyDeployment:
+                                                item.status.readyReplicas || 0,
+                                            desiredDeployment:
+                                                item.status.replicas,
+                                        });
+                                    } else {
+                                        healthyDeployments.push({
+                                            deploymentName: item.metadata.name,
+                                            readyDeployment:
+                                                item.status.readyReplicas,
+                                            desiredDeployment:
+                                                item.status.replicas,
+                                        });
+                                    }
+
+                                    allDeployments.push({
                                         deploymentName: item.metadata.name,
                                         readyDeployment:
-                                            item.status.readyReplicas,
+                                            item.status.readyReplicas || 0,
                                         desiredDeployment: item.status.replicas,
                                     });
-                                }
-
-                                allDeployments.push({
-                                    deploymentName: item.metadata.name,
-                                    readyDeployment: item.status.readyReplicas,
-                                    desiredDeployment: item.status.replicas,
                                 });
-                            });
-                            const deploymentData = {
-                                desiredDeployment,
-                                readyDeployment,
-                                incompleteDeployment,
-                                allDeployments,
-                            };
+                                const deploymentData = {
+                                    desiredDeployment,
+                                    readyDeployment,
+                                    healthyDeployments,
+                                    unhealthyDeployments,
+                                    allDeployments,
+                                    healthy: healthyDeployments.length,
+                                    unhealthy: unhealthyDeployments.length,
+                                };
 
-                            // handle statefulset output
-                            let desiredStatefulsets = 0,
-                                readyStatefulsets = 0;
-                            const incompleteStatefulset = [],
-                                allStatefulset = [];
-                            statefulsetOutput.items.forEach(item => {
-                                readyStatefulsets += item.status.readyReplicas;
-                                desiredStatefulsets += item.status.replicas;
+                                // handle statefulset output
+                                let desiredStatefulsets = 0,
+                                    readyStatefulsets = 0;
+                                const healthyStatefulsets = [],
+                                    unhealthyStatefulsets = [],
+                                    allStatefulset = [];
+                                statefulsetOutput.items.forEach(item => {
+                                    if (item.status.readyReplicas) {
+                                        readyStatefulsets +=
+                                            item.status.readyReplicas;
+                                    } else {
+                                        readyStatefulsets += 0;
+                                    }
+                                    desiredStatefulsets += item.status.replicas;
 
-                                if (
-                                    item.status.readyReplicas !==
-                                    item.status.replicas
-                                ) {
-                                    incompleteStatefulset.push({
+                                    if (
+                                        item.status.readyReplicas !==
+                                        item.status.replicas
+                                    ) {
+                                        unhealthyStatefulsets.push({
+                                            statefulsetName: item.metadata.name,
+                                            readyStatefulsets:
+                                                item.status.readyReplicas || 0,
+                                            desiredStatefulsets:
+                                                item.status.replicas,
+                                        });
+                                    } else {
+                                        healthyStatefulsets.push({
+                                            statefulsetName: item.metadata.name,
+                                            readyStatefulsets:
+                                                item.status.readyReplicas,
+                                            desiredStatefulsets:
+                                                item.status.replicas,
+                                        });
+                                    }
+
+                                    allStatefulset.push({
                                         statefulsetName: item.metadata.name,
                                         readyStatefulsets:
-                                            item.status.readyReplicas,
+                                            item.status.readyReplicas || 0,
                                         desiredStatefulsets:
                                             item.status.replicas,
                                     });
-                                }
-
-                                allStatefulset.push({
-                                    statefulsetName: item.metadata.name,
-                                    readyStatefulsets:
-                                        item.status.readyReplicas,
-                                    desiredStatefulsets: item.status.replicas,
                                 });
-                            });
-                            const statefulsetData = {
-                                readyStatefulsets,
-                                desiredStatefulsets,
-                                incompleteStatefulset,
-                                allStatefulset,
-                            };
+                                const statefulsetData = {
+                                    readyStatefulsets,
+                                    desiredStatefulsets,
+                                    healthyStatefulsets,
+                                    unhealthyStatefulsets,
+                                    allStatefulset,
+                                    healthy: healthyStatefulsets.length,
+                                    unhealthy: unhealthyStatefulsets.length,
+                                };
 
-                            const data = {
-                                podData,
-                                jobData,
-                                serviceData,
-                                deploymentData,
-                                statefulsetData,
-                            };
-                            await ApiService.ping(monitor._id, {
-                                monitor,
-                                kubernetesData: data,
-                                type: monitor.type,
-                            });
+                                const data = {
+                                    podData,
+                                    jobData,
+                                    // serviceData,
+                                    deploymentData,
+                                    statefulsetData,
+                                };
+                                await ApiService.ping(monitor._id, {
+                                    monitor,
+                                    kubernetesData: data,
+                                    type: monitor.type,
+                                });
+                            }
                         });
                         dest.on('error', async error => {
                             await deleteFile(configPath);

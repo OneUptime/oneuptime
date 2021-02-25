@@ -50,7 +50,7 @@ class ScheduledEventBox extends Component {
             skip ? Number(skip) + this.limit : this.limit,
             this.limit
         );
-        this.props.nextPage(projectId)
+        this.props.nextPage(projectId);
         this.setState({
             [projectId]: this.state[projectId] ? this.state[projectId] + 1 : 2,
         });
@@ -212,7 +212,6 @@ const mapStateToProps = state => {
         subProjects,
         subProjectScheduledEvents,
         modalList: state.modal.modals,
-
     };
 };
 

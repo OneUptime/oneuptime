@@ -180,10 +180,15 @@ module.exports = {
         callScheduleStatus = await Services.checkCallSchedule(
             callScheduleStatus
         );
-        incidentMessages = [
-            ...incidentMessages,
+        const timelineAlerts = [
             ...timeline,
             ...alerts,
+            ...incidentMessages
+        ].sort((a, b) => {
+            return b.createdAt - a.createdAt;
+        });
+        incidentMessages = [
+            ...timelineAlerts,
             ...subAlerts,
             ...callScheduleStatus,
         ];
@@ -2942,7 +2947,8 @@ module.exports = {
                                 incident.projectId,
                                 component.name,
                                 statusUrl,
-                                customFields
+                                customFields,
+                                note
                             );
                             alertStatus = 'Success';
                         } else {

@@ -639,10 +639,15 @@ module.exports = {
         if (con && con.length) {
             eventOccurred = con.some(condition => {
                 let stat = true;
-                if (condition && condition.and && !isEmpty(condition.and)) {
+                if (
+                    condition &&
+                    condition.criteria &&
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'and'
+                ) {
                     stat = checkScriptAnd(
                         payload,
-                        condition.and,
+                        condition.criteria,
                         status,
                         body,
                         successReasons,
@@ -650,12 +655,13 @@ module.exports = {
                     );
                 } else if (
                     condition &&
-                    condition.or &&
-                    !isEmpty(condition.or)
+                    condition.criteria &&
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'or'
                 ) {
                     stat = checkScriptOr(
                         payload,
-                        condition.or,
+                        condition.criteria,
                         status,
                         body,
                         successReasons,
@@ -701,10 +707,15 @@ module.exports = {
         if (con && con.length) {
             eventOccurred = await some(con, async condition => {
                 let stat = true;
-                if (condition && condition.and && !isEmpty(condition.and)) {
+                if (
+                    condition &&
+                    condition.criteria &&
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'and'
+                ) {
                     stat = await checkAnd(
                         payload,
-                        condition.and,
+                        condition.criteria,
                         status,
                         body,
                         sslCertificate,
@@ -717,12 +728,13 @@ module.exports = {
                     );
                 } else if (
                     condition &&
-                    condition.or &&
-                    !isEmpty(condition.or)
+                    condition.criteria &&
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'or'
                 ) {
                     stat = await checkOr(
                         payload,
-                        condition.or,
+                        condition.criteria,
                         status,
                         body,
                         sslCertificate,
@@ -1131,12 +1143,25 @@ module.exports = {
                     countAnd = 0,
                     countOr = 0;
 
-                if (condition && condition.and && !isEmpty(condition.and)) {
-                    respAnd = await incomingCheckAnd(payload, condition.and);
+                if (
+                    condition &&
+                    condition.criteria &&
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'and'
+                ) {
+                    respAnd = await incomingCheckAnd(
+                        payload,
+                        condition.criteria
+                    );
                     countAnd++;
                 }
-                if (condition && condition.or && !isEmpty(condition.or)) {
-                    respOr = await incomingCheckOr(payload, condition.or);
+                if (
+                    condition &&
+                    condition.criteria &&
+                    condition.criteria.condition &&
+                    condition.criteria.condition === 'or'
+                ) {
+                    respOr = await incomingCheckOr(payload, condition.criteria);
                     countOr++;
                 }
                 if (countAnd > 0 && countOr > 0) {
@@ -1411,113 +1436,135 @@ const incomingCheckAnd = async (payload, condition) => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;
-    if (condition && condition.and && condition.and.length > 0) {
-        for (let i = 0; i < condition.and.length; i++) {
-            if (Array.isArray(condition.and[i])) {
-                // incoming check and
-                const tempAnd = await incomingCheckAnd(payload, {
-                    and: condition.and[i],
-                });
-                if (tempAnd) {
-                    val++;
-                    incomingVal++;
+    if (condition && condition.criteria && condition.criteria.length > 0) {
+        for (let i = 0; i < condition.criteria.length; i++) {
+            if (
+                condition.criteria[i].criteria &&
+                condition.criteria[i].criteria.length > 0
+            ) {
+                if (
+                    condition.criteria[i].condition &&
+                    condition.criteria[i].condition === 'and'
+                ) {
+                    // incoming check and
+                    const tempAnd = await incomingCheckAnd(
+                        payload,
+                        condition.criteria[i]
+                    );
+                    if (tempAnd) {
+                        val++;
+                        incomingVal++;
+                    }
+                } else if (
+                    condition.criteria[i].condition &&
+                    condition.criteria[i].condition === 'or'
+                ) {
+                    // incoming check or
+                    const tempOr = await incomingCheckOr(
+                        payload,
+                        condition.criteria[i]
+                    );
+                    if (tempOr) {
+                        val++;
+                        incomingVal++;
+                    }
                 }
             } else {
                 if (
-                    condition.and[i] &&
-                    condition.and[i].responseType &&
-                    condition.and[i].responseType === 'incomingTime'
+                    condition.criteria[i] &&
+                    condition.criteria[i].responseType &&
+                    condition.criteria[i].responseType === 'incomingTime'
                 ) {
                     if (
-                        condition.and[i] &&
-                        condition.and[i].filter &&
-                        condition.and[i].filter === 'greaterThan'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
-                            condition.and[i] &&
-                            condition.and[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload > condition.and[i].field1
+                            payload > condition.criteria[i].field1
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.and[i] &&
-                        condition.and[i].filter &&
-                        condition.and[i].filter === 'lessThan'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'lessThan'
                     ) {
                         if (
-                            condition.and[i] &&
-                            condition.and[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload < condition.and[i].field1
+                            payload < condition.criteria[i].field1
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.and[i] &&
-                        condition.and[i].filter &&
-                        condition.and[i].filter === 'inBetween'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'inBetween'
                     ) {
                         if (
-                            condition.and[i] &&
-                            condition.and[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            condition.and[i].field2 &&
-                            payload > condition.and[i].field1 &&
-                            payload < condition.and[i].field2
+                            condition.criteria[i].field2 &&
+                            payload > condition.criteria[i].field1 &&
+                            payload < condition.criteria[i].field2
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.and[i] &&
-                        condition.and[i].filter &&
-                        condition.and[i].filter === 'equalTo'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'equalTo'
                     ) {
                         if (
-                            condition.and[i] &&
-                            condition.and[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload == condition.and[i].field1
+                            payload == condition.criteria[i].field1
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.and[i] &&
-                        condition.and[i].filter &&
-                        condition.and[i].filter === 'notEqualTo'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
-                            condition.and[i] &&
-                            condition.and[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload != condition.and[i].field1
+                            payload != condition.criteria[i].field1
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.and[i] &&
-                        condition.and[i].filter &&
-                        condition.and[i].filter === 'gtEqualTo'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
-                            condition.and[i] &&
-                            condition.and[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload >= condition.and[i].field1
+                            payload >= condition.criteria[i].field1
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.and[i] &&
-                        condition.and[i].filter &&
-                        condition.and[i].filter === 'ltEqualTo'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
-                            condition.and[i] &&
-                            condition.and[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload <= condition.and[i].field1
+                            payload <= condition.criteria[i].field1
                         ) {
                             val++;
                         }
@@ -1525,14 +1572,6 @@ const incomingCheckAnd = async (payload, condition) => {
                     incomingVal++;
                 }
             }
-        }
-    }
-
-    if (condition && condition.or && condition.or.length > 0) {
-        const tempOr = await incomingCheckOr(payload, { or: condition.or });
-        if (tempOr) {
-            val++;
-            incomingVal++;
         }
     }
 
@@ -1547,113 +1586,134 @@ const incomingCheckOr = async (payload, condition) => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;
-    if (condition && condition.or && condition.or.length > 0) {
-        for (let i = 0; i < condition.or.length; i++) {
-            if (Array.isArray(condition.or[i])) {
-                // incoming check or
-                const tempor = await incomingCheckAnd(payload, {
-                    or: condition.or[i],
-                });
-                if (tempor) {
-                    val++;
-                    incomingVal++;
+    if (condition && condition.criteria && condition.criteria.length > 0) {
+        for (let i = 0; i < condition.criteria.length; i++) {
+            if (
+                condition.criteria[i].criteria &&
+                condition.criteria[i].criteria.length > 0
+            ) {
+                if (
+                    condition.criteria[i].condition &&
+                    condition.criteria[i].condition === 'or'
+                ) {
+                    // incoming check or
+                    const tempor = await incomingCheckAnd(
+                        payload,
+                        condition.criteria[i]
+                    );
+                    if (tempor) {
+                        val++;
+                        incomingVal++;
+                    }
+                } else if (
+                    condition.criteria[i].condition &&
+                    condition.criteria[i].condition === 'and'
+                ) {
+                    const tempAnd = await incomingCheckAnd(
+                        payload,
+                        condition.criteria[i]
+                    );
+                    if (tempAnd) {
+                        val++;
+                        incomingVal++;
+                    }
                 }
             } else {
                 if (
-                    condition.or[i] &&
-                    condition.or[i].responseType &&
-                    condition.or[i].responseType === 'incomingTime'
+                    condition.criteria[i] &&
+                    condition.criteria[i].responseType &&
+                    condition.criteria[i].responseType === 'incomingTime'
                 ) {
                     if (
-                        condition.or[i] &&
-                        condition.or[i].filter &&
-                        condition.or[i].filter === 'greaterThan'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
-                            condition.or[i] &&
-                            condition.or[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload > condition.or[i].field1
+                            payload > condition.criteria[i].field1
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.or[i] &&
-                        condition.or[i].filter &&
-                        condition.or[i].filter === 'lessThan'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'lessThan'
                     ) {
                         if (
-                            condition.or[i] &&
-                            condition.or[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload < condition.or[i].field1
+                            payload < condition.criteria[i].field1
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.or[i] &&
-                        condition.or[i].filter &&
-                        condition.or[i].filter === 'inBetween'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'inBetween'
                     ) {
                         if (
-                            condition.or[i] &&
-                            condition.or[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            condition.or[i].field2 &&
-                            payload > condition.or[i].field1 &&
-                            payload < condition.or[i].field2
+                            condition.criteria[i].field2 &&
+                            payload > condition.criteria[i].field1 &&
+                            payload < condition.criteria[i].field2
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.or[i] &&
-                        condition.or[i].filter &&
-                        condition.or[i].filter === 'equalTo'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'equalTo'
                     ) {
                         if (
-                            condition.or[i] &&
-                            condition.or[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload == condition.or[i].field1
+                            payload == condition.criteria[i].field1
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.or[i] &&
-                        condition.or[i].filter &&
-                        condition.or[i].filter === 'notEqualTo'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
-                            condition.or[i] &&
-                            condition.or[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload != condition.or[i].field1
+                            payload != condition.criteria[i].field1
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.or[i] &&
-                        condition.or[i].filter &&
-                        condition.or[i].filter === 'gtEqualTo'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
-                            condition.or[i] &&
-                            condition.or[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload >= condition.or[i].field1
+                            payload >= condition.criteria[i].field1
                         ) {
                             val++;
                         }
                     } else if (
-                        condition.or[i] &&
-                        condition.or[i].filter &&
-                        condition.or[i].filter === 'ltEqualTo'
+                        condition.criteria[i] &&
+                        condition.criteria[i].filter &&
+                        condition.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
-                            condition.or[i] &&
-                            condition.or[i].field1 &&
+                            condition.criteria[i] &&
+                            condition.criteria[i].field1 &&
                             payload &&
-                            payload <= condition.or[i].field1
+                            payload <= condition.criteria[i].field1
                         ) {
                             val++;
                         }
@@ -1661,14 +1721,6 @@ const incomingCheckOr = async (payload, condition) => {
                     incomingVal++;
                 }
             }
-        }
-    }
-
-    if (condition && condition.and && condition.and.length > 0) {
-        const tempAnd = await incomingCheckAnd(payload, { and: condition.and });
-        if (tempAnd) {
-            val++;
-            incomingVal++;
         }
     }
 
@@ -1693,33 +1745,62 @@ const checkAnd = async (
     headers
 ) => {
     let validity = true;
-    if (con && con.and && con.and.length > 0) {
-        for (let i = 0; i < con.and.length; i++) {
-            if (Array.isArray(con.and[i])) {
-                // check and again
-                const temp = await checkAnd(
-                    payload,
-                    { and: con.and[i] },
-                    statusCode,
-                    body,
-                    ssl,
-                    response,
-                    successReasons,
-                    failedReasons,
-                    type,
-                    queryParams,
-                    headers
-                );
+    if (con && con.criteria && con.criteria.length > 0) {
+        for (let i = 0; i < con.criteria.length; i++) {
+            if (
+                con.criteria[i].criteria &&
+                con.criteria[i].criteria.length > 0
+            ) {
+                if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'and'
+                ) {
+                    // check and again
+                    const temp = await checkAnd(
+                        payload,
+                        con.criteria[i],
+                        statusCode,
+                        body,
+                        ssl,
+                        response,
+                        successReasons,
+                        failedReasons,
+                        type,
+                        queryParams,
+                        headers
+                    );
 
-                if (!temp) {
-                    validity = temp;
+                    if (!temp) {
+                        validity = temp;
+                    }
+                } else if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'or'
+                ) {
+                    // check or again
+                    const temp1 = await checkOr(
+                        payload,
+                        con.criteria[i],
+                        statusCode,
+                        body,
+                        ssl,
+                        response,
+                        successReasons,
+                        failedReasons,
+                        type,
+                        queryParams,
+                        headers
+                    );
+                    if (!temp1) {
+                        validity = temp1;
+                    }
                 }
             } else {
                 let tempReason = `${payload} min`;
                 if (
-                    con.and[i] &&
-                    con.and[i].responseType &&
-                    con.and[i].responseType === 'incomingTime'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType &&
+                    con.criteria[i].responseType === 'incomingTime'
                 ) {
                     let timeHours = 0;
                     let timeMinutes = payload;
@@ -1730,21 +1811,21 @@ const checkAnd = async (
                     }
                 }
                 if (
-                    con.and[i] &&
-                    con.and[i].responseType &&
-                    con.and[i].responseType === 'responseTime'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType &&
+                    con.criteria[i].responseType === 'responseTime'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload > con.and[i].field1
+                                payload > con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1757,16 +1838,16 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload < con.and[i].field1
+                                payload < con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1779,18 +1860,18 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                con.and[i].field2 &&
-                                payload > con.and[i].field1 &&
-                                payload < con.and[i].field2
+                                con.criteria[i].field2 &&
+                                payload > con.criteria[i].field1 &&
+                                payload < con.criteria[i].field2
                             )
                         ) {
                             validity = false;
@@ -1803,16 +1884,16 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload == con.and[i].field1
+                                payload == con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1825,16 +1906,16 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload != con.and[i].field1
+                                payload != con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1847,16 +1928,16 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload >= con.and[i].field1
+                                payload >= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1869,16 +1950,16 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload <= con.and[i].field1
+                                payload <= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1892,21 +1973,21 @@ const checkAnd = async (
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType &&
-                    con.and[i].responseType === 'incomingTime'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType &&
+                    con.criteria[i].responseType === 'incomingTime'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload > con.and[i].field1
+                                payload > con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1919,16 +2000,16 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload < con.and[i].field1
+                                payload < con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1941,18 +2022,18 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                con.and[i].field2 &&
-                                payload > con.and[i].field1 &&
-                                payload < con.and[i].field2
+                                con.criteria[i].field2 &&
+                                payload > con.criteria[i].field1 &&
+                                payload < con.criteria[i].field2
                             )
                         ) {
                             validity = false;
@@ -1965,16 +2046,16 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload == con.and[i].field1
+                                payload == con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1987,16 +2068,16 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload != con.and[i].field1
+                                payload != con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2009,16 +2090,16 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload >= con.and[i].field1
+                                payload >= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2031,16 +2112,16 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
-                                payload <= con.and[i].field1
+                                payload <= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2054,18 +2135,18 @@ const checkAnd = async (
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'doesRespond'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'doesRespond'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'isUp'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'isUp'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].filter &&
+                                con.criteria[i] &&
+                                con.criteria[i].filter &&
                                 !(
                                     (statusCode === 408 ||
                                         statusCode === '408') &&
@@ -2087,14 +2168,14 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'isDown'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'isDown'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].filter &&
+                                con.criteria[i] &&
+                                con.criteria[i].filter &&
                                 (statusCode === 408 || statusCode === '408') &&
                                 body &&
                                 body.code &&
@@ -2113,16 +2194,19 @@ const checkAnd = async (
                             );
                         }
                     }
-                } else if (con.and[i] && con.and[i].responseType === 'ssl') {
+                } else if (
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'ssl'
+                ) {
                     const expiresIn = moment(
                         new Date(
                             ssl && ssl.expires ? ssl.expires : Date.now()
                         ).getTime()
                     ).diff(Date.now(), 'days');
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'isValid'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'isValid'
                     ) {
                         if (!(ssl && !ssl.selfSigned)) {
                             validity = false;
@@ -2135,9 +2219,9 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notFound'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notFound'
                     ) {
                         if (ssl) {
                             validity = false;
@@ -2150,9 +2234,9 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'selfSigned'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'selfSigned'
                     ) {
                         if (!(ssl && ssl.selfSigned)) {
                             validity = false;
@@ -2165,9 +2249,9 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'expiresIn30'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'expiresIn30'
                     ) {
                         if (!(ssl && !ssl.selfSigned && expiresIn < 30)) {
                             validity = false;
@@ -2180,9 +2264,9 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'expiresIn10'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'expiresIn10'
                     ) {
                         if (!(ssl && !ssl.selfSigned && expiresIn < 10)) {
                             validity = false;
@@ -2196,20 +2280,20 @@ const checkAnd = async (
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'statusCode'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'statusCode'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 statusCode &&
-                                statusCode > con.and[i].field1
+                                statusCode > con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2230,16 +2314,16 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 statusCode &&
-                                statusCode < con.and[i].field1
+                                statusCode < con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2260,18 +2344,18 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 statusCode &&
-                                con.and[i].field2 &&
-                                statusCode > con.and[i].field1 &&
-                                statusCode < con.and[i].field2
+                                con.criteria[i].field2 &&
+                                statusCode > con.criteria[i].field1 &&
+                                statusCode < con.criteria[i].field2
                             )
                         ) {
                             validity = false;
@@ -2292,16 +2376,16 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 statusCode &&
-                                statusCode == con.and[i].field1
+                                statusCode == con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2322,16 +2406,16 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 statusCode &&
-                                statusCode != con.and[i].field1
+                                statusCode != con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2352,16 +2436,16 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 statusCode &&
-                                statusCode >= con.and[i].field1
+                                statusCode >= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2382,16 +2466,16 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 statusCode &&
-                                statusCode <= con.and[i].field1
+                                statusCode <= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2413,21 +2497,21 @@ const checkAnd = async (
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'cpuLoad'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'cpuLoad'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.cpuLoad &&
-                                payload.cpuLoad > con.and[i].field1
+                                payload.cpuLoad > con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2450,17 +2534,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.cpuLoad &&
-                                payload.cpuLoad < con.and[i].field1
+                                payload.cpuLoad < con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2483,19 +2567,19 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.cpuLoad &&
-                                con.and[i].field2 &&
-                                payload.cpuLoad > con.and[i].field1 &&
-                                payload.cpuLoad < con.and[i].field2
+                                con.criteria[i].field2 &&
+                                payload.cpuLoad > con.criteria[i].field1 &&
+                                payload.cpuLoad < con.criteria[i].field2
                             )
                         ) {
                             validity = false;
@@ -2518,17 +2602,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.cpuLoad &&
-                                payload.cpuLoad == con.and[i].field1
+                                payload.cpuLoad == con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2551,17 +2635,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.cpuLoad &&
-                                payload.cpuLoad != con.and[i].field1
+                                payload.cpuLoad != con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2584,17 +2668,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.cpuLoad &&
-                                payload.cpuLoad >= con.and[i].field1
+                                payload.cpuLoad >= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2617,17 +2701,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.cpuLoad &&
-                                payload.cpuLoad <= con.and[i].field1
+                                payload.cpuLoad <= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2651,25 +2735,25 @@ const checkAnd = async (
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'memoryUsage'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'memoryUsage'
                 ) {
                     const memoryUsedBytes = payload
                         ? parseInt(payload.memoryUsed || 0)
                         : 0;
                     const memoryUsed = memoryUsedBytes / Math.pow(1e3, 3);
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 memoryUsedBytes &&
                                 memoryUsed &&
-                                memoryUsed > con.and[i].field1
+                                memoryUsed > con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2690,17 +2774,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 memoryUsedBytes &&
                                 memoryUsed &&
-                                memoryUsed < con.and[i].field1
+                                memoryUsed < con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2721,19 +2805,19 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 memoryUsedBytes &&
                                 memoryUsed &&
-                                con.and[i].field2 &&
-                                memoryUsed > con.and[i].field1 &&
-                                memoryUsed < con.and[i].field2
+                                con.criteria[i].field2 &&
+                                memoryUsed > con.criteria[i].field1 &&
+                                memoryUsed < con.criteria[i].field2
                             )
                         ) {
                             validity = false;
@@ -2754,17 +2838,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 memoryUsedBytes &&
                                 memoryUsed &&
-                                memoryUsed == con.and[i].field1
+                                memoryUsed == con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2785,17 +2869,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 memoryUsedBytes &&
                                 memoryUsed &&
-                                memoryUsed != con.and[i].field1
+                                memoryUsed != con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2816,17 +2900,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 memoryUsedBytes &&
                                 memoryUsed &&
-                                memoryUsed >= con.and[i].field1
+                                memoryUsed >= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2847,17 +2931,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 memoryUsedBytes &&
                                 memoryUsed &&
-                                memoryUsed <= con.and[i].field1
+                                memoryUsed <= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2879,8 +2963,8 @@ const checkAnd = async (
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'storageUsage'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'storageUsage'
                 ) {
                     const size = payload
                         ? parseInt(payload.totalStorage || 0)
@@ -2891,16 +2975,16 @@ const checkAnd = async (
                     const freeBytes = size - used;
                     const free = freeBytes / Math.pow(1e3, 3);
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 freeBytes &&
-                                free > con.and[i].field1
+                                free > con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2929,16 +3013,16 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 freeBytes &&
-                                free < con.and[i].field1
+                                free < con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2967,18 +3051,18 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
-                                con.and[i].field2 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
+                                con.criteria[i].field2 &&
                                 freeBytes &&
-                                free > con.and[i].field1 &&
-                                free < con.and[i].field2
+                                free > con.criteria[i].field1 &&
+                                free < con.criteria[i].field2
                             )
                         ) {
                             validity = false;
@@ -3007,16 +3091,16 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 freeBytes &&
-                                free === con.and[i].field1
+                                free === con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3045,16 +3129,16 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 freeBytes &&
-                                free !== con.and[i].field1
+                                free !== con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3083,16 +3167,16 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 freeBytes &&
-                                free >= con.and[i].field1
+                                free >= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3121,16 +3205,16 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 freeBytes &&
-                                free <= con.and[i].field1
+                                free <= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3160,21 +3244,21 @@ const checkAnd = async (
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'temperature'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'temperature'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.mainTemp &&
-                                payload.mainTemp > con.and[i].field1
+                                payload.mainTemp > con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3191,17 +3275,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.mainTemp &&
-                                payload.mainTemp < con.and[i].field1
+                                payload.mainTemp < con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3218,19 +3302,19 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.mainTemp &&
-                                con.and[i].field2 &&
-                                payload.mainTemp > con.and[i].field1 &&
-                                payload.mainTemp < con.and[i].field2
+                                con.criteria[i].field2 &&
+                                payload.mainTemp > con.criteria[i].field1 &&
+                                payload.mainTemp < con.criteria[i].field2
                             )
                         ) {
                             validity = false;
@@ -3247,17 +3331,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.mainTemp &&
-                                payload.mainTemp == con.and[i].field1
+                                payload.mainTemp == con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3274,17 +3358,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.mainTemp &&
-                                payload.mainTemp != con.and[i].field1
+                                payload.mainTemp != con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3301,17 +3385,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.mainTemp &&
-                                payload.mainTemp >= con.and[i].field1
+                                payload.mainTemp >= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3328,17 +3412,17 @@ const checkAnd = async (
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 payload &&
                                 payload.mainTemp &&
-                                payload.mainTemp <= con.and[i].field1
+                                payload.mainTemp <= con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3356,124 +3440,125 @@ const checkAnd = async (
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'responseBody'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'responseBody'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'contains'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'contains'
                     ) {
                         if (body && typeof body === 'string') {
                             if (
                                 !(
-                                    con.and[i] &&
-                                    con.and[i].field1 &&
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
                                     body &&
-                                    body.includes([con.and[i].field1])
+                                    body.includes([con.criteria[i].field1])
                                 )
                             ) {
                                 validity = false;
                                 failedReasons.push(
-                                    `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                                    `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                                 );
                             } else {
                                 successReasons.push(
-                                    `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                                    `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                                 );
                             }
                         } else {
                             if (
                                 !(
-                                    con.and[i] &&
-                                    con.and[i].field1 &&
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
                                     body &&
-                                    body[con.and[i].field1]
+                                    body[con.criteria[i].field1]
                                 )
                             ) {
                                 validity = false;
                                 failedReasons.push(
-                                    `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                                    `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                                 );
                             } else {
                                 successReasons.push(
-                                    `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                                    `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                                 );
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'doesNotContain'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'doesNotContain'
                     ) {
                         if (body && typeof body === 'string') {
                             if (
                                 !(
-                                    con.and[i] &&
-                                    con.and[i].field1 &&
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
                                     body &&
-                                    !body.includes([con.and[i].field1])
+                                    !body.includes([con.criteria[i].field1])
                                 )
                             ) {
                                 validity = false;
                                 failedReasons.push(
-                                    `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                                    `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                                 );
                             } else {
                                 successReasons.push(
-                                    `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                                    `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                                 );
                             }
                         } else {
                             if (
                                 !(
-                                    con.and[i] &&
-                                    con.and[i].field1 &&
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
                                     body &&
-                                    !body[con.and[i].field1]
+                                    !body[con.criteria[i].field1]
                                 )
                             ) {
                                 validity = false;
                                 failedReasons.push(
-                                    `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                                    `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                                 );
                             } else {
                                 successReasons.push(
-                                    `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                                    `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                                 );
                             }
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'jsExpression'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'jsExpression'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 body &&
-                                body[con.and[i].field1] === con.and[i].field1
+                                body[con.criteria[i].field1] ===
+                                    con.criteria[i].field1
                             )
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings.responseBody} did not have Javascript expression \`${con.and[i].field1}\``
+                                `${criteriaStrings.responseBody} did not have Javascript expression \`${con.criteria[i].field1}\``
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings.responseBody} did have Javascript expression \`${con.and[i].field1}\``
+                                `${criteriaStrings.responseBody} did have Javascript expression \`${con.criteria[i].field1}\``
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'empty'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'empty'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].filter &&
+                                con.criteria[i] &&
+                                con.criteria[i].filter &&
                                 body &&
                                 _.isEmpty(body)
                             )
@@ -3488,14 +3573,14 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEmpty'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEmpty'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].filter &&
+                                con.criteria[i] &&
+                                con.criteria[i].filter &&
                                 body &&
                                 !_.isEmpty(body)
                             )
@@ -3510,34 +3595,42 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'evaluateResponse'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'evaluateResponse'
                     ) {
-                        const responseDisplay = con.and[i].field1
-                            ? con.and[i].field1.includes('response.body') &&
-                              con.and[i].field1.includes('response.headers')
+                        const responseDisplay = con.criteria[i].field1
+                            ? con.criteria[i].field1.includes(
+                                  'response.body'
+                              ) &&
+                              con.criteria[i].field1.includes(
+                                  'response.headers'
+                              )
                                 ? {
                                       headers: response.headers,
                                       body: response.body,
                                   }
-                                : con.and[i].field1.includes('response.headers')
+                                : con.criteria[i].field1.includes(
+                                      'response.headers'
+                                  )
                                 ? response.headers
-                                : con.and[i].field1.includes('response.body')
+                                : con.criteria[i].field1.includes(
+                                      'response.body'
+                                  )
                                 ? response.body
                                 : response
                             : response;
                         try {
                             if (
                                 !(
-                                    con.and[i] &&
-                                    con.and[i].field1 &&
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
                                     response &&
                                     Function(
                                         '"use strict";const response = ' +
                                             JSON.stringify(response) +
                                             ';return (' +
-                                            con.and[i].field1 +
+                                            con.criteria[i].field1 +
                                             ');'
                                     )()
                                 )
@@ -3548,7 +3641,9 @@ const checkAnd = async (
                                         criteriaStrings.response
                                     } \`${JSON.stringify(
                                         responseDisplay
-                                    )}\` did evaluate \`${con.and[i].field1}\``
+                                    )}\` did evaluate \`${
+                                        con.criteria[i].field1
+                                    }\``
                                 );
                             } else {
                                 successReasons.push(
@@ -3556,7 +3651,9 @@ const checkAnd = async (
                                         criteriaStrings.response
                                     } \`${JSON.stringify(
                                         responseDisplay
-                                    )}\` did evaluate \`${con.and[i].field1}\``
+                                    )}\` did evaluate \`${
+                                        con.criteria[i].field1
+                                    }\``
                                 );
                             }
                         } catch (e) {
@@ -3569,300 +3666,374 @@ const checkAnd = async (
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'queryString'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'queryString'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'contains'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'contains'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 queryParams &&
                                 queryParams.includes(
-                                    con.and[i].field1.toLowerCase()
+                                    con.criteria[i].field1.toLowerCase()
                                 )
                             )
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                                `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                                `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                             );
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'headers'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'headers'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'contains'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'contains'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 headers &&
                                 headers.includes(
-                                    con.and[i].field1.toLowerCase()
+                                    con.criteria[i].field1.toLowerCase()
                                 )
                             )
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings.responseBody} did not contain ${con.and[i].field1}`
+                                `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings.responseBody} contains ${con.and[i].field1}`
+                                `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                             );
                         }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'podStatus'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'podStatus'
                 ) {
+                    const healthyPods = ['running', 'pending', 'succeeded'];
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
-                        // eslint-disable-next-line no-loop-func
-                        payload.podData.allPods.forEach(pod => {
-                            if (
-                                !(
-                                    con.and[i] &&
-                                    con.and[i].field1 &&
+                        if (
+                            !payload.podData.allPods ||
+                            payload.podData.allPods.length === 0
+                        ) {
+                            validity = false;
+                            failedReasons.push('Pod is not available');
+                        } else {
+                            // eslint-disable-next-line no-loop-func
+                            payload.podData.allPods.forEach(pod => {
+                                if (
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
                                     pod.podStatus &&
                                     pod.podStatus.toLowerCase() ===
-                                        con.and[i].field1.toLowerCase()
-                                )
-                            ) {
-                                validity = false;
-                                failedReasons.push(
-                                    `${pod.podName} status is ${pod.podStatus}`
-                                );
-                            } else {
-                                successReasons.push(
-                                    `${pod.podName} status is ${pod.podStatus}`
-                                );
-                            }
-                        });
+                                        con.criteria[i].field1.toLowerCase()
+                                ) {
+                                    successReasons.push(
+                                        `${pod.podName} pod status is ${pod.podStatus}`
+                                    );
+                                } else {
+                                    validity = false;
+                                    if (
+                                        !healthyPods.includes(
+                                            pod.podStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${pod.podName} pod status is ${pod.podStatus}`
+                                        );
+                                    }
+                                }
+                            });
+                        }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
-                        // eslint-disable-next-line no-loop-func
-                        payload.podData.allPods.forEach(pod => {
-                            if (
-                                !(
-                                    con.and[i] &&
-                                    con.and[i].field1 &&
+                        if (
+                            !payload.podData.allPods ||
+                            payload.podData.allPods.length === 0
+                        ) {
+                            validity = false;
+                            failedReasons.push('Pod is not available');
+                        } else {
+                            // eslint-disable-next-line no-loop-func
+                            payload.podData.allPods.forEach(pod => {
+                                if (
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
                                     pod.podStatus &&
                                     pod.podStatus.toLowerCase() !==
-                                        con.and[i].field1.toLowerCase()
-                                )
-                            ) {
-                                validity = false;
-                                failedReasons.push(
-                                    `${pod.podName} status is ${pod.podStatus}`
-                                );
-                            } else {
-                                successReasons.push(
-                                    `${pod.podName} status is ${pod.podStatus}`
-                                );
-                            }
-                        });
+                                        con.criteria[i].field1.toLowerCase()
+                                ) {
+                                    successReasons.push(
+                                        `${pod.podName} pod status is ${pod.podStatus}`
+                                    );
+                                } else {
+                                    validity = false;
+                                    if (
+                                        !healthyPods.includes(
+                                            pod.podStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${pod.podName} pod status is ${pod.podStatus}`
+                                        );
+                                    }
+                                }
+                            });
+                        }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'jobStatus'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'jobStatus'
                 ) {
+                    const healthyJobs = ['running', 'succeeded'];
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
-                        // eslint-disable-next-line no-loop-func
-                        payload.jobData.allJobs.forEach(job => {
-                            if (
-                                !(
-                                    con.and[i] &&
-                                    con.and[i].field1 &&
+                        if (
+                            !payload.jobData.allJobs ||
+                            payload.jobData.allJobs.length === 0
+                        ) {
+                            validity = false;
+                            failedReasons.push('Job is not available');
+                        } else {
+                            // eslint-disable-next-line no-loop-func
+                            payload.jobData.allJobs.forEach(job => {
+                                if (
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
                                     job.jobStatus &&
                                     job.jobStatus.toLowerCase() ===
-                                        con.and[i].field1.toLowerCase()
-                                )
-                            ) {
-                                validity = false;
-                                failedReasons.push(
-                                    `${job.jobName} ${job.jobStatus}`
-                                );
-                            } else {
-                                successReasons.push(
-                                    `${job.jobName} ${job.jobStatus}`
-                                );
-                            }
-                        });
+                                        con.criteria[i].field1.toLowerCase()
+                                ) {
+                                    successReasons.push(
+                                        `${job.jobName} job status is ${job.jobStatus}`
+                                    );
+                                } else {
+                                    validity = false;
+                                    if (
+                                        !healthyJobs.includes(
+                                            job.jobStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${job.jobName} job status is ${job.jobStatus}`
+                                        );
+                                    }
+                                }
+                            });
+                        }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
-                        // eslint-disable-next-line no-loop-func
-                        payload.jobData.allJobs.forEach(job => {
-                            if (
-                                !(
-                                    con.and[i] &&
-                                    con.and[i].field1 &&
+                        if (
+                            !payload.jobData.allJobs ||
+                            payload.jobData.allJobs.length === 0
+                        ) {
+                            validity = false;
+                            failedReasons.push('Job is not available');
+                        } else {
+                            // eslint-disable-next-line no-loop-func
+                            payload.jobData.allJobs.forEach(job => {
+                                if (
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
                                     job.jobStatus &&
                                     job.jobStatus.toLowerCase() !==
-                                        con.and[i].field1.toLowerCase()
-                                )
-                            ) {
-                                validity = false;
-                                failedReasons.push(
-                                    `${job.jobName} ${job.jobStatus}`
-                                );
-                            } else {
-                                successReasons.push(
-                                    `${job.jobName} ${job.jobStatus}`
-                                );
-                            }
-                        });
+                                        con.criteria[i].field1.toLowerCase()
+                                ) {
+                                    successReasons.push(
+                                        `${job.jobName} job status is ${job.jobStatus}`
+                                    );
+                                } else {
+                                    validity = false;
+                                    if (
+                                        !healthyJobs.includes(
+                                            job.jobStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${job.jobName} job status is ${job.jobStatus}`
+                                        );
+                                    }
+                                }
+                            });
+                        }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'desiredDeployment'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'desiredDeployment'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
-                        payload.deploymentData.allDeployments.forEach(
-                            // eslint-disable-next-line no-loop-func
-                            deployment => {
-                                if (
-                                    !(
+                        if (
+                            !payload.deploymentData.allDeployments ||
+                            payload.deploymentData.allDeployments.length === 0
+                        ) {
+                            validity = false;
+                            failedReasons.push('Deployment is not available');
+                        } else {
+                            payload.deploymentData.allDeployments.forEach(
+                                // eslint-disable-next-line no-loop-func
+                                deployment => {
+                                    if (
                                         deployment.desiredDeployment ===
                                         deployment.readyDeployment
-                                    )
-                                ) {
-                                    validity = false;
-                                    failedReasons.push(
-                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                                    );
-                                } else {
-                                    successReasons.push(
-                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                                    );
+                                    ) {
+                                        successReasons.push(
+                                            `${deployment.deploymentName} deployment state is (${deployment.readyDeployment}/${deployment.desiredDeployment})`
+                                        );
+                                    } else {
+                                        validity = false;
+                                        failedReasons.push(
+                                            `${deployment.deploymentName} deployment state is (${deployment.readyDeployment}/${deployment.desiredDeployment})`
+                                        );
+                                    }
                                 }
-                            }
-                        );
+                            );
+                        }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
-                        payload.deploymentData.allDeployments.forEach(
-                            // eslint-disable-next-line no-loop-func
-                            deployment => {
-                                if (
-                                    !(
+                        if (
+                            !payload.deploymentData.allDeployments ||
+                            payload.deploymentData.allDeployments.length === 0
+                        ) {
+                            validity = false;
+                            failedReasons.push('Deployment is not available');
+                        } else {
+                            payload.deploymentData.allDeployments.forEach(
+                                // eslint-disable-next-line no-loop-func
+                                deployment => {
+                                    if (
                                         deployment.desiredDeployment !==
                                         deployment.readyDeployment
-                                    )
-                                ) {
-                                    validity = false;
-                                    failedReasons.push(
-                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                                    );
-                                } else {
-                                    successReasons.push(
-                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                                    );
+                                    ) {
+                                        successReasons.push(
+                                            `${deployment.deploymentName} deployment state is (${deployment.readyDeployment}/${deployment.desiredDeployment})`
+                                        );
+                                    } else {
+                                        validity = false;
+                                        failedReasons.push(
+                                            `${deployment.deploymentName} deployment state is (${deployment.readyDeployment}/${deployment.desiredDeployment})`
+                                        );
+                                    }
                                 }
-                            }
-                        );
+                            );
+                        }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'desiredStatefulset'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'desiredStatefulset'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
-                        payload.statefulsetData.allStatefulset.forEach(
-                            // eslint-disable-next-line no-loop-func
-                            statefulset => {
-                                if (
-                                    !(
+                        if (
+                            !payload.statefulsetData.allStatefulset ||
+                            payload.statefulsetData.allStatefulset.length === 0
+                        ) {
+                            validity = false;
+                            failedReasons.push('Statefulset is not available');
+                        } else {
+                            payload.statefulsetData.allStatefulset.forEach(
+                                // eslint-disable-next-line no-loop-func
+                                statefulset => {
+                                    if (
                                         statefulset.desiredStatefulsets ===
                                         statefulset.readyStatefulsets
-                                    )
-                                ) {
-                                    validity = false;
-                                    failedReasons.push(
-                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                                    );
-                                } else {
-                                    successReasons.push(
-                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                                    );
+                                    ) {
+                                        successReasons.push(
+                                            `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                        );
+                                    } else {
+                                        validity = false;
+                                        failedReasons.push(
+                                            `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                        );
+                                    }
                                 }
-                            }
-                        );
+                            );
+                        }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
-                        payload.statefulsetData.allStatefulset.forEach(
-                            // eslint-disable-next-line no-loop-func
-                            statefulset => {
-                                if (
-                                    !(
+                        if (
+                            !payload.statefulsetData.allStatefulset ||
+                            payload.statefulsetData.allStatefulset.length === 0
+                        ) {
+                            validity = false;
+                            failedReasons.push('Statefulset is not available');
+                        } else {
+                            payload.statefulsetData.allStatefulset.forEach(
+                                // eslint-disable-next-line no-loop-func
+                                statefulset => {
+                                    if (
                                         statefulset.desiredStatefulsets !==
                                         statefulset.readyStatefulsets
-                                    )
-                                ) {
-                                    validity = false;
-                                    failedReasons.push(
-                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                                    );
-                                } else {
-                                    successReasons.push(
-                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                                    );
+                                    ) {
+                                        successReasons.push(
+                                            `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                        );
+                                    } else {
+                                        validity = false;
+                                        failedReasons.push(
+                                            `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                        );
+                                    }
                                 }
-                            }
-                        );
+                            );
+                        }
                     }
                 } else if (
-                    con.and[i] &&
-                    con.and[i].responseType === 'respondsToPing'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'respondsToPing'
                 ) {
                     if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'isUp'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'isUp'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].filter &&
+                                con.criteria[i] &&
+                                con.criteria[i].filter &&
                                 !(statusCode === 408 || statusCode === '408')
                             )
                         ) {
@@ -3878,14 +4049,14 @@ const checkAnd = async (
                             );
                         }
                     } else if (
-                        con.and[i] &&
-                        con.and[i].filter &&
-                        con.and[i].filter === 'isDown'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'isDown'
                     ) {
                         if (
                             !(
-                                con.and[i] &&
-                                con.and[i].filter &&
+                                con.criteria[i] &&
+                                con.criteria[i].filter &&
                                 (statusCode === 408 || statusCode === '408')
                             )
                         ) {
@@ -3906,25 +4077,6 @@ const checkAnd = async (
         }
     }
 
-    if (con && con.or && con.or.length > 0) {
-        const temp1 = await checkOr(
-            payload,
-            { or: con.or },
-            statusCode,
-            body,
-            ssl,
-            response,
-            successReasons,
-            failedReasons,
-            type,
-            queryParams,
-            headers
-        );
-        if (!temp1) {
-            validity = temp1;
-        }
-    }
-
     return validity;
 };
 
@@ -3942,32 +4094,60 @@ const checkOr = async (
     headers
 ) => {
     let validity = false;
-    if (con && con.or && con.or.length > 0) {
-        for (let i = 0; i < con.or.length; i++) {
-            if (Array.isArray(con.or[i])) {
-                // check or again
-                const temp1 = await checkOr(
-                    payload,
-                    { or: con.or[i] },
-                    statusCode,
-                    body,
-                    ssl,
-                    response,
-                    successReasons,
-                    failedReasons,
-                    type,
-                    queryParams,
-                    headers
-                );
-                if (temp1) {
-                    validity = temp1;
+    if (con && con.criteria && con.criteria.length > 0) {
+        for (let i = 0; i < con.criteria.length; i++) {
+            if (
+                con.criteria[i].criteria &&
+                con.criteria[i].criteria.length > 0
+            ) {
+                if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'or'
+                ) {
+                    // check or again
+                    const temp1 = await checkOr(
+                        payload,
+                        con.criteria[i],
+                        statusCode,
+                        body,
+                        ssl,
+                        response,
+                        successReasons,
+                        failedReasons,
+                        type,
+                        queryParams,
+                        headers
+                    );
+                    if (temp1) {
+                        validity = temp1;
+                    }
+                } else if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'and'
+                ) {
+                    const temp = await checkAnd(
+                        payload,
+                        con.criteria[i],
+                        statusCode,
+                        body,
+                        ssl,
+                        response,
+                        successReasons,
+                        failedReasons,
+                        type,
+                        queryParams,
+                        headers
+                    );
+                    if (temp) {
+                        validity = temp;
+                    }
                 }
             } else {
                 let tempReason = `${payload} min`;
                 if (
-                    con.or[i] &&
-                    con.or[i].responseType &&
-                    con.or[i].responseType === 'incomingTime'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType &&
+                    con.criteria[i].responseType === 'incomingTime'
                 ) {
                     let timeHours = 0;
                     let timeMinutes = payload;
@@ -3977,17 +4157,20 @@ const checkOr = async (
                         tempReason = `${timeHours} hrs ${timeMinutes} min`;
                     }
                 }
-                if (con.or[i] && con.or[i].responseType === 'responseTime') {
+                if (
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'responseTime'
+                ) {
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload > con.or[i].field1
+                            payload > con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3999,15 +4182,15 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload < con.or[i].field1
+                            payload < con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4019,17 +4202,17 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            con.or[i].field2 &&
-                            payload > con.or[i].field1 &&
-                            payload < con.or[i].field2
+                            con.criteria[i].field2 &&
+                            payload > con.criteria[i].field1 &&
+                            payload < con.criteria[i].field2
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4041,15 +4224,15 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload == con.or[i].field1
+                            payload == con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4061,15 +4244,15 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload != con.or[i].field1
+                            payload != con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4081,15 +4264,15 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload >= con.or[i].field1
+                            payload >= con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4101,15 +4284,15 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload <= con.or[i].field1
+                            payload <= con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4122,19 +4305,19 @@ const checkOr = async (
                         }
                     }
                 } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'incomingTime'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'incomingTime'
                 ) {
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload > con.or[i].field1
+                            payload > con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4146,15 +4329,15 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload < con.or[i].field1
+                            payload < con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4166,17 +4349,17 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            con.or[i].field2 &&
-                            payload > con.or[i].field1 &&
-                            payload < con.or[i].field2
+                            con.criteria[i].field2 &&
+                            payload > con.criteria[i].field1 &&
+                            payload < con.criteria[i].field2
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4188,15 +4371,15 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload == con.or[i].field1
+                            payload == con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4208,15 +4391,15 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload != con.or[i].field1
+                            payload != con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4228,15 +4411,15 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload >= con.or[i].field1
+                            payload >= con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4248,15 +4431,15 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
-                            payload <= con.or[i].field1
+                            payload <= con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4269,17 +4452,17 @@ const checkOr = async (
                         }
                     }
                 } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'doesRespond'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'doesRespond'
                 ) {
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'isUp'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'isUp'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].filter &&
+                            con.criteria[i] &&
+                            con.criteria[i].filter &&
                             !(
                                 (statusCode === 408 || statusCode === '408') &&
                                 body &&
@@ -4299,13 +4482,13 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'isDown'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'isDown'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].filter &&
+                            con.criteria[i] &&
+                            con.criteria[i].filter &&
                             (statusCode === 408 || statusCode === '408') &&
                             body &&
                             body.code &&
@@ -4323,16 +4506,19 @@ const checkOr = async (
                             );
                         }
                     }
-                } else if (con.or[i] && con.or[i].responseType === 'ssl') {
+                } else if (
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'ssl'
+                ) {
                     const expiresIn = moment(
                         new Date(
                             ssl && ssl.expires ? ssl.expires : Date.now()
                         ).getTime()
                     ).diff(Date.now(), 'days');
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'isValid'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'isValid'
                     ) {
                         if (ssl && !ssl.selfSigned) {
                             validity = true;
@@ -4345,9 +4531,9 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notFound'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notFound'
                     ) {
                         if (!ssl) {
                             validity = true;
@@ -4360,9 +4546,9 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'selfSigned'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'selfSigned'
                     ) {
                         if (ssl && ssl.selfSigned) {
                             validity = true;
@@ -4375,9 +4561,9 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'expiresIn30'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'expiresIn30'
                     ) {
                         if (ssl && !ssl.selfSigned && expiresIn < 30) {
                             validity = true;
@@ -4394,9 +4580,9 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'expiresIn10'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'expiresIn10'
                     ) {
                         if (ssl && !ssl.selfSigned && expiresIn < 10) {
                             validity = true;
@@ -4414,19 +4600,19 @@ const checkOr = async (
                         }
                     }
                 } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'statusCode'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'statusCode'
                 ) {
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             statusCode &&
-                            statusCode > con.or[i].field1
+                            statusCode > con.criteria[i].field1
                         ) {
                             validity = true;
                             if (statusCode === 408 || statusCode === '408') {
@@ -4446,15 +4632,15 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             statusCode &&
-                            statusCode < con.or[i].field1
+                            statusCode < con.criteria[i].field1
                         ) {
                             validity = true;
                             if (statusCode === 408 || statusCode === '408') {
@@ -4474,17 +4660,17 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             statusCode &&
-                            con.or[i].field2 &&
-                            statusCode > con.or[i].field1 &&
-                            statusCode < con.or[i].field2
+                            con.criteria[i].field2 &&
+                            statusCode > con.criteria[i].field1 &&
+                            statusCode < con.criteria[i].field2
                         ) {
                             validity = true;
                             if (statusCode === 408 || statusCode === '408') {
@@ -4504,15 +4690,15 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             statusCode &&
-                            statusCode == con.or[i].field1
+                            statusCode == con.criteria[i].field1
                         ) {
                             validity = true;
                             if (statusCode === 408 || statusCode === '408') {
@@ -4532,15 +4718,15 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             statusCode &&
-                            statusCode != con.or[i].field1
+                            statusCode != con.criteria[i].field1
                         ) {
                             validity = true;
                             if (statusCode === 408 || statusCode === '408') {
@@ -4560,15 +4746,15 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             statusCode &&
-                            statusCode >= con.or[i].field1
+                            statusCode >= con.criteria[i].field1
                         ) {
                             validity = true;
                             if (statusCode === 408 || statusCode === '408') {
@@ -4588,15 +4774,15 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             statusCode &&
-                            statusCode <= con.or[i].field1
+                            statusCode <= con.criteria[i].field1
                         ) {
                             validity = true;
                             if (statusCode === 408 || statusCode === '408') {
@@ -4616,18 +4802,21 @@ const checkOr = async (
                             }
                         }
                     }
-                } else if (con.or[i] && con.or[i].responseType === 'cpuLoad') {
+                } else if (
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'cpuLoad'
+                ) {
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.cpuLoad &&
-                            payload.cpuLoad > con.or[i].field1
+                            payload.cpuLoad > con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
@@ -4649,16 +4838,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.cpuLoad &&
-                            payload.cpuLoad < con.or[i].field1
+                            payload.cpuLoad < con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
@@ -4680,18 +4869,18 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.cpuLoad &&
-                            con.or[i].field2 &&
-                            payload.cpuLoad > con.or[i].field1 &&
-                            payload.cpuLoad < con.or[i].field2
+                            con.criteria[i].field2 &&
+                            payload.cpuLoad > con.criteria[i].field1 &&
+                            payload.cpuLoad < con.criteria[i].field2
                         ) {
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
@@ -4713,16 +4902,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.cpuLoad &&
-                            payload.cpuLoad == con.or[i].field1
+                            payload.cpuLoad == con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
@@ -4744,16 +4933,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.cpuLoad &&
-                            payload.cpuLoad != con.or[i].field1
+                            payload.cpuLoad != con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
@@ -4775,16 +4964,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.cpuLoad &&
-                            payload.cpuLoad >= con.or[i].field1
+                            payload.cpuLoad >= con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
@@ -4806,16 +4995,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.cpuLoad &&
-                            payload.cpuLoad <= con.or[i].field1
+                            payload.cpuLoad <= con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
@@ -4838,23 +5027,23 @@ const checkOr = async (
                         }
                     }
                 } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'memoryUsage'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'memoryUsage'
                 ) {
                     const memoryUsedBytes = payload
                         ? parseInt(payload.memoryUsed || 0)
                         : 0;
                     const memoryUsed = memoryUsedBytes / Math.pow(1e3, 3);
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             memoryUsed &&
-                            memoryUsed > con.or[i].field1
+                            memoryUsed > con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
@@ -4874,15 +5063,15 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             memoryUsed &&
-                            memoryUsed < con.or[i].field1
+                            memoryUsed < con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
@@ -4902,17 +5091,17 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             memoryUsed &&
-                            con.or[i].field2 &&
-                            memoryUsed > con.or[i].field1 &&
-                            memoryUsed < con.or[i].field2
+                            con.criteria[i].field2 &&
+                            memoryUsed > con.criteria[i].field1 &&
+                            memoryUsed < con.criteria[i].field2
                         ) {
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
@@ -4932,15 +5121,15 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             memoryUsed &&
-                            memoryUsed == con.or[i].field1
+                            memoryUsed == con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
@@ -4960,15 +5149,15 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             memoryUsed &&
-                            memoryUsed != con.or[i].field1
+                            memoryUsed != con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
@@ -4988,15 +5177,15 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             memoryUsed &&
-                            memoryUsed >= con.or[i].field1
+                            memoryUsed >= con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
@@ -5016,15 +5205,15 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             memoryUsed &&
-                            memoryUsed <= con.or[i].field1
+                            memoryUsed <= con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
@@ -5045,8 +5234,8 @@ const checkOr = async (
                         }
                     }
                 } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'storageUsage'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'storageUsage'
                 ) {
                     const size = payload
                         ? parseInt(payload.totalStorage || 0)
@@ -5057,14 +5246,14 @@ const checkOr = async (
                     const freeBytes = size - used;
                     const free = freeBytes / Math.pow(1e3, 3);
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
-                            free > con.or[i].field1
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
+                            free > con.criteria[i].field1
                         ) {
                             validity = true;
                             if (
@@ -5092,14 +5281,14 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
-                            free < con.or[i].field1
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
+                            free < con.criteria[i].field1
                         ) {
                             validity = true;
                             if (
@@ -5127,16 +5316,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
-                            con.or[i].field2 &&
-                            free > con.or[i].field1 &&
-                            free < con.or[i].field2
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
+                            con.criteria[i].field2 &&
+                            free > con.criteria[i].field1 &&
+                            free < con.criteria[i].field2
                         ) {
                             validity = true;
                             if (
@@ -5164,14 +5353,14 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
-                            free === con.or[i].field1
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
+                            free === con.criteria[i].field1
                         ) {
                             validity = true;
                             if (
@@ -5199,14 +5388,14 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
-                            free !== con.or[i].field1
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
+                            free !== con.criteria[i].field1
                         ) {
                             validity = true;
                             if (
@@ -5234,14 +5423,14 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
-                            free >= con.or[i].field1
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
+                            free >= con.criteria[i].field1
                         ) {
                             validity = true;
                             if (
@@ -5269,14 +5458,14 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
-                            free <= con.or[i].field1
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
+                            free <= con.criteria[i].field1
                         ) {
                             validity = true;
                             if (
@@ -5305,20 +5494,20 @@ const checkOr = async (
                         }
                     }
                 } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'temperature'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'temperature'
                 ) {
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'greaterThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'greaterThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.mainTemp &&
-                            payload.mainTemp > con.or[i].field1
+                            payload.mainTemp > con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.mainTemp !== null) {
@@ -5334,16 +5523,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'lessThan'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'lessThan'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.mainTemp &&
-                            payload.mainTemp < con.or[i].field1
+                            payload.mainTemp < con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.mainTemp !== null) {
@@ -5359,18 +5548,18 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'inBetween'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'inBetween'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.mainTemp &&
-                            con.or[i].field2 &&
-                            payload.mainTemp > con.or[i].field1 &&
-                            payload.mainTemp < con.or[i].field2
+                            con.criteria[i].field2 &&
+                            payload.mainTemp > con.criteria[i].field1 &&
+                            payload.mainTemp < con.criteria[i].field2
                         ) {
                             validity = true;
                             if (payload && payload.mainTemp !== null) {
@@ -5386,16 +5575,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.mainTemp &&
-                            payload.mainTemp == con.or[i].field1
+                            payload.mainTemp == con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.mainTemp !== null) {
@@ -5411,16 +5600,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.mainTemp &&
-                            payload.mainTemp != con.or[i].field1
+                            payload.mainTemp != con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.mainTemp !== null) {
@@ -5436,16 +5625,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'gtEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'gtEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.mainTemp &&
-                            payload.mainTemp >= con.or[i].field1
+                            payload.mainTemp >= con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.mainTemp !== null) {
@@ -5461,16 +5650,16 @@ const checkOr = async (
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'ltEqualTo'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'ltEqualTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             payload &&
                             payload.mainTemp &&
-                            payload.mainTemp <= con.or[i].field1
+                            payload.mainTemp <= con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.mainTemp !== null) {
@@ -5487,133 +5676,134 @@ const checkOr = async (
                         }
                     }
                 } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'responseBody'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'responseBody'
                 ) {
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'contains'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'contains'
                     ) {
                         if (body && typeof body === 'string') {
                             if (
-                                con.or[i] &&
-                                con.or[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 body &&
-                                body.includes([con.or[i].field1])
+                                body.includes([con.criteria[i].field1])
                             ) {
                                 validity = true;
-                                if (con.or[i].field1) {
+                                if (con.criteria[i].field1) {
                                     successReasons.push(
-                                        `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                                        `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                                     );
                                 }
                             } else {
-                                if (con.or[i].field1) {
+                                if (con.criteria[i].field1) {
                                     failedReasons.push(
-                                        `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                                        `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                                     );
                                 }
                             }
                         } else {
                             if (
-                                con.or[i] &&
-                                con.or[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 body &&
-                                body[con.or[i].field1]
+                                body[con.criteria[i].field1]
                             ) {
                                 validity = true;
-                                if (con.or[i].field1) {
+                                if (con.criteria[i].field1) {
                                     successReasons.push(
-                                        `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                                        `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                                     );
                                 }
                             } else {
-                                if (con.or[i].field1) {
+                                if (con.criteria[i].field1) {
                                     failedReasons.push(
-                                        `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                                        `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                                     );
                                 }
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'doesNotContain'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'doesNotContain'
                     ) {
                         if (body && typeof body === 'string') {
                             if (
-                                con.or[i] &&
-                                con.or[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 body &&
-                                !body.includes([con.or[i].field1])
+                                !body.includes([con.criteria[i].field1])
                             ) {
                                 validity = true;
-                                if (con.or[i].field1) {
+                                if (con.criteria[i].field1) {
                                     successReasons.push(
-                                        `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                                        `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                                     );
                                 }
                             } else {
-                                if (con.or[i].field1) {
+                                if (con.criteria[i].field1) {
                                     failedReasons.push(
-                                        `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                                        `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                                     );
                                 }
                             }
                         } else {
                             if (
-                                con.or[i] &&
-                                con.or[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 body &&
-                                !body[con.or[i].field1]
+                                !body[con.criteria[i].field1]
                             ) {
                                 validity = true;
-                                if (con.or[i].field1) {
+                                if (con.criteria[i].field1) {
                                     successReasons.push(
-                                        `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                                        `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                                     );
                                 }
                             } else {
-                                if (con.or[i].field1) {
+                                if (con.criteria[i].field1) {
                                     failedReasons.push(
-                                        `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                                        `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                                     );
                                 }
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'jsExpression'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'jsExpression'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].field1 &&
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
                             body &&
-                            body[con.or[i].field1] === con.or[i].field1
+                            body[con.criteria[i].field1] ===
+                                con.criteria[i].field1
                         ) {
                             validity = true;
-                            if (con.or[i].field1) {
+                            if (con.criteria[i].field1) {
                                 successReasons.push(
-                                    `${criteriaStrings.responseBody} contains Javascript expression ${con.or[i].field1}`
+                                    `${criteriaStrings.responseBody} contains Javascript expression ${con.criteria[i].field1}`
                                 );
                             }
                         } else {
-                            if (con.or[i].field1) {
+                            if (con.criteria[i].field1) {
                                 failedReasons.push(
-                                    `${criteriaStrings.responseBody} does not contain Javascript expression ${con.or[i].field1}`
+                                    `${criteriaStrings.responseBody} does not contain Javascript expression ${con.criteria[i].field1}`
                                 );
                             }
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'empty'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'empty'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].filter &&
+                            con.criteria[i] &&
+                            con.criteria[i].filter &&
                             body &&
                             _.isEmpty(body)
                         ) {
@@ -5627,13 +5817,13 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEmpty'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEmpty'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].filter &&
+                            con.criteria[i] &&
+                            con.criteria[i].filter &&
                             body &&
                             !_.isEmpty(body)
                         ) {
@@ -5647,55 +5837,65 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'evaluateResponse'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'evaluateResponse'
                     ) {
-                        const responseDisplay = con.or[i].field1
-                            ? con.or[i].field1.includes('response.body') &&
-                              con.or[i].field1.includes('response.headers')
+                        const responseDisplay = con.criteria[i].field1
+                            ? con.criteria[i].field1.includes(
+                                  'response.body'
+                              ) &&
+                              con.criteria[i].field1.includes(
+                                  'response.headers'
+                              )
                                 ? {
                                       headers: response.headers,
                                       body: response.body,
                                   }
-                                : con.or[i].field1.includes('response.headers')
+                                : con.criteria[i].field1.includes(
+                                      'response.headers'
+                                  )
                                 ? response.headers
-                                : con.or[i].field1.includes('response.body')
+                                : con.criteria[i].field1.includes(
+                                      'response.body'
+                                  )
                                 ? response.body
                                 : response
                             : response;
                         try {
                             if (
-                                con.or[i] &&
-                                con.or[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 response &&
                                 Function(
                                     '"use strict";const response = ' +
                                         JSON.stringify(response) +
                                         ';return (' +
-                                        con.or[i].field1 +
+                                        con.criteria[i].field1 +
                                         ');'
                                 )()
                             ) {
                                 validity = true;
-                                if (con.or[i].field1) {
+                                if (con.criteria[i].field1) {
                                     successReasons.push(
                                         `${
                                             criteriaStrings.response
                                         } \`${JSON.stringify(
                                             responseDisplay
-                                        )}\` evaluate \`${con.or[i].field1}\``
+                                        )}\` evaluate \`${
+                                            con.criteria[i].field1
+                                        }\``
                                     );
                                 }
                             } else {
-                                if (con.or[i].field1) {
+                                if (con.criteria[i].field1) {
                                     failedReasons.push(
                                         `${
                                             criteriaStrings.response
                                         } \`${JSON.stringify(
                                             responseDisplay
                                         )}\` did not evaluate \`${
-                                            con.or[i].field1
+                                            con.criteria[i].field1
                                         }\``
                                     );
                                 }
@@ -5704,283 +5904,372 @@ const checkOr = async (
                             failedReasons.push(
                                 `${criteriaStrings.response} \`${JSON.stringify(
                                     responseDisplay
-                                )}\` did not evaluate \`${con.or[i].field1}\``
+                                )}\` did not evaluate \`${
+                                    con.criteria[i].field1
+                                }\``
                             );
                         }
                     }
                 } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'queryString'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'queryString'
                 ) {
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'contains'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'contains'
                     ) {
                         if (
                             !(
-                                con.or[i] &&
-                                con.or[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 queryParams &&
                                 queryParams.includes(
-                                    con.or[i].field1.toLowerCase()
+                                    con.criteria[i].field1.toLowerCase()
                                 )
                             )
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                                `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                                `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                             );
                         }
                     }
-                } else if (con.or[i] && con.or[i].responseType === 'headers') {
+                } else if (
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'headers'
+                ) {
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'contains'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'contains'
                     ) {
                         if (
                             !(
-                                con.or[i] &&
-                                con.or[i].field1 &&
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
                                 headers &&
-                                headers.includes(con.or[i].field1.toLowerCase())
+                                headers.includes(
+                                    con.criteria[i].field1.toLowerCase()
+                                )
                             )
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings.responseBody} did not contain ${con.or[i].field1}`
+                                `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings.responseBody} contains ${con.or[i].field1}`
+                                `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                             );
                         }
                     }
                 } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'podStatus'
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'podStatus'
                 ) {
+                    const healthyPods = ['running', 'pending', 'succeeded'];
                     if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
-                    ) {
-                        // eslint-disable-next-line no-loop-func
-                        payload.podData.allPods.forEach(pod => {
-                            if (
-                                con.or[i] &&
-                                con.or[i].field1 &&
-                                pod.podStatus &&
-                                pod.podStatus.toLowerCase() ===
-                                    con.or[i].field1.toLowerCase()
-                            ) {
-                                validity = true;
-                                successReasons.push(
-                                    `${pod.podName} status is ${pod.podStatus}`
-                                );
-                            } else {
-                                failedReasons.push(
-                                    `${pod.podName} status is ${pod.podStatus}`
-                                );
-                            }
-                        });
-                    } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
-                    ) {
-                        // eslint-disable-next-line no-loop-func
-                        payload.podData.allPods.forEach(pod => {
-                            if (
-                                con.or[i] &&
-                                con.or[i].field1 &&
-                                pod.podStatus &&
-                                pod.podStatus.toLowerCase() !==
-                                    con.or[i].field1.toLowerCase()
-                            ) {
-                                validity = true;
-                                successReasons.push(
-                                    `${pod.podName} status is ${pod.podStatus}`
-                                );
-                            } else {
-                                failedReasons.push(
-                                    `${pod.podName} status is ${pod.podStatus}`
-                                );
-                            }
-                        });
-                    }
-                } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'jobStatus'
-                ) {
-                    if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
-                    ) {
-                        // eslint-disable-next-line no-loop-func
-                        payload.jobData.allJobs.forEach(job => {
-                            if (
-                                con.or[i] &&
-                                con.or[i].field1 &&
-                                job.jobStatus &&
-                                job.jobStatus.toLowerCase() ===
-                                    con.or[i].field1.toLowerCase()
-                            ) {
-                                validity = true;
-                                successReasons.push(
-                                    `${job.jobName} ${job.jobStatus}`
-                                );
-                            } else {
-                                failedReasons.push(
-                                    `${job.jobName} ${job.jobStatus}`
-                                );
-                            }
-                        });
-                    } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
-                    ) {
-                        // eslint-disable-next-line no-loop-func
-                        payload.jobData.allJobs.forEach(job => {
-                            if (
-                                con.or[i] &&
-                                con.or[i].field1 &&
-                                job.jobStatus &&
-                                job.jobStatus.toLowerCase() !==
-                                    con.or[i].field1.toLowerCase()
-                            ) {
-                                validity = true;
-                                successReasons.push(
-                                    `${job.jobName} ${job.jobStatus}`
-                                );
-                            } else {
-                                failedReasons.push(
-                                    `${job.jobName} ${job.jobStatus}`
-                                );
-                            }
-                        });
-                    }
-                } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'desiredDeployment'
-                ) {
-                    if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
-                    ) {
-                        payload.deploymentData.allDeployments.forEach(
-                            // eslint-disable-next-line no-loop-func
-                            deployment => {
-                                if (
-                                    deployment.desiredDeployment ===
-                                    deployment.readyDeployment
-                                ) {
-                                    validity = true;
-                                    successReasons.push(
-                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                                    );
-                                } else {
-                                    failedReasons.push(
-                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                                    );
-                                }
-                            }
-                        );
-                    } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
-                    ) {
-                        payload.deploymentData.allDeployments.forEach(
-                            // eslint-disable-next-line no-loop-func
-                            deployment => {
-                                if (
-                                    deployment.desiredDeployment !==
-                                    deployment.readyDeployment
-                                ) {
-                                    validity = true;
-                                    successReasons.push(
-                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                                    );
-                                } else {
-                                    failedReasons.push(
-                                        `${deployment.deploymentName} ${deployment.readyDeployment}/${deployment.desiredDeployment}`
-                                    );
-                                }
-                            }
-                        );
-                    }
-                } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'desiredStatefulsets'
-                ) {
-                    if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'equalTo'
-                    ) {
-                        payload.statefulsetData.allStatefulset.forEach(
-                            // eslint-disable-next-line no-loop-func
-                            statefulset => {
-                                if (
-                                    statefulset.desiredStatefulsets ===
-                                    statefulset.readyStatefulsets
-                                ) {
-                                    validity = true;
-                                    successReasons.push(
-                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                                    );
-                                } else {
-                                    failedReasons.push(
-                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                                    );
-                                }
-                            }
-                        );
-                    } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'notEqualTo'
-                    ) {
-                        payload.statefulsetData.allStatefulset.forEach(
-                            // eslint-disable-next-line no-loop-func
-                            statefulset => {
-                                if (
-                                    statefulset.desiredStatefulsets !==
-                                    statefulset.readyStatefulsets
-                                ) {
-                                    validity = true;
-                                    successReasons.push(
-                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                                    );
-                                } else {
-                                    failedReasons.push(
-                                        `${statefulset.statefulsetName} ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
-                                    );
-                                }
-                            }
-                        );
-                    }
-                } else if (
-                    con.or[i] &&
-                    con.or[i].responseType === 'respondsToPing'
-                ) {
-                    if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'isUp'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].filter &&
+                            !payload.podData.allPods ||
+                            payload.podData.allPods.length === 0
+                        ) {
+                            failedReasons.push('Pod is not available');
+                        } else {
+                            // eslint-disable-next-line no-loop-func
+                            payload.podData.allPods.forEach(pod => {
+                                if (
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
+                                    pod.podStatus &&
+                                    pod.podStatus.toLowerCase() ===
+                                        con.criteria[i].field1.toLowerCase()
+                                ) {
+                                    validity = true;
+                                    successReasons.push(
+                                        `${pod.podName} pod status is ${pod.podStatus}`
+                                    );
+                                } else {
+                                    if (
+                                        !healthyPods.includes(
+                                            pod.podStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${pod.podName} pod status is ${pod.podStatus}`
+                                        );
+                                    }
+                                }
+                            });
+                        }
+                    } else if (
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !payload.podData.allPods ||
+                            payload.podData.allPods.length === 0
+                        ) {
+                            failedReasons.push('Pod is not available');
+                        } else {
+                            // eslint-disable-next-line no-loop-func
+                            payload.podData.allPods.forEach(pod => {
+                                if (
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
+                                    pod.podStatus &&
+                                    pod.podStatus.toLowerCase() !==
+                                        con.criteria[i].field1.toLowerCase()
+                                ) {
+                                    validity = true;
+                                    successReasons.push(
+                                        `${pod.podName} pod status is ${pod.podStatus}`
+                                    );
+                                } else {
+                                    if (
+                                        !healthyPods.includes(
+                                            pod.podStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${pod.podName} pod status is ${pod.podStatus}`
+                                        );
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } else if (
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'jobStatus'
+                ) {
+                    const healthyJobs = ['running', 'succeeded'];
+                    if (
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            !payload.jobData.allJobs ||
+                            payload.jobData.allJobs.length === 0
+                        ) {
+                            failedReasons.push('Job is not available');
+                        } else {
+                            // eslint-disable-next-line no-loop-func
+                            payload.jobData.allJobs.forEach(job => {
+                                if (
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
+                                    job.jobStatus &&
+                                    job.jobStatus.toLowerCase() ===
+                                        con.criteria[i].field1.toLowerCase()
+                                ) {
+                                    validity = true;
+                                    successReasons.push(
+                                        `${job.jobName} job status is ${job.jobStatus}`
+                                    );
+                                } else {
+                                    if (
+                                        !healthyJobs.includes(
+                                            job.jobStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${job.jobName} job status is ${job.jobStatus}`
+                                        );
+                                    }
+                                }
+                            });
+                        }
+                    } else if (
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !payload.jobData.allJobs ||
+                            payload.jobData.allJobs.length === 0
+                        ) {
+                            failedReasons.push('Job is not available');
+                        } else {
+                            // eslint-disable-next-line no-loop-func
+                            payload.jobData.allJobs.forEach(job => {
+                                if (
+                                    con.criteria[i] &&
+                                    con.criteria[i].field1 &&
+                                    job.jobStatus &&
+                                    job.jobStatus.toLowerCase() !==
+                                        con.criteria[i].field1.toLowerCase()
+                                ) {
+                                    validity = true;
+                                    successReasons.push(
+                                        `${job.jobName} job status is ${job.jobStatus}`
+                                    );
+                                } else {
+                                    if (
+                                        !healthyJobs.includes(
+                                            job.jobStatus.toLowerCase()
+                                        )
+                                    ) {
+                                        failedReasons.push(
+                                            `${job.jobName} job status is ${job.jobStatus}`
+                                        );
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } else if (
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'desiredDeployment'
+                ) {
+                    if (
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            !payload.deploymentData.allDeployments ||
+                            payload.deploymentData.allDeployments.length === 0
+                        ) {
+                            failedReasons.push('Deployment is not available');
+                        } else {
+                            payload.deploymentData.allDeployments.forEach(
+                                // eslint-disable-next-line no-loop-func
+                                deployment => {
+                                    if (
+                                        deployment.desiredDeployment ===
+                                        deployment.readyDeployment
+                                    ) {
+                                        validity = true;
+                                        successReasons.push(
+                                            `${deployment.deploymentName} deployment state is ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                        );
+                                    } else {
+                                        failedReasons.push(
+                                            `${deployment.deploymentName} deployment state is ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    } else if (
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !payload.deploymentData.allDeployments ||
+                            payload.deploymentData.allDeployments.length === 0
+                        ) {
+                            failedReasons.push('Deployment is not available');
+                        } else {
+                            payload.deploymentData.allDeployments.forEach(
+                                // eslint-disable-next-line no-loop-func
+                                deployment => {
+                                    if (
+                                        deployment.desiredDeployment !==
+                                        deployment.readyDeployment
+                                    ) {
+                                        validity = true;
+                                        successReasons.push(
+                                            `${deployment.deploymentName} deployment state is ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                        );
+                                    } else {
+                                        failedReasons.push(
+                                            `${deployment.deploymentName} deployment state is ${deployment.readyDeployment}/${deployment.desiredDeployment}`
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    }
+                } else if (
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'desiredStatefulsets'
+                ) {
+                    if (
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'equalTo'
+                    ) {
+                        if (
+                            !payload.statefulsetData.allStatefulset ||
+                            payload.statefulsetData.allStatefulset.length === 0
+                        ) {
+                            failedReasons.push('Statefulset is not available');
+                        } else {
+                            payload.statefulsetData.allStatefulset.forEach(
+                                // eslint-disable-next-line no-loop-func
+                                statefulset => {
+                                    if (
+                                        statefulset.desiredStatefulsets ===
+                                        statefulset.readyStatefulsets
+                                    ) {
+                                        validity = true;
+                                        successReasons.push(
+                                            `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                        );
+                                    } else {
+                                        failedReasons.push(
+                                            `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    } else if (
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'notEqualTo'
+                    ) {
+                        if (
+                            !payload.statefulsetData.allStatefulset ||
+                            payload.statefulsetData.allStatefulset.length === 0
+                        ) {
+                            failedReasons.push('Statefulset is not available');
+                        } else {
+                            payload.statefulsetData.allStatefulset.forEach(
+                                // eslint-disable-next-line no-loop-func
+                                statefulset => {
+                                    if (
+                                        statefulset.desiredStatefulsets !==
+                                        statefulset.readyStatefulsets
+                                    ) {
+                                        validity = true;
+                                        successReasons.push(
+                                            `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                        );
+                                    } else {
+                                        failedReasons.push(
+                                            `${statefulset.statefulsetName} statefulset state is ${statefulset.readyStatefulsets}/${statefulset.desiredStatefulsets}`
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    }
+                } else if (
+                    con.criteria[i] &&
+                    con.criteria[i].responseType === 'respondsToPing'
+                ) {
+                    if (
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'isUp'
+                    ) {
+                        if (
+                            con.criteria[i] &&
+                            con.criteria[i].filter &&
                             !(statusCode === 408 || statusCode === '408')
                         ) {
                             validity = true;
@@ -5995,13 +6284,13 @@ const checkOr = async (
                             );
                         }
                     } else if (
-                        con.or[i] &&
-                        con.or[i].filter &&
-                        con.or[i].filter === 'isDown'
+                        con.criteria[i] &&
+                        con.criteria[i].filter &&
+                        con.criteria[i].filter === 'isDown'
                     ) {
                         if (
-                            con.or[i] &&
-                            con.or[i].filter &&
+                            con.criteria[i] &&
+                            con.criteria[i].filter &&
                             (statusCode === 408 || statusCode === '408')
                         ) {
                             validity = true;
@@ -6017,66 +6306,7 @@ const checkOr = async (
                         }
                     }
                 }
-
-                if (
-                    con.or[i] &&
-                    con.or[i].collection &&
-                    con.or[i].collection.and &&
-                    con.or[i].collection.and.length
-                ) {
-                    const temp = await checkAnd(
-                        payload,
-                        con.or[i].collection.and,
-                        statusCode,
-                        body,
-                        ssl,
-                        response,
-                        successReasons,
-                        failedReasons
-                    );
-                    if (temp) {
-                        validity = temp;
-                    }
-                } else if (
-                    con.or[i] &&
-                    con.or[i].collection &&
-                    con.or[i].collection.or &&
-                    con.or[i].collection.or.length
-                ) {
-                    const temp1 = await checkOr(
-                        payload,
-                        con.or[i].collection.or,
-                        statusCode,
-                        body,
-                        ssl,
-                        response,
-                        successReasons,
-                        failedReasons
-                    );
-                    if (temp1) {
-                        validity = temp1;
-                    }
-                }
             }
-        }
-    }
-
-    if (con && con.and && con.and.length > 0) {
-        const temp = await checkAnd(
-            payload,
-            { and: con.and },
-            statusCode,
-            body,
-            ssl,
-            response,
-            successReasons,
-            failedReasons,
-            type,
-            queryParams,
-            headers
-        );
-        if (temp) {
-            validity = temp;
         }
     }
 
@@ -6163,24 +6393,48 @@ const checkScriptAnd = (
     failedReasons
 ) => {
     let valid = true;
-    if (con && con.and && con.and.length > 0) {
-        for (let i = 0; i < con.and.length; i++) {
-            if (Array.isArray(con.and[i])) {
-                // check script and
-                const subConditionValid = checkScriptAnd(
-                    payload,
-                    { and: con.and[i] },
-                    statusCode,
-                    body,
-                    successReasons,
-                    failedReasons
-                );
-                if (!subConditionValid) {
-                    valid = false;
+    if (con && con.criteria && con.criteria.length > 0) {
+        for (let i = 0; i < con.criteria.length; i++) {
+            if (
+                con.criteria[i].criteria &&
+                con.criteria[i].criteria.length > 0
+            ) {
+                if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'and'
+                ) {
+                    // check script and
+                    const subConditionValid = checkScriptAnd(
+                        payload,
+                        con.criteria[i],
+                        statusCode,
+                        body,
+                        successReasons,
+                        failedReasons
+                    );
+                    if (!subConditionValid) {
+                        valid = false;
+                    }
+                } else if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'or'
+                ) {
+                    // check script or
+                    const subConditionValid = checkScriptOr(
+                        payload,
+                        con.criteria[i],
+                        statusCode,
+                        body,
+                        successReasons,
+                        failedReasons
+                    );
+                    if (!subConditionValid) {
+                        valid = false;
+                    }
                 }
             } else {
                 const validity = checkScriptCondition(
-                    con.and[i],
+                    con.criteria[i],
                     payload,
                     body
                 );
@@ -6196,60 +6450,6 @@ const checkScriptAnd = (
         }
     }
 
-    if (con && con.or && con.or.length > 0) {
-        const subConditionValid = checkScriptOr(
-            payload,
-            { or: con.or },
-            statusCode,
-            body,
-            successReasons,
-            failedReasons
-        );
-        if (!subConditionValid) {
-            valid = false;
-        }
-    }
-
-    // con.forEach(condition => {
-    //     if (condition.collection) {
-    //         if (condition.collection.and && condition.collection.and.length) {
-    //             const subConditionValid = checkScriptAnd(
-    //                 payload,
-    //                 condition.collection.and,
-    //                 statusCode,
-    //                 body,
-    //                 successReasons,
-    //                 failedReasons
-    //             );
-    //             if (!subConditionValid) {
-    //                 valid = false;
-    //             }
-    //         }
-    //         if (condition.collection.or && condition.collection.or.length) {
-    //             const subConditionValid = checkScriptOr(
-    //                 payload,
-    //                 condition.collection.or,
-    //                 statusCode,
-    //                 body,
-    //                 successReasons,
-    //                 failedReasons
-    //             );
-    //             if (!subConditionValid) {
-    //                 valid = false;
-    //             }
-    //         }
-    //     } else {
-    //         const validity = checkScriptCondition(condition, payload, body);
-    //         if (validity) {
-    //             if (validity.valid) {
-    //                 successReasons.push(validity.reason);
-    //             } else {
-    //                 valid = false;
-    //                 failedReasons.push(validity.reason);
-    //             }
-    //         }
-    //     }
-    // });
     return valid;
 };
 
@@ -6262,23 +6462,51 @@ const checkScriptOr = (
     failedReasons
 ) => {
     let valid = false;
-    if (con && con.or && con.or.length > 0) {
-        for (let i = 0; i < con.or.length; i++) {
-            if (Array.isArray(con.or[i])) {
-                // check script or
-                const subConditionValid = checkScriptOr(
-                    payload,
-                    { or: con.or[i] },
-                    statusCode,
-                    body,
-                    successReasons,
-                    failedReasons
-                );
-                if (subConditionValid) {
-                    valid = true;
+    if (con && con.criteria && con.criteria.length > 0) {
+        for (let i = 0; i < con.criteria.length; i++) {
+            if (
+                con.criteria[i].criteria &&
+                con.criteria[i].criteria.length > 0
+            ) {
+                if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'or'
+                ) {
+                    // check script or
+                    const subConditionValid = checkScriptOr(
+                        payload,
+                        con.criteria[i],
+                        statusCode,
+                        body,
+                        successReasons,
+                        failedReasons
+                    );
+                    if (subConditionValid) {
+                        valid = true;
+                    }
+                } else if (
+                    con.criteria[i].condition &&
+                    con.criteria[i].condition === 'and'
+                ) {
+                    // check script and
+                    const subConditionValid = checkScriptAnd(
+                        payload,
+                        con.criteria[i],
+                        statusCode,
+                        body,
+                        successReasons,
+                        failedReasons
+                    );
+                    if (subConditionValid) {
+                        valid = true;
+                    }
                 }
             } else {
-                const validity = checkScriptCondition(con.or[i], payload, body);
+                const validity = checkScriptCondition(
+                    con.criteria[i],
+                    payload,
+                    body
+                );
                 if (validity) {
                     if (validity.valid) {
                         valid = true;
@@ -6291,59 +6519,6 @@ const checkScriptOr = (
         }
     }
 
-    if (con && con.and && con.and.length > 0) {
-        const subConditionValid = checkScriptAnd(
-            payload,
-            { and: con.and },
-            statusCode,
-            body,
-            successReasons,
-            failedReasons
-        );
-        if (subConditionValid) {
-            valid = true;
-        }
-    }
-    // con.forEach(condition => {
-    //     if (condition.collection) {
-    //         if (condition.collection.and && condition.collection.and.length) {
-    //             const subConditionValid = checkScriptAnd(
-    //                 payload,
-    //                 condition.collection.and,
-    //                 statusCode,
-    //                 body,
-    //                 successReasons,
-    //                 failedReasons
-    //             );
-    //             if (subConditionValid) {
-    //                 valid = true;
-    //             }
-    //         }
-    //         if (condition.collection.or && condition.collection.or.length) {
-    //             const subConditionValid = checkScriptOr(
-    //                 payload,
-    //                 condition.collection.or,
-    //                 statusCode,
-    //                 body,
-    //                 successReasons,
-    //                 failedReasons
-    //             );
-    //             if (subConditionValid) {
-    //                 valid = true;
-    //             }
-    //         }
-    //     } else {
-    //         const validity = checkScriptCondition(condition, payload, body);
-    //         if (validity) {
-    //             if (validity.valid) {
-    //                 valid = true;
-    //                 successReasons.push(validity.reason);
-    //             } else {
-    //                 failedReasons.push(validity.reason);
-    //             }
-    //         }
-    //     }
-    // });
     return valid;
 };
 
@@ -6510,4 +6685,3 @@ const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
 const { some, forEach } = require('p-iteration');
-const { isEmpty } = require('lodash');

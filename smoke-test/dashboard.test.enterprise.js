@@ -90,7 +90,7 @@ describe('Enterprise Dashboard API', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                
+
                 await page.$eval('#components', el => el.click());
 
                 // Fill and submit New Component form
@@ -98,13 +98,15 @@ describe('Enterprise Dashboard API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
-                await page.goto(utils.DASHBOARD_URL,{waitUntil:'networkidle0'});
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 await page.$eval('#components', el => el.click());
 
                 // Navigate to details page of component created in previous test
                 await page.waitForSelector(`#more-details-${componentName}`);
                 await page.click(`#more-details-${componentName}`);
-                await page.waitForTimeout(3000)
+                await page.waitForTimeout(3000);
                 await page.$('#form-new-monitor', {
                     visible: true,
                 });
@@ -117,12 +119,10 @@ describe('Enterprise Dashboard API', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitForTimeout(3000)
+                await page.waitForTimeout(3000);
 
                 let spanElement;
-                spanElement = await page.$(
-                    `#monitor-title-${monitorName}`
-                );
+                spanElement = await page.$(`#monitor-title-${monitorName}`);
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
@@ -139,7 +139,7 @@ describe('Enterprise Dashboard API', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                
+
                 await page.$eval('#components', el => el.click());
 
                 // Navigate to details page of component created in previous test
@@ -153,11 +153,11 @@ describe('Enterprise Dashboard API', () => {
                 // Submit New Monitor form with incorrect details
                 await page.waitForSelector('#name');
                 await page.click('[data-testId=type_url]');
-                await page.waitForTimeout(3000)
+                await page.waitForTimeout(3000);
                 await page.$('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitForTimeout(3000)
+                await page.waitForTimeout(3000);
 
                 let spanElement;
                 spanElement = await page.$(

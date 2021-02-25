@@ -119,45 +119,31 @@ describe('SSO DEFAULT ROLES API', function() {
         ssoId2 = sso2.body._id;
     });
 
-    after(async function(){
+    after(async function() {
         await GlobalConfig.removeTestConfig();
-        await ProjectService.hardDeleteBy({'users.userId':userId});
+        await ProjectService.hardDeleteBy({ 'users.userId': userId });
         await UserService.hardDeleteBy({
             _id: {
-                $in: [
-                    adminId,
-                    userId,
-                ],
+                $in: [adminId, userId],
             },
         });
         await SsoDefaultRolesService.hardDeleteBy({
             _id: {
-                $in: [
-                    ssoDefaultRole1,
-                    ssoDefaultRole2,
-                    ssoDefaultRole3,
-                ],
+                $in: [ssoDefaultRole1, ssoDefaultRole2, ssoDefaultRole3],
             },
-        })
-        await ProjectService.hardDeleteBy({
-            'users.userId':{
-                $in: [
-                    adminId,
-                    userId,
-                ],
-            }
         });
-    
+        await ProjectService.hardDeleteBy({
+            'users.userId': {
+                $in: [adminId, userId],
+            },
+        });
+
         await SsoService.hardDeleteBy({
             _id: {
-                $in: [
-                    ssoId1,
-                    ssoId2,
-                ],
+                $in: [ssoId1, ssoId2],
             },
-        })
+        });
         await AirtableService.deleteAll({ tableName: 'User' });
-
     });
     it("should not create an 'Owner' role as default SSO role for a domain, in a project", async () => {
         const payload = {
@@ -249,7 +235,7 @@ describe('SSO DEFAULT ROLES API', function() {
     it('should automatically add the new SSO users to the existing projects with roles defined on default SSO roles', async () => {
         const user = ssoUsers[0];
         testUtils.unsetShared('authorization');
-        const ssoLoginRequest = await testUtils.ssoLogin({email: user.email});
+        const ssoLoginRequest = await testUtils.ssoLogin({ email: user.email });
         expect(ssoLoginRequest).to.have.status(200);
         expect(ssoLoginRequest.body).to.have.property('url');
         const { url: SAMLRequest } = ssoLoginRequest.body;

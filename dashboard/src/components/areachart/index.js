@@ -97,13 +97,12 @@ class AreaChart extends Component {
                     ? display
                         ? `${Math.round(
                               this.calcPercent(
-                                  data.kubernetesLog.jobData.jobStat
-                                      .succeededJobs,
+                                  data.kubernetesLog.jobData.jobStat.healthy,
                                   data.kubernetesLog.jobData.jobStat.totalJobs
                               ) || 0
                           )} ${symbol || '%'}`
                         : this.calcPercent(
-                              data.kubernetesLog.jobData.jobStat.succeededJobs,
+                              data.kubernetesLog.jobData.jobStat.healthy,
                               data.kubernetesLog.jobData.jobStat.totalJobs
                           ) || 0
                     : 0;
@@ -112,16 +111,15 @@ class AreaChart extends Component {
                     ? display
                         ? `${Math.round(
                               this.calcPercent(
+                                  data.kubernetesLog.deploymentData.healthy,
                                   data.kubernetesLog.deploymentData
-                                      .readyDeployment,
-                                  data.kubernetesLog.deploymentData
-                                      .desiredDeployment
+                                      .allDeployments.length
                               ) || 0
                           )} ${symbol || '%'}`
                         : this.calcPercent(
-                              data.kubernetesLog.deploymentData.readyDeployment,
-                              data.kubernetesLog.deploymentData
-                                  .desiredDeployment
+                              data.kubernetesLog.deploymentData.healthy,
+                              data.kubernetesLog.deploymentData.allDeployments
+                                  .length
                           ) || 0
                     : 0;
             case 'statefulset':
@@ -129,17 +127,15 @@ class AreaChart extends Component {
                     ? display
                         ? `${Math.round(
                               this.calcPercent(
+                                  data.kubernetesLog.statefulsetData.healthy,
                                   data.kubernetesLog.statefulsetData
-                                      .readyStatefulsets,
-                                  data.kubernetesLog.statefulsetData
-                                      .desiredStatefulsets
+                                      .allStatefulset.length
                               ) || 0
                           )} ${symbol || '%'}`
                         : this.calcPercent(
-                              data.kubernetesLog.statefulsetData
-                                  .readyStatefulsets,
-                              data.kubernetesLog.statefulsetData
-                                  .desiredStatefulsets
+                              data.kubernetesLog.statefulsetData.healthy,
+                              data.kubernetesLog.statefulsetData.allStatefulset
+                                  .length
                           ) || 0
                     : 0;
             default:

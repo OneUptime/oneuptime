@@ -171,7 +171,7 @@ class MonitorView extends React.Component {
             history,
             defaultSchedule,
         } = this.props;
-        const redirectTo = `/dashboard/project/${this.props.currentProject.slug}/on-call`;
+        const redirectTo = `/dashboard/project/${this.props.slug}/on-call`;
         let scheduleAlert;
         if (
             scheduleWarning.includes(monitorId) === false &&
@@ -828,7 +828,7 @@ const mapStateToProps = (state, props) => {
         initialValues[`url_${monitor._id}`] = monitor.data && monitor.data.url;
         initialValues[`deviceId_${monitor._id}`] =
             monitor.data && monitor.data.deviceId;
-        initialValues[`IPAddress_${monitor._id}`] =
+        initialValues[`ip_${monitor._id}`] =
             monitor.data && monitor.data.IPAddress;
         initialValues[`description_${monitor._id}`] =
             monitor.data && monitor.data.description;
@@ -976,9 +976,10 @@ const mapStateToProps = (state, props) => {
     return {
         defaultSchedule,
         scheduleWarning,
-        projectId:state.project.currentProject &&
-        state.project.currentProject._id,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
         monitorId,
+        slug: state.project.currentProject && state.project.currentProject.slug,
         componentId,
         monitor,
         edit: state.monitor.monitorsList.editMode ? true : false,
@@ -1015,6 +1016,7 @@ const mapDispatchToProps = dispatch => {
 
 MonitorView.propTypes = {
     projectId: PropTypes.string,
+    slug: PropTypes.string,
     monitorId: PropTypes.string,
     componentId: PropTypes.string,
     monitor: PropTypes.object,

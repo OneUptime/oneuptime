@@ -390,9 +390,7 @@ const mapStateToProps = state => ({
         state.project.currentProject !== null && state.project.currentProject,
     balance:
         state.project.currentProject && state.project.currentProject.balance,
-    projectId:
-    state.project.currentProject &&
-        state.project.currentProject._id,
+    projectId: state.project.currentProject && state.project.currentProject._id,
     isRequesting: state.project.addBalance.requesting,
     paymentIntent: state.project.addBalance.pi,
     currentProject: state.project.currentProject,

@@ -28,4 +28,6 @@ const TableEmptyRow = () => (
     </tr>
 );
 
+TableEmptyRow.displayName = 'TableEmptyRow';
+
 export default TableEmptyRow;

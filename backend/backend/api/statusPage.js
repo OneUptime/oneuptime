@@ -727,10 +727,10 @@ router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
 ) {
     try {
         const { incidentId } = req.params;
-        const { skip, limit, type } = req.query;
+        const { skip, limit, postOnStatusPage } = req.query;
 
         const response = await StatusPageService.getIncidentNotes(
-            { incidentId, type },
+            { incidentId, postOnStatusPage },
             skip,
             limit
         );

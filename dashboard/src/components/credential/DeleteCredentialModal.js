@@ -232,9 +232,7 @@ const mapStateToProps = (state, ownProps) => {
         isRequesting: state.credential.deleteCredential.requesting,
         deleteCredentialError: state.credential.deleteCredential.error,
         getSecurities: state.credential.getSecurities.requesting,
-        slug:
-        state.project.currentProject &&
-            state.project.currentProject.slug,
+        slug: state.project.currentProject && state.project.currentProject.slug,
         getSecuritiesError: state.credential.getSecurities.error,
         securities,
     };
