@@ -8,7 +8,6 @@ import queryString from 'query-string';
 import { PricingPlan, IS_SAAS_SERVICE } from '../config';
 import MessageBox from '../components/MessageBox';
 import { savePlanId, signUpReset } from '../actions/register';
-import { history } from '../store';
 
 class RegisterPage extends React.Component {
     componentWillUnmount() {
@@ -41,14 +40,7 @@ class RegisterPage extends React.Component {
     }
 
     render() {
-        const { register, masterAdminExists } = this.props;
-        if (
-            register.success &&
-            !masterAdminExists &&
-            !register.cardRegistered
-        ) {
-            history.push('/accounts/login');
-        }
+        const { register } = this.props;
 
         return (
             <div id="wrap" style={{ paddingTop: 0 }}>
@@ -61,7 +53,9 @@ class RegisterPage extends React.Component {
 
                 {/* REGISTRATION BOX */}
                 {this.props.register.success &&
-                !this.props.masterAdminExists ? (
+                !this.props.masterAdminExists &&
+                !register.user.cardRegistered &&
+                !register.user.token ? (
                     <MessageBox
                         title="Activate your Fyipe account"
                         message="An email is on its way to you with a verification link. Please don't forget to check spam. "
