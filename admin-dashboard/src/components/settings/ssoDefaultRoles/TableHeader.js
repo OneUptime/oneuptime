@@ -76,4 +76,6 @@ const TableHeader = () => (
     </thead>
 );
 
+TableHeader.displayName = 'TableHeader';
+
 export default TableHeader;

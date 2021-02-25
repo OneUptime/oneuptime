@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const BoxHeader = ({ title, description, buttons = [] }) => (
     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
@@ -27,5 +28,13 @@ const BoxHeader = ({ title, description, buttons = [] }) => (
         </div>
     </div>
 );
+
+BoxHeader.displayName = 'BoxHeader';
+
+BoxHeader.propTypes = {
+    title: PropTypes.string,
+    description: PropTypes.string,
+    buttons: PropTypes.func
+};
 
 export default BoxHeader;

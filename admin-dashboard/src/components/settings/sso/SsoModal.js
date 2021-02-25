@@ -270,6 +270,7 @@ Component.propTypes = {
     // eslint-disable-next-line react/no-unused-prop-types
     addSso: PropTypes.func.isRequired,
     fetchSsos: PropTypes.func.isRequired,
+    fetchSsoDefaultRoles: PropTypes.func.isRequired,
     // eslint-disable-next-line react/no-unused-prop-types
     initialValues: PropTypes.object,
     closeThisDialog: PropTypes.func.isRequired,
