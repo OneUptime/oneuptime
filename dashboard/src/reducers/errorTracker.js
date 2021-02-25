@@ -787,7 +787,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],
-                        errorTrackerIssues: temporaryIssue,
+                        errorTrackerIssues: temporaryIssues,
                     },
                 },
                 deleteErrorTracker: false,
