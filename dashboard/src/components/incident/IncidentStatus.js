@@ -915,8 +915,7 @@ export class IncidentStatus extends Component {
                                                                     </div>
                                                                 </div>
 
-                                                                <div className="bs-flex-display bs-margin-top-1 bs-justify-cont bs-margin-bottom bs-padding-left"
-                                                                >
+                                                                <div className="bs-flex-display bs-margin-top-1 bs-justify-cont bs-margin-bottom bs-padding-left">
                                                                     <span className="bs-bullet-container">
                                                                         <span className="bs-dark-bullet"></span>
                                                                     </span>
