@@ -187,7 +187,7 @@ export class RenderOption extends Component {
                 <div
                     className="bs-Fieldset-row"
                     style={Object.assign({}, flexStyle, {
-                        marginLeft: `${level > 1 ? level * 10 + 10 : 10}px`,
+                        marginLeft: `${level > 1 ? level * 10 : 10}px`,
                     })}
                 >
                     <label

@@ -33,7 +33,7 @@ export class ResponseParent extends Component {
                                                   display: 'inline-block',
                                                   marginLeft: `${
                                                       level > 1
-                                                          ? level * 10 + 10
+                                                          ? level * 10
                                                           : 10
                                                   }px`,
                                               }}
@@ -78,173 +78,250 @@ export class ResponseParent extends Component {
                                       ''
                                   )}
 
-                                  <RenderOptions
-                                      bodyfield={bodyfield[j]}
-                                      level={level}
-                                      addField={() =>
-                                          fields.insert(j + 1, {
-                                              responseType: '',
-                                              filter: '',
-                                              field1: '',
-                                              field2: '',
-                                              field3: false,
-                                          })
-                                      }
-                                      removeField={(
-                                          removeArrayField,
-                                          updateCriteriaField
-                                      ) => {
-                                          const lastCriteriaIndex = fields.name.lastIndexOf(
-                                              'criteria'
-                                          );
-                                          if (
-                                              bodyfield[j] &&
-                                              Object.keys(
-                                                  bodyfield[j]
-                                              ).includes('match')
-                                          ) {
-                                              if (bodyfield[j + 1]) {
-                                                  const updateVal = bodyfield.map(
-                                                      (field, i) => {
-                                                          if (i === j + 1) {
-                                                              if (
-                                                                  bodyfield[j]
-                                                                      .criteria &&
-                                                                  bodyfield[j]
-                                                                      .criteria
-                                                                      .length >
-                                                                      0
-                                                              ) {
+                                  <div style={{ marginLeft: 10 }}>
+                                      <RenderOptions
+                                          bodyfield={bodyfield[j]}
+                                          level={level}
+                                          addField={() =>
+                                              fields.insert(j + 1, {
+                                                  responseType: '',
+                                                  filter: '',
+                                                  field1: '',
+                                                  field2: '',
+                                                  field3: false,
+                                              })
+                                          }
+                                          removeField={(
+                                              removeArrayField,
+                                              updateCriteriaField
+                                          ) => {
+                                              const lastCriteriaIndex = fields.name.lastIndexOf(
+                                                  'criteria'
+                                              );
+
+                                              if (
+                                                  bodyfield[j] &&
+                                                  Object.keys(
+                                                      bodyfield[j]
+                                                  ).includes('match')
+                                              ) {
+                                                  if (bodyfield[j + 1]) {
+                                                      const updateVal = bodyfield.map(
+                                                          (field, i) => {
+                                                              if (i === j + 1) {
+                                                                  if (
+                                                                      bodyfield[
+                                                                          j
+                                                                      ] &&
+                                                                      bodyfield[
+                                                                          j
+                                                                      ]
+                                                                          .criteria &&
+                                                                      bodyfield[
+                                                                          j
+                                                                      ].criteria
+                                                                          .length >
+                                                                          0
+                                                                  ) {
+                                                                      field = {
+                                                                          ...field,
+                                                                          match:
+                                                                              bodyfield[
+                                                                                  j
+                                                                              ]
+                                                                                  .match,
+                                                                          field3: true,
+                                                                          criteria: [
+                                                                              ...(bodyfield[
+                                                                                  i
+                                                                              ] &&
+                                                                              bodyfield[
+                                                                                  i
+                                                                              ]
+                                                                                  .criteria
+                                                                                  ? bodyfield[
+                                                                                        i
+                                                                                    ]
+                                                                                        .criteria
+                                                                                  : []),
+                                                                              ...bodyfield[
+                                                                                  j
+                                                                              ]
+                                                                                  .criteria,
+                                                                          ],
+                                                                      };
+                                                                  } else {
+                                                                      field = {
+                                                                          ...field,
+                                                                          match:
+                                                                              bodyfield[
+                                                                                  j
+                                                                              ]
+                                                                                  .match,
+                                                                      };
+                                                                  }
+                                                              }
+                                                              return field;
+                                                          }
+                                                      );
+                                                      if (
+                                                          lastCriteriaIndex >= 0
+                                                      ) {
+                                                          updateCriteriaField(
+                                                              fields.name.substring(
+                                                                  0,
+                                                                  lastCriteriaIndex -
+                                                                      1
+                                                              ),
+                                                              updateVal,
+                                                              false
+                                                          );
+                                                      } else {
+                                                          updateCriteriaField(
+                                                              fields.name,
+                                                              updateVal,
+                                                              true
+                                                          );
+                                                      }
+                                                  }
+                                                  fields.remove(j);
+                                              } else if (
+                                                  bodyfield[j] &&
+                                                  bodyfield[j].criteria &&
+                                                  bodyfield[j].criteria.length >
+                                                      0
+                                              ) {
+                                                  if (bodyfield[j + 1]) {
+                                                      const updateVal = bodyfield.map(
+                                                          (field, i) => {
+                                                              if (i === j + 1) {
                                                                   field = {
                                                                       ...field,
-                                                                      match:
-                                                                          bodyfield[
-                                                                              j
-                                                                          ]
-                                                                              .match,
                                                                       field3: true,
-                                                                      criteria:
+                                                                      criteria: [
+                                                                          ...(bodyfield[
+                                                                              j +
+                                                                                  1
+                                                                          ] &&
+                                                                          bodyfield[
+                                                                              j +
+                                                                                  1
+                                                                          ]
+                                                                              .criteria
+                                                                              ? bodyfield[
+                                                                                    j +
+                                                                                        1
+                                                                                ]
+                                                                                    .criteria
+                                                                              : []),
+                                                                          ...(bodyfield[
+                                                                              j
+                                                                          ] &&
                                                                           bodyfield[
                                                                               j
                                                                           ]
-                                                                              .criteria,
-                                                                  };
-                                                              } else {
-                                                                  field = {
-                                                                      ...field,
-                                                                      match:
-                                                                          bodyfield[
-                                                                              j
-                                                                          ]
-                                                                              .match,
+                                                                              .criteria
+                                                                              ? bodyfield[
+                                                                                    j
+                                                                                ]
+                                                                                    .criteria
+                                                                              : []),
+                                                                      ],
                                                                   };
                                                               }
+                                                              return field;
                                                           }
-                                                          return field;
+                                                      );
+                                                      if (
+                                                          lastCriteriaIndex >= 0
+                                                      ) {
+                                                          updateCriteriaField(
+                                                              fields.name.substring(
+                                                                  0,
+                                                                  lastCriteriaIndex -
+                                                                      1
+                                                              ),
+                                                              updateVal,
+                                                              false
+                                                          );
+                                                      } else {
+                                                          updateCriteriaField(
+                                                              fields.name,
+                                                              updateVal,
+                                                              true
+                                                          );
                                                       }
-                                                  );
-                                                  if (lastCriteriaIndex >= 0) {
-                                                      updateCriteriaField(
-                                                          fields.name.substring(
-                                                              0,
-                                                              lastCriteriaIndex -
-                                                                  1
-                                                          ),
-                                                          updateVal,
-                                                          false
+                                                  } else if (bodyfield[j - 1]) {
+                                                      const updateVal = bodyfield.map(
+                                                          (field, i) => {
+                                                              if (i === j - 1) {
+                                                                  field = {
+                                                                      ...field,
+                                                                      field3: true,
+                                                                      criteria: [
+                                                                          ...(bodyfield[
+                                                                              j -
+                                                                                  1
+                                                                          ] &&
+                                                                          bodyfield[
+                                                                              j -
+                                                                                  1
+                                                                          ]
+                                                                              .criteria
+                                                                              ? bodyfield[
+                                                                                    j -
+                                                                                        1
+                                                                                ]
+                                                                                    .criteria
+                                                                              : []),
+                                                                          ...(bodyfield[
+                                                                              j
+                                                                          ] &&
+                                                                          bodyfield[
+                                                                              j
+                                                                          ]
+                                                                              .criteria
+                                                                              ? bodyfield[
+                                                                                    j
+                                                                                ]
+                                                                                    .criteria
+                                                                              : []),
+                                                                      ],
+                                                                  };
+                                                              }
+                                                              return field;
+                                                          }
                                                       );
-                                                  } else {
-                                                      updateCriteriaField(
-                                                          fields.name,
-                                                          updateVal,
-                                                          true
-                                                      );
+                                                      if (
+                                                          lastCriteriaIndex >= 0
+                                                      ) {
+                                                          updateCriteriaField(
+                                                              fields.name.substring(
+                                                                  0,
+                                                                  lastCriteriaIndex -
+                                                                      1
+                                                              ),
+                                                              updateVal,
+                                                              false
+                                                          );
+                                                      } else {
+                                                          updateCriteriaField(
+                                                              fields.name,
+                                                              updateVal,
+                                                              true
+                                                          );
+                                                      }
                                                   }
+                                                  fields.remove(j);
+                                              } else {
+                                                  fields.remove(j);
                                               }
-                                              fields.remove(j);
-                                          } else if (
-                                              bodyfield[j] &&
-                                              bodyfield[j].criteria &&
-                                              bodyfield[j].criteria.length > 0
-                                          ) {
-                                              if (bodyfield[j + 1]) {
-                                                  const updateVal = bodyfield.map(
-                                                      (field, i) => {
-                                                          if (i === j + 1) {
-                                                              field = {
-                                                                  ...field,
-                                                                  field3: true,
-                                                                  criteria:
-                                                                      bodyfield[
-                                                                          j
-                                                                      ]
-                                                                          .criteria,
-                                                              };
-                                                          }
-                                                          return field;
-                                                      }
-                                                  );
-                                                  if (lastCriteriaIndex >= 0) {
-                                                      updateCriteriaField(
-                                                          fields.name.substring(
-                                                              0,
-                                                              lastCriteriaIndex -
-                                                                  1
-                                                          ),
-                                                          updateVal,
-                                                          false
-                                                      );
-                                                  } else {
-                                                      updateCriteriaField(
-                                                          fields.name,
-                                                          updateVal,
-                                                          true
-                                                      );
-                                                  }
-                                              } else if (bodyfield[j - 1]) {
-                                                  const updateVal = bodyfield.map(
-                                                      (field, i) => {
-                                                          if (i === j - 1) {
-                                                              field = {
-                                                                  ...field,
-                                                                  field3: true,
-                                                                  criteria:
-                                                                      bodyfield[
-                                                                          j
-                                                                      ]
-                                                                          .criteria,
-                                                              };
-                                                          }
-                                                          return field;
-                                                      }
-                                                  );
-                                                  if (lastCriteriaIndex >= 0) {
-                                                      updateCriteriaField(
-                                                          fields.name.substring(
-                                                              0,
-                                                              lastCriteriaIndex -
-                                                                  1
-                                                          ),
-                                                          updateVal,
-                                                          false
-                                                      );
-                                                  } else {
-                                                      updateCriteriaField(
-                                                          fields.name,
-                                                          updateVal,
-                                                          true
-                                                      );
-                                                  }
-                                              }
-                                              fields.remove(j);
-                                          } else {
-                                              fields.remove(j);
-                                          }
-                                      }}
-                                      fieldnameprop={newval}
-                                      type={type}
-                                      criterionType={criterionType}
-                                  />
+                                          }}
+                                          fieldnameprop={newval}
+                                          type={type}
+                                          criterionType={criterionType}
+                                      />
+                                  </div>
 
                                   {//level < 3 &&
                                   bodyfield[j] && bodyfield[j].field3 ? (

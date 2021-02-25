@@ -35016,6 +35016,10 @@ span.CodeMirror-selectedtext {
   margin-bottom: 5px;
 }
 
+.bs-padding-left{
+padding-left:20px
+}
+
 
 .bs-bullet-container {
     display: flex;
