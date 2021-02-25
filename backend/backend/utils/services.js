@@ -23,7 +23,6 @@ module.exports = {
         for (let i = 0; i < main.length; i++) {
             if (typeof main[i].schedule == 'object') {
                 closeStringId = i - 1;
-                break;
             }
         }
         main.push(main[closeStringId]);
