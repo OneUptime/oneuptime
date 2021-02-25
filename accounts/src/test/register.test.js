@@ -151,12 +151,13 @@ describe('Registration API', () => {
 
     it('Should register User with valid details', async () => {
         await init.registerUser(user, page);
-        await page.waitForSelector('form#login-form');
-        await page.waitForSelector('#login-button');
+        await page.waitFor(5000);
+        await page.waitForSelector('#titleText');
         const innerText = await page.$eval(
-            '#login-button',
+            '#titleText',
             elem => elem.innerText
         );
-        expect(innerText).toEqual('Sign in');
+        page.url().should.containEql(utils.DASHBOARD_URL);
+        expect(innerText).toEqual('Home');
     }, 160000);
 });

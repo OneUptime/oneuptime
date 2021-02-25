@@ -36,13 +36,12 @@ export class RegisterForm extends Component {
 
     userFormSubmitted = values => {
         const thisObj = this;
+        const token = queryString.parse(thisObj.props.location.search).token;
+        values.token = token;
         this.props.saveUserState(values);
         this.props.isUserInvited(values).then(
             function(value) {
                 if (value.data) {
-                    const token = queryString.parse(
-                        thisObj.props.location.search
-                    ).token;
                     thisObj.props
                         .signupUser({
                             ...values,

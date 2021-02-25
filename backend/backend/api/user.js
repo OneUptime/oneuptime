@@ -174,6 +174,18 @@ router.post('/signup', async function(req, res) {
                     name: user.name,
                     email: user.email,
                     cardRegistered: user.stripeCustomerId ? true : false,
+                    tokens: {
+                        jwtAccessToken: `${jwt.sign(
+                            {
+                                id: user._id,
+                            },
+                            jwtSecretKey,
+                            { expiresIn: 8640000 }
+                        )}`,
+                        jwtRefreshToken: user.jwtRefreshToken,
+                    },
+                    role: user.role || null,
+                    verificationToken: user.verificationToken || null,
                 };
                 winston.info('User just signed up');
                 return sendItemResponse(req, res, authUserObj);

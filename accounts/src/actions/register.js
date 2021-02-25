@@ -79,6 +79,12 @@ export function signupUser(values) {
                     dispatch(loginSuccess(user.data));
                     dispatch(masterAdminExistsSuccess({ result: true }));
                 }
+                if (values.token) {
+                    dispatch(loginSuccess(user.data));
+                }
+                if (user.data.cardRegistered) {
+                    dispatch(loginSuccess(user.data));
+                }
             },
             function(error) {
                 if (error && error.response && error.response.data)
