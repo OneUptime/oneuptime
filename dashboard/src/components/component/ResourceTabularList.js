@@ -353,9 +353,20 @@ class ResourceTabularList extends Component {
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Margin-right--16 Flex-flex Flex-direction--row">
+                                                            <div
+                                                                className={`Box-root ${
+                                                                    componentResource.type ===
+                                                                    'error tracker'
+                                                                        ? ''
+                                                                        : 'Margin-right--16 '
+                                                                } Flex-flex Flex-direction--row`}
+                                                            >
                                                                 <span
                                                                     className={`Badge-text Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
+                                                                    style={{
+                                                                        whiteSpace:
+                                                                            'normal',
+                                                                    }}
                                                                 >
                                                                     {this.generateResourceStatus(
                                                                         componentResource
