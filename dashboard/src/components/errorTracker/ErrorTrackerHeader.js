@@ -45,7 +45,6 @@ class ErrorTrackerHeader extends Component {
         ) {
             deleting = true;
         }
-        console.log('errorTrackerIssue', errorTrackerIssue)
         return (
             <div>
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
