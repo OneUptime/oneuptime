@@ -305,7 +305,7 @@ ComponentDetail.propTypes = {
         PropTypes.object,
         PropTypes.array,
     ]),
-    fetchMonitors: PropTypes.func,
+    //  fetchMonitors: PropTypes.func, unused
     animateSidebar: PropTypes.func,
 };
 
