@@ -1048,6 +1048,23 @@ module.exports = {
             throw error;
         }
     },
+    sendErrorTrackerIssueDelete: async issue => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const errorTrackerId = issue.errorTrackerId._id;
+
+            global.io.emit(`deleteErrorTrackerIssue-${errorTrackerId}`, issue);
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.sendErrorTrackerIssueDelete',
+                error
+            );
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
