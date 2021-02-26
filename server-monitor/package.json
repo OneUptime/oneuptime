@@ -25,7 +25,7 @@
         "pino": "^5.13.4",
         "pino-pretty": "^3.2.1",
         "promise": "^8.0.3",
-        "systeminformation": "^4.32.0"
+        "systeminformation": "^5.5.0"
     },
     "optionalDependencies": {
         "node-linux": "^0.1.12",
