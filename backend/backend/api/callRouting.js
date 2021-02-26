@@ -87,9 +87,19 @@ router.post('/statusCallback', callStatus);
 
 router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
     try {
+        let { skip, limit } = req.query;
         const { projectId } = req.params;
-        const numbers = await CallRoutingService.findBy({ projectId });
-        return sendItemResponse(req, res, numbers);
+        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof limit === 'string') limit = parseInt(limit);
+
+        const numbers = await CallRoutingService.findBy(
+            { projectId },
+            skip,
+            limit
+        );
+        const count = await CallRoutingService.countBy({ projectId });
+
+        return sendItemResponse(req, res, { numbers, count, skip, limit });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

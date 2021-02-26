@@ -2,9 +2,13 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/callRouting';
 import errors from '../errors';
 
-export function getCallRoutingNumbers(projectId) {
+export function getCallRoutingNumbers(projectId, skip, limit) {
+    if (!skip) skip = 0;
+    if (!limit) limit = 10;
     return function(dispatch) {
-        const promise = getApi(`callRouting/${projectId}`);
+        const promise = getApi(
+            `callRouting/${projectId}?skip=${skip}&limit=${limit}`
+        );
         dispatch(getCallRoutingNumbersRequest());
 
         promise.then(
