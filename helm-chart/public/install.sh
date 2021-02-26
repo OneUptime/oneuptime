@@ -3,23 +3,6 @@
 # This is used to install Fyipe on a standalone VM
 # This is usally used for CI/CD testing, and to update VM's on GCP, Azure and AWS. 
 
-# create private key and public key
-echo "Setup private and public key"
-openssl genrsa -out private 2048
-chmod 0400 private
-openssl rsa -in private -out public -pubout
-# value of DKIM dns record
-echo "DKIM DNS TXT Record"
-echo "DNS Selector: fyipe._domainkey"
-echo "DNS Value: v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
-export PRIVATE_KEY=$(cat private | base64)
-# generate tls_cert.pem and tls_key.pem files with there keys
-echo "Setup tls_cert and tls_key"
-openssl req -x509 -nodes -days 2190 -newkey rsa:2048 -keyout tls_key.pem -out tls_cert.pem -subj "/C=US/ST=Massachusetts/L=Boston/O=Hackerbay/CN=globalminimalism.com"
-# Encode your tls to base64 and export it
-export TLS_KEY=$(cat tls_key.pem | base64)
-export TLS_CERT=$(cat tls_cert.pem | base64)
-
 # If this is the first install, then helm wont be found. 
 if [[ ! $(which helm) ]]
 then
@@ -53,6 +36,32 @@ then
     # Install jsonpath, a way for bash to interact with JSON
     echo "RUNNING COMMAND: sudo apt-get install -y python-jsonpath-rw"
     sudo apt-get install -y python-jsonpath-rw
+fi
+
+if [[ ! -n $DOMAIN ]]; then
+    export DOMAIN=fyipe.com
+fi
+
+if [[ ! -n $DKIM_PRIVATE_KEY ]]; then
+    # create private key and public key
+    echo "Setup private and public key"
+    openssl genrsa -out private 2048
+    chmod 0400 private
+    openssl rsa -in private -out public -pubout
+    # value of DKIM dns record
+    echo "DKIM DNS TXT Record"
+    echo "DNS Selector: fyipe._domainkey"
+    echo "DNS Value: v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
+    export DKIM_PRIVATE_KEY=$(cat private | base64)
+fi
+
+if [[ ! -n $TLS_KEY ]] && [[ ! -n $TLS_CERT ]]; then
+    # generate tls_cert.pem and tls_key.pem files with there keys
+    echo "Setup tls_cert and tls_key"
+    openssl req -x509 -nodes -days 2190 -newkey rsa:2048 -keyout tls_key.pem -out tls_cert.pem -subj "/C=US/ST=Massachusetts/L=Boston/O=Hackerbay/CN=$DOMAIN"
+    # Encode your tls to base64 and export it
+    export TLS_KEY=$(cat tls_key.pem | base64)
+    export TLS_CERT=$(cat tls_cert.pem | base64)
 fi
 
 #Install Docker and setup registry and insecure access to it.
@@ -184,8 +193,8 @@ then
             --set fyipe.admin.email=admin@admin.com \
             --set disableSignup=true \
             --set fyipe.admin.password=$INSTANCEID \
-            --set haraka.domain=globalminimalism.com \
-            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.domain=$DOMAIN \
+            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
             
@@ -196,8 +205,8 @@ then
             --set nginx-ingress-controller.service.type=NodePort \
             --set nginx-ingress-controller.hostNetwork=true \
             --set image.tag=$AVAILABLE_VERSION \
-            --set haraka.domain=globalminimalism.com \
-            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.domain=$DOMAIN \
+            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         fi
@@ -212,14 +221,14 @@ then
         if [[ "$2" == "enterprise" ]]
         then
             sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fyipe ./helm-chart/public/fyipe \
-            --set haraka.domain=globalminimalism.com \
-            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.domain=$DOMAIN \
+            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         else
             sudo helm install -f ./kubernetes/values-saas-ci.yaml fyipe ./helm-chart/public/fyipe \
-            --set haraka.domain=globalminimalism.com \
-            --set haraka.privateKey=$PRIVATE_KEY \
+            --set haraka.domain=$DOMAIN \
+            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         fi
@@ -235,8 +244,8 @@ else
         --set nginx-ingress-controller.service.type=NodePort \
         --set nginx-ingress-controller.hostNetwork=true \
         --set image.tag=$AVAILABLE_VERSION \
-        --set haraka.domain=globalminimalism.com \
-        --set haraka.privateKey=$PRIVATE_KEY \
+        --set haraka.domain=$DOMAIN \
+        --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
         --set haraka.tlsCert=$TLS_CERT \
         --set haraka.tlsKey=$TLS_KEY
     else
