@@ -118,7 +118,7 @@ export class AddScheduleModal extends Component {
         const fileName = file.name;
         this.setState({ fileName: fileName, fileUploaded: true });
     };
-    removeIntroAudio = e => {
+    removeIntroAudio = () => { // unused 'e'
         const _this = this;
         const { currentProject, data, removeIntroAudio } = this.props;
         removeIntroAudio(currentProject._id, data.callRoutingId).then(
