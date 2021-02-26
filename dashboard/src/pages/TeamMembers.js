@@ -19,7 +19,6 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import ShouldRender from '../components/basic/ShouldRender';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
-import { history } from '../store';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 const LoadingState = () => (
@@ -236,18 +235,20 @@ class TeamApp extends Component {
     }
 
     componentDidMount() {
-        if (!this.props.currentProject) {
-            const projectId = history.location.pathname
-                .split('project/')[1]
-                .split('/')[0];
-            this.props.subProjectTeamLoading(projectId);
-        } else {
+        if (this.props.currentProject) {
             this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > TEAM MEMBERS');
         }
     }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.currentProject !== this.props.currentProject) {
+            this.props.subProjectTeamLoading(this.props.currentProject._id);
+        }
+    }
+
     componentWillUnmount() {
         this.props.paginate('reset');
     }
