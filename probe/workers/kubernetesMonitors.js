@@ -2,6 +2,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const Path = require('path');
 const fetch = require('node-fetch');
+const uuidv1 = require('uuid/v1');
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const { serverUrl } = require('../utils/config');
@@ -17,9 +18,10 @@ module.exports = {
                 monitor.kubernetesConfig
             ) {
                 const configurationFile = monitor.kubernetesConfig;
+                const updatedConfigName = `${uuidv1()}${configurationFile}`;
                 const configPath = Path.resolve(
                     process.cwd(),
-                    configurationFile
+                    updatedConfigName
                 );
                 const namespace = monitor.kubernetesNamespace || 'default';
 
@@ -32,7 +34,6 @@ module.exports = {
                             const [
                                 podOutput,
                                 jobOutput,
-                                // eslint-disable-next-line no-unused-vars
                                 serviceOutput,
                                 deploymentOutput,
                                 statefulsetOutput,
@@ -44,13 +45,9 @@ module.exports = {
                                 loadStatefulsetOutput(configPath, namespace),
                             ]);
 
-                            // remove the config file
-                            await deleteFile(configPath);
-
                             if (
                                 podOutput &&
                                 jobOutput &&
-                                // serviceOutput &&
                                 deploymentOutput &&
                                 statefulsetOutput
                             ) {
@@ -180,9 +177,9 @@ module.exports = {
                                 };
 
                                 // handle services output
-                                // const serviceData = {
-                                //     runningServices: serviceOutput.items.length,
-                                // };
+                                const serviceData = {
+                                    runningServices: serviceOutput.items.length,
+                                };
 
                                 // handle deployment output
                                 let desiredDeployment = 0,
@@ -294,15 +291,19 @@ module.exports = {
                                 const data = {
                                     podData,
                                     jobData,
-                                    // serviceData,
+                                    serviceData,
                                     deploymentData,
                                     statefulsetData,
                                 };
+
                                 await ApiService.ping(monitor._id, {
                                     monitor,
                                     kubernetesData: data,
                                     type: monitor.type,
                                 });
+
+                                // remove the config file
+                                await deleteFile(configPath);
                             }
                         });
                         dest.on('error', async error => {
