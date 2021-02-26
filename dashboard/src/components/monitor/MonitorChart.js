@@ -805,7 +805,7 @@ export function MonitorChart({
                                                     </span>
                                                 </span>
                                             </div>
-            d                            </div>
+                                        </div>
                                     </div>
                                     <div className="db-Trend-colInformation">
                                         <div
