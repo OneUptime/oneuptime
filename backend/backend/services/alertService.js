@@ -183,7 +183,7 @@ module.exports = {
         const timelineAlerts = [
             ...timeline,
             ...alerts,
-            ...incidentMessages
+            ...incidentMessages,
         ].sort((a, b) => {
             return b.createdAt - a.createdAt;
         });
