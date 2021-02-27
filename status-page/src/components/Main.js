@@ -423,7 +423,11 @@ class Main extends Component {
                             )}
                             <div className="subscribe_box">
                                 <div>
-                                    <a href="https://fyipe.com" target="_blank">
+                                    <a
+                                        href="https://fyipe.com"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
                                         Fyipe's Status Page
                                     </a>
                                 </div>
