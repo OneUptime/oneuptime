@@ -103,6 +103,10 @@ div.block-chart::-webkit-scrollbar {
     background: #6CDB56;
   }
 
+  .resize-style:hover {
+    background-color: #366aa2 !important;
+  }
+
     div.block-chart div.bar:hover {
       opacity: 1.0;
     }
@@ -1344,6 +1348,12 @@ margin-left:10px;
   font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
 }
 
+.border-width-90 {
+  width: 90%;
+  margin: 0px auto 30px auto;
+  border: 1px solid #dfe1df;
+}
+
 .alerting-deplay {
   color: #ff3d00;
   font-size: 1.25rem;
@@ -1550,6 +1560,31 @@ margin-left:10px;
 
 .big_dot {
   margin-right: 3px;
+}
+
+.matop-40 {
+  margin-top: 40px;
+}
+
+.alerts_days {
+  display: flex;
+  color: #aaaaaa;
+  opacity: 0.5;
+}
+
+.spacer {
+  flex: 1;
+  margin: 0.75rem 1rem 0 1rem;
+  height: 1px;
+  background: #aaaaaa;
+  opacity: 0.3;
+}
+
+.bs-no-monitor {
+  border: 1px solid #8898aa;
+  padding: 40px 20px;
+  color: #8898aa;
+  border-radius: 4px;
 }
 
 @media screen and (max-width: 650px) {
