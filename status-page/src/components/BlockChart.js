@@ -163,12 +163,31 @@ class BlockChart extends Component {
         }
 
         const dateId = title.replace(/, | /g, '');
-
+        const extra = ' resize-style';
+        let style, classes;
+        if (this.props.theme) {
+            style = {
+                outline: 'none',
+                backgroundColor:
+                    backgroundColor === 'rgba(108, 219, 86)'
+                        ? 'rgb(73, 195, 177)'
+                        : backgroundColor,
+                opacity: 1,
+                width: '6px',
+            };
+            classes = bar + extra;
+        } else {
+            style = {
+                outline: 'none',
+                backgroundColor,
+            };
+            classes = bar;
+        }
         return (
             <div
                 id={`block${this.props.monitorId}${dateId}`}
-                className={bar}
-                style={{ outline: 'none', backgroundColor: backgroundColor }}
+                className={classes}
+                style={style}
                 title={`${title}
                 ${title1}`}
                 onClick={() => this.requestday(need, this.props.time.date)}
@@ -201,6 +220,9 @@ BlockChart.propTypes = {
     monitorName: PropTypes.any,
     monitorId: PropTypes.any,
     showIncidentCard: PropTypes.func,
+    theme: PropTypes.string,
+    windowSize: PropTypes.object,
+    range: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(BlockChart);
